@@ -1,7 +1,9 @@
 # research-pipeline
 
-A multi-agent research pipeline. Currently ships six agents, chained by
-data shape rather than by a shared orchestrator (see "Chaining agents" below):
+A multi-agent research pipeline. Currently ships six agents, each usable
+standalone and chained by data shape rather than by coupling to each other
+(see "Chaining agents individually" below); a LangGraph orchestrator runs all
+six end to end in one call (see "Running the whole pipeline"):
 
 - **literature** — searches arXiv + Semantic Scholar, dedupes, downloads PDFs.
   Built as a [LangGraph](https://github.com/langchain-ai/langgraph) `StateGraph`
@@ -80,7 +82,9 @@ The **Writer/Reviewer feedback loop**
 a small orchestrator, not itself an agent: draft → review → if issues, revise
 against the Reviewer's structured feedback → re-review → repeat, until the
 Reviewer finds zero issues and every quality score clears the threshold, or
-`max_iterations` is hit. See "Run" below for its CLI usage.
+`max_iterations` is hit. See "Run" below for its CLI usage. The orchestrator
+graph expresses that same loop as a conditional edge, and reuses this module's
+feedback-routing logic rather than duplicating it.
 
 All six are valid patterns for a new agent — pick whichever fits the
 agent's control flow, not necessarily the literature agent's graph shape.
@@ -94,6 +98,10 @@ src/research_pipeline/
 ├── llm_json.py            # shared "call the model, expect JSON, retry once on bad JSON" helper
 ├── cli.py                 # `research-pipeline <agent> ...` entry point
 ├── writer_reviewer_loop.py # orchestrator: draft -> review -> revise -> re-review loop (not an agent itself)
+├── orchestrator/          # LangGraph orchestrator running all six agents end to end (not an agent itself)
+│   ├── state.py            # PipelineState — one key per stage's full output dict
+│   ├── nodes.py            # thin nodes wrapping each agent's existing entry point
+│   └── graph.py            # StateGraph wiring, incl. the writer/reviewer cycle + compile()
 └── agents/
     ├── literature/         # LangGraph StateGraph agent
     │   ├── state.py         # graph state schema (TypedDict)
@@ -148,7 +156,40 @@ Two patterns exist in this repo, both fine to copy:
 
 Either way: register a subcommand for it in `cli.py`.
 
-### Chaining agents (Literature → Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer)
+### Running the whole pipeline (orchestrator)
+
+`orchestrator/` wires all six agents into a single LangGraph — Literature →
+Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer → finalize — so a
+full run is one call instead of six hand-chained ones:
+
+```python
+import uuid
+from research_pipeline.orchestrator import build_pipeline_graph
+
+state = build_pipeline_graph().invoke(
+    {"research_question": "does retrieval augmentation help small models?"},
+    config={"configurable": {"thread_id": str(uuid.uuid4())}},
+)
+state["final_result"]  # {final_paper_path, iterations_run, converged, unresolved_issues, ...}
+```
+
+The Writer/Reviewer cycle is a real conditional edge, not a Python loop:
+`review` routes back to `draft_or_revise` until `overall_pass` is True or
+`max_iterations` is spent — the same stop conditions, output files
+(`v1.pdf`, `v2.pdf`, …, `review_log.json`) and result shape as
+`run_writer_reviewer_loop`, which stays available for running just that loop
+against existing upstream output. The routing reads a value the Reviewer Agent
+already derives deterministically; the orchestrator adds no model judgment of
+its own. Each node calls the same `run_<name>_agent()` entry point documented
+below, so every stage still writes its own outputs and validates its own input.
+
+Optional inputs, all defaulting to the agents' own settings:
+`max_results_per_query`, `download_dir`, `output_dir`, `max_iterations`,
+`quality_threshold`. Pass preconfigured `writer`/`reviewer` agents (e.g.
+sharing one `chat_model`) via `config["configurable"]` rather than the state,
+which is checkpointed and so must stay serializable.
+
+### Chaining agents individually (Literature → Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer)
 
 Each agent's entry point takes a plain `dict`/`list[dict]` shaped like the
 previous agent's *output*, never the previous agent's internal state — so
@@ -223,6 +264,22 @@ skipped (logged as a warning) rather than failing the whole run — unauthentica
 requests to that API are aggressively rate-limited / rejected with 403s.
 
 ## Run
+
+To run every stage end to end in one command:
+
+```bash
+uv run research-pipeline orchestrate "recent approaches to reducing hallucination in RAG systems" \
+    --max-results 5 \
+    --output-dir outputs/paper
+```
+
+This runs the orchestrator graph described above and prints the final paper
+path, how many Writer/Reviewer iterations ran, whether it converged, and any
+unresolved issues. Every stage still writes its own outputs along the way, so
+a run can be inspected (or picked up from disk) stage by stage.
+
+The per-agent subcommands below run a single stage — useful for iterating on
+one agent, or resuming from a previous run's JSON.
 
 ```bash
 uv run research-pipeline literature "recent approaches to reducing hallucination in RAG systems" \

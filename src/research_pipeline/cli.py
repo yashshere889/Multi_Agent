@@ -4,6 +4,10 @@ Each agent gets its own subcommand, e.g.:
     research-pipeline literature "research question"
     research-pipeline hypothesis --from-file papers/metadata.json
 
+`orchestrate` runs every stage end to end in one command, via the LangGraph
+orchestrator in orchestrator/graph.py; the per-agent subcommands stay useful
+for running a single stage or resuming from a previous run's JSON on disk.
+
 Add a new agent by giving it its own subpackage under agents/<name>/ and
 wiring a subparser for it here, following run_literature_agent (LangGraph
 StateGraph agent) or run_hypothesis_agent_cli (plain callable agent) below —
@@ -24,6 +28,7 @@ from research_pipeline.agents.hypothesis import run_hypothesis_agent
 from research_pipeline.agents.literature.graph import build_literature_graph
 from research_pipeline.agents.reviewer import run_reviewer_agent
 from research_pipeline.agents.writer import run_writer_agent
+from research_pipeline.orchestrator.graph import build_pipeline_graph
 from research_pipeline.writer_reviewer_loop import run_writer_reviewer_loop
 
 logger = logging.getLogger(__name__)
@@ -171,6 +176,33 @@ def run_writer_reviewer_loop_cli(args: argparse.Namespace) -> None:
             print(f"- {issue}")
 
 
+def run_orchestrate_cli(args: argparse.Namespace) -> None:
+    graph = build_pipeline_graph()
+    run_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    state = graph.invoke(
+        {
+            "research_question": args.question,
+            "max_results_per_query": args.max_results,
+            "download_dir": args.download_dir,
+            "metadata_path": f"{args.download_dir}/metadata.json",
+            "output_dir": args.output_dir,
+            "max_iterations": args.max_iterations,
+            "quality_threshold": args.quality_threshold,
+        },
+        config=run_config,
+    )
+    result = state["final_result"]
+
+    print(f"\nFinal paper: {result['final_paper_path']}")
+    print(f"Iterations run: {result['iterations_run']}")
+    print(f"Converged: {result['converged']}")
+    print(f"Review history: {result['review_history_path']}")
+    if result["unresolved_issues"]:
+        print(f"\n{len(result['unresolved_issues'])} unresolved issue(s):")
+        for issue in result["unresolved_issues"]:
+            print(f"- {issue}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="research-pipeline", description="Multi-agent research pipeline")
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
@@ -229,6 +261,20 @@ def build_parser() -> argparse.ArgumentParser:
     loop.add_argument("--quality-threshold", type=int, default=None, help="minimum 1-5 quality score to pass (default: 4)")
     loop.add_argument("--output-dir", default=None, help="directory for v1.pdf, v2.pdf, ..., and review_log.json (default: outputs/paper)")
     loop.set_defaults(func=run_writer_reviewer_loop_cli)
+
+    orchestrate = subparsers.add_parser(
+        "orchestrate", help="run the whole pipeline end to end: literature -> hypothesis -> experiment-planner -> coder -> writer/reviewer loop"
+    )
+    orchestrate.add_argument("question", help="research question to search for")
+    orchestrate.add_argument("--max-results", type=int, default=5, help="max results per generated query, per source")
+    orchestrate.add_argument("--download-dir", default="papers", help="directory to save downloaded PDFs + metadata")
+    orchestrate.add_argument(
+        "--output-dir", default=None,
+        help="directory for every agent's output, plus v1.pdf, v2.pdf, ..., and review_log.json (default: each agent's own default)",
+    )
+    orchestrate.add_argument("--max-iterations", type=int, default=None, help="max Writer/Reviewer cycles (default: 3)")
+    orchestrate.add_argument("--quality-threshold", type=int, default=None, help="minimum 1-5 quality score to pass (default: 4)")
+    orchestrate.set_defaults(func=run_orchestrate_cli)
 
     return parser
 
