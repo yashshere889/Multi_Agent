@@ -16,6 +16,7 @@ from research_pipeline.agents.literature.clients import USER_AGENT, search_arxiv
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
+from research_pipeline.llm_json import strip_fences
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,9 @@ def generate_queries(state: LiteratureState) -> dict:
     try:
         chat_model = get_chat_model()
         response = chat_model.invoke(QUERY_GEN_PROMPT.format(question=question))
-        text = re.sub(r"^```(json)?|```$", "", response.content.strip(), flags=re.MULTILINE).strip()
-        parsed = json.loads(text)
+        # Shared with every other agent, so this one also drops a Nemotron
+        # <think> trace rather than only markdown fences.
+        parsed = json.loads(strip_fences(response.content))
         assert isinstance(parsed, list) and all(isinstance(q, str) for q in parsed)
         queries = parsed
     except Exception as exc:

@@ -241,9 +241,29 @@ cp .env.example .env   # then fill in LLM_BASE_URL / SEMANTIC_SCHOLAR_API_KEY
 
 ### LLM server
 
-The pipeline talks to any OpenAI-compatible chat endpoint via `LLM_BASE_URL`
-(`llama-server`, vLLM, LM Studio, Ollama's OpenAI-compat mode, etc.) — nothing
-in the code is Kaggle- or llama.cpp-specific anymore.
+Every agent is LLM-powered, and they all share one model:
+[NVIDIA Nemotron 3 Nano](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16)
+(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`), served by vLLM. The code
+reaches it as a plain OpenAI-compatible chat endpoint via `LLM_BASE_URL`, so
+any other such server (LM Studio, Ollama's OpenAI-compat mode, `llama-server`)
+still works by changing `LLM_BASE_URL`/`LLM_MODEL` — nothing is Kaggle- or
+llama.cpp-specific.
+
+`LLM_MODEL` must match the id the server advertises. The SLURM template passes
+no `--served-model-name`, so that's the full HF repo id; the model card's own
+example aliases it to `model`, in which case set `LLM_MODEL=model`.
+
+**Reasoning mode.** Nemotron 3 Nano thinks before answering, emitting a
+`<think>...</think>` trace. `LLM_ENABLE_THINKING` (default `false`) controls
+it, sent as the model's documented `chat_template_kwargs.enable_thinking` on
+every request. It's off because no stage consumes reasoning traces and a full
+run makes dozens of calls. Independently of that flag,
+[`llm_json.strip_reasoning`](src/research_pipeline/llm_json.py) strips any trace
+that arrives anyway — a server started *without* vLLM's `nano_v3` reasoning
+parser puts the trace in `content`, where it would otherwise break every
+agent's JSON parse. Turning thinking on is therefore safe either way; raise
+`LLM_TEMPERATURE`/`LLM_TOP_P` to the card's recommended `1.0`/`1.0` and give
+`LLM_MAX_TOKENS` room if you do.
 
 **On Barkla:** launch the server as a SLURM job (see
 [`scripts/slurm/run_llm_server.sbatch`](scripts/slurm/run_llm_server.sbatch) —
@@ -397,10 +417,16 @@ otherwise runs to `max_iterations` and returns the last draft alongside
 ### LLM used by the hypothesis / experiment-planner / coder / writer / reviewer agents
 
 All five reuse the same `research_pipeline.llm.get_chat_model()` client as
-the literature agent (i.e. whatever `LLM_BASE_URL`/`LLM_MODEL` in `.env`
-points at) rather than a separate client — hypothesis/experiment-planner/coder/reviewer
+the literature agent (Nemotron 3 Nano, i.e. whatever `LLM_BASE_URL`/`LLM_MODEL`
+in `.env` points at) rather than a separate client — hypothesis/experiment-planner/coder/reviewer
 at a lower temperature (0.1) suited to grounded extraction/planning/codegen/judgment,
-writer at 0.2 suited to grounded prose. If you specifically want Anthropic's
+writer at 0.2 suited to grounded prose. Each agent also accepts a `chat_model`
+argument, so one shared client (or a fake, in tests) can be threaded through
+the whole pipeline. Every agent is LLM-driven — including the literature agent,
+which uses the model to expand a research question into search queries (falling
+back to the raw question if the server is unreachable), and the reviewer, whose
+verifiable checks are deliberately deterministic with only hallucination nuance
+and framing/tone honesty going to the model. If you specifically want Anthropic's
 Claude models here, point `LLM_BASE_URL`/`LLM_MODEL` at an OpenAI-compatible
 Claude endpoint, or swap `get_chat_model()` for
 `langchain_anthropic.ChatAnthropic` — nothing elsewhere in any of these
