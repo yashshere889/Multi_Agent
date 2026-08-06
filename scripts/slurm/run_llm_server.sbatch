@@ -1,54 +1,72 @@
 #!/bin/bash
-# Example SLURM job to serve NVIDIA Nemotron 3 Nano behind an OpenAI-compatible
-# endpoint (vLLM) on a Barkla GPU node. This is a starting template, not a
-# verified script — adjust the partition/module/account lines below to match
-# your Barkla account before submitting (`sbatch run_llm_server.sbatch`).
+# Serve NVIDIA Nemotron 3 Nano behind an OpenAI-compatible endpoint (vLLM) on a
+# Barkla GPU node, WITHOUT running the pipeline in the same job.
 #
-# Model card (source of the flags below):
-#   https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+#   sbatch scripts/slurm/run_llm_server.sbatch
 #
-# Once running, find which node it landed on:
-#   squeue -u $USER
-# then tunnel to it from your laptop:
-#   ssh -L 8080:<compute-node-hostname>:8080 <user>@barkla.liverpool.ac.uk
-# and point LLM_BASE_URL=http://localhost:8080/v1 in your .env.
+# Use this when you want a long-lived model server to develop against — running
+# individual agents by hand, iterating on prompts, driving it from your laptop.
+# To run the whole pipeline unattended, prefer run_pipeline.sbatch, which puts
+# the server and the pipeline in one job and skips all the plumbing below.
+#
+# Build the container first (once): scripts/slurm/build_vllm_sif.sh
+#
+# Once it's up, the log prints the node and port. From elsewhere on Barkla
+# (e.g. a viz node) point the client straight at the node:
+#   LLM_BASE_URL=http://<node>:<port>/v1
+# From your laptop, tunnel through the login node first:
+#   ssh -L 8000:<node>:<port> <user>@barklalogin1.liv.ac.uk
+#   LLM_BASE_URL=http://localhost:8000/v1
 
 #SBATCH --job-name=llm-server
-#SBATCH --partition=gpu            # TODO: set to Barkla's actual GPU partition name
+#SBATCH --partition=gpu-h100
+#SBATCH --nodes=1
 #SBATCH --gres=gpu:1
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=llm_server_%j.log
+
+# See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
+# gpu-h100 (4x H100 80GB) and gpu-l40s (2x L40S 48GB) are open to all users;
+# on gpu-l40s set --gres=gpu:2 and TP=2, since 48GB alone won't hold 60GB of
+# BF16 weights.
 
 set -euo pipefail
 
 module purge
-module load cuda                  # TODO: match an available `module avail cuda` entry
+module load apptainer/1.3.6
 
-# TODO: activate wherever vLLM is installed on Barkla (venv, conda env, or container)
-# source "$HOME/venvs/vllm/bin/activate"
-
+export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
+VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+TP=1
+PORT=$(( 8000 + SLURM_JOB_ID % 1000 ))
 
-# Deliberately no --served-model-name: vLLM then serves the model under its
-# full HF id, which is exactly what LLM_MODEL defaults to in .env.example. If
-# you do alias it, change LLM_MODEL to match or every request 404s.
-#
-# --max-model-len is set well below Nemotron's 1M ceiling: the pipeline's
-# longest prompts are batched paper abstracts, and a smaller KV cache is what
-# makes this fit on one GPU. Raise it (and set VLLM_ALLOW_LONG_MAX_MODEL_LEN=1
-# past 256k) only if a stage actually starts truncating.
-#
-# The reasoning parser keeps <think> traces out of `content` when
-# LLM_ENABLE_THINKING=true. Agents strip traces themselves too
-# (llm_json.strip_reasoning), so a server started without it still works.
-vllm serve "$MODEL" \
-    --host 0.0.0.0 \
-    --port 8080 \
-    --tensor-parallel-size 1 \
-    --max-model-len 32768 \
-    --max-num-seqs 8 \
-    --trust-remote-code \
-    --enable-auto-tool-choice \
-    --tool-call-parser qwen3_coder \
-    --reasoning-parser-plugin nano_v3_reasoning_parser.py \
-    --reasoning-parser nano_v3
+# shellcheck source=_vllm_serve.sh
+source "$SLURM_SUBMIT_DIR/scripts/slurm/_vllm_serve.sh"
+
+nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+
+cleanup() { [[ -n "${VLLM_PID:-}" ]] && kill "$VLLM_PID" 2>/dev/null || true; }
+trap cleanup EXIT
+
+vllm_serve_background
+wait_for_vllm
+
+cat <<EOF
+
+================================================================
+  Model server ready.
+    node: $SLURM_NODELIST
+    port: $PORT
+
+  On Barkla:   LLM_BASE_URL=http://$SLURM_NODELIST:$PORT/v1
+  Via tunnel:  ssh -L 8000:$SLURM_NODELIST:$PORT $USER@barklalogin1.liv.ac.uk
+               LLM_BASE_URL=http://localhost:8000/v1
+
+  LLM_MODEL=$MODEL
+================================================================
+
+EOF
+
+# Hold the job open for the rest of its wall clock, serving requests.
+wait "$VLLM_PID"

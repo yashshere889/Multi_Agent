@@ -4,17 +4,31 @@
 # environment doesn't have), so this was NOT run synchronously and has NOT
 # been submitted — review it, then submit yourself with:
 #   sbatch run.sbatch
-# Adjust the partition/module/time TODOs for your Barkla account first.
+# Adjust the module/time TODOs first, and submit from scratch or fastscratch
+# (Barkla's storage guide says not to submit jobs from home/data/localscratch).
 
 #SBATCH --job-name=experiment-{hypothesis_id}
-#SBATCH --partition=gpu            # TODO: set to Barkla's actual GPU partition name
+# Barkla GPU partitions open to all users:
+#   gpu-h100  4x H100 80GB, 3-day limit
+#   gpu-l40s  2x L40S 48GB, 3-day limit
+#   gpu-v100  4x V100 16GB, 3-day limit (Volta: no bfloat16)
+# Low priority, 1-day limit, pre-empted and requeued when the owning group
+# submits — fine for restartable work, bad for a long single run:
+#   gpu-a100-lowbig  4x A100 80GB
+#   gpu-a-lowsmall   2x A100 80GB / 2x A40 48GB
+#SBATCH --partition=gpu-l40s
 #SBATCH --gres=gpu:1               # TODO: remove this line if the experiment doesn't need a GPU
+#SBATCH --nodes=1
 #SBATCH --time=24:00:00            # TODO: adjust to a realistic bound for this experiment
 #SBATCH --output=run_%j.log
+
+# Deliberately no --cpus-per-task / --mem: on Barkla both are allocated
+# automatically from the number of GPUs requested.
 
 set -euo pipefail
 module purge
 module load python                 # TODO: match an available `module avail python` entry
+                                   # (the default system python is 3.9.21)
 
 cd "$(dirname "$0")"
 {venv_activation}python run.py

@@ -265,16 +265,37 @@ agent's JSON parse. Turning thinking on is therefore safe either way; raise
 `LLM_TEMPERATURE`/`LLM_TOP_P` to the card's recommended `1.0`/`1.0` and give
 `LLM_MAX_TOKENS` room if you do.
 
-**On Barkla:** launch the server as a SLURM job (see
-[`scripts/slurm/run_llm_server.sbatch`](scripts/slurm/run_llm_server.sbatch) —
-adjust the partition/module TODOs for your account first), find the compute
-node it lands on with `squeue -u $USER`, then SSH-tunnel to it:
+**On Barkla:** there is no vLLM module, so the server runs from the official
+vLLM image under Apptainer. Build it once on a *viz* node (never the login
+node — long tasks there are killed without warning):
 
 ```bash
-ssh -L 8080:<compute-node-hostname>:8080 <user>@barkla.liverpool.ac.uk
+bash scripts/slurm/build_vllm_sif.sh
 ```
 
-and leave `LLM_BASE_URL=http://localhost:8080/v1` in `.env`.
+Then run the whole pipeline — server and all six agents — as a single job:
+
+```bash
+sbatch scripts/slurm/run_pipeline.sbatch "your research question"
+```
+
+[`run_pipeline.sbatch`](scripts/slurm/run_pipeline.sbatch) starts vLLM on the
+allocated GPU, waits for `/v1/models` to answer, then runs `orchestrate`
+against `localhost` on the same node. The pipeline is pure CPU and the GPU
+nodes have 96–168 cores, so co-locating costs nothing and avoids both the SSH
+tunnel and any long-running process on the login node.
+
+Defaults to `gpu-h100` with one GPU: the 30B BF16 weights are ~60GB, which
+fits an 80GB H100 or A100 but *not* a single 48GB L40S (use `--gres=gpu:2`
+and `TP=2` there) and not a V100 at all (16GB, and Volta has no bfloat16).
+Both scripts derive their port from the job id, since GPU nodes are shared.
+
+To keep a long-lived server for interactive work instead, use
+[`run_llm_server.sbatch`](scripts/slurm/run_llm_server.sbatch); it prints the
+node, port, and the exact tunnel command on startup.
+
+Model weights and the `.sif` live on `fastscratch` (`HF_HOME`), not `home` —
+home is capped at 75GB/100k inodes and the weights alone exceed it.
 
 ### Semantic Scholar
 
