@@ -107,6 +107,7 @@ STATUS_MEANINGS = {
     "completed": "the experiment ran and produced results",
     "code_generated_not_run": "code was generated but never executed (e.g. needs more compute, or is left for manual SLURM submission)",
     "skipped": "no code was generated at all (the plan was marked infeasible)",
+    "submitted_to_slurm": "code was submitted to the cluster as a batch job, but had not finished when this paper was written — no results are available",
 }
 
 class WriterAgentError(RuntimeError):
@@ -138,7 +139,7 @@ def compute_hypothesis_verdict(hypothesis_id: str, experiment_by_id: Dict[str, d
         return "inconclusive", "No Coder Agent record exists for this hypothesis."
 
     status = experiment["status"]
-    if status in ("skipped", "code_generated_not_run"):
+    if status in ("skipped", "code_generated_not_run", "submitted_to_slurm"):
         return "inconclusive", f"Experiment status is '{status}': {experiment['reason']}"
 
     meets = experiment["results"]["meets_success_criteria"]

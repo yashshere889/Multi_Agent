@@ -36,6 +36,10 @@ class Settings:
     experiment_planner_output_dir: str
     coder_experiments_dir: str
     coder_output_dir: str
+    coder_max_fix_attempts: int
+    coder_auto_submit_slurm: bool
+    coder_max_concurrent_slurm_jobs: int
+    coder_max_slurm_jobs_per_run: int
     writer_output_dir: str
     writer_related_work_batch_max_chars: int
     writer_paper_authors: str
@@ -44,6 +48,8 @@ class Settings:
     writer_reviewer_loop_output_dir: str
     writer_reviewer_max_iterations: int
     writer_reviewer_quality_threshold: int
+    batch_output_root: str
+    batch_max_consecutive_failures: int
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -114,6 +120,17 @@ def load_settings() -> Settings:
         experiment_planner_output_dir=os.environ.get("EXPERIMENT_PLANNER_OUTPUT_DIR", "outputs"),
         coder_experiments_dir=os.environ.get("CODER_EXPERIMENTS_DIR", "experiments"),
         coder_output_dir=os.environ.get("CODER_OUTPUT_DIR", "outputs"),
+        coder_max_fix_attempts=int(os.environ.get("CODER_MAX_FIX_ATTEMPTS", "3")),
+        # Off by default: run.sbatch is generated from code nothing has ever
+        # executed, and submitting it spends GPU allocation on a cluster other
+        # people are queueing for. Turning this on is a deliberate choice for
+        # unattended batch runs, and is still gated by the two caps below plus
+        # a clean static safety check.
+        coder_auto_submit_slurm=_env_bool("CODER_AUTO_SUBMIT_SLURM", False),
+        # Checked against squeue, so it holds across every process in a batch.
+        coder_max_concurrent_slurm_jobs=int(os.environ.get("CODER_MAX_CONCURRENT_SLURM_JOBS", "4")),
+        # Per-question ceiling, so one runaway plan set can't flood the queue.
+        coder_max_slurm_jobs_per_run=int(os.environ.get("CODER_MAX_SLURM_JOBS_PER_RUN", "10")),
         writer_output_dir=os.environ.get("WRITER_OUTPUT_DIR", "outputs"),
         writer_related_work_batch_max_chars=int(os.environ.get("WRITER_RELATED_WORK_BATCH_MAX_CHARS", "12000")),
         # No real author identity flows through the pipeline, so this defaults to
@@ -124,6 +141,11 @@ def load_settings() -> Settings:
         writer_reviewer_loop_output_dir=os.environ.get("WRITER_REVIEWER_LOOP_OUTPUT_DIR", "outputs/paper"),
         writer_reviewer_max_iterations=int(os.environ.get("WRITER_REVIEWER_MAX_ITERATIONS", "3")),
         writer_reviewer_quality_threshold=int(os.environ.get("WRITER_REVIEWER_QUALITY_THRESHOLD", "4")),
+        batch_output_root=os.environ.get("BATCH_OUTPUT_ROOT", "outputs/batch"),
+        # Stops a long batch early when something systemic is wrong (the model
+        # server is down, the API key expired) instead of burning the rest of
+        # the question list against the same failure.
+        batch_max_consecutive_failures=int(os.environ.get("BATCH_MAX_CONSECUTIVE_FAILURES", "5")),
     )
 
 

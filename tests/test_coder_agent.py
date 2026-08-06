@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import sys
 from pathlib import Path
@@ -5,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline.agents.coder import sandbox
+from research_pipeline.agents.coder import sandbox, slurm_submit
 from research_pipeline.agents.coder.coder_agent import CoderAgent, CoderAgentError
-from research_pipeline.agents.coder.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.coder.schema import ERROR_SUMMARY_MAX_CHARS, SchemaValidationError, validate_output
 
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -400,29 +401,43 @@ def test_run_rejects_malformed_planner_input(tmp_path):
         agent.run({"experiment_plans": "not a list"})
 
 
-# -- CoderAgent._read_results_json: direct unit tests -----------------------------------
+# -- sandbox.read_results_json_for_diagnosis: direct unit tests --------------------------
 # (the fixed run.py template always writes a well-formed results.json on any exit path,
 # so these malformed/missing cases can no longer be reached by driving the full agent
-# through a fake LLM response — testing the method directly instead)
+# through a fake LLM response — testing the function directly instead)
 
 
-def test_read_results_json_returns_none_when_file_missing(tmp_path):
-    assert CoderAgent._read_results_json(tmp_path) is None
+def test_read_results_json_reports_missing_file(tmp_path):
+    results, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
+    assert results is None
+    assert "did not write results.json" in diagnosis
 
 
-def test_read_results_json_returns_none_when_not_valid_json(tmp_path):
+def test_read_results_json_reports_invalid_json(tmp_path):
     (tmp_path / "results.json").write_text("not json")
-    assert CoderAgent._read_results_json(tmp_path) is None
+    results, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
+    assert results is None
+    assert "not valid JSON" in diagnosis
 
 
-def test_read_results_json_returns_none_when_missing_required_keys(tmp_path):
+def test_read_results_json_reports_missing_required_keys(tmp_path):
     (tmp_path / "results.json").write_text(json.dumps({"foo": "bar"}))
-    assert CoderAgent._read_results_json(tmp_path) is None
+    results, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
+    assert results is None
+    assert "missing required key" in diagnosis
+
+
+def test_read_results_json_surfaces_the_traceback_run_py_recorded(tmp_path):
+    (tmp_path / "results.json").write_text(json.dumps({"error": "Traceback...\nValueError: bad shape"}))
+    results, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
+    assert results is None
+    assert "ValueError: bad shape" in diagnosis
 
 
 def test_read_results_json_accepts_well_formed_file(tmp_path):
     (tmp_path / "results.json").write_text(json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True}))
-    data = CoderAgent._read_results_json(tmp_path)
+    data, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
+    assert diagnosis is None
     assert data["metrics"] == {"accuracy": 0.9}
     assert data["notes"] == ""  # defaulted
 
@@ -454,3 +469,299 @@ def test_render_experiment_template_handles_braces_in_generated_code(tmp_path):
     rendered = tmp_path / "run.py"
     rendered.write_text(run_py)
     assert sandbox.compile_check([rendered]) is None  # the whole splice is syntactically valid
+
+
+# -- coder_agent.py: the fix loop --------------------------------------------------------
+
+
+class ScriptedChatModel:
+    """Serves responses by prompt kind, so a test can make the first codegen
+    fail and the fix that follows succeed. Each kind takes a list consumed in
+    order; the last entry repeats once exhausted."""
+
+    KINDS = {
+        "The code you generated for hypothesis": "fix",
+        "Review the experiment code below": "self_review",
+        "Shared infrastructure items": "shared_infra",
+    }
+
+    def __init__(self, **responses_by_kind: list[str]):
+        self._responses = responses_by_kind
+        self.calls_by_kind: dict[str, int] = {}
+
+    def _kind(self, prompt: str) -> str:
+        for marker, kind in self.KINDS.items():
+            if marker in prompt:
+                return kind
+        return "codegen"
+
+    def invoke(self, messages):
+        prompt = messages[-1][1]
+        kind = self._kind(prompt)
+        index = self.calls_by_kind.get(kind, 0)
+        self.calls_by_kind[kind] = index + 1
+        responses = self._responses.get(kind)
+        if not responses:
+            raise AssertionError(f"No {kind!r} response configured for prompt: {prompt[:200]!r}")
+        return SimpleNamespace(content=responses[min(index, len(responses) - 1)])
+
+
+BROKEN_SYNTAX_SECTIONS = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
+RAISING_SECTIONS = {
+    **GOOD_SECTIONS,
+    "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n",
+}
+
+
+def _agent(tmp_path, model, **kwargs):
+    return CoderAgent(
+        chat_model=model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
+        network_check=lambda: False, gpu_check=lambda: False, **kwargs,
+    )
+
+
+def test_fix_loop_recovers_after_a_failed_execution(tmp_path):
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_attempts"] == 1
+    assert exp["fix_history"][0]["error_source"] == "run_experiment"
+    assert exp["fix_history"][0]["resolved"] is True
+    assert model.calls_by_kind["fix"] == 1
+
+
+def test_fix_loop_recovers_after_a_syntax_error(tmp_path):
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(BROKEN_SYNTAX_SECTIONS)],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_history"][0]["error_source"] == "compile_check"
+
+
+def test_fix_loop_gives_up_after_max_attempts(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)])
+    result = _agent(tmp_path, model, max_fix_attempts=2).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["fix_attempts"] == 2
+    assert len(exp["fix_history"]) == 2
+    assert "2 fix attempt(s)" in exp["reason"]
+    assert model.calls_by_kind["fix"] == 2
+
+
+def test_fix_loop_records_nothing_when_the_first_attempt_works(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_attempts"] == 0
+    assert exp["fix_history"] == []
+    assert "fix" not in model.calls_by_kind
+
+
+def test_fix_loop_snapshots_the_code_that_failed(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    snapshot = Path(result["experiments"][0]["fix_history"][0]["code_path"])
+    assert snapshot.exists()
+    assert "raise RuntimeError('boom')" in snapshot.read_text()  # the failing version, preserved
+    assert "raise RuntimeError('boom')" not in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+
+
+def test_fix_loop_truncates_a_long_error_summary(tmp_path):
+    noisy = {**GOOD_SECTIONS, "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('x' * 5000)\n"}
+    model = ScriptedChatModel(codegen=[_codegen_response(noisy)], fix=[_codegen_response(GOOD_SECTIONS)])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    summary = result["experiments"][0]["fix_history"][0]["error_summary"]
+    assert 0 < len(summary) <= ERROR_SUMMARY_MAX_CHARS
+
+
+def test_env_error_is_not_retried_through_the_llm(tmp_path):
+    # A missing package is an environment problem — regenerating the code can't
+    # fix it, so it must not burn fix attempts.
+    model = ScriptedChatModel(codegen=[_codegen_response(requirements="definitely_not_a_real_package_xyz\n")])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["fix_attempts"] == 0
+    assert "fix" not in model.calls_by_kind
+
+
+# -- sandbox.static_safety_check ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        ("result = eval(user_input)", "eval"),
+        ("exec(compile(src, '<s>', 'exec'))", "exec"),
+        ("subprocess.run(cmd, shell=True)", "shell=True"),
+        ("os.system('rm -rf /tmp/x')", "os.system"),
+        ("shutil.rmtree(path)", "rmtree"),
+        ("os.remove(path)", "deletion"),
+        ("import pickle\npickle.loads(blob)", "pickle"),
+        ("key = os.environ['AWS_SECRET_ACCESS_KEY']", "credential"),
+    ],
+)
+def test_static_safety_check_flags_dangerous_code(code, expected):
+    findings = sandbox.static_safety_check(code)
+    assert findings, f"expected {code!r} to be flagged"
+    assert any(expected in f for f in findings)
+
+
+def test_static_safety_check_passes_ordinary_experiment_code():
+    code = "\n".join(GOOD_SECTIONS[k] for k in ("load_data_function", "build_model_function", "evaluate_function"))
+    assert sandbox.static_safety_check(code) == []
+
+
+def test_lint_failure_routes_through_the_fix_loop(tmp_path):
+    unsafe = {**GOOD_SECTIONS, "helpers": "def cleanup(p):\n    import shutil\n    shutil.rmtree(p)\n"}
+    model = ScriptedChatModel(codegen=[_codegen_response(unsafe)], fix=[_codegen_response(GOOD_SECTIONS)])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_history"][0]["error_source"] == "static_lint"
+    assert "rmtree" in exp["fix_history"][0]["error_summary"]
+
+
+# -- coder_agent.py: gated SLURM auto-submit ---------------------------------------------
+
+
+def _patch_settings(monkeypatch, **overrides):
+    """Settings is a frozen dataclass, so swap in a copy rather than mutating."""
+    from research_pipeline.agents.coder import coder_agent as coder_agent_module
+
+    monkeypatch.setattr(
+        coder_agent_module, "settings", dataclasses.replace(coder_agent_module.settings, **overrides)
+    )
+
+
+@pytest.fixture
+def auto_submit(monkeypatch):
+    """Turns auto-submission on and stubs out every real SLURM call. Yields a
+    record of what would have been submitted."""
+    submitted = []
+    _patch_settings(
+        monkeypatch,
+        coder_auto_submit_slurm=True,
+        coder_max_concurrent_slurm_jobs=4,
+        coder_max_slurm_jobs_per_run=10,
+    )
+    monkeypatch.setattr(slurm_submit, "count_running_jobs", lambda user=None: 0)
+
+    def fake_submit(sbatch_path, cwd):
+        submitted.append(Path(sbatch_path))
+        return f"999{len(submitted)}", None
+
+    monkeypatch.setattr(slurm_submit, "submit_job", fake_submit)
+    return submitted
+
+
+def _clean_review() -> str:
+    return json.dumps({"looks_correct": True, "concerns": []})
+
+
+def test_auto_submit_off_by_default_leaves_sbatch_for_review(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        slurm_submit, "submit_job", lambda *a, **k: pytest.fail("submitted with auto-submit off")
+    )
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["slurm_job_id"] is None
+    assert "submit it yourself" in exp["reason"]
+    assert (tmp_path / "experiments" / "H1" / "run.sbatch").exists()
+
+
+def test_auto_submit_submits_when_enabled_and_clean(tmp_path, auto_submit):
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "submitted_to_slurm"
+    assert exp["slurm_job_id"] == "9991"
+    assert exp["results"] is None
+    assert len(auto_submit) == 1
+
+
+def test_auto_submit_never_submits_code_the_lint_keeps_flagging(tmp_path, auto_submit):
+    # The lint runs before the submit branch, so unsafe code goes through the
+    # fix loop first. When the fix doesn't clean it up, nothing is submitted.
+    unsafe = {**GOOD_SECTIONS, "helpers": "def wipe(p):\n    import os\n    os.system('rm -rf ' + p)\n"}
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(unsafe)], fix=[_codegen_response(unsafe)], self_review=[_clean_review()]
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "os.system" in exp["reason"]
+    assert auto_submit == []  # never reached sbatch
+
+
+def test_auto_submit_fixes_code_the_self_review_flags(tmp_path, auto_submit):
+    model = ScriptedChatModel(
+        codegen=[_codegen_response()],
+        self_review=[json.dumps({"looks_correct": False, "concerns": ["load_data ignores the plan's dataset"]}), _clean_review()],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "submitted_to_slurm"
+    assert exp["fix_history"][0]["error_source"] == "self_review"
+    assert "ignores the plan's dataset" in exp["fix_history"][0]["error_summary"]
+
+
+def test_auto_submit_respects_the_concurrent_job_cap(tmp_path, auto_submit, monkeypatch):
+    monkeypatch.setattr(slurm_submit, "count_running_jobs", lambda user=None: 4)  # already at the cap
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "already queued" in exp["reason"]
+    assert auto_submit == []
+
+
+def test_auto_submit_respects_the_per_run_budget(tmp_path, auto_submit, monkeypatch):
+    _patch_settings(monkeypatch, coder_auto_submit_slurm=True, coder_max_slurm_jobs_per_run=1)
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(tmp_path, model).run(
+        _planner_output([_plan("H1", complexity="high"), _plan("H2", complexity="high")])
+    )
+
+    statuses = {e["hypothesis_id"]: e["status"] for e in result["experiments"]}
+    assert statuses["H1"] == "submitted_to_slurm"
+    assert statuses["H2"] == "code_generated_not_run"
+    assert len(auto_submit) == 1
+    second = next(e for e in result["experiments"] if e["hypothesis_id"] == "H2")
+    assert "CODER_MAX_SLURM_JOBS_PER_RUN" in second["reason"]
+
+
+def test_auto_submit_failure_falls_back_to_manual_review(tmp_path, auto_submit, monkeypatch):
+    monkeypatch.setattr(slurm_submit, "submit_job", lambda *a, **k: (None, "sbatch exited with code 1: invalid partition"))
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "invalid partition" in exp["reason"]
+    assert exp["slurm_job_id"] is None

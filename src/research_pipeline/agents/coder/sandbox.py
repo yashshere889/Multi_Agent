@@ -6,8 +6,10 @@ the actual execution mechanics are unit-testable without a live model.
 from __future__ import annotations
 
 import importlib.util
+import json
 import logging
 import py_compile
+import re
 import shutil
 import socket
 import subprocess
@@ -76,6 +78,68 @@ def compile_check(py_files: List[Path]) -> Optional[str]:
         except py_compile.PyCompileError as exc:
             return f"{path.name}: {exc.msg}"
     return None
+
+
+# Regex rather than AST: this runs against model-generated code that the fix
+# loop may rewrite several times, and a pattern list is cheap to extend when a
+# new footgun shows up. It is a second layer behind the isolated per-experiment
+# venv, not the sandboxing boundary itself — but it *is* the only gate on the
+# SLURM auto-submit path, where nothing ever runs locally first.
+DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
+    (r"\beval\s*\(", "eval() call"),
+    (r"\bexec\s*\(", "exec() call"),
+    (r"\b__import__\s*\(", "dynamic __import__() call"),
+    (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
+    (r"\bos\.system\s*\(", "os.system() call"),
+    (r"\bos\.popen\s*\(", "os.popen() call"),
+    (r"\bshutil\.rmtree\s*\(", "shutil.rmtree() call"),
+    (r"\bos\.(remove|unlink)\s*\(", "file deletion via os.remove()/os.unlink()"),
+    (r"\bos\.chmod\s*\(", "os.chmod() call"),
+    (r"\bsocket\.(socket|create_connection)\s*\(", "raw socket usage"),
+    (r"\bpickle\.loads?\s*\(", "pickle load (arbitrary code execution on untrusted data)"),
+    (r"\bctypes\b", "ctypes usage"),
+    (r"os\.environ(?:\.get\(\s*)?\[?[\"'][^\"']*(SECRET|TOKEN|PASSWORD|API_KEY|AWS_)", "credential-like environment variable access"),
+]
+
+
+def static_safety_check(code: str) -> List[str]:
+    """Scans generated Python source for patterns that shouldn't appear in an
+    experiment script, before it is executed or submitted anywhere. Returns a
+    list of human-readable findings; empty means clean."""
+    findings = []
+    for pattern, description in DANGEROUS_PATTERNS:
+        if re.search(pattern, code):
+            findings.append(description)
+    return findings
+
+
+def read_results_json_for_diagnosis(experiment_dir: Path) -> Tuple[Optional[dict], Optional[str]]:
+    """Reads an experiment's results.json for the fix loop. Returns
+    (results, diagnosis): `results` is the parsed payload when the run
+    genuinely succeeded, `diagnosis` describes what's wrong otherwise —
+    including the traceback run.py writes into results.json["error"], which
+    the success-path reader discards."""
+    results_path = experiment_dir / "results.json"
+    if not results_path.exists():
+        return None, "run.py did not write results.json"
+
+    try:
+        data = json.loads(results_path.read_text())
+    except json.JSONDecodeError as exc:
+        return None, f"results.json is not valid JSON: {exc}"
+
+    if not isinstance(data, dict):
+        return None, f"results.json should contain an object, got {type(data).__name__}"
+
+    if data.get("error"):
+        return None, f"run.py raised an exception:\n{data['error']}"
+
+    missing = [key for key in ("metrics", "meets_success_criteria") if key not in data]
+    if missing:
+        return None, f"results.json is missing required key(s): {', '.join(missing)}"
+
+    data.setdefault("notes", "")
+    return data, None
 
 
 def ensure_experiment_env(

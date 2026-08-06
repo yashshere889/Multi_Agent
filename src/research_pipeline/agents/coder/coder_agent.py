@@ -82,8 +82,8 @@ from typing import Callable, Dict, List, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from research_pipeline.agents.coder import prompts, sandbox
-from research_pipeline.agents.coder.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.coder import prompts, sandbox, slurm_submit
+from research_pipeline.agents.coder.schema import ERROR_SUMMARY_MAX_CHARS, SchemaValidationError, validate_output
 from research_pipeline.agents.experiment_planner.schema import SchemaValidationError as PlannerSchemaValidationError
 from research_pipeline.agents.experiment_planner.schema import validate_output as validate_planner_output
 from research_pipeline.config import settings
@@ -91,6 +91,21 @@ from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
 
 logger = logging.getLogger(__name__)
+
+# Order the checks run in, used to decide whether a regeneration actually got
+# past the failure it was asked to fix.
+_ERROR_STAGE_ORDER = [
+    "missing_sections",
+    "compile_check",
+    "static_lint",
+    "self_review",
+    "run_experiment",
+    "results_json",
+]
+
+
+def _truncate(text: str) -> str:
+    return text[:ERROR_SUMMARY_MAX_CHARS]
 
 
 class CoderAgentError(RuntimeError):
@@ -105,6 +120,7 @@ class CoderAgent:
         output_dir: Optional[str | Path] = None,
         network_check: Optional[Callable[[], bool]] = None,
         gpu_check: Optional[Callable[[], bool]] = None,
+        max_fix_attempts: Optional[int] = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config, same as the
         # Hypothesis and Experiment Planner agents, at a low temperature.
@@ -113,6 +129,8 @@ class CoderAgent:
         self.output_dir = Path(output_dir or settings.coder_output_dir)
         self.network_check = network_check or sandbox.has_network_access
         self.gpu_check = gpu_check or sandbox.has_gpu
+        self.max_fix_attempts = settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
+        self._slurm_jobs_submitted = 0
 
     def run(self, planner_output: dict) -> dict:
         try:
@@ -120,6 +138,7 @@ class CoderAgent:
         except PlannerSchemaValidationError as exc:
             raise CoderAgentError(f"Input doesn't match the Experiment Planner's output schema: {exc}") from exc
 
+        self._slurm_jobs_submitted = 0
         plans = planner_output["experiment_plans"]
         expected_ids = [p["hypothesis_id"] for p in plans]
         ordered_plans = self._order_by_priority(plans, planner_output["priority_order"])
@@ -199,19 +218,94 @@ class CoderAgent:
 
         if not plan["feasible"]:
             logger.info("Skipping %s: marked infeasible by the Experiment Planner", hypothesis_id)
-            return {
-                "hypothesis_id": hypothesis_id,
-                "status": "skipped",
-                "reason": f"Marked infeasible by the Experiment Planner: {plan['feasibility_notes']}",
-                "code_path": None,
-                "assumptions_made": [],
-                "results": None,
-            }
+            return self._result(
+                hypothesis_id,
+                status="skipped",
+                reason=f"Marked infeasible by the Experiment Planner: {plan['feasibility_notes']}",
+                code_path=None,
+            )
 
         experiment_dir = self.experiments_dir / hypothesis_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
         generation = self._generate_experiment_files(plan, shared_files, network_available)
+        return self._generate_run_and_diagnose(
+            plan, shared_files, generation, experiment_dir, network_available, gpu_available
+        )
+
+    def _generate_run_and_diagnose(
+        self,
+        plan: dict,
+        shared_files: Dict[str, str],
+        generation: dict,
+        experiment_dir: Path,
+        network_available: bool,
+        gpu_available: bool,
+    ) -> dict:
+        """Owns validate -> compile -> lint -> execute -> read-results for one
+        plan, regenerating the code against the concrete error whenever a
+        deterministic check fails, up to self.max_fix_attempts times. Every
+        stop condition is a real check's own verdict — no model judgment
+        decides whether the code is good enough."""
+        hypothesis_id = plan["hypothesis_id"]
+        fix_history: List[dict] = []
+        outcome: dict = {}
+
+        for attempt in range(self.max_fix_attempts + 1):
+            outcome = self._attempt_once(plan, generation, experiment_dir, network_available, gpu_available)
+
+            if fix_history:
+                fix_history[-1]["resolved"] = self._cleared_previous_error(fix_history[-1]["error_source"], outcome)
+
+            if "result" in outcome:
+                return {**outcome["result"], "fix_attempts": len(fix_history), "fix_history": fix_history}
+
+            if attempt == self.max_fix_attempts:
+                break
+
+            logger.info(
+                "Fixing %s after %s failure (attempt %d/%d)",
+                hypothesis_id, outcome["error_source"], attempt + 1, self.max_fix_attempts,
+            )
+            fix_history.append(
+                {
+                    "attempt": attempt + 1,
+                    "error_source": outcome["error_source"],
+                    "error_summary": _truncate(outcome["error_text"]),
+                    "code_path": str(self._snapshot_attempt(experiment_dir, attempt + 1)),
+                    "resolved": False,
+                }
+            )
+            generation = self._regenerate_with_fix(
+                plan, shared_files, generation, network_available, outcome["error_source"], outcome["error_text"]
+            )
+
+        attempted = f" after {len(fix_history)} fix attempt(s)" if fix_history else ""
+        return {
+            **self._result(
+                hypothesis_id,
+                status="code_generated_not_run",
+                reason=f"{outcome['error_text']}{attempted}",
+                code_path=str(experiment_dir),
+                assumptions_made=generation.get("assumptions_made", []),
+            ),
+            "fix_attempts": len(fix_history),
+            "fix_history": fix_history,
+        }
+
+    def _attempt_once(
+        self,
+        plan: dict,
+        generation: dict,
+        experiment_dir: Path,
+        network_available: bool,
+        gpu_available: bool,
+    ) -> dict:
+        """Runs one full pass over a generated candidate. Returns either
+        {"result": <terminal experiment dict>} or {"error_source",
+        "error_text"} describing a failure the fix loop can regenerate
+        against."""
+        hypothesis_id = plan["hypothesis_id"]
         sections = generation.get("run_py_sections", {})
         assumptions_made = generation.get("assumptions_made", [])
         needs_gpu = bool(generation.get("needs_gpu", False))
@@ -220,12 +314,8 @@ class CoderAgent:
         missing_sections = [name for name in required_sections if not (sections.get(name) or "").strip()]
         if missing_sections:
             return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": f"Model response was missing required code section(s): {missing_sections} — run.py was not written or executed.",
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
+                "error_source": "missing_sections",
+                "error_text": f"Model response was missing required code section(s): {missing_sections} — run.py was not written or executed.",
             }
 
         # run.py's metadata block + orchestration are a fixed template, not
@@ -258,90 +348,182 @@ class CoderAgent:
         compile_error = sandbox.compile_check([experiment_dir / "run.py"])
         if compile_error:
             return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": f"Generated code has a syntax error, not executed: {compile_error}",
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
+                "error_source": "compile_check",
+                "error_text": f"Generated code has a syntax error, not executed: {compile_error}",
+            }
+
+        findings = sandbox.static_safety_check(run_py)
+        if findings:
+            return {
+                "error_source": "static_lint",
+                "error_text": f"Generated code was flagged by the static safety check: {'; '.join(findings)}",
             }
 
         complexity = plan["estimated_complexity"]
         requirements_path = experiment_dir / "requirements.txt"
 
         if complexity == "high" or (needs_gpu and not gpu_available):
-            reason = (
-                f"estimated_complexity is 'high'"
-                if complexity == "high"
-                else "experiment needs a GPU, none detected in this environment"
+            return self._handle_unrunnable_locally(
+                plan, generation, run_py, experiment_dir, requirements_path, complexity
             )
-            sbatch_path = experiment_dir / "run.sbatch"
-            sbatch_path.write_text(sandbox.render_sbatch_template(hypothesis_id, requirements_path.exists()))
-            return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": f"{reason} — generated {sbatch_path.name} instead of running synchronously; review and submit it yourself with `sbatch run.sbatch`.",
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
-            }
 
         python_executable, env_error = sandbox.ensure_experiment_env(experiment_dir, requirements_path, network_available)
         if env_error:
+            # Not routed through the fix loop: a missing package or an
+            # unreachable index is an environment problem, and regenerating
+            # the code can't resolve it.
             return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": env_error,
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
+                "result": self._result(
+                    hypothesis_id,
+                    status="code_generated_not_run",
+                    reason=env_error,
+                    code_path=str(experiment_dir),
+                    assumptions_made=assumptions_made,
+                )
             }
 
         timeout_seconds = sandbox.TIMEOUT_SECONDS_BY_COMPLEXITY[complexity]
         succeeded, message = sandbox.run_experiment(python_executable, experiment_dir / "run.py", experiment_dir, timeout_seconds)
         if not succeeded:
-            return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": f"Execution failed: {message}",
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
-            }
+            return {"error_source": "run_experiment", "error_text": f"Execution failed: {message}"}
 
-        results = self._read_results_json(experiment_dir)
+        results, diagnosis = sandbox.read_results_json_for_diagnosis(experiment_dir)
         if results is None:
             return {
-                "hypothesis_id": hypothesis_id,
-                "status": "code_generated_not_run",
-                "reason": "run.py exited successfully but did not produce a valid results.json",
-                "code_path": str(experiment_dir),
-                "assumptions_made": assumptions_made,
-                "results": None,
+                "error_source": "results_json",
+                "error_text": f"run.py exited successfully but did not produce a valid results.json: {diagnosis}",
             }
 
         return {
-            "hypothesis_id": hypothesis_id,
-            "status": "completed",
-            "reason": "",
-            "code_path": str(experiment_dir),
-            "assumptions_made": assumptions_made,
-            "results": results,
+            "result": self._result(
+                hypothesis_id,
+                status="completed",
+                reason="",
+                code_path=str(experiment_dir),
+                assumptions_made=assumptions_made,
+                results=results,
+            )
+        }
+
+    def _handle_unrunnable_locally(
+        self,
+        plan: dict,
+        generation: dict,
+        run_py: str,
+        experiment_dir: Path,
+        requirements_path: Path,
+        complexity: str,
+    ) -> dict:
+        """Plans that can't run here: too heavy, or they need a GPU this
+        machine doesn't have. Always writes run.sbatch. Whether it also gets
+        submitted is opt-in and capped — by default a human still reviews and
+        submits it, since nothing has ever executed this code."""
+        hypothesis_id = plan["hypothesis_id"]
+        assumptions_made = generation.get("assumptions_made", [])
+        why_unrunnable = (
+            "estimated_complexity is 'high'"
+            if complexity == "high"
+            else "experiment needs a GPU, none detected in this environment"
+        )
+
+        sbatch_path = experiment_dir / "run.sbatch"
+        sbatch_path.write_text(sandbox.render_sbatch_template(hypothesis_id, requirements_path.exists()))
+
+        def leave_for_review(detail: str) -> dict:
+            return {
+                "result": self._result(
+                    hypothesis_id,
+                    status="code_generated_not_run",
+                    reason=f"{why_unrunnable} — generated {sbatch_path.name} instead of running synchronously; {detail}",
+                    code_path=str(experiment_dir),
+                    assumptions_made=assumptions_made,
+                )
+            }
+
+        if not settings.coder_auto_submit_slurm:
+            return leave_for_review("review and submit it yourself with `sbatch run.sbatch`.")
+
+        # The static safety check already ran in _attempt_once, before this
+        # branch — anything it flags never reaches submission.
+        concerns = self._self_review(plan, run_py)
+        if concerns:
+            # No execution is possible here, so a flagged concern is the only
+            # error signal available — feed it back through the same fix loop.
+            return {"error_source": "self_review", "error_text": "Pre-submission review raised: " + "; ".join(concerns)}
+
+        if self._slurm_jobs_submitted >= settings.coder_max_slurm_jobs_per_run:
+            return leave_for_review(
+                f"auto-submission was skipped because this run already submitted {self._slurm_jobs_submitted} job(s) "
+                f"(CODER_MAX_SLURM_JOBS_PER_RUN={settings.coder_max_slurm_jobs_per_run})."
+            )
+
+        queued = slurm_submit.count_running_jobs()
+        if queued >= settings.coder_max_concurrent_slurm_jobs:
+            return leave_for_review(
+                f"auto-submission was skipped because {queued} job(s) are already queued "
+                f"(CODER_MAX_CONCURRENT_SLURM_JOBS={settings.coder_max_concurrent_slurm_jobs})."
+            )
+
+        job_id, submit_error = slurm_submit.submit_job(sbatch_path, experiment_dir)
+        if submit_error:
+            return leave_for_review(f"auto-submission failed ({submit_error}) — submit it yourself once resolved.")
+
+        self._slurm_jobs_submitted += 1
+        logger.info("Submitted %s to SLURM as job %s", hypothesis_id, job_id)
+        return {
+            "result": self._result(
+                hypothesis_id,
+                status="submitted_to_slurm",
+                reason=f"{why_unrunnable} — auto-submitted as SLURM job {job_id}; results are not available in this run.",
+                code_path=str(experiment_dir),
+                assumptions_made=assumptions_made,
+                slurm_job_id=job_id,
+            )
         }
 
     @staticmethod
-    def _read_results_json(experiment_dir: Path) -> Optional[dict]:
-        results_path = experiment_dir / "results.json"
-        if not results_path.exists():
-            return None
-        try:
-            data = json.loads(results_path.read_text())
-        except json.JSONDecodeError:
-            return None
-        if not isinstance(data, dict) or "metrics" not in data or "meets_success_criteria" not in data:
-            return None
-        data.setdefault("notes", "")
-        return data
+    def _cleared_previous_error(previous_source: str, outcome: dict) -> bool:
+        """Whether the regenerated code got past the check that failed last
+        time — either by finishing, or by failing later in the sequence."""
+        if "result" in outcome:
+            return True
+        order = _ERROR_STAGE_ORDER
+        return order.index(outcome["error_source"]) > order.index(previous_source)
+
+    @staticmethod
+    def _snapshot_attempt(experiment_dir: Path, attempt: int) -> Path:
+        """Preserves the code that just failed before it's overwritten, so a
+        failed run is still inspectable (and usable as training data) rather
+        than only the last attempt surviving on disk."""
+        snapshot_dir = experiment_dir / "fix_attempts" / f"attempt_{attempt}"
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        for name in ("run.py", "requirements.txt", "results.json"):
+            source = experiment_dir / name
+            if source.exists():
+                (snapshot_dir / name).write_text(source.read_text())
+        return snapshot_dir / "run.py"
+
+    @staticmethod
+    def _result(
+        hypothesis_id: str,
+        status: str,
+        reason: str,
+        code_path: Optional[str],
+        assumptions_made: Optional[List[str]] = None,
+        results: Optional[dict] = None,
+        slurm_job_id: Optional[str] = None,
+    ) -> dict:
+        return {
+            "hypothesis_id": hypothesis_id,
+            "status": status,
+            "reason": reason,
+            "code_path": code_path,
+            "assumptions_made": assumptions_made or [],
+            "results": results,
+            "fix_attempts": 0,
+            "fix_history": [],
+            "slurm_job_id": slurm_job_id,
+        }
 
     # -- LLM calls -----------------------------------------------------------
 
@@ -351,16 +533,17 @@ class CoderAgent:
         except LLMJSONError as exc:
             raise CoderAgentError(str(exc)) from exc
 
-    def _generate_experiment_files(self, plan: dict, shared_files: Dict[str, str], network_available: bool) -> dict:
-        if shared_files:
-            blocks = "\n\n".join(f"--- experiments/_shared/{name} ---\n{content}" for name, content in shared_files.items())
-            shared_infra_block = f"Shared infrastructure already generated for this pipeline:\n\n{blocks}\n\n{prompts.SHARED_IMPORT_NOTE}"
-        else:
-            shared_infra_block = "No shared infrastructure applies to this experiment — implement it standalone."
+    @staticmethod
+    def _shared_infra_block(shared_files: Dict[str, str]) -> str:
+        if not shared_files:
+            return "No shared infrastructure applies to this experiment — implement it standalone."
+        blocks = "\n\n".join(f"--- experiments/_shared/{name} ---\n{content}" for name, content in shared_files.items())
+        return f"Shared infrastructure already generated for this pipeline:\n\n{blocks}\n\n{prompts.SHARED_IMPORT_NOTE}"
 
+    def _generate_experiment_files(self, plan: dict, shared_files: Dict[str, str], network_available: bool) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=json.dumps(plan, indent=2),
-            shared_infra_block=shared_infra_block,
+            shared_infra_block=self._shared_infra_block(shared_files),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",
@@ -371,6 +554,46 @@ class CoderAgent:
             ),
         )
         return self._call_json(prompt)
+
+    def _regenerate_with_fix(
+        self,
+        plan: dict,
+        shared_files: Dict[str, str],
+        previous_generation: dict,
+        network_available: bool,
+        error_source: str,
+        error_text: str,
+    ) -> dict:
+        prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
+            hypothesis_id=plan["hypothesis_id"],
+            plan_block=json.dumps(plan, indent=2),
+            shared_infra_block=self._shared_infra_block(shared_files),
+            previous_sections_block=json.dumps(previous_generation.get("run_py_sections", {}), indent=2),
+            error_source=error_source,
+            error_text=error_text,
+            network_status="available" if network_available else "NOT available",
+            network_note=(
+                ""
+                if network_available
+                else " Do not fetch remote data — synthesize a small stand-in dataset instead, and say so in assumptions_made and the README."
+            ),
+        )
+        return self._call_json(prompt)
+
+    def _self_review(self, plan: dict, run_py: str) -> List[str]:
+        """Reads the code back critically before it goes to a shared cluster.
+        This is the one place model judgment is used, and only because the
+        code cannot be executed here first — everywhere else a real check
+        decides."""
+        prompt = prompts.EXPERIMENT_SELF_REVIEW_PROMPT.format(
+            hypothesis_id=plan["hypothesis_id"],
+            plan_block=json.dumps(plan, indent=2),
+            code_block=run_py,
+        )
+        response = self._call_json(prompt)
+        if response.get("looks_correct"):
+            return []
+        return [str(concern) for concern in response.get("concerns", [])]
 
     # -- File / summary persistence -------------------------------------------
 

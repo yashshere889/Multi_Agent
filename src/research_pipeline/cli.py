@@ -22,6 +22,7 @@ import logging
 import uuid
 from pathlib import Path
 
+from research_pipeline import batch
 from research_pipeline.agents.coder import run_coder_agent
 from research_pipeline.agents.experiment_planner import run_experiment_planner_agent
 from research_pipeline.agents.hypothesis import run_hypothesis_agent
@@ -203,6 +204,32 @@ def run_orchestrate_cli(args: argparse.Namespace) -> None:
             print(f"- {issue}")
 
 
+def run_orchestrate_batch_cli(args: argparse.Namespace) -> None:
+    if (args.slice_index is None) != (args.slice_count is None):
+        raise SystemExit("--slice-index and --slice-count must be given together")
+
+    shared = {
+        "output_root": args.output_dir,
+        "max_results_per_query": args.max_results,
+        "download_dir_root": args.download_dir,
+        "max_iterations": args.max_iterations,
+        "quality_threshold": args.quality_threshold,
+        "max_consecutive_failures": args.max_consecutive_failures,
+        "resume": not args.no_resume,
+    }
+
+    if args.slice_index is None:
+        summary = batch.run_batch(args.questions_file, **shared)
+    else:
+        summary = batch.run_batch_slice(args.questions_file, args.slice_index, args.slice_count, **shared)
+
+    print(f"\nManifest: {summary['manifest_path']}")
+    print(f"Completed: {summary['completed']}/{summary['total']}")
+    print(f"Failed: {summary['failed']}")
+    if summary["skipped_already_done"]:
+        print(f"Skipped (already done): {summary['skipped_already_done']}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="research-pipeline", description="Multi-agent research pipeline")
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
@@ -275,6 +302,25 @@ def build_parser() -> argparse.ArgumentParser:
     orchestrate.add_argument("--max-iterations", type=int, default=None, help="max Writer/Reviewer cycles (default: 3)")
     orchestrate.add_argument("--quality-threshold", type=int, default=None, help="minimum 1-5 quality score to pass (default: 4)")
     orchestrate.set_defaults(func=run_orchestrate_cli)
+
+    orchestrate_batch = subparsers.add_parser(
+        "orchestrate-batch", help="run the whole pipeline unattended over many research questions from a file"
+    )
+    orchestrate_batch.add_argument("--questions-file", required=True, help="one research question per line (# comments allowed)")
+    orchestrate_batch.add_argument(
+        "--output-dir", default=None, help="root directory; each question gets its own subdirectory (default: outputs/batch)"
+    )
+    orchestrate_batch.add_argument("--download-dir", default=None, help="root directory for downloaded papers (default: <output-dir>/papers)")
+    orchestrate_batch.add_argument("--max-results", type=int, default=5, help="max results per generated query, per source")
+    orchestrate_batch.add_argument("--max-iterations", type=int, default=None, help="max Writer/Reviewer cycles (default: 3)")
+    orchestrate_batch.add_argument("--quality-threshold", type=int, default=None, help="minimum 1-5 quality score to pass (default: 4)")
+    orchestrate_batch.add_argument(
+        "--max-consecutive-failures", type=int, default=None, help="halt the batch after this many failures in a row (default: 5)"
+    )
+    orchestrate_batch.add_argument("--no-resume", action="store_true", help="re-run questions already marked completed in the manifest")
+    orchestrate_batch.add_argument("--slice-index", type=int, default=None, help="for SLURM job arrays: which slice this task runs")
+    orchestrate_batch.add_argument("--slice-count", type=int, default=None, help="for SLURM job arrays: how many slices in total")
+    orchestrate_batch.set_defaults(func=run_orchestrate_batch_cli)
 
     return parser
 

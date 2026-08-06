@@ -360,6 +360,47 @@ path, how many Writer/Reviewer iterations ran, whether it converged, and any
 unresolved issues. Every stage still writes its own outputs along the way, so
 a run can be inspected (or picked up from disk) stage by stage.
 
+### Many questions at once
+
+To sweep a whole list of research questions unattended — for example to collect
+a corpus of runs:
+
+```bash
+uv run research-pipeline orchestrate-batch \
+    --questions-file questions.txt \
+    --output-dir outputs/batch
+```
+
+`questions.txt` is one research question per line (blank lines and `#` comments
+are skipped). Each question is an independent run with its own output
+subdirectory, so nothing leaks between them.
+
+Two things make this survive a long unattended sweep. A `batch_manifest.json`
+is rewritten after **every** question, recording status, output dir, paper
+path, and any error — so re-running the same command skips questions already
+marked completed and picks up where a killed job left off (`--no-resume` forces
+a full redo). And one question's failure is caught and recorded rather than
+ending the run; a `--max-consecutive-failures` circuit breaker (default 5)
+stops the sweep only when failures are consecutive, which is the signature of
+something systemic like a dead model server. Questions never reached stay
+`pending`, so a later re-run still attempts them.
+
+For Barkla, [`run_pipeline_batch.sbatch`](scripts/slurm/run_pipeline_batch.sbatch)
+runs this as a job array, each task taking a contiguous slice of the question
+list and writing into one shared manifest:
+
+```bash
+# 10 array tasks, at most 3 running at once
+sbatch --array=0-9%3 scripts/slurm/run_pipeline_batch.sbatch questions.txt 10
+```
+
+An array rather than one long job because 100 questions can exceed even
+`gpu-h100`'s 3-day cap, and a single job failing loses the whole sweep; a vLLM
+server per task rather than one shared server job because a shared server is a
+single point of failure for every task at once, and the model load amortizes
+fine across a slice of 10-20 questions. Resubmitting the same command after a
+pre-emption resumes from the manifest.
+
 The per-agent subcommands below run a single stage — useful for iterating on
 one agent, or resuming from a previous run's JSON.
 
@@ -405,11 +446,45 @@ feasible plan under `experiments/<hypothesis_id>/`, and — for `low`/`medium`
 `estimated_complexity` plans that don't need a GPU this environment lacks —
 actually runs it and captures `results.json`. `high`-complexity or
 GPU-needing plans get code plus a `run.sbatch` template instead of being run
-synchronously; **the agent never submits SLURM jobs itself**, review the
-script first. Writes `outputs/coder_agent_summary_<UTC timestamp>.json` — see
+synchronously; **by default the agent does not submit SLURM jobs itself**,
+review the script first (see [Autonomous fixing](#autonomous-fixing-and-slurm-auto-submission)
+to change that). Writes `outputs/coder_agent_summary_<UTC timestamp>.json` — see
 [coder_agent.py](src/research_pipeline/agents/coder/coder_agent.py)'s
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
+
+#### Autonomous fixing and SLURM auto-submission
+
+When generated code fails a check, the agent doesn't give up on it — it feeds
+the actual error back to the model and regenerates, up to
+`CODER_MAX_FIX_ATTEMPTS` times (default 3). The error is whatever the failing
+check produced: a compile error, a static-lint finding, the stdout/stderr tail
+from the run, or the traceback `run.py` recorded in `results.json["error"]`.
+Every stop condition is a real check's verdict rather than a model's opinion
+about whether the code looks right. Env-provisioning failures are deliberately
+not retried — regenerating code can't install a missing package. Each failed
+attempt is preserved under `experiments/<hypothesis_id>/fix_attempts/attempt_<n>/`
+and summarized in the output's `fix_history`, which is also the useful artifact
+if you're mining runs for training data: failing code, its error, and the fix.
+
+`high`-complexity/GPU plans can't be run locally, so there's no real error to
+learn from. Setting `CODER_AUTO_SUBMIT_SLURM=true` (default **false**) lets the
+agent submit those to the cluster itself during unattended sweeps. It still
+refuses unless every gate passes:
+
+| Gate | What it does |
+|---|---|
+| `sandbox.static_safety_check` | Refuses code containing `eval`/`exec`, `shell=True`, `os.system`, `rmtree`, raw sockets, credential-shaped env lookups, and similar |
+| LLM pre-flight review | Reads the code against the plan; concerns route back through the same fix loop |
+| `CODER_MAX_CONCURRENT_SLURM_JOBS` | Checked against `squeue`, so it holds across every process in a sweep. A failed probe blocks rather than waves through |
+| `CODER_MAX_SLURM_JOBS_PER_RUN` | Per-question ceiling, so one plan set can't flood the queue |
+
+Anything that trips a gate falls back to writing `run.sbatch` for manual
+review, with a `reason` naming which gate stopped it — an auto-submit that
+didn't happen never looks like an ordinary "needs a human" result.
+Successfully submitted experiments get `status: "submitted_to_slurm"` and a
+`slurm_job_id`; their results aren't part of that run, since the job outlives
+it.
 
 ```bash
 uv run research-pipeline writer \

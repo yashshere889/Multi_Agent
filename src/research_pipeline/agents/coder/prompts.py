@@ -147,6 +147,72 @@ actual assessment of whether this experiment's code requires network access \
 or a GPU to run.)
 """
 
+EXPERIMENT_CODEGEN_FIX_PROMPT = """The code you generated for hypothesis {hypothesis_id} failed. Fix it.
+
+The experiment plan is unchanged (JSON):
+{plan_block}
+
+{shared_infra_block}
+
+The run_py_sections you produced last time (JSON):
+{previous_sections_block}
+
+What went wrong — detected by {error_source}:
+{error_text}
+
+Network access on this machine: {network_status}.{network_note}
+
+Diagnose the actual cause and regenerate every section, keeping whatever \
+already worked and correcting what caused the failure. Do not merely describe \
+the bug in "assumptions_made" — the returned code must actually fix it. If the \
+failure was a missing or misnamed dependency, correct requirements_txt to \
+match what the code imports. If the failure was a flagged unsafe pattern, \
+rewrite that logic so it no longer needs it — do not just move or obfuscate it.
+
+Return ONLY a JSON object with the exact same shape as before:
+{{
+  "run_py_sections": {{
+    "imports": "<import lines, or empty string>",
+    "configuration": "<constant assignments, or empty string>",
+    "load_data_function": "<complete function definition>",
+    "build_model_function": "<complete function definition>",
+    "run_experiment_function": "<complete function definition>",
+    "evaluate_function": "<complete function definition>",
+    "helpers": "<optional helper function definitions, or empty string>"
+  }},
+  "readme": "<full README.md contents>",
+  "requirements_txt": "<full requirements.txt contents, may be an empty string>",
+  "assumptions_made": ["concrete assumption made for an underspecified step, if any — empty list if none were needed"],
+  "needs_network": true,
+  "needs_gpu": false
+}}
+"""
+
+EXPERIMENT_SELF_REVIEW_PROMPT = """Review the experiment code below for hypothesis {hypothesis_id} \
+BEFORE it is submitted to a shared HPC cluster. It cannot be test-run first — \
+this review is the only check it gets, and a bug wastes real GPU allocation on \
+a machine other researchers are queueing for.
+
+The experiment plan it must implement (JSON):
+{plan_block}
+
+The generated run.py in full:
+{code_block}
+
+Read it critically against the plan. Flag anything that would crash, hang, \
+silently produce meaningless numbers, or fail to test what the plan actually \
+asked for — undefined names, wrong shapes, a metric that doesn't match \
+evaluation.metrics, an unbounded loop, a data path that won't exist on the \
+cluster, a hardcoded local assumption. Be specific about what is wrong and \
+where; do not restate what the code does correctly.
+
+Return ONLY a JSON object with this exact shape:
+{{
+  "looks_correct": true,
+  "concerns": ["specific problem and where it is — empty list if none"]
+}}
+"""
+
 SHARED_INFRA_PROMPT = """The following shared setup/infrastructure was identified as common across \
 multiple experiments in this pipeline — implement it ONCE here so individual \
 experiments can import it instead of duplicating it.
