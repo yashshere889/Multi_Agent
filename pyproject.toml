@@ -15,6 +15,19 @@ dependencies = [
     "pypdf>=4.0",
 ]
 
+[project.optional-dependencies]
+# Only needed for LLM_BACKEND=huggingface, which loads the model in-process
+# instead of calling an OpenAI-compatible server. Kept out of the base
+# dependencies because it drags in torch/transformers — several GB and
+# thousands of inodes, which matters on a quota'd HPC home directory.
+#   uv sync --extra huggingface
+huggingface = [
+    "langchain-huggingface>=0.1",
+    "transformers>=4.44",
+    "accelerate>=0.33",
+    "torch>=2.4",
+]
+
 [project.scripts]
 research-pipeline = "research_pipeline.cli:main"
 

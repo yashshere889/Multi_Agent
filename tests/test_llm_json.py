@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline import llm
+from research_pipeline import config, llm
 from research_pipeline.llm_json import LLMJSONError, invoke_json, strip_fences, strip_reasoning
 
 
@@ -80,19 +80,33 @@ def test_invoke_json_raises_when_both_attempts_are_unparseable():
 # -- llm.get_chat_model: Nemotron request fields -----------------------------------------
 
 
-def test_get_chat_model_sends_the_configured_thinking_mode(monkeypatch):
+@pytest.fixture
+def openai_backend(monkeypatch):
+    """Pins the openai backend so these assertions don't depend on whatever
+    LLM_BACKEND the developer's ambient .env happens to set — under
+    huggingface every one of them would be constructing a real model."""
+    monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_backend="openai"))
+
+
+def test_get_chat_model_sends_the_configured_thinking_mode(monkeypatch, openai_backend):
     # Pinned rather than read from the ambient .env, so the assertion doesn't
     # flip with whoever's LLM_ENABLE_THINKING is loaded.
-    monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_enable_thinking=False))
+    monkeypatch.setattr(
+        llm, "settings", replace(llm.settings, llm_backend="openai", llm_enable_thinking=False)
+    )
     assert llm.get_chat_model().extra_body == {"chat_template_kwargs": {"enable_thinking": False}}
 
-    monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_enable_thinking=True))
+    monkeypatch.setattr(
+        llm, "settings", replace(llm.settings, llm_backend="openai", llm_enable_thinking=True)
+    )
     assert llm.get_chat_model().extra_body == {"chat_template_kwargs": {"enable_thinking": True}}
 
 
 def test_get_chat_model_sends_reasoning_budget_only_when_thinking_is_on(monkeypatch):
     # Settings is a frozen dataclass, so swap in a whole replaced copy.
-    monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_reasoning_budget=512))
+    monkeypatch.setattr(
+        llm, "settings", replace(llm.settings, llm_backend="openai", llm_reasoning_budget=512)
+    )
 
     assert "reasoning_budget" not in llm.get_chat_model(enable_thinking=False).extra_body
     thinking = llm.get_chat_model(enable_thinking=True)
@@ -102,12 +116,110 @@ def test_get_chat_model_sends_reasoning_budget_only_when_thinking_is_on(monkeypa
     }
 
 
-def test_get_chat_model_applies_configured_sampling_and_token_budget():
+def test_get_chat_model_applies_configured_sampling_and_token_budget(openai_backend):
     model = llm.get_chat_model(temperature=0.1)
     assert model.temperature == 0.1
     assert model.top_p == llm.settings.llm_top_p
     assert model.max_tokens == llm.settings.llm_max_tokens
 
 
-def test_get_chat_model_uses_the_configured_model_id():
+def test_get_chat_model_uses_the_configured_model_id(openai_backend):
     assert llm.get_chat_model().model_name == llm.settings.llm_model
+
+
+# -- llm.get_chat_model: huggingface backend ---------------------------------------------
+
+
+@pytest.fixture
+def fake_huggingface(monkeypatch):
+    """Stands in for langchain_huggingface, which is an optional extra and
+    would otherwise download and load a real 12-30B model. Records the kwargs
+    the factory builds so the transformers-specific translation can be checked
+    without any of it installed."""
+    recorded = {}
+
+    class FakeHuggingFacePipeline:
+        @staticmethod
+        def from_model_id(**kwargs):
+            recorded.update(kwargs)
+            return "fake-llm"
+
+    class FakeChatHuggingFace:
+        def __init__(self, llm):
+            self.llm = llm
+
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "langchain_huggingface",
+        SimpleNamespace(
+            ChatHuggingFace=FakeChatHuggingFace,
+            HuggingFacePipeline=FakeHuggingFacePipeline,
+        ),
+    )
+    monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_backend="huggingface"))
+    return recorded
+
+
+def test_huggingface_backend_is_selected_by_the_configured_backend(fake_huggingface):
+    model = llm.get_chat_model()
+    assert type(model).__name__ == "FakeChatHuggingFace"
+    assert fake_huggingface["model_id"] == llm.settings.llm_model
+    assert fake_huggingface["task"] == "text-generation"
+
+
+def test_huggingface_backend_enables_sampling_only_above_zero_temperature(fake_huggingface):
+    # do_sample=False makes transformers decode greedily and ignore temperature
+    # / top_p outright, so passing them together would look configured while
+    # doing nothing. Above zero they must travel together.
+    llm.get_chat_model(temperature=0.2)
+    assert fake_huggingface["pipeline_kwargs"]["do_sample"] is True
+    assert fake_huggingface["pipeline_kwargs"]["temperature"] == 0.2
+    assert fake_huggingface["pipeline_kwargs"]["top_p"] == llm.settings.llm_top_p
+
+
+def test_huggingface_backend_uses_greedy_decoding_at_zero_temperature(fake_huggingface):
+    llm.get_chat_model(temperature=0.0)
+    kwargs = fake_huggingface["pipeline_kwargs"]
+    assert kwargs["do_sample"] is False
+    assert "temperature" not in kwargs
+    assert "top_p" not in kwargs
+
+
+def test_huggingface_backend_translates_the_token_budget_and_suppresses_the_prompt_echo(
+    fake_huggingface,
+):
+    # max_tokens (prompt+completion) has no transformers equivalent;
+    # max_new_tokens bounds generation only. return_full_text=False matters
+    # just as much: the pipeline otherwise prepends the whole prompt, which
+    # would break every strip_fences/json.loads downstream.
+    llm.get_chat_model()
+    kwargs = fake_huggingface["pipeline_kwargs"]
+    assert kwargs["max_new_tokens"] == llm.settings.llm_max_tokens
+    assert kwargs["return_full_text"] is False
+
+
+def test_unknown_backend_is_rejected_at_load_time(monkeypatch):
+    # Validated when settings load rather than when a model is first built:
+    # otherwise a typo'd backend surfaces dozens of LLM calls into a run, on
+    # whichever agent happened to construct a model first.
+    monkeypatch.setenv("LLM_BACKEND", "vllm")
+    with pytest.raises(ValueError, match="LLM_BACKEND"):
+        config._env_backend()
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [("", "openai"), ("  ", "openai"), ("HuggingFace", "huggingface"), (" openai ", "openai")],
+)
+def test_backend_is_normalized_and_defaults_to_openai(monkeypatch, raw, expected):
+    monkeypatch.setenv("LLM_BACKEND", raw)
+    assert config._env_backend() == expected
+
+
+def test_huggingface_backend_ignores_thinking_rather_than_failing(fake_huggingface, caplog):
+    # enable_thinking rides on an OpenAI wire field that doesn't exist here.
+    # Turning it on must degrade to a warning (strip_reasoning still guards
+    # the parse), never an error.
+    with caplog.at_level("WARNING"):
+        llm.get_chat_model(enable_thinking=True)
+    assert "enable_thinking" in caplog.text

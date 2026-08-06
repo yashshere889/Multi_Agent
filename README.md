@@ -239,19 +239,43 @@ uv sync
 cp .env.example .env   # then fill in LLM_BASE_URL / SEMANTIC_SCHOLAR_API_KEY
 ```
 
-### LLM server
+### LLM backend
 
-Every agent is LLM-powered, and they all share one model:
+Every agent is LLM-powered and they all share one model, built in one place:
+[`llm.get_chat_model()`](src/research_pipeline/llm.py). `LLM_BACKEND` picks how
+that model is reached — both return a `BaseChatModel`, so no agent knows which
+is in use:
+
+| `LLM_BACKEND` | How | Use it when |
+|---|---|---|
+| `openai` (default) | HTTP to any OpenAI-compatible server via `LLM_BASE_URL` | Serving a large model (vLLM, LM Studio, `llama-server`), or reusing one server across many runs |
+| `huggingface` | Model loaded **in-process** with transformers | Smaller model, and you'd rather not run a server at all |
+
+**`openai`** targets
 [NVIDIA Nemotron 3 Nano](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16)
-(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`), served by vLLM. The code
-reaches it as a plain OpenAI-compatible chat endpoint via `LLM_BASE_URL`, so
-any other such server (LM Studio, Ollama's OpenAI-compat mode, `llama-server`)
-still works by changing `LLM_BASE_URL`/`LLM_MODEL` — nothing is Kaggle- or
-llama.cpp-specific.
+(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`) served by vLLM, but nothing is
+Kaggle- or llama.cpp-specific — any OpenAI-compatible server works by changing
+`LLM_BASE_URL`/`LLM_MODEL`. `LLM_MODEL` must match the id the server
+advertises: the SLURM script passes no `--served-model-name`, so that's the
+full HF repo id; the model card's own example aliases it to `model`, in which
+case set `LLM_MODEL=model`.
 
-`LLM_MODEL` must match the id the server advertises. The SLURM template passes
-no `--served-model-name`, so that's the full HF repo id; the model card's own
-example aliases it to `model`, in which case set `LLM_MODEL=model`.
+**`huggingface`** needs the optional extra (`uv sync --extra huggingface`),
+which pulls in torch/transformers — several GB and thousands of inodes, hence
+not a base dependency. It uses `ChatHuggingFace` over `HuggingFacePipeline`,
+adds `LLM_HF_DEVICE_MAP`/`LLM_HF_DTYPE`, and ignores `LLM_BASE_URL`/
+`LLM_API_KEY`. Two behaviours differ and are worth knowing:
+
+- `LLM_ENABLE_THINKING`/`LLM_REASONING_BUDGET` **cannot be sent.** They ride on
+  `extra_body`, an OpenAI wire-protocol field, and there is no request body
+  when the model runs in-process. The setting is logged and ignored, leaving
+  `strip_reasoning` as the sole guard against a `<think>` trace breaking a
+  parse — the exact case it was written for.
+- Sampling is gated by `do_sample`, which transformers defaults to `False`.
+  The factory derives it from the temperature, so `LLM_TEMPERATURE=0` decodes
+  greedily and anything above it samples with `LLM_TOP_P`. Passing a
+  temperature alongside `do_sample=False` would look configured while silently
+  doing nothing.
 
 **Reasoning mode.** Nemotron 3 Nano thinks before answering, emitting a
 `<think>...</think>` trace. `LLM_ENABLE_THINKING` (default `false`) controls
@@ -265,9 +289,25 @@ agent's JSON parse. Turning thinking on is therefore safe either way; raise
 `LLM_TEMPERATURE`/`LLM_TOP_P` to the card's recommended `1.0`/`1.0` and give
 `LLM_MAX_TOKENS` room if you do.
 
-**On Barkla:** there is no vLLM module, so the server runs from the official
-vLLM image under Apptainer. Build it once on a *viz* node (never the login
-node — long tasks there are killed without warning):
+**On Barkla:** two job scripts, one per backend. Choose on model size — the
+30B needs an 80GB card and benefits enough from vLLM's throughput to justify
+the plumbing; the 12B fits almost anywhere and doesn't.
+
+```bash
+# huggingface backend, Nemotron Nano 12B v2 (~24GB) — no server, no container
+sbatch scripts/slurm/run_pipeline_hf.sbatch "your research question"
+```
+
+[`run_pipeline_hf.sbatch`](scripts/slurm/run_pipeline_hf.sbatch) defaults to
+`gpu-l40s` and needs only `uv sync --extra huggingface` plus a pre-fetched
+checkpoint, both done once on a viz node. It's the shorter path: no container
+build, no port, no health check, and a load failure surfaces as an ordinary
+Python traceback instead of a server that never answers. Barkla also ships a
+tested `nemotron/nano-12b-v2` module built on this same stack.
+
+The vLLM path needs a container first, since there is no vLLM module. Build it
+once on a *viz* node (never the login node — long tasks there are killed
+without warning):
 
 ```bash
 bash scripts/slurm/build_vllm_sif.sh
@@ -276,6 +316,7 @@ bash scripts/slurm/build_vllm_sif.sh
 Then run the whole pipeline — server and all six agents — as a single job:
 
 ```bash
+# openai backend, Nemotron 3 Nano 30B A3B (~60GB) — vLLM served
 sbatch scripts/slurm/run_pipeline.sbatch "your research question"
 ```
 

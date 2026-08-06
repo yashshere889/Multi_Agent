@@ -13,8 +13,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+VALID_LLM_BACKENDS = ("openai", "huggingface")
+
+
 @dataclass(frozen=True)
 class Settings:
+    llm_backend: str
     llm_base_url: str
     llm_api_key: str
     llm_model: str
@@ -23,6 +27,8 @@ class Settings:
     llm_max_tokens: int
     llm_enable_thinking: bool
     llm_reasoning_budget: int | None
+    llm_hf_device_map: str
+    llm_hf_dtype: str
     semantic_scholar_api_key: str
     default_max_results_per_query: int
     hypothesis_output_dir: str
@@ -54,6 +60,16 @@ def _env_optional_int(name: str) -> int | None:
     return int(raw)
 
 
+def _env_backend() -> str:
+    """Validated at load time rather than at first model construction: a typo'd
+    backend would otherwise surface dozens of LLM calls into a run, on whichever
+    agent happened to build a model first."""
+    backend = os.environ.get("LLM_BACKEND", "openai").strip().lower() or "openai"
+    if backend not in VALID_LLM_BACKENDS:
+        raise ValueError(f"LLM_BACKEND must be one of {VALID_LLM_BACKENDS}, got {backend!r}")
+    return backend
+
+
 def load_settings() -> Settings:
     semantic_scholar_api_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "")
     if not semantic_scholar_api_key:
@@ -62,6 +78,12 @@ def load_settings() -> Settings:
             "(unauthenticated requests are aggressively rate-limited / rejected)."
         )
     return Settings(
+        # "openai": talk to any OpenAI-compatible server (vLLM on a Barkla GPU
+        # node, LM Studio, llama-server) over LLM_BASE_URL.
+        # "huggingface": load the model in-process with transformers, no server
+        # at all — see llm.py for the tradeoffs and the settings that stop
+        # applying under it.
+        llm_backend=_env_backend(),
         llm_base_url=os.environ.get("LLM_BASE_URL", "http://localhost:8080/v1"),
         llm_api_key=os.environ.get("LLM_API_KEY", "not-needed"),
         llm_model=os.environ.get("LLM_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"),
@@ -79,6 +101,12 @@ def load_settings() -> Settings:
         # Traces are stripped defensively regardless (see llm_json.strip_reasoning).
         llm_enable_thinking=_env_bool("LLM_ENABLE_THINKING", False),
         llm_reasoning_budget=_env_optional_int("LLM_REASONING_BUDGET"),
+        # huggingface backend only. "auto" lets accelerate shard the model
+        # across whatever GPUs SLURM allocated, and lets transformers take the
+        # dtype from the checkpoint (BF16 for the models here) — override the
+        # dtype to "float16" on pre-Ampere cards, which have no bfloat16.
+        llm_hf_device_map=os.environ.get("LLM_HF_DEVICE_MAP", "auto"),
+        llm_hf_dtype=os.environ.get("LLM_HF_DTYPE", "auto"),
         semantic_scholar_api_key=semantic_scholar_api_key,
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
         hypothesis_output_dir=os.environ.get("HYPOTHESIS_OUTPUT_DIR", "outputs"),
