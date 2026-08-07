@@ -1,0 +1,21 @@
+<div {% if active %}data-poll-url="/runs/{{ run.run_id }}/log" data-poll-interval="2000"{% endif %}>
+<section class="card">
+  <h2>Log</h2>
+  {% if not lines %}
+    <p class="muted">Nothing logged yet.</p>
+  {% else %}
+    {# data-autoscroll keeps the pane pinned to the newest line, unless you've
+       scrolled up to read something — see static/app.js. #}
+    <div class="log" data-autoscroll>
+      {% for line in lines %}
+      <div class="log-line log-{{ line.level | lower }}">
+        <span class="log-time">{{ line.ts | short_time }}</span>
+        <span class="log-level">{{ line.level }}</span>
+        <span class="log-name">{{ line.logger.replace('research_pipeline.', '') }}</span>
+        <span class="log-msg">{{ line.message }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+</div>

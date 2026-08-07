@@ -50,6 +50,10 @@ class Settings:
     writer_reviewer_quality_threshold: int
     batch_output_root: str
     batch_max_consecutive_failures: int
+    webapp_runs_dir: str
+    webapp_host: str
+    webapp_port: int
+    webapp_max_concurrent_runs: int
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -146,6 +150,19 @@ def load_settings() -> Settings:
         # server is down, the API key expired) instead of burning the rest of
         # the question list against the same failure.
         batch_max_consecutive_failures=int(os.environ.get("BATCH_MAX_CONSECUTIVE_FAILURES", "5")),
+        # One directory per run, holding that run's events, logs and every
+        # artifact it produced — so a run is self-contained and rsync-able off a
+        # compute node, and no two runs share an output directory.
+        webapp_runs_dir=os.environ.get("WEBAPP_RUNS_DIR", "runs"),
+        # Loopback by default: the web app has no authentication and can start
+        # jobs and read files, so binding it to a routable address on a shared
+        # cluster hands those abilities to everyone else on the node. Reach it
+        # from elsewhere with an SSH tunnel instead (see README).
+        webapp_host=os.environ.get("WEBAPP_HOST", "127.0.0.1"),
+        webapp_port=int(os.environ.get("WEBAPP_PORT", "8000")),
+        # The pipeline points at a single LLM endpoint, so a second concurrent
+        # run mostly just contends with the first for it.
+        webapp_max_concurrent_runs=int(os.environ.get("WEBAPP_MAX_CONCURRENT_RUNS", "1")),
     )
 
 

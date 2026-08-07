@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ run.question[:60] }} — Research pipeline{% endblock %}
+
+{% block content %}
+<section class="card">
+  <p class="muted"><a href="/">← All runs</a></p>
+  <h1 class="question">{{ run.question }}</h1>
+  <p class="muted run-id">{{ run.run_id }}</p>
+</section>
+
+{# Both panes are placeholders with a zero-delay first poll, so the page itself
+   stays trivial to render and the fragments have exactly one code path. #}
+<div data-poll-url="/runs/{{ run.run_id }}/progress" data-poll-interval="0">
+  <section class="card"><p class="muted">Loading progress…</p></section>
+</div>
+
+<div data-poll-url="/runs/{{ run.run_id }}/log" data-poll-interval="0">
+  <section class="card"><p class="muted">Loading log…</p></section>
+</div>
+{% endblock %}

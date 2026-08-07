@@ -24,6 +24,7 @@ from pathlib import Path
 
 from research_pipeline import batch
 from research_pipeline.agents.coder import run_coder_agent
+from research_pipeline.config import settings
 from research_pipeline.agents.experiment_planner import run_experiment_planner_agent
 from research_pipeline.agents.hypothesis import run_hypothesis_agent
 from research_pipeline.agents.literature.graph import build_literature_graph
@@ -230,6 +231,33 @@ def run_orchestrate_batch_cli(args: argparse.Namespace) -> None:
         print(f"Skipped (already done): {summary['skipped_already_done']}")
 
 
+def run_serve_cli(args: argparse.Namespace) -> None:
+    """Starts the web UI. Imported lazily so the rest of the CLI keeps working
+    without `uv sync --extra webapp` — a headless SLURM sweep has no use for an
+    HTTP server and shouldn't have to install one."""
+    try:
+        import uvicorn
+
+        from research_pipeline.webapp.app import create_app
+    except ImportError as exc:
+        raise SystemExit(
+            f"The web UI needs its optional dependencies ({exc.name}). Install them with:\n"
+            "    uv sync --extra webapp"
+        ) from exc
+
+    host = args.host or settings.webapp_host
+    port = args.port or settings.webapp_port
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        logger.warning(
+            "Binding %s, which is reachable from other machines. This app has no authentication and can "
+            "start jobs and read files — on a shared cluster, bind 127.0.0.1 and use an SSH tunnel instead.",
+            host,
+        )
+
+    print(f"Research pipeline UI on http://{host}:{port} (runs in {settings.webapp_runs_dir}/)")
+    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="research-pipeline", description="Multi-agent research pipeline")
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
@@ -321,6 +349,11 @@ def build_parser() -> argparse.ArgumentParser:
     orchestrate_batch.add_argument("--slice-index", type=int, default=None, help="for SLURM job arrays: which slice this task runs")
     orchestrate_batch.add_argument("--slice-count", type=int, default=None, help="for SLURM job arrays: how many slices in total")
     orchestrate_batch.set_defaults(func=run_orchestrate_batch_cli)
+
+    serve = subparsers.add_parser("serve", help="web UI for starting a run and watching it stage by stage")
+    serve.add_argument("--host", default=None, help="address to bind (default: 127.0.0.1; see README before changing)")
+    serve.add_argument("--port", type=int, default=None, help="port to bind (default: 8000)")
+    serve.set_defaults(func=run_serve_cli)
 
     return parser
 

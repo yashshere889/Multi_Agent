@@ -97,11 +97,20 @@ src/research_pipeline/
 ├── llm.py                 # shared ChatOpenAI factory
 ├── llm_json.py            # shared "call the model, expect JSON, retry once on bad JSON" helper
 ├── cli.py                 # `research-pipeline <agent> ...` entry point
+├── batch.py               # runs `orchestrate` over a file of questions unattended
 ├── writer_reviewer_loop.py # orchestrator: draft -> review -> revise -> re-review loop (not an agent itself)
 ├── orchestrator/          # LangGraph orchestrator running all six agents end to end (not an agent itself)
 │   ├── state.py            # PipelineState — one key per stage's full output dict
 │   ├── nodes.py            # thin nodes wrapping each agent's existing entry point
 │   └── graph.py            # StateGraph wiring, incl. the writer/reviewer cycle + compile()
+├── webapp/                # optional web UI (`--extra webapp`); reads the graph, never modifies it
+│   ├── events.py           # append-only events.jsonl — the runner's only channel to the server
+│   ├── runs.py             # RunStore: run directories, run.json, launching + cancelling runners
+│   ├── stages.py           # state deltas -> display rows (reuses should_continue_revising)
+│   ├── runner.py           # the subprocess that streams one graph run
+│   ├── app.py              # FastAPI routes; renders fragments the browser polls
+│   ├── templates/          # Jinja2 pages + polled fragments
+│   └── static/             # app.css and a ~60-line poller (no JS framework, no CDN)
 └── agents/
     ├── literature/         # LangGraph StateGraph agent
     │   ├── state.py         # graph state schema (TypedDict)
@@ -359,6 +368,70 @@ This runs the orchestrator graph described above and prints the final paper
 path, how many Writer/Reviewer iterations ran, whether it converged, and any
 unresolved issues. Every stage still writes its own outputs along the way, so
 a run can be inspected (or picked up from disk) stage by stage.
+
+### Watching a run in a browser
+
+`orchestrate` blocks for tens of minutes and prints nothing until it finishes.
+The web UI runs the same graph and shows each stage completing as it completes:
+
+```bash
+uv sync --extra webapp
+uv run research-pipeline serve
+```
+
+Then open <http://127.0.0.1:8000>, enter a research question, and watch. Each
+stage reports what it actually produced — papers found, the three hypotheses,
+per-plan feasibility and complexity, per-experiment status and fix attempts,
+then the Writer/Reviewer iterations with their quality scores and issue counts.
+The pipeline's own log lines stream underneath, every draft's PDF is openable
+the moment it's written (not just the final one), and a run can be cancelled.
+
+Three processes, not one. The server never runs a pipeline itself: starting a
+run spawns `python -m research_pipeline.webapp.runner <run_dir>`, and the
+server thereafter only reads files that subprocess writes. That is what makes a
+run cancellable at all — a thread sitting inside `graph.invoke()` cannot be
+interrupted, but a subprocess takes `SIGTERM` — and it keeps a crash in the
+Coder Agent's sandbox from taking the server down, lets the server be restarted
+mid-run, and gives each run its own `CODER_EXPERIMENTS_DIR`, which is the one
+output location the graph can't route per run.
+
+Progress comes from `graph.stream(..., stream_mode="updates")`, which already
+yields `{node_name: delta}` at each node boundary. No agent and no orchestrator
+code is modified or reimplemented for the UI; everything it displays is read
+out of an agent's own validated output.
+
+Each run is one self-contained, rsync-able directory under `WEBAPP_RUNS_DIR`
+(default `runs/`):
+
+```
+runs/<run_id>/
+    run.json        question, params, status, pid, timings, final result
+    events.jsonl    the progress + log stream the browser polls
+    stdout.log      the runner's own stdout/stderr
+    outputs/        v1.pdf, v1_summary.json, ..., review_log.json
+    papers/         downloaded PDFs + metadata.json
+    experiments/    generated experiment code
+```
+
+Three things worth knowing before running it anywhere shared:
+
+- **There is no authentication.** The app can start jobs and read files, so it
+  binds `127.0.0.1` by default and should stay there on a shared machine.
+  `serve` warns if you bind anything else.
+- **On Barkla it has to live inside the SLURM allocation**, alongside vLLM, the
+  same way [`run_pipeline.sbatch`](scripts/slurm/run_pipeline.sbatch) co-locates
+  the pipeline with the model server — the runner needs `localhost` access to
+  `LLM_BASE_URL`, so a login-node server is no use. Reach it with a tunnel:
+  `ssh -L 8000:<compute-node>:8000 <barkla-host>`.
+- **A killed run cannot be resumed.** `build_pipeline_graph()` compiles with
+  `MemorySaver`, which is per-process, so restarting a run starts it over. A run
+  whose process dies is detected and reported as failed rather than left
+  showing as running forever.
+
+Concurrency is capped at `WEBAPP_MAX_CONCURRENT_RUNS` (default 1): the pipeline
+talks to a single LLM endpoint, so a second simultaneous run competes with the
+first for it rather than finishing sooner. A refused start says so instead of
+queueing silently.
 
 ### Many questions at once
 

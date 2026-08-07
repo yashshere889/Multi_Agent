@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Start a run</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="/runs" class="start-form">
+    <label for="question">Research question</label>
+    <textarea id="question" name="question" rows="3" required
+              placeholder="e.g. Do retrieval-augmented language models reduce hallucination on long-form question answering?"></textarea>
+
+    <div class="fields">
+      <div>
+        <label for="max_results">Papers per query, per source</label>
+        <input id="max_results" name="max_results" type="number" min="1" max="50"
+               value="{{ settings.default_max_results_per_query }}">
+      </div>
+      <div>
+        <label for="max_iterations">Max Writer/Reviewer iterations</label>
+        <input id="max_iterations" name="max_iterations" type="number" min="1" max="10"
+               placeholder="{{ settings.writer_reviewer_max_iterations }}">
+      </div>
+      <div>
+        <label for="quality_threshold">Quality threshold (1–5)</label>
+        <input id="quality_threshold" name="quality_threshold" type="number" min="1" max="5"
+               placeholder="{{ settings.writer_reviewer_quality_threshold }}">
+      </div>
+    </div>
+
+    <p class="muted">
+      A full run searches for papers, synthesizes hypotheses, plans and executes experiments, then drafts and
+      reviews a paper — expect tens of minutes. Blank fields use the configured defaults.
+    </p>
+    <button type="submit">Run pipeline</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Runs</h2>
+  {% include "partials/_runs.html" %}
+</section>
+{% endblock %}

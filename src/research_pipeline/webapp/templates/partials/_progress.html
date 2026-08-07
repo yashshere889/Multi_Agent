@@ -1,0 +1,119 @@
+{# Self-polling: the data-poll-url attributes are emitted only while the run is
+   active, so a finished run's pane stops asking the server anything. #}
+<div {% if active %}data-poll-url="/runs/{{ run.run_id }}/progress" data-poll-interval="2000"{% endif %}>
+<section class="card">
+  <div class="status-row">
+    <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+    <span class="muted">{{ run.started_at | duration(run.finished_at) }}</span>
+    <span class="spacer"></span>
+    {% if paper_name %}
+      <a class="button-link" href="/runs/{{ run.run_id }}/paper?file={{ paper_name }}" target="_blank">
+        Open {{ paper_name }}
+      </a>
+    {% endif %}
+    {% if active %}
+      <form method="post" action="/runs/{{ run.run_id }}/cancel">
+        <button type="submit" class="danger">Cancel</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if run.error %}<p class="error">{{ run.error }}</p>{% endif %}
+
+  {% if run.final_result %}
+  <div class="final">
+    <strong>
+      {% if run.final_result.converged %}Passed review{% else %}Finished without passing review{% endif %}
+    </strong>
+    after {{ run.final_result.iterations_run }} iteration(s).
+    {% if run.final_result.unresolved_issues %}
+      <ul class="issues">
+        {% for issue in run.final_result.unresolved_issues %}<li>{{ issue }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <ol class="stages">
+    {% for row in rows %}
+    <li class="stage stage-{{ row.status }}">
+      <div class="stage-head">
+        <span class="dot"></span>
+        <span class="stage-label">{{ row.label }}</span>
+        <span class="muted stage-time">{{ row.ts | short_time }}</span>
+      </div>
+
+      {% set s = row.summary %}
+      {% if row.status == 'done' %}
+      <div class="stage-body">
+        {% if row.key == 'literature' %}
+          <p>{{ s.papers_found }} unique paper(s), {{ s.papers_downloaded }} downloaded.</p>
+          {% if s.queries %}<p class="muted">Queries: {{ s.queries | join(' · ') }}</p>{% endif %}
+          {% if s.titles %}<ul>{% for t in s.titles %}<li class="muted">{{ t }}</li>{% endfor %}</ul>{% endif %}
+
+        {% elif row.key == 'hypothesis' %}
+          <p class="muted">{{ s.gaps }} gap(s) across {{ s.papers_used }} paper(s).</p>
+          <ul>{% for h in s.hypotheses %}<li><strong>{{ h.id }}</strong> {{ h.statement }}</li>{% endfor %}</ul>
+
+        {% elif row.key == 'experiment_planner' %}
+          <ul>
+            {% for p in s.plans %}
+            <li>
+              <strong>{{ p.hypothesis_id }}</strong>
+              <span class="chip chip-{{ 'ok' if p.feasible else 'warn' }}">{{ 'feasible' if p.feasible else 'not feasible' }}</span>
+              <span class="chip">{{ p.complexity }}</span>
+              <span class="muted">{{ p.objective }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+
+        {% elif row.key == 'coder' %}
+          <ul>
+            {% for e in s.experiments %}
+            <li>
+              <strong>{{ e.hypothesis_id }}</strong>
+              <span class="chip chip-{{ 'ok' if e.status == 'completed' else 'warn' }}">{{ e.status }}</span>
+              {% if e.fix_attempts %}<span class="chip">{{ e.fix_attempts }} fix attempt(s)</span>{% endif %}
+              {% if e.meets_success_criteria is not none %}
+                <span class="chip">success criteria: {{ e.meets_success_criteria }}</span>
+              {% endif %}
+              {% if e.reason %}<span class="muted">{{ e.reason }}</span>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+
+        {% elif row.key == 'draft_or_revise' %}
+          <p>
+            {{ s.sections }} section(s), {{ s.citations }} citation(s) —
+            {{ s.supported }} supported, {{ s.refuted }} refuted, {{ s.inconclusive }} inconclusive.
+          </p>
+          {% if s.paper_path %}
+            <p><a href="/runs/{{ run.run_id }}/paper?file={{ s.paper_path.split('/')[-1] }}" target="_blank">
+              {{ s.paper_path.split('/')[-1] }}</a></p>
+          {% endif %}
+
+        {% elif row.key == 'review' %}
+          <p>
+            <span class="chip chip-{{ 'ok' if s.overall_pass else 'warn' }}">
+              {{ 'passed' if s.overall_pass else 'changes requested' }}</span>
+            {% for name, score in s.quality_scores.items() %}
+              <span class="chip">{{ name.replace('_', ' ') }} {{ score }}/5</span>
+            {% endfor %}
+          </p>
+          {% if s.total_issues %}
+            <p class="muted">
+              {% for name, count in s.issues.items() %}{% if count %}{{ count }} {{ name.replace('_', ' ') }} · {% endif %}{% endfor %}
+            </p>
+          {% endif %}
+          {% if s.feedback and not s.overall_pass %}<p class="muted feedback">{{ s.feedback }}</p>{% endif %}
+
+        {% elif row.key == 'finalize' %}
+          <p class="muted">Review log written to {{ s.review_history_path }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+</div>

@@ -1,0 +1,27 @@
+{# Refreshes itself so a run started in another tab, or one that just finished, shows up without a reload. #}
+<div class="run-list" data-poll-url="/partials/runs" data-poll-interval="5000">
+  {% if not runs %}
+    <p class="muted">No runs yet.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Question</th><th>Started</th><th>Duration</th><th>Iterations</th></tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+        <tr>
+          <td><span class="badge badge-{{ run.status }}">{{ run.status }}</span></td>
+          <td><a href="/runs/{{ run.run_id }}">{{ run.question }}</a></td>
+          <td class="muted">{{ run.created_at | short_time }}</td>
+          <td class="muted">{{ run.started_at | duration(run.finished_at) }}</td>
+          <td class="muted">
+            {%- if run.final_result and run.final_result.iterations_run -%}
+              {{ run.final_result.iterations_run }}{% if run.final_result.converged %} ✓{% endif %}
+            {%- else -%}—{%- endif -%}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
