@@ -347,6 +347,35 @@ node, port, and the exact tunnel command on startup.
 Model weights and the `.sif` live on `fastscratch` (`HF_HOME`), not `home` —
 home is capped at 75GB/100k inodes and the weights alone exceed it.
 
+**On a Kaggle GPU:** [`notebooks/kaggle_gemma4_pipeline.ipynb`](notebooks/kaggle_gemma4_pipeline.ipynb)
+runs the whole pipeline in a Kaggle notebook against a 4-bit
+[Gemma 4 12B](https://huggingface.co/unsloth/gemma-4-12b-it-GGUF) GGUF served
+locally by `llama-server`. It changes no pipeline code: `llama-server` speaks
+the OpenAI API, so it is this same `openai` backend with `LLM_BASE_URL` on
+loopback. Quantization is what makes it fit — ~7GB at `Q4_K_M` against ~24GB
+at BF16, on a 16GB T4.
+
+[`scripts/kaggle/gguf_server.py`](scripts/kaggle/gguf_server.py) holds the
+deployment plumbing (build, download, launch, health-check) and imports nothing
+from `research_pipeline`, so it works from a plain terminal or any GPU box too:
+
+```bash
+python scripts/kaggle/gguf_server.py --foreground &
+LLM_BACKEND=openai LLM_BASE_URL=http://127.0.0.1:8000/v1 LLM_MODEL=gemma-4-local \
+  research-pipeline orchestrate "your research question"
+```
+
+It builds llama.cpp from source rather than fetching a binary because llama.cpp
+publishes no prebuilt *Linux CUDA* archive (the CUDA builds are Windows-only),
+and a CPU build would make a run take hours. The build is narrowed to the
+`llama-server` target and to the GPU's own compute capability — probed with
+`nvidia-smi`, since Kaggle hands out T4s, P100s and L4s and compiling for all of
+them multiplies build time for nothing. Two Kaggle-specific gotchas worth
+knowing: `settings` is frozen at import, so every `LLM_*` variable must be set
+**before** the first `import research_pipeline`; and `uv` must be on the kernel's
+`PATH`, or the Coder Agent can't provision an isolated environment for generated
+experiment code and reports `code_generated_not_run` instead of results.
+
 ### Semantic Scholar
 
 Get a key at https://www.semanticscholar.org/product/api#api-key and set
