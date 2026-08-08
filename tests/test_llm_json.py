@@ -77,6 +77,18 @@ def test_invoke_json_raises_when_both_attempts_are_unparseable():
         invoke_json(model, "sys", "user")
 
 
+def test_invoke_json_repairs_stray_backslashes_from_embedded_code_without_a_retry():
+    # A generated-code string containing a literal regex escape like "\d"
+    # isn't valid JSON (only \" \\ \/ \b \f \n \r \t \u are), but it's a
+    # deterministic mistake the model will just repeat on a repair turn — so
+    # this must be fixed locally, in a single model call.
+    model = FakeChatModel([r'{"files": {"a.py": "import re\nPATTERN = \d+"}}'])
+    assert invoke_json(model, "sys", "user") == {
+        "files": {"a.py": "import re\nPATTERN = \\d+"}
+    }
+    assert len(model.calls) == 1
+
+
 # -- llm.get_chat_model: Nemotron request fields -----------------------------------------
 
 

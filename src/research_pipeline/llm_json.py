@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
@@ -63,6 +64,31 @@ def strip_fences(text: str) -> str:
     return text.strip()
 
 
+_INVALID_JSON_ESCAPE_RE = re.compile(r'\\(?!["\\/bfnrtu])')
+
+
+def _fix_invalid_escapes(text: str) -> str:
+    """Doubles backslashes that aren't valid JSON escapes.
+
+    Agents that ask the model to return source code as a JSON string value
+    routinely get literal code back — e.g. a docstring or regex containing
+    "\\d" or "\\_" — rather than the "\\\\d" JSON requires, because the model
+    is reproducing code from its training data, not hand-encoding JSON. That
+    breaks json.loads immediately and, since the model got it wrong in a
+    structural way rather than a one-off typo, a repair turn tends to
+    reproduce the same mistake. Fixing it deterministically avoids a wasted
+    network round-trip and a second identical failure.
+    """
+    return _INVALID_JSON_ESCAPE_RE.sub(r"\\\\", text)
+
+
+def _loads_lenient(text: str) -> dict:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return json.loads(_fix_invalid_escapes(text))
+
+
 def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str) -> dict:
     """Invokes chat_model expecting a JSON object back; on a parse failure,
     retries once with an explicit repair prompt before raising LLMJSONError."""
@@ -70,7 +96,7 @@ def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str)
     response = chat_model.invoke(messages)
     text = strip_fences(response.content)
     try:
-        return json.loads(text)
+        return _loads_lenient(text)
     except json.JSONDecodeError as exc:
         logger.warning("Model returned invalid JSON (%s) — retrying once with a repair prompt", exc)
         # The repair turn quotes the *stripped* text, not the raw content: with
@@ -83,7 +109,7 @@ def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str)
         response = chat_model.invoke(messages)
         text = strip_fences(response.content)
         try:
-            return json.loads(text)
+            return _loads_lenient(text)
         except json.JSONDecodeError as exc2:
             raise LLMJSONError(
                 f"Model did not return valid JSON, even after a repair attempt: {exc2}. "
