@@ -34,8 +34,11 @@ PROJECT_DIR="$SLURM_SUBMIT_DIR"
 WORK_DIR="/mnt/fastscratch/users/$USER/pipeline-runs/$SLURM_JOB_ID"
 mkdir -p "$WORK_DIR"
 
-# Reuse the weights already fetched into fastscratch — no re-download.
-export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
+# Reuse the weights already fetched into fastscratch — no re-download. Mirrors
+# what the `nemotron` wrapper script (/opt/apps/.../nemotron/bin/nemotron)
+# does: bind the cache dir to /opt/huggingface_cache and point HF_HOME there,
+# since the container only sees paths that are explicitly bind-mounted in.
+NEMOTRON_CACHE="/mnt/fastscratch/users/$USER/hf_cache"
 
 cd "$PROJECT_DIR"
 
@@ -48,7 +51,14 @@ export LLM_MODEL=nvidia/NVIDIA-Nemotron-Nano-12B-v2
 export LLM_HF_DEVICE_MAP=auto
 export LLM_HF_DTYPE=auto
 
-apptainer exec --nv "$NEMOTRON_SIF" python3 -m research_pipeline.cli orchestrate "$QUESTION" \
+# --bind /mnt: the container's root is otherwise read-only, so without this
+# nothing under /mnt/fastscratch (outputs, papers, the HF cache) is writable
+# or even visible from inside it.
+apptainer exec --nv \
+    --bind /mnt \
+    --bind "$NEMOTRON_CACHE:/opt/huggingface_cache" \
+    --env HF_HOME=/opt/huggingface_cache \
+    "$NEMOTRON_SIF" python3 -m research_pipeline.cli orchestrate "$QUESTION" \
     --download-dir "$WORK_DIR/papers" \
     --output-dir "$WORK_DIR/outputs"
 
