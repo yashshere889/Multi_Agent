@@ -57,27 +57,37 @@ def _request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
 
 
 def search_arxiv(queries: List[str], max_results: int) -> List[Paper]:
-    client = arxiv.Client()  # default delay_seconds=3, respects arXiv's rate limit guidance
+    # delay_seconds/num_retries above the library defaults (3s/3) because a
+    # shared-IP host (e.g. a Kaggle node) can get 429s more aggressively than
+    # arXiv's documented per-client rate limit anticipates.
+    client = arxiv.Client(delay_seconds=5, num_retries=5)
     papers: List[Paper] = []
     seen_ids = set()
     for query in queries:
         search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)
-        for result in client.results(search):
-            arxiv_id = result.get_short_id()
-            if arxiv_id in seen_ids:
-                continue
-            seen_ids.add(arxiv_id)
-            papers.append({
-                "source": "arxiv",
-                "arxiv_id": arxiv_id,
-                "title": result.title.strip(),
-                "authors": [a.name for a in result.authors],
-                "abstract": result.summary.strip(),
-                "year": result.published.year,
-                "pdf_url": result.pdf_url,
-                "doi": result.doi,
-                "url": result.entry_id,
-            })
+        try:
+            for result in client.results(search):
+                arxiv_id = result.get_short_id()
+                if arxiv_id in seen_ids:
+                    continue
+                seen_ids.add(arxiv_id)
+                papers.append({
+                    "source": "arxiv",
+                    "arxiv_id": arxiv_id,
+                    "title": result.title.strip(),
+                    "authors": [a.name for a in result.authors],
+                    "abstract": result.summary.strip(),
+                    "year": result.published.year,
+                    "pdf_url": result.pdf_url,
+                    "doi": result.doi,
+                    "url": result.entry_id,
+                })
+        except (arxiv.ArxivError, requests.RequestException) as exc:
+            # A single query hitting arXiv's rate limit shouldn't take down the
+            # whole pipeline run — log it and keep whatever other queries find,
+            # same graceful-degradation contract as search_semantic_scholar.
+            logger.error("arXiv query '%s' failed: %s", query, exc)
+            continue
     logger.info("arXiv: found %d unique papers", len(papers))
     return papers
 
