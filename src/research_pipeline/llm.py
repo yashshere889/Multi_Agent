@@ -34,6 +34,7 @@ it can be, and logged and ignored where it can't.
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -41,6 +42,21 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from research_pipeline.config import settings
 
 logger = logging.getLogger(__name__)
+
+# get_chat_model() is called independently by every agent (hypothesis,
+# experiment_planner, coder, writer, reviewer, literature) — see each
+# agent's __init__. For the openai backend that's cheap (just a new HTTP
+# client), but for huggingface it used to mean re-running
+# AutoModelForCausalLM.from_pretrained and reloading the whole checkpoint
+# onto the GPU on every single call. The first instance's memory was still
+# resident when the second load started, so accelerate silently offloaded
+# part of the second model onto the CPU — and that split CPU/GPU placement
+# disables Mamba's fused CUDA kernel path, falling back to the
+# quadratic-memory pure-PyTorch implementation, which then OOMs on a single
+# batch. Loading once and reusing the same model/tokenizer for every agent
+# fixes all three problems at once.
+_hf_model_and_tokenizer: Optional[tuple] = None
+_hf_model_lock = threading.Lock()
 
 
 def _extra_body(enable_thinking: bool) -> dict:
@@ -52,7 +68,7 @@ def _extra_body(enable_thinking: bool) -> dict:
     return body
 
 
-def _openai_chat_model(temperature: float, thinking: bool) -> BaseChatModel:
+def _openai_chat_model(temperature: float, thinking: bool, streaming: bool) -> BaseChatModel:
     # Imported here rather than at module scope purely for symmetry with the
     # huggingface branch, whose import is genuinely expensive.
     from langchain_openai import ChatOpenAI
@@ -65,7 +81,41 @@ def _openai_chat_model(temperature: float, thinking: bool) -> BaseChatModel:
         top_p=settings.llm_top_p,
         max_tokens=settings.llm_max_tokens,
         extra_body=_extra_body(thinking),
+        # The default of 2 is tuned for a stable local/cluster endpoint. Some
+        # deployments of this backend (e.g. a Cloudflare quick tunnel fronting
+        # a Kaggle notebook — see scripts/kaggle/tunnel.py) are inherently
+        # flaky infrastructure, and a bare APIConnectionError here has no
+        # caller-side retry: it aborts the whole orchestrator run. A higher
+        # ceiling costs nothing on a healthy endpoint.
+        max_retries=6,
+        timeout=180,
+        streaming=streaming,
     )
+
+
+def _load_hf_model_and_tokenizer() -> tuple:
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    logger.info("Loading %s onto the GPU (once per process)...", settings.llm_model)
+    model = AutoModelForCausalLM.from_pretrained(
+        settings.llm_model,
+        device_map=settings.llm_hf_device_map,
+        dtype=settings.llm_hf_dtype,
+        trust_remote_code=True,
+    )
+    tokenizer = AutoTokenizer.from_pretrained(settings.llm_model, trust_remote_code=True)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+    return model, tokenizer
+
+
+def _cached_hf_model_and_tokenizer() -> tuple:
+    global _hf_model_and_tokenizer
+    if _hf_model_and_tokenizer is None:
+        with _hf_model_lock:
+            if _hf_model_and_tokenizer is None:
+                _hf_model_and_tokenizer = _load_hf_model_and_tokenizer()
+    return _hf_model_and_tokenizer
 
 
 def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel:
@@ -73,6 +123,8 @@ def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel
     # is several GB and thousands of inodes. It's an optional extra
     # (`uv sync --extra huggingface`) so the default openai backend stays light.
     try:
+        from transformers import pipeline as transformers_pipeline
+
         from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
     except ImportError as exc:  # pragma: no cover - depends on optional extra
         raise ImportError(
@@ -107,16 +159,17 @@ def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel
         pipeline_kwargs["temperature"] = temperature
         pipeline_kwargs["top_p"] = settings.llm_top_p
 
-    llm = HuggingFacePipeline.from_model_id(
-        model_id=settings.llm_model,
+    model, tokenizer = _cached_hf_model_and_tokenizer()
+    # Building a fresh transformers pipeline around the cached model/tokenizer
+    # is cheap (no weights are loaded) — it's just wiring in this call's own
+    # generation kwargs (temperature/do_sample differ per agent).
+    text_generation_pipeline = transformers_pipeline(
         task="text-generation",
-        pipeline_kwargs=pipeline_kwargs,
-        model_kwargs={
-            "device_map": settings.llm_hf_device_map,
-            "dtype": settings.llm_hf_dtype,
-            "trust_remote_code": True,
-        },
+        model=model,
+        tokenizer=tokenizer,
+        **pipeline_kwargs,
     )
+    llm = HuggingFacePipeline(pipeline=text_generation_pipeline)
     return ChatHuggingFace(llm=llm)
 
 
@@ -124,14 +177,27 @@ def get_chat_model(
     temperature: Optional[float] = None,
     *,
     enable_thinking: Optional[bool] = None,
+    streaming: bool = False,
 ) -> BaseChatModel:
     """The one place a chat model is constructed. Callers pass `temperature`
     to trade determinism against variety per agent; `enable_thinking`
     overrides LLM_ENABLE_THINKING for an agent that genuinely wants the model
-    to deliberate (nothing does today)."""
+    to deliberate (nothing does today).
+
+    `streaming` (openai backend only) is opt-in, not a blanket default: a
+    quick tunnel's edge proxy 524s a request that sends zero bytes back
+    within ~100s, which a large non-streamed completion can exceed — the
+    Coder Agent's generated code routinely runs 1000s of tokens, and it calls
+    sequentially, so streaming there only ever helps. But experiment_planner
+    (and any other agent that fans out concurrent calls, by design — see
+    CLAUDE.md) fires several simultaneous requests, and several concurrent
+    long-lived SSE streams through a free quick tunnel fail immediately with
+    a connection error where the equivalent non-streamed calls succeed.
+    invoke() aggregates a stream into one AIMessage either way, so nothing
+    downstream needs to know which mode is in effect."""
     thinking = settings.llm_enable_thinking if enable_thinking is None else enable_thinking
     resolved_temperature = settings.llm_temperature if temperature is None else temperature
 
     if settings.llm_backend == "huggingface":
         return _huggingface_chat_model(resolved_temperature, thinking)
-    return _openai_chat_model(resolved_temperature, thinking)
+    return _openai_chat_model(resolved_temperature, thinking, streaming)

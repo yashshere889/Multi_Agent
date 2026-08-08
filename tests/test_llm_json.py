@@ -144,22 +144,52 @@ def test_get_chat_model_uses_the_configured_model_id(openai_backend):
 
 @pytest.fixture
 def fake_huggingface(monkeypatch):
-    """Stands in for langchain_huggingface, which is an optional extra and
-    would otherwise download and load a real 12-30B model. Records the kwargs
-    the factory builds so the transformers-specific translation can be checked
-    without any of it installed."""
+    """Stands in for transformers and langchain_huggingface, which are an
+    optional extra and would otherwise download and load a real 12-30B model.
+    Records the kwargs the factory builds so the transformers-specific
+    translation can be checked without any of it installed.
+
+    Also resets llm's module-level model/tokenizer cache (see llm.py's
+    _cached_hf_model_and_tokenizer): that cache is what makes every agent
+    reuse one loaded model instead of each reloading its own, so it must
+    start empty each test or a later test would silently skip
+    from_pretrained and see a previous test's recorded kwargs."""
     recorded = {}
 
-    class FakeHuggingFacePipeline:
+    class FakeAutoModelForCausalLM:
         @staticmethod
-        def from_model_id(**kwargs):
-            recorded.update(kwargs)
-            return "fake-llm"
+        def from_pretrained(model_id, **kwargs):
+            recorded["model_id"] = model_id
+            recorded["model_kwargs"] = kwargs
+            return "fake-model"
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(model_id, **kwargs):
+            return SimpleNamespace(pad_token_id="fake-pad-token", eos_token_id="fake-eos-token")
+
+    def fake_pipeline(*, task, model, tokenizer, **pipeline_kwargs):
+        recorded["task"] = task
+        recorded["pipeline_kwargs"] = pipeline_kwargs
+        return "fake-pipeline"
+
+    class FakeHuggingFacePipeline:
+        def __init__(self, pipeline):
+            self.pipeline = pipeline
 
     class FakeChatHuggingFace:
         def __init__(self, llm):
             self.llm = llm
 
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "transformers",
+        SimpleNamespace(
+            AutoModelForCausalLM=FakeAutoModelForCausalLM,
+            AutoTokenizer=FakeAutoTokenizer,
+            pipeline=fake_pipeline,
+        ),
+    )
     monkeypatch.setitem(
         __import__("sys").modules,
         "langchain_huggingface",
@@ -169,6 +199,7 @@ def fake_huggingface(monkeypatch):
         ),
     )
     monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_backend="huggingface"))
+    monkeypatch.setattr(llm, "_hf_model_and_tokenizer", None)
     return recorded
 
 
