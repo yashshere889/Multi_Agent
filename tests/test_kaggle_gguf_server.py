@@ -162,3 +162,82 @@ def test_compute_capability_is_formatted_for_cmake(monkeypatch):
 def test_no_compute_capability_without_a_gpu(monkeypatch):
     monkeypatch.setattr(gguf_server.shutil, "which", lambda name: None)
     assert gguf_server.gpu_compute_capability() is None
+
+
+def _fake_cuda_home(tmp_path, stub_relative_dir):
+    """A <cuda_home>/bin/nvcc plus a libcuda.so stub at the given relative
+    path, mimicking one of the layouts CUDA toolkit installs actually use."""
+    cuda_home = tmp_path / "cuda"
+    (cuda_home / "bin").mkdir(parents=True)
+    nvcc = cuda_home / "bin" / "nvcc"
+    nvcc.write_text("#!/bin/sh\n")
+    nvcc.chmod(0o755)
+    stub_dir = cuda_home / stub_relative_dir
+    stub_dir.mkdir(parents=True)
+    (stub_dir / "libcuda.so").write_text("stub")
+    return cuda_home, stub_dir, nvcc
+
+
+def test_finds_stub_in_the_classic_lib64_stubs_layout(monkeypatch, tmp_path):
+    _, stub_dir, nvcc = _fake_cuda_home(tmp_path, "lib64/stubs")
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+    assert gguf_server._find_cuda_driver_stub().resolve() == stub_dir.resolve()
+
+
+def test_finds_stub_in_the_multiarch_targets_layout(monkeypatch, tmp_path):
+    """Newer CUDA 12.x installs put stubs under targets/<arch>/lib/stubs
+    instead of a flat lib64/stubs — the layout mismatch that made CMake's own
+    FindCUDAToolkit search miss it on Kaggle's image in the first place."""
+    _, stub_dir, nvcc = _fake_cuda_home(tmp_path, "targets/x86_64-linux/lib/stubs")
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+    assert gguf_server._find_cuda_driver_stub().resolve() == stub_dir.resolve()
+
+
+def test_no_stub_found_returns_none_without_raising(monkeypatch, tmp_path):
+    cuda_home = tmp_path / "cuda"
+    (cuda_home / "bin").mkdir(parents=True)
+    nvcc = cuda_home / "bin" / "nvcc"
+    nvcc.write_text("#!/bin/sh\n")
+    nvcc.chmod(0o755)
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+    assert gguf_server._find_cuda_driver_stub() is None
+
+
+def test_no_stub_search_without_nvcc(monkeypatch):
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: None)
+    assert gguf_server._find_cuda_driver_stub() is None
+
+
+def test_staged_stub_has_both_versioned_and_unversioned_names(monkeypatch, tmp_path):
+    """find_library() needs libcuda.so; linking a .so that depends on the
+    stub needs libcuda.so.1 too, since that's the SONAME baked into the file
+    itself. Both must exist side by side in a directory we can write to."""
+    _, stub_dir, nvcc = _fake_cuda_home(tmp_path, "lib64/stubs")
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+
+    install_root = tmp_path / "install"
+    staged = gguf_server._stage_cuda_driver_stub(install_root)
+
+    real_stub = (stub_dir / "libcuda.so").resolve()
+    assert (staged / "libcuda.so").resolve() == real_stub
+    assert (staged / "libcuda.so.1").resolve() == real_stub
+
+
+def test_staging_is_idempotent(monkeypatch, tmp_path):
+    _, _, nvcc = _fake_cuda_home(tmp_path, "lib64/stubs")
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+
+    install_root = tmp_path / "install"
+    first = gguf_server._stage_cuda_driver_stub(install_root)
+    second = gguf_server._stage_cuda_driver_stub(install_root)
+    assert first == second
+
+
+def test_staging_returns_none_when_no_stub_exists(monkeypatch, tmp_path):
+    cuda_home = tmp_path / "cuda"
+    (cuda_home / "bin").mkdir(parents=True)
+    nvcc = cuda_home / "bin" / "nvcc"
+    nvcc.write_text("#!/bin/sh\n")
+    nvcc.chmod(0o755)
+    monkeypatch.setattr(gguf_server.shutil, "which", lambda name: str(nvcc) if name == "nvcc" else None)
+    assert gguf_server._stage_cuda_driver_stub(tmp_path / "install") is None

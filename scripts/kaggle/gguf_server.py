@@ -117,6 +117,66 @@ def gpu_compute_capability() -> Optional[str]:
     return f"{match.group(1)}{match.group(2)}" if match else None
 
 
+def _find_cuda_driver_stub() -> Optional[Path]:
+    """Locates the CUDA toolkit's link-only `libcuda.so` stub, and returns the
+    directory containing it (not the file itself).
+
+    CMake's `find_library()` needs a file literally named `libcuda.so` to
+    create the `CUDA::cuda_driver` imported target that `ggml-cuda` links
+    against. Containerized GPU environments (Kaggle included) mount the real
+    driver as `libcuda.so.1` with no unversioned symlink — by design, since
+    that file is meant to be resolved at *runtime* by the loader, not guessed
+    at by a linker. The toolkit ships a stub built for exactly this situation
+    (link-only, never loaded), but CMake doesn't reliably find it on every
+    install layout, so it's searched for explicitly rather than left to
+    FindCUDAToolkit's own guess.
+    """
+    nvcc = shutil.which("nvcc")
+    if nvcc is None:
+        return None
+    # nvcc lives at <CUDA_HOME>/bin/nvcc; the stub is under <CUDA_HOME>/lib64
+    # on most installs, or <CUDA_HOME>/targets/<arch>/lib on the newer
+    # multi-arch layout some CUDA 12.x images use instead.
+    cuda_home = Path(nvcc).resolve().parent.parent
+    candidates = [
+        cuda_home / "lib64" / "stubs",
+        cuda_home / "lib" / "stubs",
+        *cuda_home.glob("targets/*/lib/stubs"),
+    ]
+    for candidate in candidates:
+        if (candidate / "libcuda.so").exists():
+            return candidate
+
+    # Layout didn't match either guess — fall back to an actual search rather
+    # than giving up, since a misplaced stub is still a stub.
+    found = _run(["find", str(cuda_home), "-maxdepth", "6", "-name", "libcuda.so"])
+    first_match = next(iter(found.stdout.strip().splitlines()), None)
+    return Path(first_match).parent if first_match else None
+
+
+def _stage_cuda_driver_stub(install_root: Path) -> Optional[Path]:
+    """Symlinks the toolkit's libcuda.so stub into a directory this process
+    can always write to, as both `libcuda.so` (what find_library needs) and
+    `libcuda.so.1` (the SONAME baked into the stub itself — linking a shared
+    object against it records a dependency on that exact versioned name, so
+    it has to exist alongside the unversioned one or the link step fails).
+    Staged separately from the real CUDA install because that directory may
+    not be writable, and only the stub's own directory would otherwise gain
+    the `.1` symlink, not wherever CMake happens to look."""
+    stub_dir = _find_cuda_driver_stub()
+    if stub_dir is None:
+        return None
+    real_stub = stub_dir / "libcuda.so"
+
+    staged_dir = install_root / "cuda-stub"
+    staged_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("libcuda.so", "libcuda.so.1"):
+        link = staged_dir / name
+        if not link.exists():
+            link.symlink_to(real_stub)
+    return staged_dir
+
+
 def probe_environment() -> dict:
     """Everything worth knowing before committing to a build, gathered in one
     place so a notebook cell can print it and a failure later is diagnosable."""
@@ -205,6 +265,26 @@ def build_llama_server(install_root: Path, *, force: bool = False, jobs: Optiona
         if clone.returncode != 0:
             raise ServerError(f"git clone failed: {clone.stderr[-2000:]}")
 
+    # Containerized GPU environments (Kaggle included) often mount the real
+    # driver as libcuda.so.1 with no unversioned libcuda.so — the one file
+    # CMake's find_library() needs to create CUDA::cuda_driver at all. Without
+    # it the configure step fails with "target was not found" rather than a
+    # missing-library error, since the imported target is simply never
+    # created. Staging the toolkit's own link-only stub sidesteps needing to
+    # know why FindCUDAToolkit didn't find it unassisted.
+    build_env = dict(os.environ)
+    cmake_extra_args: List[str] = []
+    stub_dir = _stage_cuda_driver_stub(install_root)
+    if stub_dir is not None:
+        logger.info("Staged CUDA driver stub at %s", stub_dir)
+        cmake_extra_args.append(f"-DCMAKE_LIBRARY_PATH={stub_dir}")
+        build_env["LIBRARY_PATH"] = f"{stub_dir}:{build_env.get('LIBRARY_PATH', '')}".rstrip(":")
+    else:
+        logger.warning(
+            "Could not locate the CUDA toolkit's libcuda.so stub — proceeding without it. "
+            "If configure fails with 'CUDA::cuda_driver ... target was not found', that's why."
+        )
+
     logger.info("Configuring llama.cpp for CUDA arch %s", arch)
     configure = _run(
         [
@@ -217,14 +297,19 @@ def build_llama_server(install_root: Path, *, force: bool = False, jobs: Optiona
             "-DLLAMA_CURL=OFF",
             "-DLLAMA_BUILD_TESTS=OFF",
             "-DLLAMA_BUILD_EXAMPLES=OFF",
-        ]
+            *cmake_extra_args,
+        ],
+        env=build_env,
     )
     if configure.returncode != 0:
         raise ServerError(f"cmake configure failed:\n{configure.stdout[-2000:]}\n{configure.stderr[-2000:]}")
 
     jobs = jobs or (os.cpu_count() or 4)
     logger.info("Building llama-server with %d jobs (several minutes)", jobs)
-    build = _run(["cmake", "--build", str(build_dir), "--config", "Release", "--target", "llama-server", "-j", str(jobs)])
+    build = _run(
+        ["cmake", "--build", str(build_dir), "--config", "Release", "--target", "llama-server", "-j", str(jobs)],
+        env=build_env,
+    )
     if build.returncode != 0:
         raise ServerError(f"build failed:\n{build.stdout[-3000:]}\n{build.stderr[-3000:]}")
 
