@@ -7,6 +7,7 @@ from typing import List, Optional, TypedDict
 VALID_STATUSES = {"completed", "code_generated_not_run", "skipped", "submitted_to_slurm"}
 
 VALID_ERROR_SOURCES = {
+    "invalid_json",
     "missing_sections",
     "compile_check",
     "static_lint",

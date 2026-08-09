@@ -121,6 +121,7 @@ logger = logging.getLogger(__name__)
 # Order the checks run in, used to decide whether a regeneration actually got
 # past the failure it was asked to fix.
 _ERROR_STAGE_ORDER = [
+    "invalid_json",
     "missing_sections",
     "compile_check",
     "static_lint",
@@ -281,10 +282,21 @@ class CoderAgent:
         experiment_dir = self.experiments_dir / hypothesis_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
+        try:
+            generation = self._generate_experiment_files(plan, state["shared_files"], state["network_available"])
+        except CoderAgentError as exc:
+            # A malformed-JSON generation is a per-plan failure, not a
+            # pipeline-ending one — even after invoke_json's own repair retry,
+            # the model can still return something json.loads rejects. Feed it
+            # into the same fix loop that handles compile/lint/run failures
+            # (via _attempt_once's generation_error check) instead of letting
+            # it crash the whole multi-hour run over one bad plan.
+            generation = {"run_py_sections": {}, "assumptions_made": [], "generation_error": str(exc)}
+
         return {
             "current_plan": plan,
             "current_experiment_dir": str(experiment_dir),
-            "current_generation": self._generate_experiment_files(plan, state["shared_files"], state["network_available"]),
+            "current_generation": generation,
             "current_fix_history": [],
             "current_attempt": 0,
             "current_outcome": {},
@@ -340,14 +352,22 @@ class CoderAgent:
             "code_path": str(self._snapshot_attempt(Path(state["current_experiment_dir"]), attempt + 1)),
             "resolved": False,
         }
-        generation = self._regenerate_with_fix(
-            plan,
-            state["shared_files"],
-            state["current_generation"],
-            state["network_available"],
-            outcome["error_source"],
-            outcome["error_text"],
-        )
+        try:
+            generation = self._regenerate_with_fix(
+                plan,
+                state["shared_files"],
+                state["current_generation"],
+                state["network_available"],
+                outcome["error_source"],
+                outcome["error_text"],
+            )
+        except CoderAgentError as exc:
+            # Same as the initial generation call: a regeneration attempt can
+            # also come back as unparseable JSON. Feed it back through the fix
+            # loop rather than crashing the run — _attempt_once's
+            # generation_error check turns this into a normal "invalid_json"
+            # outcome, so it still counts against max_fix_attempts.
+            generation = {"run_py_sections": {}, "assumptions_made": [], "generation_error": str(exc)}
         return {
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
@@ -460,6 +480,12 @@ class CoderAgent:
         "error_text"} describing a failure the fix loop can regenerate
         against."""
         hypothesis_id = plan["hypothesis_id"]
+        generation_error = generation.get("generation_error")
+        if generation_error:
+            return {
+                "error_source": "invalid_json",
+                "error_text": f"Model did not return a parseable JSON response for this experiment's code: {generation_error}",
+            }
         sections = generation.get("run_py_sections", {})
         assumptions_made = generation.get("assumptions_made", [])
         needs_gpu = bool(generation.get("needs_gpu", False))

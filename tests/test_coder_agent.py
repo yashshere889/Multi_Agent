@@ -272,6 +272,43 @@ def test_run_marks_high_complexity_as_not_run_and_generates_sbatch(tmp_path):
     assert not (experiments_dir / "H2" / "results.json").exists()  # never executed
 
 
+def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_path, monkeypatch):
+    _patch_settings(
+        monkeypatch,
+        coder_run_high_complexity_when_gpu_available=True,
+        coder_high_complexity_timeout_seconds=300,
+    )
+    fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
+    experiments_dir = tmp_path / "experiments"
+    agent = CoderAgent(
+        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
+        network_check=lambda: False, gpu_check=lambda: True,
+    )
+    result = agent.run(_planner_output([_plan("H2", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["results"]["meets_success_criteria"] is True
+    assert (experiments_dir / "H2" / "results.json").exists()
+    assert not (experiments_dir / "H2" / "run.sbatch").exists()  # ran instead of being deferred
+
+
+def test_run_still_defers_high_complexity_without_gpu_even_with_flag_enabled(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_run_high_complexity_when_gpu_available=True)
+    fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
+    experiments_dir = tmp_path / "experiments"
+    agent = CoderAgent(
+        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
+        network_check=lambda: False, gpu_check=lambda: False,  # no GPU actually present
+    )
+    result = agent.run(_planner_output([_plan("H2", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert (experiments_dir / "H2" / "run.sbatch").exists()
+    assert not (experiments_dir / "H2" / "results.json").exists()
+
+
 def test_run_detects_syntax_error_and_never_executes(tmp_path):
     broken_sections = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(broken_sections)})
@@ -599,6 +636,45 @@ def test_env_error_is_not_retried_through_the_llm(tmp_path):
     assert exp["status"] == "code_generated_not_run"
     assert exp["fix_attempts"] == 0
     assert "fix" not in model.calls_by_kind
+
+
+def test_invalid_json_from_initial_generation_routes_through_the_fix_loop_instead_of_crashing(tmp_path):
+    # Regression test: a malformed-JSON codegen response (surviving invoke_json's
+    # own repair retry) used to raise CoderAgentError straight out of
+    # process_current_plan and crash the whole multi-plan run. It must instead be
+    # treated like any other per-plan failure the fix loop can regenerate against.
+    model = ScriptedChatModel(
+        codegen=['{"run_py_sections": {BROKEN'],  # same broken text feeds the internal repair retry too
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_attempts"] == 1
+    assert exp["fix_history"][0]["error_source"] == "invalid_json"
+    assert exp["fix_history"][0]["resolved"] is True
+    assert model.calls_by_kind["fix"] == 1
+
+
+def test_invalid_json_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
+    # The regeneration call (_regenerate_with_fix) goes through the same
+    # _call_json path and can fail the same way — it must be caught too, not
+    # just the initial generation call. invoke_json's internal repair retry
+    # sends a fresh prompt with no "fix" marker text, so ScriptedChatModel
+    # routes that retry to the "codegen" bucket — a second, broken "codegen"
+    # entry keeps both the fix call and its repair retry failing.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS), '{"run_py_sections": {STILL_BROKEN'],
+        fix=['{"run_py_sections": {STILL_BROKEN'],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=2).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["fix_attempts"] == 2
+    assert exp["fix_history"][0]["error_source"] == "run_experiment"
+    assert exp["fix_history"][1]["error_source"] == "invalid_json"
 
 
 # -- sandbox.static_safety_check ---------------------------------------------------------
