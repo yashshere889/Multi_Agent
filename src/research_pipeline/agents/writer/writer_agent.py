@@ -73,12 +73,27 @@ Entry points
 Or, to reuse one configured model/output dir across multiple calls:
     agent = WriterAgent()
     result = agent.run(literature_output, hypothesis_output, planner_output, coder_output)
+
+Internals
+---------
+`run()` and `revise()` both execute the same LangGraph StateGraph (see graph.py /
+state.py) rather than a straight-line method, so every step — each section's
+drafting call, citation resolution, the honesty pass, the PDF render, and the
+summary assembly — is its own traceable, individually checkpointed node. The
+graph is a plain chain: a paper is written in a fixed order and each step needs
+the previous one's text, so unlike the Literature/Hypothesis/Experiment Planner
+graphs there is nothing to fan out on. `revise()` is the same graph with
+`revision` seeded into the initial state; the per-section revision notes are
+built by the drafting helpers exactly as before. That's purely internal: the
+entry points above, their signatures, the returned dict, and the raised
+WriterAgentError are all unchanged.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -94,9 +109,10 @@ from research_pipeline.agents.hypothesis.papers import chunk_papers, normalize_p
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError as HypothesisSchemaValidationError
 from research_pipeline.agents.hypothesis.schema import validate_output as validate_hypothesis_output
 from research_pipeline.agents.writer import pdf_reader, prompts
-from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index
+from research_pipeline.agents.writer.citations import CitationRegistry, IndexedPaper, build_paper_index
 from research_pipeline.agents.writer.pdf_builder import build_pdf
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.writer.state import WriterState
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import strip_fences
@@ -150,6 +166,32 @@ def compute_hypothesis_verdict(hypothesis_id: str, experiment_by_id: Dict[str, d
     return "inconclusive", 'The Coder Agent reported meets_success_criteria="unknown".'
 
 
+def build_scanned_registry(
+    paper_index: Dict[str, IndexedPaper],
+    raw_sections: List[Tuple[str, str]],
+    raw_abstract: str,
+    raw_title: str,
+) -> CitationRegistry:
+    """Builds a CitationRegistry that has already seen every drafted text, i.e.
+    is past the scan() -> finalize() sequence citations.py requires before any
+    resolve() call (author-year disambiguation needs the *whole* cited set —
+    see that module's docstring).
+
+    Deliberately a function of its inputs rather than a value threaded through
+    the graph's state: the registry is a plain Python object, which the
+    checkpointer can't serialize (`paper_index` can — it's a dict of TypedDicts),
+    so the two nodes that need one rebuild it from the raw text already in state.
+    That's exact, not approximate: scanning is pure regex over the same strings,
+    so both nodes get identical registries."""
+    registry = CitationRegistry(paper_index)
+    for heading, body in raw_sections:
+        registry.scan(body, section=heading)
+    registry.scan(raw_abstract, section="Abstract")
+    registry.scan(raw_title, section="Title")
+    registry.finalize()
+    return registry
+
+
 class WriterAgent:
     def __init__(
         self,
@@ -182,108 +224,41 @@ class WriterAgent:
         whole previous paper + full feedback dump on every call.
         paper_filename/summary_filename override the default timestamped
         names — the Writer/Reviewer loop uses this for "v1.pdf", "v2.pdf", ...
+
+        Runs the agent's graph end to end (see graph.py / state.py). Same
+        signature, same returned dict, and the same WriterAgentError on failure
+        as the earlier sequential implementation — the graph is an internal
+        detail, so callers (the Writer/Reviewer loop, the orchestrator, the CLI)
+        are unaffected. Node exceptions aren't swallowed by LangGraph, so a
+        WriterAgentError raised inside a node propagates out of `.invoke`
+        unchanged.
         """
-        try:
-            validate_hypothesis_output(hypothesis_output)
-        except HypothesisSchemaValidationError as exc:
-            raise WriterAgentError(f"hypothesis_output doesn't match the Hypothesis Agent's output schema: {exc}") from exc
-
-        hypotheses = hypothesis_output["hypotheses"]
-        expected_ids = [h["id"] for h in hypotheses]
-
-        try:
-            validate_planner_output(planner_output, expected_hypothesis_ids=expected_ids)
-        except PlannerSchemaValidationError as exc:
-            raise WriterAgentError(f"planner_output doesn't match the Experiment Planner's output schema: {exc}") from exc
-
-        try:
-            validate_coder_output(coder_output, expected_hypothesis_ids=expected_ids)
-        except CoderSchemaValidationError as exc:
-            raise WriterAgentError(f"coder_output doesn't match the Coder Agent's output schema: {exc}") from exc
-
-        raw_papers, _research_question = extract_literature_papers(literature_output)
-        paper_index = build_paper_index(raw_papers)
-        valid_paper_ids = list(paper_index.keys())
-        registry = CitationRegistry(paper_index)
-        logger.info("Drafting paper for %d hypotheses, %d indexed source paper(s)", len(expected_ids), len(paper_index))
-
-        plan_by_id = {p["hypothesis_id"]: p for p in planner_output["experiment_plans"]}
-        experiment_by_id = {e["hypothesis_id"]: e for e in coder_output["experiments"]}
-        verdicts = {
-            hid: {
-                "hypothesis_id": hid,
-                "statement": next(h["statement"] for h in hypotheses if h["id"] == hid),
-                "verdict": (v := compute_hypothesis_verdict(hid, experiment_by_id))[0],
-                "reason": v[1],
-            }
-            for hid in expected_ids
+        initial_state: dict = {
+            "literature_output": literature_output,
+            "hypothesis_output": hypothesis_output,
+            "planner_output": planner_output,
+            "coder_output": coder_output,
+            "paper_filename": paper_filename,
+            "summary_filename": summary_filename,
         }
+        # Absent entirely for a fresh draft, so every node's `state.get("revision")`
+        # is falsy and no revision note is appended anywhere.
+        if revision is not None:
+            initial_state["revision"] = revision
+        return self._invoke_graph(initial_state)
 
-        introduction = self._draft_introduction(hypothesis_output, hypotheses, valid_paper_ids, revision)
-        related_work = self._draft_related_work(raw_papers, hypothesis_output, hypotheses, revision)
-        hypotheses_section = self._draft_hypotheses_section(hypotheses, valid_paper_ids, revision)
-        methods_by_id, results_by_id, discussion_by_id = self._draft_per_hypothesis_sections(
-            hypotheses, plan_by_id, experiment_by_id, verdicts, revision
-        )
-        limitations = self._draft_limitations(hypotheses, plan_by_id, experiment_by_id, revision)
-        future_work = self._draft_future_work(verdicts, expected_ids, hypothesis_output.get("gaps", []), hypotheses, revision)
+    def _invoke_graph(self, initial_state: dict) -> dict:
+        """The one place either entry point executes: builds the graph for this
+        configured agent and runs it under a fresh thread_id, so concurrent or
+        repeated calls (the Writer/Reviewer loop reuses one agent across
+        iterations) never share checkpoint history."""
+        # Imported here rather than at module scope: graph.py needs this module's
+        # WriterAgent for typing, so a top-level import would be circular.
+        from research_pipeline.agents.writer.graph import build_writer_graph
 
-        raw_sections = [
-            ("Introduction", introduction),
-            ("Related Work", related_work),
-            ("Hypotheses", hypotheses_section),
-            ("Methods", self._join_per_hypothesis(expected_ids, methods_by_id)),
-            ("Results", self._join_per_hypothesis(expected_ids, results_by_id)),
-            ("Discussion", self._join_per_hypothesis(expected_ids, discussion_by_id, verdicts)),
-            ("Limitations", limitations),
-            ("Future Work", future_work),
-        ]
-        raw_abstract = self._draft_abstract(hypothesis_output.get("literature_summary", ""), verdicts, expected_ids, revision)
-        raw_title = self._draft_title(hypothesis_output.get("literature_summary", ""), verdicts, expected_ids, revision)
-
-        # Author-year disambiguation (e.g. "2020a"/"2020b") needs the full set
-        # of cited papers before any single marker can be formatted, so every
-        # drafted text is scanned first, then the registry is finalized once,
-        # then every text is resolved — see citations.py's module docstring.
-        for heading, body in raw_sections:
-            registry.scan(body, section=heading)
-        registry.scan(raw_abstract, section="Abstract")
-        registry.scan(raw_title, section="Title")
-        registry.finalize()
-
-        resolved_sections = [(heading, registry.resolve(body, section=heading)) for heading, body in raw_sections]
-        abstract = registry.resolve(raw_abstract, section="Abstract")
-        title = registry.resolve(raw_title, section="Title")
-
-        references = registry.references()
-        notes_for_review = self._validate_paper(resolved_sections, verdicts, experiment_by_id, registry)
-
-        paper_path = self._render_pdf(title, abstract, resolved_sections, references, filename=paper_filename)
-
-        result: dict = {
-            "paper_path": str(paper_path),
-            "sections_generated": ["Title", "Abstract"] + [heading for heading, _ in resolved_sections] + ["References"],
-            "hypotheses_supported": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "supported"],
-            "hypotheses_refuted": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "refuted"],
-            "hypotheses_inconclusive": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "inconclusive"],
-            "citations_used": registry.citation_order(),
-            "notes_for_review": notes_for_review,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "model": settings.llm_model,
-        }
-
-        try:
-            validate_output(result)
-        except SchemaValidationError as exc:
-            debug_path = self._write_summary(result, suffix="_invalid")
-            raise WriterAgentError(
-                f"Assembled output failed schema validation: {exc}. Raw (invalid) output written to {debug_path} "
-                f"for inspection. The rendered paper at {paper_path} is unaffected."
-            ) from exc
-
-        summary_path = self._write_summary(result, filename=summary_filename)
-        logger.info("Wrote writer agent summary to %s (paper: %s)", summary_path, paper_path)
-        return result
+        graph = build_writer_graph(self)
+        final_state = graph.invoke(initial_state, config={"configurable": {"thread_id": str(uuid.uuid4())}})
+        return final_state["result"]
 
     def revise(
         self,
@@ -323,15 +298,239 @@ class WriterAgent:
             "previous_subsections": previous_subsections,
             "feedback_by_section": feedback_by_section,
         }
-        return self.run(
-            literature_output,
-            hypothesis_output,
-            planner_output,
-            coder_output,
-            revision=revision,
-            paper_filename=paper_filename,
-            summary_filename=summary_filename,
+        # Exactly the same graph run() executes, with `revision` seeded into the
+        # initial state — every drafting node reads it and appends its section's
+        # revision note. Nothing else about the pass differs.
+        return self._invoke_graph(
+            {
+                "literature_output": literature_output,
+                "hypothesis_output": hypothesis_output,
+                "planner_output": planner_output,
+                "coder_output": coder_output,
+                "paper_filename": paper_filename,
+                "summary_filename": summary_filename,
+                "revision": revision,
+            }
         )
+
+    # -- Graph nodes -----------------------------------------------------------
+    # Thin adapters: each takes the graph state, delegates to the private helper
+    # below that does the actual work, and returns only the keys it produces.
+    # Every drafting node passes `state.get("revision")` straight through to its
+    # helper, which is what turns the pass into a revision (or leaves it a fresh
+    # draft when the key is absent) — see _revision_note.
+
+    def _node_prepare_context(self, state: WriterState) -> dict:
+        """Validates the three upstream outputs and indexes the grounding every
+        drafting node writes against."""
+        hypothesis_output = state["hypothesis_output"]
+        planner_output = state["planner_output"]
+        coder_output = state["coder_output"]
+
+        try:
+            validate_hypothesis_output(hypothesis_output)
+        except HypothesisSchemaValidationError as exc:
+            raise WriterAgentError(f"hypothesis_output doesn't match the Hypothesis Agent's output schema: {exc}") from exc
+
+        hypotheses = hypothesis_output["hypotheses"]
+        expected_ids = [h["id"] for h in hypotheses]
+
+        try:
+            validate_planner_output(planner_output, expected_hypothesis_ids=expected_ids)
+        except PlannerSchemaValidationError as exc:
+            raise WriterAgentError(f"planner_output doesn't match the Experiment Planner's output schema: {exc}") from exc
+
+        try:
+            validate_coder_output(coder_output, expected_hypothesis_ids=expected_ids)
+        except CoderSchemaValidationError as exc:
+            raise WriterAgentError(f"coder_output doesn't match the Coder Agent's output schema: {exc}") from exc
+
+        raw_papers, _research_question = extract_literature_papers(state["literature_output"])
+        paper_index = build_paper_index(raw_papers)
+        logger.info("Drafting paper for %d hypotheses, %d indexed source paper(s)", len(expected_ids), len(paper_index))
+
+        experiment_by_id = {e["hypothesis_id"]: e for e in coder_output["experiments"]}
+        return {
+            "hypotheses": hypotheses,
+            "expected_ids": expected_ids,
+            "raw_papers": raw_papers,
+            "paper_index": paper_index,
+            "valid_paper_ids": list(paper_index.keys()),
+            "plan_by_id": {p["hypothesis_id"]: p for p in planner_output["experiment_plans"]},
+            "experiment_by_id": experiment_by_id,
+            "verdicts": {
+                hid: {
+                    "hypothesis_id": hid,
+                    "statement": next(h["statement"] for h in hypotheses if h["id"] == hid),
+                    "verdict": (v := compute_hypothesis_verdict(hid, experiment_by_id))[0],
+                    "reason": v[1],
+                }
+                for hid in expected_ids
+            },
+        }
+
+    # -- Drafting nodes, in the order the paper is written ----------------------
+
+    def _node_draft_introduction(self, state: WriterState) -> dict:
+        return {
+            "introduction": self._draft_introduction(
+                state["hypothesis_output"], state["hypotheses"], state["valid_paper_ids"], state.get("revision")
+            )
+        }
+
+    def _node_draft_related_work(self, state: WriterState) -> dict:
+        """One node, not one per batch: the batch drafts feed a synthesis call in
+        the same helper, and that helper's own ThreadPoolExecutor already runs
+        them concurrently."""
+        return {
+            "related_work": self._draft_related_work(
+                state["raw_papers"], state["hypothesis_output"], state["hypotheses"], state.get("revision")
+            )
+        }
+
+    def _node_draft_hypotheses_section(self, state: WriterState) -> dict:
+        return {
+            "hypotheses_section": self._draft_hypotheses_section(
+                state["hypotheses"], state["valid_paper_ids"], state.get("revision")
+            )
+        }
+
+    def _node_draft_per_hypothesis_sections(self, state: WriterState) -> dict:
+        """Methods/Results/Discussion for every hypothesis, in one node: the
+        helper drafts all three per hypothesis as one bundle (concurrently across
+        hypotheses), so they're produced together and can't be split across nodes
+        without splitting that bundle too."""
+        methods_by_id, results_by_id, discussion_by_id = self._draft_per_hypothesis_sections(
+            state["hypotheses"], state["plan_by_id"], state["experiment_by_id"], state["verdicts"], state.get("revision")
+        )
+        return {"methods_by_id": methods_by_id, "results_by_id": results_by_id, "discussion_by_id": discussion_by_id}
+
+    def _node_draft_limitations(self, state: WriterState) -> dict:
+        return {
+            "limitations": self._draft_limitations(
+                state["hypotheses"], state["plan_by_id"], state["experiment_by_id"], state.get("revision")
+            )
+        }
+
+    def _node_draft_future_work(self, state: WriterState) -> dict:
+        return {
+            "future_work": self._draft_future_work(
+                state["verdicts"],
+                state["expected_ids"],
+                state["hypothesis_output"].get("gaps", []),
+                state["hypotheses"],
+                state.get("revision"),
+            )
+        }
+
+    def _node_draft_abstract(self, state: WriterState) -> dict:
+        return {
+            "raw_abstract": self._draft_abstract(
+                state["hypothesis_output"].get("literature_summary", ""),
+                state["verdicts"],
+                state["expected_ids"],
+                state.get("revision"),
+            )
+        }
+
+    def _node_draft_title(self, state: WriterState) -> dict:
+        return {
+            "raw_title": self._draft_title(
+                state["hypothesis_output"].get("literature_summary", ""),
+                state["verdicts"],
+                state["expected_ids"],
+                state.get("revision"),
+            )
+        }
+
+    # -- Citation resolution, honesty pass, and output --------------------------
+
+    def _node_resolve_citations(self, state: WriterState) -> dict:
+        """Assembles the drafted pieces into the paper's printed section order,
+        then replaces every `[[cite:ID]]` marker with its final author-year form.
+        This can only happen once every section exists — author-year
+        disambiguation ("2020a"/"2020b") needs the full set of cited papers
+        before any single marker can be formatted (citations.py)."""
+        expected_ids = state["expected_ids"]
+        raw_sections = [
+            ("Introduction", state["introduction"]),
+            ("Related Work", state["related_work"]),
+            ("Hypotheses", state["hypotheses_section"]),
+            ("Methods", self._join_per_hypothesis(expected_ids, state["methods_by_id"])),
+            ("Results", self._join_per_hypothesis(expected_ids, state["results_by_id"])),
+            ("Discussion", self._join_per_hypothesis(expected_ids, state["discussion_by_id"], state["verdicts"])),
+            ("Limitations", state["limitations"]),
+            ("Future Work", state["future_work"]),
+        ]
+        raw_abstract = state["raw_abstract"]
+        raw_title = state["raw_title"]
+        registry = build_scanned_registry(state["paper_index"], raw_sections, raw_abstract, raw_title)
+
+        return {
+            "raw_sections": raw_sections,
+            "resolved_sections": [(heading, registry.resolve(body, section=heading)) for heading, body in raw_sections],
+            "abstract": registry.resolve(raw_abstract, section="Abstract"),
+            "title": registry.resolve(raw_title, section="Title"),
+            "references": registry.references(),
+            "citations_used": registry.citation_order(),
+        }
+
+    def _node_validate_paper_honesty(self, state: WriterState) -> dict:
+        # The registry is rebuilt rather than carried over from the previous node
+        # because it isn't serializable into the graph's checkpointed state — see
+        # build_scanned_registry. Rebuilding from the same raw text is exact, and
+        # keeps _validate_paper's signature (which takes a registry, for its
+        # `unresolved` list) unchanged.
+        registry = build_scanned_registry(
+            state["paper_index"], state["raw_sections"], state["raw_abstract"], state["raw_title"]
+        )
+        return {
+            "notes_for_review": self._validate_paper(
+                state["resolved_sections"], state["verdicts"], state["experiment_by_id"], registry
+            )
+        }
+
+    def _node_render_pdf(self, state: WriterState) -> dict:
+        paper_path = self._render_pdf(
+            state["title"],
+            state["abstract"],
+            state["resolved_sections"],
+            state["references"],
+            filename=state.get("paper_filename"),
+        )
+        return {"paper_path": str(paper_path)}
+
+    def _node_assemble_and_validate_summary(self, state: WriterState) -> dict:
+        expected_ids = state["expected_ids"]
+        verdicts = state["verdicts"]
+        paper_path = state["paper_path"]
+
+        result: dict = {
+            "paper_path": paper_path,
+            "sections_generated": (
+                ["Title", "Abstract"] + [heading for heading, _ in state["resolved_sections"]] + ["References"]
+            ),
+            "hypotheses_supported": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "supported"],
+            "hypotheses_refuted": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "refuted"],
+            "hypotheses_inconclusive": [hid for hid in expected_ids if verdicts[hid]["verdict"] == "inconclusive"],
+            "citations_used": state["citations_used"],
+            "notes_for_review": state["notes_for_review"],
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "model": settings.llm_model,
+        }
+
+        try:
+            validate_output(result)
+        except SchemaValidationError as exc:
+            debug_path = self._write_summary(result, suffix="_invalid")
+            raise WriterAgentError(
+                f"Assembled output failed schema validation: {exc}. Raw (invalid) output written to {debug_path} "
+                f"for inspection. The rendered paper at {paper_path} is unaffected."
+            ) from exc
+
+        summary_path = self._write_summary(result, filename=state.get("summary_filename"))
+        logger.info("Wrote writer agent summary to %s (paper: %s)", summary_path, paper_path)
+        return {"result": result}
 
     # -- Section drafting ------------------------------------------------------
 

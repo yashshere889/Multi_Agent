@@ -64,13 +64,22 @@ Entry points
 Or, to reuse one configured model/output dir across multiple calls:
     agent = ExperimentPlannerAgent()
     result = agent.run(hypothesis_output)
+
+Internals
+---------
+`run()` executes a LangGraph StateGraph (see graph.py / state.py) rather than a
+straight-line method, so every step — each LLM call and each deterministic step
+— is its own traceable node, and the per-hypothesis planning fans out
+concurrently via `Send` (replacing the previous ThreadPoolExecutor). That's
+purely internal: the entry points above, their signatures, the returned dict,
+and the raised ExperimentPlannerAgentError are all unchanged.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -79,6 +88,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 from research_pipeline.agents.experiment_planner import prompts
 from research_pipeline.agents.experiment_planner.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.experiment_planner.state import ExperimentPlannerState
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError as HypothesisSchemaValidationError
 from research_pipeline.agents.hypothesis.schema import validate_output as validate_hypothesis_output
 from research_pipeline.config import settings
@@ -105,6 +115,32 @@ class ExperimentPlannerAgent:
         self.output_dir = Path(output_dir or settings.experiment_planner_output_dir)
 
     def run(self, hypothesis_output: dict) -> dict:
+        """Runs the agent's graph end to end. Same signature, same returned dict,
+        and the same ExperimentPlannerAgentError on failure as the earlier
+        sequential implementation — the graph is an internal detail, so callers
+        (the CLI, the orchestrator, another agent) are unaffected.
+
+        Node exceptions aren't swallowed by LangGraph, so an
+        ExperimentPlannerAgentError raised inside a node propagates out of
+        `.invoke` unchanged.
+        """
+        # Imported here rather than at module scope: graph.py needs this module's
+        # ExperimentPlannerAgent for typing, so a top-level import would be circular.
+        from research_pipeline.agents.experiment_planner.graph import build_experiment_planner_graph
+
+        graph = build_experiment_planner_graph(self)
+        final_state = graph.invoke(
+            {"hypothesis_output": hypothesis_output},
+            config={"configurable": {"thread_id": str(uuid.uuid4())}},
+        )
+        return final_state["result"]
+
+    # -- Graph nodes -----------------------------------------------------------
+    # Thin adapters: each takes the graph state, delegates to the private helper
+    # below that does the actual work, and returns only the keys it produces.
+
+    def _node_validate_input(self, state: ExperimentPlannerState) -> dict:
+        hypothesis_output = state["hypothesis_output"]
         try:
             validate_hypothesis_output(hypothesis_output)
         except HypothesisSchemaValidationError as exc:
@@ -115,27 +151,36 @@ class ExperimentPlannerAgent:
         hypotheses = hypothesis_output["hypotheses"]
         expected_ids = [h["id"] for h in hypotheses]
         logger.info("Planning experiments for %d hypotheses", len(hypotheses))
+        return {"hypotheses": hypotheses, "expected_ids": expected_ids}
 
-        plans_by_id: Dict[str, dict] = {}
-        with ThreadPoolExecutor(max_workers=len(hypotheses)) as pool:
-            future_to_id = {
-                pool.submit(self._plan_one, hypothesis, hypothesis_output): hypothesis["id"] for hypothesis in hypotheses
-            }
-            for future in as_completed(future_to_id):
-                hypothesis_id = future_to_id[future]
-                plan = future.result()
-                plan["hypothesis_id"] = hypothesis_id  # never trust the model's echo over the source id
-                plans_by_id[hypothesis_id] = plan
+    def _node_plan_one(self, state: ExperimentPlannerState) -> dict:
+        """Runs once per hypothesis — the graph fans this out with one `Send` per
+        hypothesis, each carrying its own `current_hypothesis`. The single-element
+        list is what the state's operator.add reducer accumulates across branches."""
+        hypothesis = state["current_hypothesis"]
+        plan = self._plan_one(hypothesis, state["hypothesis_output"])
+        plan["hypothesis_id"] = hypothesis["id"]  # never trust the model's echo over the source id
+        return {"plans": [plan]}
 
-        # preserve the input's hypothesis order, not futures' completion order
-        experiment_plans = [plans_by_id[hid] for hid in expected_ids]
+    def _node_reorder_plans(self, state: ExperimentPlannerState) -> dict:
+        # Send branches complete in whatever order they complete in, so the
+        # input's hypothesis order is re-derived here rather than inherited.
+        plans_by_id: Dict[str, dict] = {plan["hypothesis_id"]: plan for plan in state["plans"]}
+        return {"experiment_plans": [plans_by_id[hid] for hid in state["expected_ids"]]}
 
-        cross_cutting = self._plan_cross_cutting(experiment_plans)
-
-        result: dict = {
-            "experiment_plans": experiment_plans,
+    def _node_plan_cross_cutting(self, state: ExperimentPlannerState) -> dict:
+        cross_cutting = self._plan_cross_cutting(state["experiment_plans"])
+        return {
             "shared_infrastructure": cross_cutting.get("shared_infrastructure", []),
             "priority_order": cross_cutting.get("priority_order", []),
+        }
+
+    def _node_assemble_and_validate(self, state: ExperimentPlannerState) -> dict:
+        expected_ids = state["expected_ids"]
+        result: dict = {
+            "experiment_plans": state["experiment_plans"],
+            "shared_infrastructure": state["shared_infrastructure"],
+            "priority_order": state["priority_order"],
             "source_hypothesis_ids": expected_ids,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "model": settings.llm_model,
@@ -152,7 +197,7 @@ class ExperimentPlannerAgent:
 
         output_path = self._write_output(result)
         logger.info("Wrote experiment planner output to %s", output_path)
-        return result
+        return {"result": result}
 
     # -- LLM calls -----------------------------------------------------------
 

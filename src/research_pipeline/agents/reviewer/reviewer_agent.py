@@ -64,12 +64,25 @@ Writer/Reviewer loop does):
     agent = ReviewerAgent()
     result = agent.run(paper_path, paper_summary, literature_output,
                         hypothesis_output, planner_output, coder_output, iteration=2)
+
+Internals
+---------
+`run()` executes a LangGraph StateGraph (see graph.py / state.py) rather than a
+straight-line method, so every step — each LLM call and each deterministic check
+— is its own traceable node, and the three deterministic checks fan out
+concurrently. Unlike the Hypothesis/Experiment Planner graphs the fan-out width
+is fixed (there are always exactly those three checks, whatever the input
+contains), so it's plain edges rather than `Send`, matching the Literature
+Agent's two-way search fan-out. That's purely internal: the entry points above,
+their signatures, the returned dict, and the raised ReviewerAgentError are all
+unchanged.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -84,6 +97,7 @@ from research_pipeline.agents.hypothesis.schema import SchemaValidationError as 
 from research_pipeline.agents.hypothesis.schema import validate_output as validate_hypothesis_output
 from research_pipeline.agents.reviewer import checks, prompts
 from research_pipeline.agents.reviewer.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.reviewer.state import ReviewerState
 from research_pipeline.agents.writer import pdf_reader
 from research_pipeline.agents.writer.citations import build_paper_index
 from research_pipeline.agents.writer.writer_agent import compute_hypothesis_verdict, extract_literature_papers
@@ -127,7 +141,48 @@ class ReviewerAgent:
         iteration: int = 1,
         quality_threshold: Optional[int] = None,
     ) -> dict:
-        quality_threshold = quality_threshold if quality_threshold is not None else settings.writer_reviewer_quality_threshold
+        """Runs the agent's graph end to end. Same signature, same returned dict,
+        and the same ReviewerAgentError on failure as the earlier sequential
+        implementation — the graph is an internal detail, so callers (the
+        Writer/Reviewer loop, the orchestrator, the CLI) are unaffected.
+
+        Node exceptions aren't swallowed by LangGraph, so a ReviewerAgentError
+        raised inside a node propagates out of `.invoke` unchanged.
+        """
+        # Imported here rather than at module scope: graph.py needs this module's
+        # ReviewerAgent for typing, so a top-level import would be circular.
+        from research_pipeline.agents.reviewer.graph import build_reviewer_graph
+
+        graph = build_reviewer_graph(self)
+        final_state = graph.invoke(
+            {
+                "paper_path": paper_path,
+                "paper_summary": paper_summary,
+                "literature_output": literature_output,
+                "hypothesis_output": hypothesis_output,
+                "planner_output": planner_output,
+                "coder_output": coder_output,
+                "iteration": iteration,
+                "quality_threshold": (
+                    quality_threshold if quality_threshold is not None else settings.writer_reviewer_quality_threshold
+                ),
+            },
+            config={"configurable": {"thread_id": str(uuid.uuid4())}},
+        )
+        return final_state["result"]
+
+    # -- Graph nodes -----------------------------------------------------------
+    # Thin adapters: each takes the graph state, delegates to the private helper
+    # (or checks.py function) below that does the actual work, and returns only
+    # the keys it produces.
+
+    def _node_prepare_context(self, state: ReviewerState) -> dict:
+        """Validates the three upstream outputs, indexes the ground truth every
+        later node checks against, and reads the rendered PDF back into
+        sections/per-hypothesis subsections."""
+        hypothesis_output = state["hypothesis_output"]
+        planner_output = state["planner_output"]
+        coder_output = state["coder_output"]
 
         try:
             validate_hypothesis_output(hypothesis_output)
@@ -147,7 +202,7 @@ class ReviewerAgent:
         except CoderSchemaValidationError as exc:
             raise ReviewerAgentError(f"coder_output doesn't match the Coder Agent's output schema: {exc}") from exc
 
-        raw_papers, _ = extract_literature_papers(literature_output)
+        raw_papers, _ = extract_literature_papers(state["literature_output"])
         paper_index = build_paper_index(raw_papers)
         plan_by_id = {p["hypothesis_id"]: p for p in planner_output["experiment_plans"]}
         experiment_by_id = {e["hypothesis_id"]: e for e in coder_output["experiments"]}
@@ -162,58 +217,127 @@ class ReviewerAgent:
             for hid in expected_ids
         }
 
-        logger.info("Reviewing %s (iteration %d)", paper_path, iteration)
-        full_text = pdf_reader.extract_text(paper_path)
-        sections = pdf_reader.split_into_sections(full_text, paper_summary.get("sections_generated", []))
-        results_subsections = pdf_reader.split_hypothesis_subsections(sections.get("Results", ""), expected_ids)
-        discussion_subsections = pdf_reader.split_hypothesis_subsections(sections.get("Discussion", ""), expected_ids)
+        logger.info("Reviewing %s (iteration %d)", state["paper_path"], state["iteration"])
+        full_text = pdf_reader.extract_text(state["paper_path"])
+        sections = pdf_reader.split_into_sections(full_text, state["paper_summary"].get("sections_generated", []))
 
-        # -- deterministic checks --------------------------------------------
-        citation_issues = checks.check_citations(sections, paper_index, paper_summary.get("citations_used", []))
-        results_accuracy_issues = checks.check_results_accuracy(results_subsections, coder_output)
-        hypothesis_coverage_issues = checks.check_hypothesis_coverage(
-            results_subsections, discussion_subsections, expected_ids, verdicts
-        )
+        return {
+            "hypotheses": hypotheses,
+            "expected_ids": expected_ids,
+            "raw_papers": raw_papers,
+            "paper_index": paper_index,
+            "plan_by_id": plan_by_id,
+            "experiment_by_id": experiment_by_id,
+            "verdicts": verdicts,
+            "full_text": full_text,
+            "sections": sections,
+            "results_subsections": pdf_reader.split_hypothesis_subsections(sections.get("Results", ""), expected_ids),
+            "discussion_subsections": pdf_reader.split_hypothesis_subsections(sections.get("Discussion", ""), expected_ids),
+        }
 
-        # -- LLM checks: hallucinations per section + discussion framing -----
+    # -- Deterministic checks: fanned out from prepare_context with plain edges --
+    # -- (fixed set of three, no LLM, disjoint state keys — see graph.py) --------
+
+    def _node_check_citations(self, state: ReviewerState) -> dict:
+        return {
+            "citation_issues": checks.check_citations(
+                state["sections"], state["paper_index"], state["paper_summary"].get("citations_used", [])
+            )
+        }
+
+    def _node_check_results_accuracy(self, state: ReviewerState) -> dict:
+        return {"results_accuracy_issues": checks.check_results_accuracy(state["results_subsections"], state["coder_output"])}
+
+    def _node_check_hypothesis_coverage(self, state: ReviewerState) -> dict:
+        return {
+            "hypothesis_coverage_issues": checks.check_hypothesis_coverage(
+                state["results_subsections"], state["discussion_subsections"], state["expected_ids"], state["verdicts"]
+            )
+        }
+
+    # -- LLM checks: hallucinations per section + discussion framing ------------
+
+    def _node_check_hallucinations(self, state: ReviewerState) -> dict:
+        """One LLM call per printed body section. Kept as a single node running
+        the existing loop: the sections are cheap in number and each call's
+        grounding block is assembled from the same state, so fanning them out
+        would add branches without adding traceability worth the complexity."""
+        sections = state["sections"]
         hallucinations: List[dict] = []
         for heading in _HALLUCINATION_SECTIONS:
             if heading not in sections or not sections[heading].strip():
                 continue
             grounding = self._grounding_for_section(
-                heading, hypothesis_output, hypotheses, plan_by_id, experiment_by_id, verdicts, raw_papers
+                heading,
+                state["hypothesis_output"],
+                state["hypotheses"],
+                state["plan_by_id"],
+                state["experiment_by_id"],
+                state["verdicts"],
+                state["raw_papers"],
             )
             hallucinations += self._check_hallucinations(heading, sections[heading], grounding)
+        return {"hallucinations": hallucinations}
 
-        if "Discussion" in sections and sections["Discussion"].strip():
-            disc_hallucinations, framing_issues = self._check_discussion(sections["Discussion"], verdicts, expected_ids)
-            hallucinations += disc_hallucinations
-            hypothesis_coverage_issues += framing_issues
+    def _node_check_discussion(self, state: ReviewerState) -> dict:
+        """Extends — never replaces — the two lists its predecessors produced:
+        the Discussion pass yields both further hallucinations and framing
+        issues that belong with the deterministic coverage findings."""
+        sections = state["sections"]
+        if "Discussion" not in sections or not sections["Discussion"].strip():
+            return {}
 
-        quality_scores, quality_notes = self._score_quality(full_text, plan_by_id, experiment_by_id, expected_ids)
-
-        overall_pass = (
-            not hallucinations
-            and not citation_issues
-            and not results_accuracy_issues
-            and not hypothesis_coverage_issues
-            and all(score >= quality_threshold for score in quality_scores.values())
+        disc_hallucinations, framing_issues = self._check_discussion(
+            sections["Discussion"], state["verdicts"], state["expected_ids"]
         )
+        return {
+            "hallucinations": state["hallucinations"] + disc_hallucinations,
+            "hypothesis_coverage_issues": state["hypothesis_coverage_issues"] + framing_issues,
+        }
 
-        feedback_for_writer = self._build_feedback(
-            hallucinations, citation_issues, results_accuracy_issues, hypothesis_coverage_issues,
-            quality_scores, quality_notes, quality_threshold,
+    def _node_score_quality(self, state: ReviewerState) -> dict:
+        quality_scores, quality_notes = self._score_quality(
+            state["full_text"], state["plan_by_id"], state["experiment_by_id"], state["expected_ids"]
         )
+        return {"quality_scores": quality_scores, "quality_notes": quality_notes}
 
+    # -- Verdict + feedback assembly (deterministic) ----------------------------
+
+    def _node_compute_overall_pass(self, state: ReviewerState) -> dict:
+        quality_threshold = state["quality_threshold"]
+        return {
+            "overall_pass": (
+                not state["hallucinations"]
+                and not state["citation_issues"]
+                and not state["results_accuracy_issues"]
+                and not state["hypothesis_coverage_issues"]
+                and all(score >= quality_threshold for score in state["quality_scores"].values())
+            )
+        }
+
+    def _node_build_feedback(self, state: ReviewerState) -> dict:
+        return {
+            "feedback_for_writer": self._build_feedback(
+                state["hallucinations"],
+                state["citation_issues"],
+                state["results_accuracy_issues"],
+                state["hypothesis_coverage_issues"],
+                state["quality_scores"],
+                state["quality_notes"],
+                state["quality_threshold"],
+            )
+        }
+
+    def _node_assemble_and_validate(self, state: ReviewerState) -> dict:
         result: dict = {
-            "iteration": iteration,
-            "hallucinations": hallucinations,
-            "citation_issues": citation_issues,
-            "results_accuracy_issues": results_accuracy_issues,
-            "hypothesis_coverage_issues": hypothesis_coverage_issues,
-            "quality_scores": quality_scores,
-            "overall_pass": overall_pass,
-            "feedback_for_writer": feedback_for_writer,
+            "iteration": state["iteration"],
+            "hallucinations": state["hallucinations"],
+            "citation_issues": state["citation_issues"],
+            "results_accuracy_issues": state["results_accuracy_issues"],
+            "hypothesis_coverage_issues": state["hypothesis_coverage_issues"],
+            "quality_scores": state["quality_scores"],
+            "overall_pass": state["overall_pass"],
+            "feedback_for_writer": state["feedback_for_writer"],
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "model": settings.llm_model,
         }
@@ -227,8 +351,8 @@ class ReviewerAgent:
             ) from exc
 
         review_path = self._write_review(result)
-        logger.info("Wrote review to %s (overall_pass=%s)", review_path, overall_pass)
-        return result
+        logger.info("Wrote review to %s (overall_pass=%s)", review_path, result["overall_pass"])
+        return {"result": result}
 
     # -- Grounding assembly (mirrors what the Writer Agent used to draft each section) --
 

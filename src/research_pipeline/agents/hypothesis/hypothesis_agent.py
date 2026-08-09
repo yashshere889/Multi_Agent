@@ -52,12 +52,21 @@ Or, to reuse one configured model/output dir across multiple calls (e.g. from
 an Experiment Planner Agent that runs this in a loop):
     agent = HypothesisAgent()
     result = agent.run(papers, research_question="...")
+
+Internals
+---------
+`run()` executes a LangGraph StateGraph (see graph.py / state.py) rather than a
+straight-line method, so every step — each LLM call and each deterministic step
+— is its own traceable node, and the per-batch analysis fans out concurrently
+via `Send`. That's purely internal: the entry points above, their signatures,
+the returned dict, and the raised HypothesisAgentError are all unchanged.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -67,6 +76,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from research_pipeline.agents.hypothesis import prompts
 from research_pipeline.agents.hypothesis.papers import NormalizedPaper, chunk_papers, normalize_papers, paper_to_text
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.hypothesis.state import HypothesisState
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
@@ -93,33 +103,75 @@ class HypothesisAgent:
         self.output_dir = Path(output_dir or settings.hypothesis_output_dir)
 
     def run(self, papers: List[dict], research_question: Optional[str] = None) -> dict:
-        normalized = normalize_papers(papers)
+        """Runs the agent's graph end to end. Same signature, same returned dict,
+        and the same HypothesisAgentError on failure as the earlier sequential
+        implementation — the graph is an internal detail, so callers (the CLI,
+        the orchestrator, another agent) are unaffected.
+
+        Node exceptions aren't swallowed by LangGraph, so a HypothesisAgentError
+        raised inside a node propagates out of `.invoke` unchanged.
+        """
+        # Imported here rather than at module scope: graph.py needs this module's
+        # HypothesisAgent for typing, so a top-level import would be circular.
+        from research_pipeline.agents.hypothesis.graph import build_hypothesis_graph
+
+        graph = build_hypothesis_graph(self)
+        final_state = graph.invoke(
+            {"papers": papers, "research_question": research_question},
+            config={"configurable": {"thread_id": str(uuid.uuid4())}},
+        )
+        return final_state["result"]
+
+    # -- Graph nodes -----------------------------------------------------------
+    # Thin adapters: each takes the graph state, delegates to the private helper
+    # below that does the actual work, and returns only the keys it produces.
+
+    def _node_normalize_and_chunk(self, state: HypothesisState) -> dict:
+        normalized = normalize_papers(state["papers"])
         if not normalized:
             raise HypothesisAgentError(
                 "No usable papers were provided (empty list, or every paper was missing "
                 "title/abstract/full_text)."
             )
 
-        all_paper_ids = [p["id"] for p in normalized]
         batches = chunk_papers(normalized, self.batch_max_chars)
         logger.info("Analyzing %d paper(s) across %d batch(es)", len(normalized), len(batches))
+        return {
+            "normalized": normalized,
+            "all_paper_ids": [p["id"] for p in normalized],
+            "batches": batches,
+        }
 
-        partials = [self._analyze_batch(batch) for batch in batches]
+    def _node_analyze_batch(self, state: HypothesisState) -> dict:
+        """Runs once per batch — the graph fans this out with one `Send` per
+        batch, each carrying its own `current_batch`. The single-element list is
+        what the state's operator.add reducer accumulates across branches."""
+        return {"partials": [self._analyze_batch(state["current_batch"])]}
 
-        synthesis = self._synthesize(partials, all_paper_ids, research_question)
-        literature_summary = synthesis.get("literature_summary", "")
-        methods_overview = synthesis.get("methods_overview", [])
-        gaps = synthesis.get("gaps", [])
+    def _node_synthesize(self, state: HypothesisState) -> dict:
+        synthesis = self._synthesize(state["partials"], state["all_paper_ids"], state.get("research_question"))
+        return {
+            "literature_summary": synthesis.get("literature_summary", ""),
+            "methods_overview": synthesis.get("methods_overview", []),
+            "gaps": synthesis.get("gaps", []),
+        }
 
-        hypotheses_result = self._generate_hypotheses(literature_summary, methods_overview, gaps, research_question)
-        hypotheses = hypotheses_result.get("hypotheses", [])
+    def _node_generate_hypotheses(self, state: HypothesisState) -> dict:
+        hypotheses_result = self._generate_hypotheses(
+            state["literature_summary"],
+            state["methods_overview"],
+            state["gaps"],
+            state.get("research_question"),
+        )
+        return {"hypotheses": hypotheses_result.get("hypotheses", [])}
 
+    def _node_assemble_and_validate(self, state: HypothesisState) -> dict:
         result: dict = {
-            "literature_summary": literature_summary,
-            "methods_overview": methods_overview,
-            "gaps": gaps,
-            "hypotheses": hypotheses,
-            "source_paper_ids": all_paper_ids,
+            "literature_summary": state["literature_summary"],
+            "methods_overview": state["methods_overview"],
+            "gaps": state["gaps"],
+            "hypotheses": state["hypotheses"],
+            "source_paper_ids": state["all_paper_ids"],
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "model": settings.llm_model,
         }
@@ -135,7 +187,7 @@ class HypothesisAgent:
 
         output_path = self._write_output(result)
         logger.info("Wrote hypothesis agent output to %s", output_path)
-        return result
+        return {"result": result}
 
     # -- LLM calls -----------------------------------------------------------
 
