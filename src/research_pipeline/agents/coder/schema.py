@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 VALID_STATUSES = {"completed", "code_generated_not_run", "skipped", "submitted_to_slurm"}
 
@@ -37,18 +37,18 @@ class ExperimentResult(TypedDict):
     hypothesis_id: str
     status: str  # "completed" | "code_generated_not_run" | "skipped" | "submitted_to_slurm"
     reason: str  # required (non-empty) for every status except "completed"
-    code_path: Optional[str]  # None only when status == "skipped"
-    assumptions_made: List[str]
-    results: Optional[Results]  # only present when status == "completed"
+    code_path: str | None  # None only when status == "skipped"
+    assumptions_made: list[str]
+    results: Results | None  # only present when status == "completed"
     fix_attempts: int
-    fix_history: List[FixAttempt]
-    slurm_job_id: Optional[str]  # set only when status == "submitted_to_slurm"
+    fix_history: list[FixAttempt]
+    slurm_job_id: str | None  # set only when status == "submitted_to_slurm"
 
 
 class CoderAgentOutput(TypedDict):
-    experiments: List[ExperimentResult]
+    experiments: list[ExperimentResult]
     shared_infrastructure_path: str
-    source_hypothesis_ids: List[str]
+    source_hypothesis_ids: list[str]
     generated_at: str
     model: str
 
@@ -62,7 +62,9 @@ def _check_fields(obj: dict, fields: list[tuple[str, type]], path: str, errors: 
         if key not in obj:
             errors.append(f"{path}.{key} is missing")
         elif not isinstance(obj[key], expected_type):
-            errors.append(f"{path}.{key} should be {expected_type.__name__}, got {type(obj[key]).__name__}")
+            errors.append(
+                f"{path}.{key} should be {expected_type.__name__}, got {type(obj[key]).__name__}"
+            )
 
 
 def _check_fix_history(exp: dict, path: str, errors: list[str]) -> None:
@@ -84,7 +86,9 @@ def _check_fix_history(exp: dict, path: str, errors: list[str]) -> None:
     if attempts < 0:
         errors.append(f"{path}.fix_attempts should be >= 0, got {attempts}")
     if len(history) != attempts:
-        errors.append(f"{path}.fix_history has {len(history)} entries but fix_attempts is {attempts}")
+        errors.append(
+            f"{path}.fix_history has {len(history)} entries but fix_attempts is {attempts}"
+        )
 
     for j, entry in enumerate(history):
         entry_path = f"{path}.fix_history[{j}]"
@@ -93,27 +97,39 @@ def _check_fix_history(exp: dict, path: str, errors: list[str]) -> None:
             continue
         _check_fields(
             entry,
-            [("attempt", int), ("error_source", str), ("error_summary", str), ("code_path", str), ("resolved", bool)],
+            [
+                ("attempt", int),
+                ("error_source", str),
+                ("error_summary", str),
+                ("code_path", str),
+                ("resolved", bool),
+            ],
             entry_path,
             errors,
         )
         source = entry.get("error_source")
         if source is not None and source not in VALID_ERROR_SOURCES:
-            errors.append(f"{entry_path}.error_source should be one of {sorted(VALID_ERROR_SOURCES)}, got {source!r}")
+            errors.append(
+                f"{entry_path}.error_source should be one of {sorted(VALID_ERROR_SOURCES)}, got {source!r}"
+            )
         summary = entry.get("error_summary")
         if isinstance(summary, str) and len(summary) > ERROR_SUMMARY_MAX_CHARS:
-            errors.append(f"{entry_path}.error_summary exceeds {ERROR_SUMMARY_MAX_CHARS} characters")
+            errors.append(
+                f"{entry_path}.error_summary exceeds {ERROR_SUMMARY_MAX_CHARS} characters"
+            )
 
 
-def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = None) -> None:
+def validate_output(data: dict, expected_hypothesis_ids: list[str] | None = None) -> None:
     """Raises SchemaValidationError (with every problem found, not just the
     first) if `data` doesn't match CoderAgentOutput. If
     `expected_hypothesis_ids` is given, also checks every one of them has a
     corresponding entry (even if skipped)."""
-    errors: List[str] = []
+    errors: list[str] = []
 
     if not isinstance(data, dict):
-        raise SchemaValidationError(f"top-level output should be an object, got {type(data).__name__}")
+        raise SchemaValidationError(
+            f"top-level output should be an object, got {type(data).__name__}"
+        )
 
     _check_fields(
         data,
@@ -129,21 +145,29 @@ def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = N
     )
 
     experiments = data.get("experiments", []) or []
-    experiment_ids: List[str] = []
+    # `str | None`, not `list[str]`: a malformed entry missing hypothesis_id
+    # still gets an (empty) slot here, so the expected-ids diff below reports it
+    # as missing rather than silently lining up with the wrong plan.
+    experiment_ids: list[str | None] = []
     for i, exp in enumerate(experiments):
         path = f"output.experiments[{i}]"
         if not isinstance(exp, dict):
             errors.append(f"{path} should be an object")
             continue
         _check_fields(
-            exp, [("hypothesis_id", str), ("status", str), ("reason", str), ("assumptions_made", list)], path, errors
+            exp,
+            [("hypothesis_id", str), ("status", str), ("reason", str), ("assumptions_made", list)],
+            path,
+            errors,
         )
         experiment_ids.append(exp.get("hypothesis_id"))
         _check_fix_history(exp, path, errors)
 
         status = exp.get("status")
         if status not in VALID_STATUSES:
-            errors.append(f"{path}.status should be one of {sorted(VALID_STATUSES)}, got {status!r}")
+            errors.append(
+                f"{path}.status should be one of {sorted(VALID_STATUSES)}, got {status!r}"
+            )
             continue
 
         if status != "completed" and not (exp.get("reason") or "").strip():
@@ -152,26 +176,36 @@ def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = N
         job_id = exp.get("slurm_job_id")
         if status == "submitted_to_slurm":
             if not job_id or not isinstance(job_id, str):
-                errors.append(f"{path}.slurm_job_id is required (non-empty string) when status is 'submitted_to_slurm'")
+                errors.append(
+                    f"{path}.slurm_job_id is required (non-empty string) when status is 'submitted_to_slurm'"
+                )
         elif job_id is not None:
             errors.append(f"{path}.slurm_job_id should be null when status is {status!r}")
 
         code_path = exp.get("code_path")
         if status == "skipped":
             if code_path not in (None, ""):
-                errors.append(f"{path}.code_path should be null when status is 'skipped', got {code_path!r}")
+                errors.append(
+                    f"{path}.code_path should be null when status is 'skipped', got {code_path!r}"
+                )
         elif not code_path or not isinstance(code_path, str):
-            errors.append(f"{path}.code_path is required (non-empty string) when status is {status!r}")
+            errors.append(
+                f"{path}.code_path is required (non-empty string) when status is {status!r}"
+            )
 
         results = exp.get("results")
         if status == "completed":
             if not isinstance(results, dict):
                 errors.append(f"{path}.results is required (an object) when status is 'completed'")
             else:
-                _check_fields(results, [("metrics", dict), ("notes", str)], f"{path}.results", errors)
+                _check_fields(
+                    results, [("metrics", dict), ("notes", str)], f"{path}.results", errors
+                )
                 meets = results.get("meets_success_criteria")
                 if not (isinstance(meets, bool) or meets == "unknown"):
-                    errors.append(f"{path}.results.meets_success_criteria should be true, false, or \"unknown\", got {meets!r}")
+                    errors.append(
+                        f'{path}.results.meets_success_criteria should be true, false, or "unknown", got {meets!r}'
+                    )
         elif results is not None:
             errors.append(f"{path}.results should be null when status is {status!r}")
 
@@ -179,9 +213,14 @@ def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = N
         missing = set(expected_hypothesis_ids) - set(experiment_ids)
         extra = set(experiment_ids) - set(expected_hypothesis_ids)
         if missing:
-            errors.append(f"output.experiments is missing entries for hypothesis id(s): {sorted(missing)}")
+            errors.append(
+                f"output.experiments is missing entries for hypothesis id(s): {sorted(missing)}"
+            )
         if extra:
-            errors.append(f"output.experiments has entries for unrecognized hypothesis id(s): {sorted(extra)}")
+            errors.append(
+                "output.experiments has entries for unrecognized hypothesis id(s): "
+                f"{sorted(extra, key=str)}"
+            )
 
     if errors:
         raise SchemaValidationError("; ".join(errors))

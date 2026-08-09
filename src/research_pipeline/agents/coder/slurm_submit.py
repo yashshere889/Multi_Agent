@@ -16,7 +16,6 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ def slurm_available() -> bool:
     return shutil.which("sbatch") is not None
 
 
-def count_running_jobs(user: Optional[str] = None) -> int:
+def count_running_jobs(user: str | None = None) -> int:
     """How many jobs this user currently has queued or running, cluster-wide.
 
     Deliberately shells out rather than counting in-process: a batch run spans
@@ -53,7 +52,10 @@ def count_running_jobs(user: Optional[str] = None) -> int:
             timeout=QUEUE_TIMEOUT_SECONDS,
         )
     except (subprocess.TimeoutExpired, OSError) as exc:
-        logger.warning("Could not query squeue (%s) — treating the queue as full to stay on the safe side.", exc)
+        logger.warning(
+            "Could not query squeue (%s) — treating the queue as full to stay on the safe side.",
+            exc,
+        )
         # A failed probe must not read as "nothing running", or the caps stop
         # capping exactly when the cluster is least responsive.
         return _UNKNOWN_QUEUE_DEPTH
@@ -65,7 +67,7 @@ def count_running_jobs(user: Optional[str] = None) -> int:
     return len([line for line in proc.stdout.splitlines() if line.strip()])
 
 
-def submit_job(sbatch_path: Path, cwd: Path) -> Tuple[Optional[str], Optional[str]]:
+def submit_job(sbatch_path: Path, cwd: Path) -> tuple[str | None, str | None]:
     """Submits one job script. Returns (job_id, error) — exactly one is set."""
     if not slurm_available():
         return None, "sbatch is not on PATH — this doesn't look like a SLURM cluster"
@@ -84,10 +86,16 @@ def submit_job(sbatch_path: Path, cwd: Path) -> Tuple[Optional[str], Optional[st
         return None, f"could not run sbatch: {exc}"
 
     if proc.returncode != 0:
-        return None, f"sbatch exited with code {proc.returncode}: {(proc.stderr or proc.stdout or '').strip()[-500:]}"
+        return (
+            None,
+            f"sbatch exited with code {proc.returncode}: {(proc.stderr or proc.stdout or '').strip()[-500:]}",
+        )
 
     match = _JOB_ID_RE.search(proc.stdout or "")
     if not match:
-        return None, f"could not parse a job id out of sbatch's output: {(proc.stdout or '').strip()[-200:]}"
+        return (
+            None,
+            f"could not parse a job id out of sbatch's output: {(proc.stdout or '').strip()[-200:]}",
+        )
 
     return match.group(1), None

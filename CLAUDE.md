@@ -22,7 +22,12 @@ uv run research-pipeline <agent> ...   # run a pipeline stage, e.g.:
 uv run research-pipeline literature "research question" --max-results 5 --download-dir papers
 ```
 
-There is no configured linter/formatter (no ruff config in `pyproject.toml`, ruff isn't a declared dependency) — don't assume `ruff check` works.
+```bash
+uv run pre-commit install          # one-time, wires the git hook
+uv run pre-commit run --all-files  # ruff --fix, ruff format, mypy
+```
+
+Ruff (lint+format) and mypy are configured in `pyproject.toml`, but **only `src/research_pipeline/agents/coder/**` + `tests/test_{coder_agent,slurm_submit}.py` are in scope** — the per-hook `files:` regexes in `.pre-commit-config.yaml` enforce that. The other five agents are not lint-clean yet, so `ruff check src/` or `mypy src/` repo-wide will still report plenty; run them against `agents/coder/` only, or widen the regexes deliberately as part of bringing another agent in.
 
 ## Architecture
 
@@ -57,3 +62,5 @@ Key shared modules at the top level:
 ### Adding a new agent
 
 Copy either structural pattern above into `agents/<name>/`, then register a subcommand in `cli.py`. If it needs LLM calls returning structured JSON, reuse `llm_json.py` rather than reimplementing retry/repair logic.
+
+`agents/coder/` is also the template for the per-agent tooling rollout: a directory-scoped `AGENTS.md` covering only what's specific to that package (pointing here and to README.md for everything pipeline-wide), plus that directory added to the `files:` regexes in `.pre-commit-config.yaml`. Replicate both when bringing another agent under lint/type coverage rather than inventing a new scoping approach — and expect to fix that agent's existing findings in the same change, since the hooks block commits once its path matches.

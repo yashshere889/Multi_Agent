@@ -59,4 +59,42 @@ artifacts = [
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.16",
+    "mypy>=2.3",
+    "pre-commit>=4.6",
 ]
+
+# Lint/format/type-check config. Currently applied to the Coder Agent only —
+# .pre-commit-config.yaml's per-hook `files:` regexes are what enforce that
+# scope; these sections just say *how* to check whatever is in scope. The other
+# five agents get the same treatment incrementally (see CLAUDE.md).
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]  # pycodestyle, pyflakes, import sorting, pyupgrade
+# E501 (line too long) is off on purpose: `ruff format` reflows *code* to
+# line-length, but never rewraps comments or docstrings — and this codebase is
+# deliberately heavy on long explanatory prose comments. Leaving E501 on would
+# block commits until dozens of carefully-worded comments were manually
+# rewrapped, which is churn with no readability payoff.
+ignore = ["E501"]
+
+[tool.ruff.format]
+# Defaults (double quotes, Black-compatible).
+
+[tool.mypy]
+python_version = "3.10"
+# langgraph / langchain / arxiv / reportlab / pypdf ship no usable stubs.
+ignore_missing_imports = true
+# Load-bearing for the scoped rollout: without it mypy follows imports out of
+# agents/coder/ into the (unannotated) rest of the package and reports a flood
+# of errors nothing in scope can fix.
+follow_imports = "silent"
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+# Deliberately not strict = true — this is gradual typing, not an
+# annotate-everything mandate.

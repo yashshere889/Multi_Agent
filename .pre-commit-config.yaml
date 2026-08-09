@@ -1,0 +1,36 @@
+# Pre-commit is repo-root-scoped by design; the per-hook `files:` regexes below
+# are what limit it to the Coder Agent for now. The other five agents are not
+# lint-clean yet, so widening these regexes is a deliberate per-agent step, not
+# a freebie. Rules live in pyproject.toml ([tool.ruff] / [tool.mypy]).
+#
+#   uv run pre-commit install            # one-time, wires the git hook
+#   uv run pre-commit run --all-files    # manual full pass
+#   uv run pre-commit run --files <path> # manual, one file
+
+exclude: ^(experiments|outputs|papers|runs|notebooks)/
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.2
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_agent|slurm_submit)\.py)
+      - id: ruff-format
+        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_agent|slurm_submit)\.py)
+
+  # Source only, not the tests: the test files are unannotated by convention,
+  # and gradual typing is scoped to the module's own source.
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.0
+    hooks:
+      - id: mypy
+        files: ^src/research_pipeline/agents/coder/
+        args: [--config-file=pyproject.toml]
+        # mirrors-mypy runs mypy in its own isolated venv, so the module's
+        # third-party imports have to be listed here or they all silently
+        # become `Any` and the hook passes things `uv run mypy` rejects. These
+        # two are every non-stdlib import under agents/coder/.
+        additional_dependencies:
+          - langgraph>=0.2
+          - langchain-core>=0.3

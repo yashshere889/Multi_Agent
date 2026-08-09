@@ -248,6 +248,17 @@ uv sync
 cp .env.example .env   # then fill in LLM_BASE_URL / SEMANTIC_SCHOLAR_API_KEY
 ```
 
+Optional, if you're going to change code:
+
+```bash
+uv run pre-commit install          # one-time, wires the git hook
+uv run pre-commit run --all-files  # manual pass: ruff --fix, ruff format, mypy
+```
+
+Lint/format/type-check rules live in `pyproject.toml`; `.pre-commit-config.yaml`
+currently scopes them to the coder agent only (see
+[its AGENTS.md](src/research_pipeline/agents/coder/AGENTS.md)).
+
 ### LLM backend
 
 Every agent is LLM-powered and they all share one model, built in one place:
@@ -546,11 +557,19 @@ This processes experiment plans in `priority_order`, skips `feasible: false`
 ones (logged, not silently dropped), generates a runnable project per
 feasible plan under `experiments/<hypothesis_id>/`, and — for `low`/`medium`
 `estimated_complexity` plans that don't need a GPU this environment lacks —
-actually runs it and captures `results.json`. `high`-complexity or
-GPU-needing plans get code plus a `run.sbatch` template instead of being run
-synchronously; **by default the agent does not submit SLURM jobs itself**,
-review the script first (see [Autonomous fixing](#autonomous-fixing-and-slurm-auto-submission)
-to change that). Writes `outputs/coder_agent_summary_<UTC timestamp>.json` — see
+actually runs it and captures `results.json`. GPU-needing plans with no GPU
+detected get code plus a `run.sbatch` template instead of being run
+synchronously, since there's nothing to run them on locally; **by default the
+agent does not submit SLURM jobs itself**, review the script first (see
+[Autonomous fixing](#autonomous-fixing-and-slurm-auto-submission) to change
+that). `high`-complexity plans get the same sbatch-only treatment by default —
+set `CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE=true` to instead run them
+synchronously like `low`/`medium` whenever a GPU is actually detected in this
+process (a Kaggle notebook, a Barkla node reached via `run_pipeline.sbatch`),
+bounded by `CODER_HIGH_COMPLEXITY_TIMEOUT_SECONDS` (default 1800s) rather than
+the low/medium timeout table — there's no shared cluster queue to protect when
+the compute is already dedicated to this pipeline. Writes
+`outputs/coder_agent_summary_<UTC timestamp>.json` — see
 [coder_agent.py](src/research_pipeline/agents/coder/coder_agent.py)'s
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
@@ -569,7 +588,9 @@ attempt is preserved under `experiments/<hypothesis_id>/fix_attempts/attempt_<n>
 and summarized in the output's `fix_history`, which is also the useful artifact
 if you're mining runs for training data: failing code, its error, and the fix.
 
-`high`-complexity/GPU plans can't be run locally, so there's no real error to
+Plans deferred to `run.sbatch` (GPU-needing with no GPU present, or
+`high`-complexity without `CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE`)
+can't be run locally, so there's no real error to
 learn from. Setting `CODER_AUTO_SUBMIT_SLURM=true` (default **false**) lets the
 agent submit those to the cluster itself during unattended sweeps. It still
 refuses unless every gate passes:

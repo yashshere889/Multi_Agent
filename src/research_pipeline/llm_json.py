@@ -83,10 +83,16 @@ def _fix_invalid_escapes(text: str) -> str:
 
 
 def _loads_lenient(text: str) -> dict:
+    # strict=False allows literal control characters (raw newlines, tabs) inside
+    # JSON string values. Agents that ask for source code as a JSON string
+    # routinely get it back with real newlines rather than "\n" — the model is
+    # reproducing code from training data, not hand-encoding JSON — which
+    # otherwise fails json.loads with "Invalid control character" the same way
+    # _fix_invalid_escapes exists for literal backslashes.
     try:
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except json.JSONDecodeError:
-        return json.loads(_fix_invalid_escapes(text))
+        return json.loads(_fix_invalid_escapes(text), strict=False)
 
 
 def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str) -> dict:

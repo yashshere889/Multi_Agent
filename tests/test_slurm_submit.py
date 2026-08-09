@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 from types import SimpleNamespace
 
 from research_pipeline.agents.coder import slurm_submit
@@ -53,7 +52,9 @@ def test_submit_job_refuses_when_sbatch_is_absent(monkeypatch, tmp_path):
 
 def test_submit_job_parses_the_job_id(monkeypatch, tmp_path):
     monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _completed(stdout="Submitted batch job 12345\n"))
+    monkeypatch.setattr(
+        subprocess, "run", lambda *a, **k: _completed(stdout="Submitted batch job 12345\n")
+    )
     job_id, error = slurm_submit.submit_job(tmp_path / "run.sbatch", tmp_path)
     assert job_id == "12345"
     assert error is None
@@ -62,7 +63,9 @@ def test_submit_job_parses_the_job_id(monkeypatch, tmp_path):
 def test_submit_job_reports_a_nonzero_exit(monkeypatch, tmp_path):
     monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
     monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: _completed(stderr="invalid partition specified", returncode=1)
+        subprocess,
+        "run",
+        lambda *a, **k: _completed(stderr="invalid partition specified", returncode=1),
     )
     job_id, error = slurm_submit.submit_job(tmp_path / "run.sbatch", tmp_path)
     assert job_id is None
@@ -71,7 +74,9 @@ def test_submit_job_reports_a_nonzero_exit(monkeypatch, tmp_path):
 
 def test_submit_job_reports_unparseable_output(monkeypatch, tmp_path):
     monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _completed(stdout="something unexpected"))
+    monkeypatch.setattr(
+        subprocess, "run", lambda *a, **k: _completed(stdout="something unexpected")
+    )
     job_id, error = slurm_submit.submit_job(tmp_path / "run.sbatch", tmp_path)
     assert job_id is None
     assert "could not parse a job id" in error

@@ -8,8 +8,11 @@ import pytest
 
 from research_pipeline.agents.coder import sandbox, slurm_submit
 from research_pipeline.agents.coder.coder_agent import CoderAgent, CoderAgentError
-from research_pipeline.agents.coder.schema import ERROR_SUMMARY_MAX_CHARS, SchemaValidationError, validate_output
-
+from research_pipeline.agents.coder.schema import (
+    ERROR_SUMMARY_MAX_CHARS,
+    SchemaValidationError,
+    validate_output,
+)
 
 # -- schema.py: output validation ------------------------------------------------------
 
@@ -108,7 +111,9 @@ def test_render_sbatch_template_includes_hypothesis_id():
 def test_ensure_experiment_env_returns_current_interpreter_when_nothing_missing(tmp_path):
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("os\n")  # stdlib, never "missing"
-    python_exec, error = sandbox.ensure_experiment_env(tmp_path, requirements, network_available=True)
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
     assert error is None
     assert python_exec == Path(sys.executable)
 
@@ -116,7 +121,9 @@ def test_ensure_experiment_env_returns_current_interpreter_when_nothing_missing(
 def test_ensure_experiment_env_reports_missing_package_without_network(tmp_path):
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("definitely_not_a_real_package_xyz\n")
-    python_exec, error = sandbox.ensure_experiment_env(tmp_path, requirements, network_available=False)
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=False
+    )
     assert python_exec is None
     assert "definitely_not_a_real_package_xyz" in error
     assert "network" in error
@@ -182,15 +189,19 @@ GOOD_SECTIONS = {
 }
 
 
-def _codegen_response(sections=None, readme="# Test experiment\n", requirements="", assumptions=None, needs_gpu=False) -> str:
-    return json.dumps({
-        "run_py_sections": sections or GOOD_SECTIONS,
-        "readme": readme,
-        "requirements_txt": requirements,
-        "assumptions_made": assumptions or [],
-        "needs_network": False,
-        "needs_gpu": needs_gpu,
-    })
+def _codegen_response(
+    sections=None, readme="# Test experiment\n", requirements="", assumptions=None, needs_gpu=False
+) -> str:
+    return json.dumps(
+        {
+            "run_py_sections": sections or GOOD_SECTIONS,
+            "readme": readme,
+            "requirements_txt": requirements,
+            "assumptions_made": assumptions or [],
+            "needs_network": False,
+            "needs_gpu": needs_gpu,
+        }
+    )
 
 
 def _plan(hid: str, feasible=True, complexity="low") -> dict:
@@ -203,7 +214,11 @@ def _plan(hid: str, feasible=True, complexity="low") -> dict:
         "design": "comparative benchmark",
         "data_requirements": {"source": "synthetic", "description": "d", "preprocessing_steps": []},
         "methods": [{"name": "baseline", "description": "d", "reused_from_literature": True}],
-        "evaluation": {"metrics": ["accuracy"], "baseline": "random", "success_criteria": "accuracy > 0.5"},
+        "evaluation": {
+            "metrics": ["accuracy"],
+            "baseline": "random",
+            "success_criteria": "accuracy > 0.5",
+        },
         "implementation_steps": [{"step": 1, "description": "do it"}],
         "estimated_complexity": complexity,
         "risks": ["none"],
@@ -214,7 +229,10 @@ def _planner_output(plans: list[dict], shared_infrastructure=None) -> dict:
     return {
         "experiment_plans": plans,
         "shared_infrastructure": shared_infrastructure or [],
-        "priority_order": [{"hypothesis_id": p["hypothesis_id"], "rank": i + 1, "justification": "j"} for i, p in enumerate(plans)],
+        "priority_order": [
+            {"hypothesis_id": p["hypothesis_id"], "rank": i + 1, "justification": "j"}
+            for i, p in enumerate(plans)
+        ],
         "source_hypothesis_ids": [p["hypothesis_id"] for p in plans],
         "generated_at": "2026-01-01T00:00:00+00:00",
         "model": "test-model",
@@ -224,8 +242,11 @@ def _planner_output(plans: list[dict], shared_infrastructure=None) -> dict:
 def test_run_skips_infeasible_plan_without_calling_llm(tmp_path):
     fake_model = FakeChatModel({})  # no responses configured — any call fails the test
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", feasible=False)]))
 
@@ -240,8 +261,11 @@ def test_run_completes_low_complexity_feasible_plan(tmp_path):
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -260,8 +284,11 @@ def test_run_marks_high_complexity_as_not_run_and_generates_sbatch(tmp_path):
     fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H2", complexity="high")]))
 
@@ -281,8 +308,11 @@ def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_pa
     fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: True,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: True,
     )
     result = agent.run(_planner_output([_plan("H2", complexity="high")]))
 
@@ -298,8 +328,11 @@ def test_run_still_defers_high_complexity_without_gpu_even_with_flag_enabled(tmp
     fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,  # no GPU actually present
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,  # no GPU actually present
     )
     result = agent.run(_planner_output([_plan("H2", complexity="high")]))
 
@@ -310,12 +343,18 @@ def test_run_still_defers_high_complexity_without_gpu_even_with_flag_enabled(tmp
 
 
 def test_run_detects_syntax_error_and_never_executes(tmp_path):
-    broken_sections = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
+    broken_sections = {
+        **GOOD_SECTIONS,
+        "evaluate_function": "def evaluate(experiment_output:\n    pass\n",
+    }
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(broken_sections)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -328,11 +367,17 @@ def test_run_detects_syntax_error_and_never_executes(tmp_path):
 def test_run_reports_execution_failure(tmp_path):
     # run.py's fixed orchestration catches this, writes a "failure" results.json,
     # and exits 1 — sandbox.run_experiment sees the nonzero exit.
-    failing_sections = {**GOOD_SECTIONS, "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n"}
+    failing_sections = {
+        **GOOD_SECTIONS,
+        "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n",
+    }
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(failing_sections)})
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -342,12 +387,18 @@ def test_run_reports_execution_failure(tmp_path):
 
 
 def test_run_reports_missing_required_code_section(tmp_path):
-    incomplete_sections = {**GOOD_SECTIONS, "evaluate_function": ""}  # model omitted a required section
+    incomplete_sections = {
+        **GOOD_SECTIONS,
+        "evaluate_function": "",
+    }  # model omitted a required section
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(incomplete_sections)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -361,8 +412,11 @@ def test_run_skips_execution_when_gpu_needed_but_unavailable(tmp_path):
     fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(needs_gpu=True)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -373,12 +427,19 @@ def test_run_skips_execution_when_gpu_needed_but_unavailable(tmp_path):
 
 
 def test_run_missing_package_without_network_skips_execution(tmp_path):
-    fake_model = FakeChatModel({
-        '"hypothesis_id": "H1"': _codegen_response(requirements="definitely_not_a_real_package_xyz\n"),
-    })
+    fake_model = FakeChatModel(
+        {
+            '"hypothesis_id": "H1"': _codegen_response(
+                requirements="definitely_not_a_real_package_xyz\n"
+            ),
+        }
+    )
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -389,17 +450,26 @@ def test_run_missing_package_without_network_skips_execution(tmp_path):
 
 
 def test_run_sets_up_shared_infrastructure_exactly_once(tmp_path):
-    fake_model = FakeChatModel({
-        "Shared infrastructure items": json.dumps({"files": {"data_utils.py": "def load():\n    pass\n", "README.md": "shared"}}),
-        '"hypothesis_id": "H1"': _codegen_response(),
-        '"hypothesis_id": "H2"': _codegen_response(),
-    })
+    fake_model = FakeChatModel(
+        {
+            "Shared infrastructure items": json.dumps(
+                {"files": {"data_utils.py": "def load():\n    pass\n", "README.md": "shared"}}
+            ),
+            '"hypothesis_id": "H1"': _codegen_response(),
+            '"hypothesis_id": "H2"': _codegen_response(),
+        }
+    )
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=experiments_dir, output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
-    result = agent.run(_planner_output([_plan("H1"), _plan("H2")], shared_infrastructure=["shared eval harness"]))
+    result = agent.run(
+        _planner_output([_plan("H1"), _plan("H2")], shared_infrastructure=["shared eval harness"])
+    )
 
     shared_calls = [c for c in fake_model.calls if "Shared infrastructure items" in c[-1][1]]
     assert len(shared_calls) == 1
@@ -411,13 +481,18 @@ def test_run_sets_up_shared_infrastructure_exactly_once(tmp_path):
 
 
 def test_run_respects_priority_order(tmp_path):
-    fake_model = FakeChatModel({
-        '"hypothesis_id": "H1"': _codegen_response(),
-        '"hypothesis_id": "H2"': _codegen_response(),
-    })
+    fake_model = FakeChatModel(
+        {
+            '"hypothesis_id": "H1"': _codegen_response(),
+            '"hypothesis_id": "H2"': _codegen_response(),
+        }
+    )
     agent = CoderAgent(
-        chat_model=fake_model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=fake_model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     planner_output = _planner_output([_plan("H1"), _plan("H2")])
     # reverse priority: H2 should be processed (and appear) before H1
@@ -431,8 +506,11 @@ def test_run_respects_priority_order(tmp_path):
 
 def test_run_rejects_malformed_planner_input(tmp_path):
     agent = CoderAgent(
-        chat_model=FakeChatModel({}), experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False,
+        chat_model=FakeChatModel({}),
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
     )
     with pytest.raises(CoderAgentError, match="Experiment Planner's output schema"):
         agent.run({"experiment_plans": "not a list"})
@@ -465,14 +543,18 @@ def test_read_results_json_reports_missing_required_keys(tmp_path):
 
 
 def test_read_results_json_surfaces_the_traceback_run_py_recorded(tmp_path):
-    (tmp_path / "results.json").write_text(json.dumps({"error": "Traceback...\nValueError: bad shape"}))
+    (tmp_path / "results.json").write_text(
+        json.dumps({"error": "Traceback...\nValueError: bad shape"})
+    )
     results, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
     assert results is None
     assert "ValueError: bad shape" in diagnosis
 
 
 def test_read_results_json_accepts_well_formed_file(tmp_path):
-    (tmp_path / "results.json").write_text(json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True}))
+    (tmp_path / "results.json").write_text(
+        json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+    )
     data, diagnosis = sandbox.read_results_json_for_diagnosis(tmp_path)
     assert diagnosis is None
     assert data["metrics"] == {"accuracy": 0.9}
@@ -543,7 +625,10 @@ class ScriptedChatModel:
         return SimpleNamespace(content=responses[min(index, len(responses) - 1)])
 
 
-BROKEN_SYNTAX_SECTIONS = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
+BROKEN_SYNTAX_SECTIONS = {
+    **GOOD_SECTIONS,
+    "evaluate_function": "def evaluate(experiment_output:\n    pass\n",
+}
 RAISING_SECTIONS = {
     **GOOD_SECTIONS,
     "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n",
@@ -552,8 +637,12 @@ RAISING_SECTIONS = {
 
 def _agent(tmp_path, model, **kwargs):
     return CoderAgent(
-        chat_model=model, experiments_dir=tmp_path / "experiments", output_dir=tmp_path / "outputs",
-        network_check=lambda: False, gpu_check=lambda: False, **kwargs,
+        chat_model=model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
+        **kwargs,
     )
 
 
@@ -585,8 +674,12 @@ def test_fix_loop_recovers_after_a_syntax_error(tmp_path):
 
 
 def test_fix_loop_gives_up_after_max_attempts(tmp_path):
-    model = ScriptedChatModel(codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)])
-    result = _agent(tmp_path, model, max_fix_attempts=2).run(_planner_output([_plan("H1", complexity="low")]))
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)]
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=2).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
@@ -608,18 +701,27 @@ def test_fix_loop_records_nothing_when_the_first_attempt_works(tmp_path):
 
 
 def test_fix_loop_snapshots_the_code_that_failed(tmp_path):
-    model = ScriptedChatModel(codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)])
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
 
     snapshot = Path(result["experiments"][0]["fix_history"][0]["code_path"])
     assert snapshot.exists()
     assert "raise RuntimeError('boom')" in snapshot.read_text()  # the failing version, preserved
-    assert "raise RuntimeError('boom')" not in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert (
+        "raise RuntimeError('boom')" not in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    )
 
 
 def test_fix_loop_truncates_a_long_error_summary(tmp_path):
-    noisy = {**GOOD_SECTIONS, "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('x' * 5000)\n"}
-    model = ScriptedChatModel(codegen=[_codegen_response(noisy)], fix=[_codegen_response(GOOD_SECTIONS)])
+    noisy = {
+        **GOOD_SECTIONS,
+        "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('x' * 5000)\n",
+    }
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(noisy)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
 
     summary = result["experiments"][0]["fix_history"][0]["error_summary"]
@@ -629,7 +731,9 @@ def test_fix_loop_truncates_a_long_error_summary(tmp_path):
 def test_env_error_is_not_retried_through_the_llm(tmp_path):
     # A missing package is an environment problem — regenerating the code can't
     # fix it, so it must not burn fix attempts.
-    model = ScriptedChatModel(codegen=[_codegen_response(requirements="definitely_not_a_real_package_xyz\n")])
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(requirements="definitely_not_a_real_package_xyz\n")]
+    )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
 
     exp = result["experiments"][0]
@@ -638,13 +742,17 @@ def test_env_error_is_not_retried_through_the_llm(tmp_path):
     assert "fix" not in model.calls_by_kind
 
 
-def test_invalid_json_from_initial_generation_routes_through_the_fix_loop_instead_of_crashing(tmp_path):
+def test_invalid_json_from_initial_generation_routes_through_the_fix_loop_instead_of_crashing(
+    tmp_path,
+):
     # Regression test: a malformed-JSON codegen response (surviving invoke_json's
     # own repair retry) used to raise CoderAgentError straight out of
     # process_current_plan and crash the whole multi-plan run. It must instead be
     # treated like any other per-plan failure the fix loop can regenerate against.
     model = ScriptedChatModel(
-        codegen=['{"run_py_sections": {BROKEN'],  # same broken text feeds the internal repair retry too
+        codegen=[
+            '{"run_py_sections": {BROKEN'
+        ],  # same broken text feeds the internal repair retry too
         fix=[_codegen_response(GOOD_SECTIONS)],
     )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
@@ -668,7 +776,9 @@ def test_invalid_json_from_regeneration_still_counts_against_the_fix_budget(tmp_
         codegen=[_codegen_response(RAISING_SECTIONS), '{"run_py_sections": {STILL_BROKEN'],
         fix=['{"run_py_sections": {STILL_BROKEN'],
     )
-    result = _agent(tmp_path, model, max_fix_attempts=2).run(_planner_output([_plan("H1", complexity="low")]))
+    result = _agent(tmp_path, model, max_fix_attempts=2).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
@@ -700,13 +810,21 @@ def test_static_safety_check_flags_dangerous_code(code, expected):
 
 
 def test_static_safety_check_passes_ordinary_experiment_code():
-    code = "\n".join(GOOD_SECTIONS[k] for k in ("load_data_function", "build_model_function", "evaluate_function"))
+    code = "\n".join(
+        GOOD_SECTIONS[k]
+        for k in ("load_data_function", "build_model_function", "evaluate_function")
+    )
     assert sandbox.static_safety_check(code) == []
 
 
 def test_lint_failure_routes_through_the_fix_loop(tmp_path):
-    unsafe = {**GOOD_SECTIONS, "helpers": "def cleanup(p):\n    import shutil\n    shutil.rmtree(p)\n"}
-    model = ScriptedChatModel(codegen=[_codegen_response(unsafe)], fix=[_codegen_response(GOOD_SECTIONS)])
+    unsafe = {
+        **GOOD_SECTIONS,
+        "helpers": "def cleanup(p):\n    import shutil\n    shutil.rmtree(p)\n",
+    }
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(unsafe)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
 
     exp = result["experiments"][0]
@@ -723,7 +841,9 @@ def _patch_settings(monkeypatch, **overrides):
     from research_pipeline.agents.coder import coder_agent as coder_agent_module
 
     monkeypatch.setattr(
-        coder_agent_module, "settings", dataclasses.replace(coder_agent_module.settings, **overrides)
+        coder_agent_module,
+        "settings",
+        dataclasses.replace(coder_agent_module.settings, **overrides),
     )
 
 
@@ -780,11 +900,18 @@ def test_auto_submit_submits_when_enabled_and_clean(tmp_path, auto_submit):
 def test_auto_submit_never_submits_code_the_lint_keeps_flagging(tmp_path, auto_submit):
     # The lint runs before the submit branch, so unsafe code goes through the
     # fix loop first. When the fix doesn't clean it up, nothing is submitted.
-    unsafe = {**GOOD_SECTIONS, "helpers": "def wipe(p):\n    import os\n    os.system('rm -rf ' + p)\n"}
+    unsafe = {
+        **GOOD_SECTIONS,
+        "helpers": "def wipe(p):\n    import os\n    os.system('rm -rf ' + p)\n",
+    }
     model = ScriptedChatModel(
-        codegen=[_codegen_response(unsafe)], fix=[_codegen_response(unsafe)], self_review=[_clean_review()]
+        codegen=[_codegen_response(unsafe)],
+        fix=[_codegen_response(unsafe)],
+        self_review=[_clean_review()],
     )
-    result = _agent(tmp_path, model, max_fix_attempts=1).run(_planner_output([_plan("H1", complexity="high")]))
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="high")])
+    )
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
@@ -795,7 +922,12 @@ def test_auto_submit_never_submits_code_the_lint_keeps_flagging(tmp_path, auto_s
 def test_auto_submit_fixes_code_the_self_review_flags(tmp_path, auto_submit):
     model = ScriptedChatModel(
         codegen=[_codegen_response()],
-        self_review=[json.dumps({"looks_correct": False, "concerns": ["load_data ignores the plan's dataset"]}), _clean_review()],
+        self_review=[
+            json.dumps(
+                {"looks_correct": False, "concerns": ["load_data ignores the plan's dataset"]}
+            ),
+            _clean_review(),
+        ],
         fix=[_codegen_response(GOOD_SECTIONS)],
     )
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
@@ -807,7 +939,9 @@ def test_auto_submit_fixes_code_the_self_review_flags(tmp_path, auto_submit):
 
 
 def test_auto_submit_respects_the_concurrent_job_cap(tmp_path, auto_submit, monkeypatch):
-    monkeypatch.setattr(slurm_submit, "count_running_jobs", lambda user=None: 4)  # already at the cap
+    monkeypatch.setattr(
+        slurm_submit, "count_running_jobs", lambda user=None: 4
+    )  # already at the cap
     model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
 
@@ -833,7 +967,11 @@ def test_auto_submit_respects_the_per_run_budget(tmp_path, auto_submit, monkeypa
 
 
 def test_auto_submit_failure_falls_back_to_manual_review(tmp_path, auto_submit, monkeypatch):
-    monkeypatch.setattr(slurm_submit, "submit_job", lambda *a, **k: (None, "sbatch exited with code 1: invalid partition"))
+    monkeypatch.setattr(
+        slurm_submit,
+        "submit_job",
+        lambda *a, **k: (None, "sbatch exited with code 1: invalid partition"),
+    )
     model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="high")]))
 

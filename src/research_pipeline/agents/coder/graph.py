@@ -43,6 +43,7 @@ helpers, so the codegen/execution/submission logic lives in exactly one place.
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -69,7 +70,7 @@ def route_after_process(state: CoderState) -> str:
     return route_plan_loop(state)
 
 
-def build_coder_graph(agent: "CoderAgent"):
+def build_coder_graph(agent: CoderAgent):
     graph = StateGraph(CoderState)
 
     graph.add_node("validate_input", agent._node_validate_input)
@@ -88,7 +89,13 @@ def build_coder_graph(agent: "CoderAgent"):
     graph.add_edge("probe_environment", "setup_shared_infrastructure")
     graph.add_edge("setup_shared_infrastructure", "start_plan_loop")
 
-    _plan_loop_targets = {"process": "process_current_plan", "done": "assemble_and_validate"}
+    # Hashable keys, not str: add_conditional_edges' path_map parameter is typed
+    # dict[Hashable, str] and dict is invariant in its key type, so a plain
+    # dict[str, str] doesn't type-check against it.
+    _plan_loop_targets: dict[Hashable, str] = {
+        "process": "process_current_plan",
+        "done": "assemble_and_validate",
+    }
 
     graph.add_conditional_edges("start_plan_loop", route_plan_loop, _plan_loop_targets)
 

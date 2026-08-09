@@ -37,6 +37,8 @@ class Settings:
     coder_experiments_dir: str
     coder_output_dir: str
     coder_max_fix_attempts: int
+    coder_run_high_complexity_when_gpu_available: bool
+    coder_high_complexity_timeout_seconds: int
     coder_auto_submit_slurm: bool
     coder_max_concurrent_slurm_jobs: int
     coder_max_slurm_jobs_per_run: int
@@ -125,6 +127,20 @@ def load_settings() -> Settings:
         coder_experiments_dir=os.environ.get("CODER_EXPERIMENTS_DIR", "experiments"),
         coder_output_dir=os.environ.get("CODER_OUTPUT_DIR", "outputs"),
         coder_max_fix_attempts=int(os.environ.get("CODER_MAX_FIX_ATTEMPTS", "3")),
+        # Off by default: "high" complexity always defers to run.sbatch,
+        # regardless of GPU availability, because the SLURM path is written
+        # for a *shared* cluster where nothing should run unreviewed. On a
+        # single-tenant GPU already attached to this process (a Kaggle
+        # notebook, a Barkla node reached via run_pipeline.sbatch), that
+        # concern doesn't apply — there's no queue to jump and no one else's
+        # allocation to spend. Turning this on lets `high` complexity plans
+        # run synchronously exactly like low/medium, but only when gpu_check()
+        # confirms a GPU is actually present; needs_gpu-without-a-GPU still
+        # always defers, since there's nothing to run it on either way.
+        coder_run_high_complexity_when_gpu_available=_env_bool("CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE", False),
+        # High-complexity work (e.g. fine-tuning) legitimately runs longer
+        # than low/medium's 120s/300s; only consulted when the flag above is on.
+        coder_high_complexity_timeout_seconds=int(os.environ.get("CODER_HIGH_COMPLEXITY_TIMEOUT_SECONDS", "1800")),
         # Off by default: run.sbatch is generated from code nothing has ever
         # executed, and submitting it spends GPU allocation on a cluster other
         # people are queueing for. Turning this on is a deliberate choice for

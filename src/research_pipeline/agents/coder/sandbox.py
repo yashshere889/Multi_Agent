@@ -15,7 +15,6 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,10 @@ NETWORK_PROBE_HOST = "pypi.org"
 NETWORK_PROBE_PORT = 443
 NETWORK_PROBE_TIMEOUT_SECONDS = 3.0
 
-# "high" estimated_complexity is never run synchronously — see coder_agent.py.
+# "high" only runs synchronously when CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE
+# is on and a GPU was actually detected — see coder_agent.py — so its timeout
+# comes from settings.coder_high_complexity_timeout_seconds instead of a fixed
+# entry here.
 TIMEOUT_SECONDS_BY_COMPLEXITY = {"low": 120, "medium": 300}
 
 
@@ -34,7 +36,9 @@ def _load_template(name: str) -> str:
 
 
 def has_network_access(
-    host: str = NETWORK_PROBE_HOST, port: int = NETWORK_PROBE_PORT, timeout: float = NETWORK_PROBE_TIMEOUT_SECONDS
+    host: str = NETWORK_PROBE_HOST,
+    port: int = NETWORK_PROBE_PORT,
+    timeout: float = NETWORK_PROBE_TIMEOUT_SECONDS,
 ) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -47,7 +51,7 @@ def has_gpu() -> bool:
     return shutil.which("nvidia-smi") is not None
 
 
-def missing_packages(requirements: List[str]) -> List[str]:
+def missing_packages(requirements: list[str]) -> list[str]:
     """requirements: lines like 'numpy' or 'numpy>=1.20'. Checked via Python's
     import machinery using the requirement name as the module name (good
     enough for the common case; a handful of packages have a distribution
@@ -68,7 +72,7 @@ def missing_packages(requirements: List[str]) -> List[str]:
     return missing
 
 
-def compile_check(py_files: List[Path]) -> Optional[str]:
+def compile_check(py_files: list[Path]) -> str | None:
     """Byte-compiles each file to catch syntax errors without executing
     anything. Returns None if every file compiles, else a message describing
     the first failure encountered."""
@@ -85,7 +89,7 @@ def compile_check(py_files: List[Path]) -> Optional[str]:
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
-DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
+DANGEROUS_PATTERNS: list[tuple[str, str]] = [
     (r"\beval\s*\(", "eval() call"),
     (r"\bexec\s*\(", "exec() call"),
     (r"\b__import__\s*\(", "dynamic __import__() call"),
@@ -98,11 +102,14 @@ DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
     (r"\bsocket\.(socket|create_connection)\s*\(", "raw socket usage"),
     (r"\bpickle\.loads?\s*\(", "pickle load (arbitrary code execution on untrusted data)"),
     (r"\bctypes\b", "ctypes usage"),
-    (r"os\.environ(?:\.get\(\s*)?\[?[\"'][^\"']*(SECRET|TOKEN|PASSWORD|API_KEY|AWS_)", "credential-like environment variable access"),
+    (
+        r"os\.environ(?:\.get\(\s*)?\[?[\"'][^\"']*(SECRET|TOKEN|PASSWORD|API_KEY|AWS_)",
+        "credential-like environment variable access",
+    ),
 ]
 
 
-def static_safety_check(code: str) -> List[str]:
+def static_safety_check(code: str) -> list[str]:
     """Scans generated Python source for patterns that shouldn't appear in an
     experiment script, before it is executed or submitted anywhere. Returns a
     list of human-readable findings; empty means clean."""
@@ -113,7 +120,7 @@ def static_safety_check(code: str) -> List[str]:
     return findings
 
 
-def read_results_json_for_diagnosis(experiment_dir: Path) -> Tuple[Optional[dict], Optional[str]]:
+def read_results_json_for_diagnosis(experiment_dir: Path) -> tuple[dict | None, str | None]:
     """Reads an experiment's results.json for the fix loop. Returns
     (results, diagnosis): `results` is the parsed payload when the run
     genuinely succeeded, `diagnosis` describes what's wrong otherwise —
@@ -146,7 +153,7 @@ def ensure_experiment_env(
     experiment_dir: Path,
     requirements_path: Path,
     network_available: bool,
-) -> Tuple[Optional[Path], Optional[str]]:
+) -> tuple[Path | None, str | None]:
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
     None. Uses the current interpreter directly when nothing extra is needed;
@@ -166,7 +173,9 @@ def ensure_experiment_env(
     venv_dir = experiment_dir / ".venv"
     venv_python = venv_dir / "bin" / "python"
     try:
-        subprocess.run(["uv", "venv", str(venv_dir)], check=True, capture_output=True, text=True, timeout=120)
+        subprocess.run(
+            ["uv", "venv", str(venv_dir)], check=True, capture_output=True, text=True, timeout=120
+        )
         subprocess.run(
             ["uv", "pip", "install", "--python", str(venv_python), "-r", str(requirements_path)],
             check=True,
@@ -183,7 +192,9 @@ def ensure_experiment_env(
     return venv_python, None
 
 
-def run_experiment(python_executable: Path, run_script: Path, cwd: Path, timeout_seconds: int) -> Tuple[bool, str]:
+def run_experiment(
+    python_executable: Path, run_script: Path, cwd: Path, timeout_seconds: int
+) -> tuple[bool, str]:
     """Runs run_script with python_executable, cwd set to the experiment
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
@@ -207,9 +218,13 @@ def run_experiment(python_executable: Path, run_script: Path, cwd: Path, timeout
 
 def render_sbatch_template(hypothesis_id: str, has_requirements: bool) -> str:
     venv_activation = (
-        "# TODO: activate/create a venv and `pip install -r requirements.txt` here if needed\n" if has_requirements else ""
+        "# TODO: activate/create a venv and `pip install -r requirements.txt` here if needed\n"
+        if has_requirements
+        else ""
     )
-    return _load_template("run.sbatch.template").format(hypothesis_id=hypothesis_id, venv_activation=venv_activation)
+    return _load_template("run.sbatch.template").format(
+        hypothesis_id=hypothesis_id, venv_activation=venv_activation
+    )
 
 
 def render_experiment_template(
@@ -247,7 +262,8 @@ def render_experiment_template(
         "__BASELINE_TEXT__": repr(baseline),
         "__SUCCESS_CRITERIA_TEXT__": repr(success_criteria),
         "__AGENT_IMPORTS__": agent_imports.strip() or "# (no extra imports needed)",
-        "__AGENT_CONFIGURATION__": agent_configuration.strip() or "# (no extra configuration needed)",
+        "__AGENT_CONFIGURATION__": agent_configuration.strip()
+        or "# (no extra configuration needed)",
         "__AGENT_LOAD_DATA_FUNCTION__": load_data_function.strip(),
         "__AGENT_BUILD_MODEL_FUNCTION__": build_model_function.strip(),
         "__AGENT_RUN_EXPERIMENT_FUNCTION__": run_experiment_function.strip(),

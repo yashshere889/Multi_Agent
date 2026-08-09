@@ -40,7 +40,7 @@ Two things are deliberately *not* here:
 
 from __future__ import annotations
 
-from typing import Dict, List, TypedDict
+from typing import TypedDict
 
 
 class CoderState(TypedDict, total=False):
@@ -48,8 +48,8 @@ class CoderState(TypedDict, total=False):
     planner_output: dict
 
     # validate_input
-    expected_ids: List[str]
-    ordered_plans: List[dict]  # plans sorted by the planner's priority_order
+    expected_ids: list[str]
+    ordered_plans: list[dict]  # plans sorted by the planner's priority_order
 
     # probe_environment — probed once per run, never hardcoded (the same code
     # runs on a laptop, a Kaggle notebook, and a Barkla compute node).
@@ -60,13 +60,13 @@ class CoderState(TypedDict, total=False):
     # every value in state is serialized by the checkpointer, and it is only
     # ever used as the output's "shared_infrastructure_path" anyway.
     shared_dir: str
-    shared_files: Dict[str, str]
+    shared_files: dict[str, str]
 
     # The sequential per-plan loop. `plan_index` is the cursor into
     # `ordered_plans`; `experiments` accumulates one finished entry per plan,
     # appended explicitly (no reducer — see the module docstring).
     plan_index: int
-    experiments: List[dict]
+    experiments: list[dict]
 
     # Mirrored from CoderAgent._slurm_jobs_submitted after each attempt, so the
     # gated counter is visible in a checkpoint/trace. Not the gate itself.
@@ -76,8 +76,9 @@ class CoderState(TypedDict, total=False):
     # loop advances.
     current_plan: dict
     current_experiment_dir: str  # str for the same serialization reason as shared_dir
-    current_generation: dict  # run_py_sections / assumptions_made / needs_gpu / requirements_txt / readme
-    current_fix_history: List[dict]
+    # run_py_sections / assumptions_made / needs_gpu / requirements_txt / readme
+    current_generation: dict
+    current_fix_history: list[dict]
     current_attempt: int  # 0-based, matching the old `for attempt in range(max_fix_attempts + 1)`
     current_outcome: dict  # {"result": ...} or {"error_source", "error_text"}
 

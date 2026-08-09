@@ -101,17 +101,25 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from research_pipeline.agents.coder import prompts, sandbox, slurm_submit
-from research_pipeline.agents.coder.schema import ERROR_SUMMARY_MAX_CHARS, SchemaValidationError, validate_output
+from research_pipeline.agents.coder.schema import (
+    ERROR_SUMMARY_MAX_CHARS,
+    SchemaValidationError,
+    validate_output,
+)
 from research_pipeline.agents.coder.state import CoderState
-from research_pipeline.agents.experiment_planner.schema import SchemaValidationError as PlannerSchemaValidationError
-from research_pipeline.agents.experiment_planner.schema import validate_output as validate_planner_output
+from research_pipeline.agents.experiment_planner.schema import (
+    SchemaValidationError as PlannerSchemaValidationError,
+)
+from research_pipeline.agents.experiment_planner.schema import (
+    validate_output as validate_planner_output,
+)
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
@@ -156,7 +164,9 @@ def _plan_count(planner_output: object) -> int:
 
 def _recursion_limit_for(plan_count: int, max_fix_attempts: int) -> int:
     """Worst case: every plan feasible, every plan exhausting its fix budget."""
-    worst_case = _FIXED_STEPS + plan_count * (_STEPS_PER_PLAN + _STEPS_PER_FIX_ATTEMPT * max(max_fix_attempts, 0))
+    worst_case = _FIXED_STEPS + plan_count * (
+        _STEPS_PER_PLAN + _STEPS_PER_FIX_ATTEMPT * max(max_fix_attempts, 0)
+    )
     return max(worst_case + 10, 25)
 
 
@@ -167,12 +177,12 @@ class CoderAgentError(RuntimeError):
 class CoderAgent:
     def __init__(
         self,
-        chat_model: Optional[BaseChatModel] = None,
-        experiments_dir: Optional[str | Path] = None,
-        output_dir: Optional[str | Path] = None,
-        network_check: Optional[Callable[[], bool]] = None,
-        gpu_check: Optional[Callable[[], bool]] = None,
-        max_fix_attempts: Optional[int] = None,
+        chat_model: BaseChatModel | None = None,
+        experiments_dir: str | Path | None = None,
+        output_dir: str | Path | None = None,
+        network_check: Callable[[], bool] | None = None,
+        gpu_check: Callable[[], bool] | None = None,
+        max_fix_attempts: int | None = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config, same as the
         # Hypothesis and Experiment Planner agents, at a low temperature.
@@ -185,7 +195,9 @@ class CoderAgent:
         self.output_dir = Path(output_dir or settings.coder_output_dir)
         self.network_check = network_check or sandbox.has_network_access
         self.gpu_check = gpu_check or sandbox.has_gpu
-        self.max_fix_attempts = settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
+        self.max_fix_attempts = (
+            settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
+        )
         self._slurm_jobs_submitted = 0
 
     def run(self, planner_output: dict) -> dict:
@@ -213,7 +225,9 @@ class CoderAgent:
             {"planner_output": planner_output, "experiments": [], "slurm_jobs_submitted": 0},
             config={
                 "configurable": {"thread_id": str(uuid.uuid4())},
-                "recursion_limit": _recursion_limit_for(_plan_count(planner_output), self.max_fix_attempts),
+                "recursion_limit": _recursion_limit_for(
+                    _plan_count(planner_output), self.max_fix_attempts
+                ),
             },
         )
         return final_state["result"]
@@ -228,7 +242,9 @@ class CoderAgent:
         try:
             validate_planner_output(planner_output)
         except PlannerSchemaValidationError as exc:
-            raise CoderAgentError(f"Input doesn't match the Experiment Planner's output schema: {exc}") from exc
+            raise CoderAgentError(
+                f"Input doesn't match the Experiment Planner's output schema: {exc}"
+            ) from exc
 
         plans = planner_output["experiment_plans"]
         return {
@@ -244,18 +260,26 @@ class CoderAgent:
         gpu_available = self.gpu_check()
         logger.info(
             "Processing %d experiment plan(s); network_available=%s, gpu_available=%s",
-            len(state["ordered_plans"]), network_available, gpu_available,
+            len(state["ordered_plans"]),
+            network_available,
+            gpu_available,
         )
         return {"network_available": network_available, "gpu_available": gpu_available}
 
     def _node_setup_shared_infrastructure(self, state: CoderState) -> dict:
         """Runs once for the whole run (the helper itself no-ops the LLM call
         when the planner asked for no shared infrastructure)."""
-        shared_dir, shared_files = self._setup_shared_infrastructure(state["planner_output"], state["ordered_plans"])
+        shared_dir, shared_files = self._setup_shared_infrastructure(
+            state["planner_output"], state["ordered_plans"]
+        )
         return {"shared_dir": str(shared_dir), "shared_files": shared_files}
 
     def _node_start_plan_loop(self, state: CoderState) -> dict:
-        return {"plan_index": 0, "experiments": [], "slurm_jobs_submitted": self._slurm_jobs_submitted}
+        return {
+            "plan_index": 0,
+            "experiments": [],
+            "slurm_jobs_submitted": self._slurm_jobs_submitted,
+        }
 
     def _node_process_current_plan(self, state: CoderState) -> dict:
         """The per-plan loop body's entry. Infeasible plans are recorded and the
@@ -283,7 +307,9 @@ class CoderAgent:
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            generation = self._generate_experiment_files(plan, state["shared_files"], state["network_available"])
+            generation = self._generate_experiment_files(
+                plan, state["shared_files"], state["network_available"]
+            )
         except CoderAgentError as exc:
             # A malformed-JSON generation is a per-plan failure, not a
             # pipeline-ending one — even after invoke_json's own repair retry,
@@ -291,7 +317,11 @@ class CoderAgent:
             # into the same fix loop that handles compile/lint/run failures
             # (via _attempt_once's generation_error check) instead of letting
             # it crash the whole multi-hour run over one bad plan.
-            generation = {"run_py_sections": {}, "assumptions_made": [], "generation_error": str(exc)}
+            generation = {
+                "run_py_sections": {},
+                "assumptions_made": [],
+                "generation_error": str(exc),
+            }
 
         return {
             "current_plan": plan,
@@ -315,12 +345,18 @@ class CoderAgent:
             state["gpu_available"],
         )
 
-        update: dict = {"current_outcome": outcome, "slurm_jobs_submitted": self._slurm_jobs_submitted}
+        update: dict = {
+            "current_outcome": outcome,
+            "slurm_jobs_submitted": self._slurm_jobs_submitted,
+        }
 
         fix_history = state["current_fix_history"]
         if fix_history:
             resolved = self._cleared_previous_error(fix_history[-1]["error_source"], outcome)
-            update["current_fix_history"] = [*fix_history[:-1], {**fix_history[-1], "resolved": resolved}]
+            update["current_fix_history"] = [
+                *fix_history[:-1],
+                {**fix_history[-1], "resolved": resolved},
+            ]
         return update
 
     def _route_after_attempt(self, state: CoderState) -> str:
@@ -343,13 +379,18 @@ class CoderAgent:
 
         logger.info(
             "Fixing %s after %s failure (attempt %d/%d)",
-            plan["hypothesis_id"], outcome["error_source"], attempt + 1, self.max_fix_attempts,
+            plan["hypothesis_id"],
+            outcome["error_source"],
+            attempt + 1,
+            self.max_fix_attempts,
         )
         entry = {
             "attempt": attempt + 1,
             "error_source": outcome["error_source"],
             "error_summary": _truncate(outcome["error_text"]),
-            "code_path": str(self._snapshot_attempt(Path(state["current_experiment_dir"]), attempt + 1)),
+            "code_path": str(
+                self._snapshot_attempt(Path(state["current_experiment_dir"]), attempt + 1)
+            ),
             "resolved": False,
         }
         try:
@@ -367,7 +408,11 @@ class CoderAgent:
             # loop rather than crashing the run — _attempt_once's
             # generation_error check turns this into a normal "invalid_json"
             # outcome, so it still counts against max_fix_attempts.
-            generation = {"run_py_sections": {}, "assumptions_made": [], "generation_error": str(exc)}
+            generation = {
+                "run_py_sections": {},
+                "assumptions_made": [],
+                "generation_error": str(exc),
+            }
         return {
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
@@ -383,7 +428,10 @@ class CoderAgent:
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
         }
-        return {"experiments": [*state["experiments"], experiment], "plan_index": state["plan_index"] + 1}
+        return {
+            "experiments": [*state["experiments"], experiment],
+            "plan_index": state["plan_index"] + 1,
+        }
 
     def _node_give_up_current_plan(self, state: CoderState) -> dict:
         """The fix budget is spent and the last error still stands — the code
@@ -401,7 +449,10 @@ class CoderAgent:
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
         }
-        return {"experiments": [*state["experiments"], experiment], "plan_index": state["plan_index"] + 1}
+        return {
+            "experiments": [*state["experiments"], experiment],
+            "plan_index": state["plan_index"] + 1,
+        }
 
     def _node_assemble_and_validate(self, state: CoderState) -> dict:
         result: dict = {
@@ -429,7 +480,7 @@ class CoderAgent:
     # -- Ordering ---------------------------------------------------------------
 
     @staticmethod
-    def _order_by_priority(plans: List[dict], priority_order: List[dict]) -> List[dict]:
+    def _order_by_priority(plans: list[dict], priority_order: list[dict]) -> list[dict]:
         rank_by_id = {entry["hypothesis_id"]: entry["rank"] for entry in priority_order}
         # plans missing from priority_order (shouldn't happen given a validated
         # planner output) sort after every ranked plan, in their original order
@@ -437,7 +488,9 @@ class CoderAgent:
 
     # -- Shared infrastructure -----------------------------------------------
 
-    def _setup_shared_infrastructure(self, planner_output: dict, plans: List[dict]) -> tuple[Path, Dict[str, str]]:
+    def _setup_shared_infrastructure(
+        self, planner_output: dict, plans: list[dict]
+    ) -> tuple[Path, dict[str, str]]:
         shared_dir = self.experiments_dir / "_shared"
         shared_dir.mkdir(parents=True, exist_ok=True)
         (self.experiments_dir / "__init__.py").touch()
@@ -455,7 +508,9 @@ class CoderAgent:
         files = response.get("files", {})
         self._write_files(shared_dir, files)
         logger.info("Wrote %d shared infrastructure file(s) to %s", len(files), shared_dir)
-        return shared_dir, {name: content for name, content in files.items() if name.endswith(".py")}
+        return shared_dir, {
+            name: content for name, content in files.items() if name.endswith(".py")
+        }
 
     # -- Per-experiment processing --------------------------------------------
     #
@@ -490,8 +545,15 @@ class CoderAgent:
         assumptions_made = generation.get("assumptions_made", [])
         needs_gpu = bool(generation.get("needs_gpu", False))
 
-        required_sections = ("load_data_function", "build_model_function", "run_experiment_function", "evaluate_function")
-        missing_sections = [name for name in required_sections if not (sections.get(name) or "").strip()]
+        required_sections = (
+            "load_data_function",
+            "build_model_function",
+            "run_experiment_function",
+            "evaluate_function",
+        )
+        missing_sections = [
+            name for name in required_sections if not (sections.get(name) or "").strip()
+        ]
         if missing_sections:
             return {
                 "error_source": "missing_sections",
@@ -542,14 +604,23 @@ class CoderAgent:
         complexity = plan["estimated_complexity"]
         requirements_path = experiment_dir / "requirements.txt"
 
-        run_high_locally = complexity == "high" and settings.coder_run_high_complexity_when_gpu_available and gpu_available
+        run_high_locally = (
+            complexity == "high"
+            and settings.coder_run_high_complexity_when_gpu_available
+            and gpu_available
+        )
         if (needs_gpu and not gpu_available) or (complexity == "high" and not run_high_locally):
             return self._handle_unrunnable_locally(
                 plan, generation, run_py, experiment_dir, requirements_path, complexity
             )
 
-        python_executable, env_error = sandbox.ensure_experiment_env(experiment_dir, requirements_path, network_available)
-        if env_error:
+        python_executable, env_error = sandbox.ensure_experiment_env(
+            experiment_dir, requirements_path, network_available
+        )
+        # Checked as `is None` rather than `if env_error` so the interpreter is
+        # narrowed to a Path for the run below; ensure_experiment_env's contract
+        # is that exactly one of the two is set, so this is the same branch.
+        if python_executable is None:
             # Not routed through the fix loop: a missing package or an
             # unreachable index is an environment problem, and regenerating
             # the code can't resolve it.
@@ -557,7 +628,7 @@ class CoderAgent:
                 "result": self._result(
                     hypothesis_id,
                     status="code_generated_not_run",
-                    reason=env_error,
+                    reason=env_error or "could not provision an environment for this experiment",
                     code_path=str(experiment_dir),
                     assumptions_made=assumptions_made,
                 )
@@ -568,7 +639,9 @@ class CoderAgent:
             if complexity == "high"
             else sandbox.TIMEOUT_SECONDS_BY_COMPLEXITY[complexity]
         )
-        succeeded, message = sandbox.run_experiment(python_executable, experiment_dir / "run.py", experiment_dir, timeout_seconds)
+        succeeded, message = sandbox.run_experiment(
+            python_executable, experiment_dir / "run.py", experiment_dir, timeout_seconds
+        )
         if not succeeded:
             return {"error_source": "run_experiment", "error_text": f"Execution failed: {message}"}
 
@@ -612,7 +685,9 @@ class CoderAgent:
         )
 
         sbatch_path = experiment_dir / "run.sbatch"
-        sbatch_path.write_text(sandbox.render_sbatch_template(hypothesis_id, requirements_path.exists()))
+        sbatch_path.write_text(
+            sandbox.render_sbatch_template(hypothesis_id, requirements_path.exists())
+        )
 
         def leave_for_review(detail: str) -> dict:
             return {
@@ -634,7 +709,10 @@ class CoderAgent:
         if concerns:
             # No execution is possible here, so a flagged concern is the only
             # error signal available — feed it back through the same fix loop.
-            return {"error_source": "self_review", "error_text": "Pre-submission review raised: " + "; ".join(concerns)}
+            return {
+                "error_source": "self_review",
+                "error_text": "Pre-submission review raised: " + "; ".join(concerns),
+            }
 
         if self._slurm_jobs_submitted >= settings.coder_max_slurm_jobs_per_run:
             return leave_for_review(
@@ -651,7 +729,9 @@ class CoderAgent:
 
         job_id, submit_error = slurm_submit.submit_job(sbatch_path, experiment_dir)
         if submit_error:
-            return leave_for_review(f"auto-submission failed ({submit_error}) — submit it yourself once resolved.")
+            return leave_for_review(
+                f"auto-submission failed ({submit_error}) — submit it yourself once resolved."
+            )
 
         self._slurm_jobs_submitted += 1
         logger.info("Submitted %s to SLURM as job %s", hypothesis_id, job_id)
@@ -693,10 +773,10 @@ class CoderAgent:
         hypothesis_id: str,
         status: str,
         reason: str,
-        code_path: Optional[str],
-        assumptions_made: Optional[List[str]] = None,
-        results: Optional[dict] = None,
-        slurm_job_id: Optional[str] = None,
+        code_path: str | None,
+        assumptions_made: list[str] | None = None,
+        results: dict | None = None,
+        slurm_job_id: str | None = None,
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -719,13 +799,18 @@ class CoderAgent:
             raise CoderAgentError(str(exc)) from exc
 
     @staticmethod
-    def _shared_infra_block(shared_files: Dict[str, str]) -> str:
+    def _shared_infra_block(shared_files: dict[str, str]) -> str:
         if not shared_files:
             return "No shared infrastructure applies to this experiment — implement it standalone."
-        blocks = "\n\n".join(f"--- experiments/_shared/{name} ---\n{content}" for name, content in shared_files.items())
+        blocks = "\n\n".join(
+            f"--- experiments/_shared/{name} ---\n{content}"
+            for name, content in shared_files.items()
+        )
         return f"Shared infrastructure already generated for this pipeline:\n\n{blocks}\n\n{prompts.SHARED_IMPORT_NOTE}"
 
-    def _generate_experiment_files(self, plan: dict, shared_files: Dict[str, str], network_available: bool) -> dict:
+    def _generate_experiment_files(
+        self, plan: dict, shared_files: dict[str, str], network_available: bool
+    ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=json.dumps(plan, indent=2),
             shared_infra_block=self._shared_infra_block(shared_files),
@@ -743,7 +828,7 @@ class CoderAgent:
     def _regenerate_with_fix(
         self,
         plan: dict,
-        shared_files: Dict[str, str],
+        shared_files: dict[str, str],
         previous_generation: dict,
         network_available: bool,
         error_source: str,
@@ -753,7 +838,9 @@ class CoderAgent:
             hypothesis_id=plan["hypothesis_id"],
             plan_block=json.dumps(plan, indent=2),
             shared_infra_block=self._shared_infra_block(shared_files),
-            previous_sections_block=json.dumps(previous_generation.get("run_py_sections", {}), indent=2),
+            previous_sections_block=json.dumps(
+                previous_generation.get("run_py_sections", {}), indent=2
+            ),
             error_source=error_source,
             error_text=error_text,
             network_status="available" if network_available else "NOT available",
@@ -765,7 +852,7 @@ class CoderAgent:
         )
         return self._call_json(prompt)
 
-    def _self_review(self, plan: dict, run_py: str) -> List[str]:
+    def _self_review(self, plan: dict, run_py: str) -> list[str]:
         """Reads the code back critically before it goes to a shared cluster.
         This is the one place model judgment is used, and only because the
         code cannot be executed here first — everywhere else a real check
@@ -783,7 +870,7 @@ class CoderAgent:
     # -- File / summary persistence -------------------------------------------
 
     @staticmethod
-    def _write_files(directory: Path, files: Dict[str, str]) -> None:
+    def _write_files(directory: Path, files: dict[str, str]) -> None:
         directory.mkdir(parents=True, exist_ok=True)
         for name, content in files.items():
             (directory / name).write_text(content)
@@ -796,7 +883,7 @@ class CoderAgent:
         return path
 
 
-def run_coder_agent(planner_output: dict, output_dir: Optional[str | Path] = None) -> dict:
+def run_coder_agent(planner_output: dict, output_dir: str | Path | None = None) -> dict:
     """Module-level entry point — the stable call the pipeline (or a manual
     trigger) should use. Builds a default-configured CoderAgent and runs it
     once; use the CoderAgent class directly to reuse one model/config across
