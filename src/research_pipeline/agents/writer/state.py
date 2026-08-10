@@ -80,6 +80,11 @@ class WriterState(TypedDict, total=False):
     title: str
     references: List[str]
     citations_used: List[str]
+    # Notes from stripping literal (non-marker) citation-shaped text whose
+    # author/year didn't match any known paper — see
+    # citations.strip_unverified_literal_citations. Merged into
+    # notes_for_review by validate_paper_honesty.
+    literal_citation_notes: List[str]
 
     # validate_paper_honesty (deterministic — dropped citation markers surface
     # here as review notes) / render_pdf

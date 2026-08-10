@@ -21,13 +21,11 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
-from research_pipeline.agents.writer.citations import IndexedPaper, build_surname_year_lookup
-
-_PARENTHETICAL_CITE_RE = re.compile(
-    r"\(([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?),\s*(\d{4})[a-z]?\)"
-)
-_NARRATIVE_CITE_RE = re.compile(
-    r"\b([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?)\s+\((\d{4})[a-z]?\)"
+from research_pipeline.agents.writer.citations import (
+    _NARRATIVE_CITE_RE,
+    _PARENTHETICAL_CITE_RE,
+    IndexedPaper,
+    build_surname_year_lookup,
 )
 
 _NOT_COMPLETED_PHRASES = (

@@ -109,7 +109,12 @@ from research_pipeline.agents.hypothesis.papers import chunk_papers, normalize_p
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError as HypothesisSchemaValidationError
 from research_pipeline.agents.hypothesis.schema import validate_output as validate_hypothesis_output
 from research_pipeline.agents.writer import pdf_reader, prompts
-from research_pipeline.agents.writer.citations import CitationRegistry, IndexedPaper, build_paper_index
+from research_pipeline.agents.writer.citations import (
+    CitationRegistry,
+    IndexedPaper,
+    build_paper_index,
+    strip_unverified_literal_citations,
+)
 from research_pipeline.agents.writer.pdf_builder import build_pdf
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.writer.state import WriterState
@@ -465,14 +470,33 @@ class WriterAgent:
         raw_abstract = state["raw_abstract"]
         raw_title = state["raw_title"]
         registry = build_scanned_registry(state["paper_index"], raw_sections, raw_abstract, raw_title)
+        paper_index = state["paper_index"]
+
+        literal_citation_notes: List[str] = []
+        resolved_sections: List[Tuple[str, str]] = []
+        for heading, body in raw_sections:
+            resolved_body = registry.resolve(body, section=heading)
+            cleaned_body, notes = strip_unverified_literal_citations(resolved_body, paper_index, section=heading)
+            resolved_sections.append((heading, cleaned_body))
+            literal_citation_notes.extend(notes)
+
+        abstract, abstract_notes = strip_unverified_literal_citations(
+            registry.resolve(raw_abstract, section="Abstract"), paper_index, section="Abstract"
+        )
+        literal_citation_notes.extend(abstract_notes)
+        title, title_notes = strip_unverified_literal_citations(
+            registry.resolve(raw_title, section="Title"), paper_index, section="Title"
+        )
+        literal_citation_notes.extend(title_notes)
 
         return {
             "raw_sections": raw_sections,
-            "resolved_sections": [(heading, registry.resolve(body, section=heading)) for heading, body in raw_sections],
-            "abstract": registry.resolve(raw_abstract, section="Abstract"),
-            "title": registry.resolve(raw_title, section="Title"),
+            "resolved_sections": resolved_sections,
+            "abstract": abstract,
+            "title": title,
             "references": registry.references(),
             "citations_used": registry.citation_order(),
+            "literal_citation_notes": literal_citation_notes,
         }
 
     def _node_validate_paper_honesty(self, state: WriterState) -> dict:
@@ -484,11 +508,10 @@ class WriterAgent:
         registry = build_scanned_registry(
             state["paper_index"], state["raw_sections"], state["raw_abstract"], state["raw_title"]
         )
-        return {
-            "notes_for_review": self._validate_paper(
-                state["resolved_sections"], state["verdicts"], state["experiment_by_id"], registry
-            )
-        }
+        notes = state.get("literal_citation_notes", []) + self._validate_paper(
+            state["resolved_sections"], state["verdicts"], state["experiment_by_id"], registry
+        )
+        return {"notes_for_review": notes}
 
     def _node_render_pdf(self, state: WriterState) -> dict:
         paper_path = self._render_pdf(
@@ -539,6 +562,18 @@ class WriterAgent:
         return strip_fences(response.content).strip()
 
     @staticmethod
+    def _revision_feedback_lines(revision: Optional[dict], heading: str) -> List[str]:
+        """The feedback-only portion of _revision_note (no previous-text) — for
+        callers like _draft_related_work's per-batch prompts, where
+        previous_sections[heading] is the previously *synthesized full section*
+        text, not that one batch's own prior output, so showing it there would
+        be misleading rather than just unhelpful."""
+        if not revision:
+            return []
+        feedback_by_section = revision.get("feedback_by_section") or {}
+        return list(feedback_by_section.get(heading, [])) + list(feedback_by_section.get("__general__", []))
+
+    @staticmethod
     def _revision_note(revision: Optional[dict], heading: str, hid: Optional[str] = None) -> str:
         """Builds the text appended to a section's drafting prompt when
         `revision` is given (see run()'s docstring for its shape): the
@@ -554,8 +589,7 @@ class WriterAgent:
         else:
             previous_text = (revision.get("previous_sections") or {}).get(heading)
 
-        feedback_by_section = revision.get("feedback_by_section") or {}
-        combined_feedback = list(feedback_by_section.get(heading, [])) + list(feedback_by_section.get("__general__", []))
+        combined_feedback = WriterAgent._revision_feedback_lines(revision, heading)
 
         parts = []
         if previous_text:
@@ -596,12 +630,33 @@ class WriterAgent:
         gaps_block = json.dumps(hypothesis_output.get("gaps", []), indent=2)
         batches = chunk_papers(normalized, settings.writer_related_work_batch_max_chars)
 
+        # Each batch call only sees its own cluster of papers, so it can't be
+        # given _revision_note's full-section "you previously wrote this" —
+        # but it should still see feedback, since without this every batch
+        # regenerated byte-identical text (same inputs, same temperature=0.2)
+        # every revision iteration, including any fabricated citation text a
+        # batch had invented. Broadcasting the same feedback to every batch
+        # (rather than targeting the one that produced it) is the best we can
+        # do: a citation_issues location is just "Related Work", not a batch
+        # index, and the loop keeps no cross-iteration memory to narrow it
+        # further.
+        batch_feedback_lines = self._revision_feedback_lines(revision, "Related Work")
+        batch_feedback_block = ""
+        if batch_feedback_lines:
+            feedback_lines = "\n".join(f"- {item}" for item in batch_feedback_lines)
+            batch_feedback_block = (
+                "\n\nReviewer feedback on the previous Related Work draft (this may or may not "
+                "concern the specific papers in this batch — only act on what's relevant to them; "
+                "in particular, if the feedback flags a fabricated or unverifiable citation, make "
+                "sure no such citation appears in your answer either):\n" + feedback_lines
+            )
+
         def _draft_batch(batch: list) -> str:
             papers_block = "\n\n".join(paper_to_text(p) for p in batch)
             prompt = prompts.RELATED_WORK_BATCH_PROMPT.format(
                 papers_block=papers_block, methods_overview_block=methods_overview_block, gaps_block=gaps_block
             )
-            return self._call_text(prompt)
+            return self._call_text(prompt + batch_feedback_block)
 
         if len(batches) == 1:
             # single batch: this call IS the final Related Work text, so the revision note applies here

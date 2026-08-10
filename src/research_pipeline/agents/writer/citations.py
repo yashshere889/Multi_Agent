@@ -46,6 +46,17 @@ from research_pipeline.agents.hypothesis.papers import normalize_paper
 MARKER_RE = re.compile(r"\[\[(cite|citet):([^\]]+)\]\]")
 _ADJACENT_PARENS_RE = re.compile(r"\)\s*\(")
 
+# Citation-*shaped* literal text (not a [[cite:ID]]/[[citet:ID]] marker) — the
+# same patterns the Reviewer Agent uses to catch a citation the Writer typed
+# directly into prose despite SYSTEM_PROMPT's rule against it (see
+# strip_unverified_literal_citations below, and agents.reviewer.checks).
+_PARENTHETICAL_CITE_RE = re.compile(
+    r"\(([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?),\s*(\d{4})[a-z]?\)"
+)
+_NARRATIVE_CITE_RE = re.compile(
+    r"\b([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?)\s+\((\d{4})[a-z]?\)"
+)
+
 
 class IndexedPaper(TypedDict):
     id: str
@@ -108,6 +119,66 @@ def build_surname_year_lookup(paper_index: Dict[str, IndexedPaper]) -> Dict[Tupl
         key = (first_author_surname(paper["authors"]).lower(), year_text(paper["year"]))
         lookup.setdefault(key, []).append(paper_id)
     return lookup
+
+
+def strip_unverified_literal_citations(
+    text: str, paper_index: Dict[str, IndexedPaper], section: str
+) -> Tuple[str, List[str]]:
+    """Strips citation-shaped literal prose (not a [[cite:ID]]/[[citet:ID]]
+    marker) whose (surname, year) doesn't match any paper in paper_index — the
+    backstop for a model that ignored SYSTEM_PROMPT's citation rule and typed
+    "(Mamidi, 2022)" directly into prose instead of writing a marker.
+
+    Must run on already marker-resolved text (i.e. after
+    CitationRegistry.resolve()), never before: resolve() legitimately produces
+    real "(Smith et al., 2020)" / "Smith et al. (2020)" text from valid
+    markers, and every such citation's (surname, year) is by construction
+    present in paper_index — so running this after resolve() can never strip a
+    real citation, only text whose surname/year genuinely isn't in the index.
+
+    Parenthetical "(Surname, YYYY)": the whole match is dropped — a
+    parenthetical aside is always grammatically droppable, mirroring
+    CitationRegistry.resolve()'s own handling of an unresolved marker (returns
+    "" for it). Narrative "Surname (YYYY)": only "(YYYY)" is dropped, keeping
+    the name — dropping the whole match would leave a dangling, subject-less
+    sentence (e.g. "Kruff and Tran (2023) show promise" must become "Kruff and
+    Tran show promise", not "show promise").
+
+    Returns (new_text, notes) — notes are phrased like the unresolved-marker
+    notes WriterAgent._validate_paper already produces, for merging into
+    notes_for_review."""
+    lookup = build_surname_year_lookup(paper_index)
+    notes: List[str] = []
+
+    def _is_known(surname_group: str, year: str) -> bool:
+        surname = re.split(r"\s+(?:and|et al\.)", surname_group)[0].strip()
+        return (surname.lower(), year) in lookup
+
+    def _sub_parenthetical(match: "re.Match[str]") -> str:
+        surname_group, year = match.group(1), match.group(2)
+        if _is_known(surname_group, year):
+            return match.group(0)
+        notes.append(
+            f'Removed fabricated-looking citation text "({surname_group}, {year})" in the '
+            f"{section} section (author/year not present in the Literature Agent's output) — "
+            "stripped rather than printed."
+        )
+        return ""
+
+    def _sub_narrative(match: "re.Match[str]") -> str:
+        surname_group, year = match.group(1), match.group(2)
+        if _is_known(surname_group, year):
+            return match.group(0)
+        notes.append(
+            f'Removed fabricated-looking citation text "{surname_group} ({year})" in the '
+            f"{section} section (author/year not present in the Literature Agent's output) — "
+            "stripped the year, kept the surrounding text."
+        )
+        return surname_group
+
+    text = _PARENTHETICAL_CITE_RE.sub(_sub_parenthetical, text)
+    text = _NARRATIVE_CITE_RE.sub(_sub_narrative, text)
+    return text, notes
 
 
 def _author_list_text(authors: List[str]) -> str:

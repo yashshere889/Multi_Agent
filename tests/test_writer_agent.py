@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index
+from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index, strip_unverified_literal_citations
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.writer.writer_agent import WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers
 
@@ -135,6 +135,43 @@ def test_citation_registry_formats_references_alphabetically_not_by_citation_ord
     references = registry.references()
     assert references[0].startswith("A. Smith and B. Jones (2020). Alpha Paper.")
     assert references[1].startswith("Z. Zephyr (2019). Zeta Paper.")
+
+
+def test_strip_unverified_literal_citations_drops_unknown_parenthetical():
+    index = build_paper_index([_raw_paper(arxiv_id="1")])  # A. Smith, 2020
+    text, notes = strip_unverified_literal_citations(
+        "This finding (Mamidi, 2022) suggests otherwise.", index, section="Discussion"
+    )
+    assert "(Mamidi, 2022)" not in text
+    assert "Mamidi" not in text
+    assert any("Mamidi" in n and "Discussion" in n for n in notes)
+
+
+def test_strip_unverified_literal_citations_keeps_known_parenthetical():
+    index = build_paper_index([_raw_paper(arxiv_id="1")])  # A. Smith, 2020
+    text, notes = strip_unverified_literal_citations(
+        "This finding (Smith, 2020) is consistent.", index, section="Discussion"
+    )
+    assert "(Smith, 2020)" in text
+    assert notes == []
+
+
+def test_strip_unverified_literal_citations_narrative_keeps_name_drops_year():
+    index = build_paper_index([_raw_paper(arxiv_id="1")])  # A. Smith, 2020
+    text, notes = strip_unverified_literal_citations(
+        "Kruff and Tran (2023) show promise.", index, section="Related Work"
+    )
+    assert text == "Kruff and Tran show promise."
+    assert any("Kruff and Tran" in n and "2023" in n for n in notes)
+
+
+def test_strip_unverified_literal_citations_keeps_known_narrative():
+    index = build_paper_index([_raw_paper(arxiv_id="1")])  # A. Smith, 2020
+    text, notes = strip_unverified_literal_citations(
+        "Smith (2020) shows promise.", index, section="Related Work"
+    )
+    assert text == "Smith (2020) shows promise."
+    assert notes == []
 
 
 # -- writer_agent.py: pure helper functions ----------------------------------------------
@@ -368,6 +405,27 @@ def test_run_flags_fabricated_citation_and_strips_it(tmp_path):
     assert "999" not in pdf_path.read_bytes().decode("latin-1")
 
 
+def test_run_strips_literal_fabricated_citation_text_and_flags_it(tmp_path):
+    # "Mamidi" doesn't collide with _literature_output()'s "A. Smith, 2020" paper,
+    # so it can only have reached the PDF as literal (non-marker) text the model
+    # typed directly, in violation of SYSTEM_PROMPT's citation rule.
+    fake_model = FakeChatModel(
+        {"Write the Introduction": "A grounded claim [[cite:1]] and a fabricated one (Mamidi, 2022)."},
+    )
+    agent = WriterAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(
+        _literature_output(),
+        _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]),
+        _coder_output([_experiment("H1", "completed", True), _experiment("H2", "completed", True), _experiment("H3", "completed", True)]),
+    )
+
+    assert any("Mamidi" in note for note in result["notes_for_review"])
+    pdf_path = next(tmp_path.glob("paper_*.pdf"))
+    assert "Mamidi" not in pdf_path.read_bytes().decode("latin-1")
+
+
 def test_run_flags_skipped_experiment_not_disclaimed_in_results(tmp_path):
     # the fake model's default response never mentions "not run"/"skipped" etc.,
     # so the validation pass should catch H3 (skipped) not being disclaimed
@@ -462,3 +520,37 @@ def test_revise_includes_previous_text_and_feedback_in_revision_prompt(tmp_path)
     # a section with no specific feedback still gets its previous text for continuity
     limitations_calls = [c for c in fake_model.calls if "Write the Limitations" in c[-1][1]]
     assert "You previously wrote this as:" in limitations_calls[0][-1][1]
+
+
+def test_draft_related_work_multi_batch_passes_feedback_to_each_batch(monkeypatch, tmp_path):
+    # Force chunk_papers() to split these two papers into two separate
+    # batches (settings is a frozen dataclass, so patch the function directly
+    # rather than the char-budget setting it reads), exercising _draft_batch's
+    # revision path.
+    import research_pipeline.agents.writer.writer_agent as writer_agent_module
+
+    monkeypatch.setattr(writer_agent_module, "chunk_papers", lambda normalized, max_chars: [normalized[:1], normalized[1:]])
+    fake_model = FakeChatModel({}, default="Some related work prose.")
+    agent = WriterAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    raw_papers = [
+        _raw_paper(arxiv_id="1"),
+        _raw_paper(title="Second Paper", authors=["C. Jones"], year=2021, arxiv_id="2"),
+    ]
+    hypothesis_output = _hypothesis_output()
+    revision = {
+        "previous_sections": {"Related Work": "previous full synthesized text"},
+        "previous_subsections": {},
+        "feedback_by_section": {
+            "Related Work": ['Citation issue: citation-like text "(Mamidi, 2022)" ... possibly fabricated'],
+        },
+    }
+
+    agent._draft_related_work(raw_papers, hypothesis_output, hypothesis_output["hypotheses"], revision)
+
+    batch_calls = [c for c in fake_model.calls if "Write a draft of part of the Related Work section" in c[-1][1]]
+    assert len(batch_calls) == 2
+    for call in batch_calls:
+        prompt_text = call[-1][1]
+        assert "Mamidi" in prompt_text  # feedback reached every batch
+        assert "previous full synthesized text" not in prompt_text  # but not the mismatched previous-text
