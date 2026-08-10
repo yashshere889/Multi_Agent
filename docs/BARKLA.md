@@ -28,6 +28,17 @@ cd multi-agent-langraph
 cp .env.example .env
 ```
 
+`uv` isn't a Barkla-provided module (Barkla's own Python tooling is the system
+interpreter, `miniforge3` modules, or `pixi` — none of which this project uses),
+so install it once per account before `uv sync` will work:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc   # or open a new shell — picks up ~/.local/bin on PATH
+```
+`uv` manages its own Python versions independently of Barkla's system Python
+(3.9.21, older than this project's `>=3.10` requirement), so nothing further is
+needed there.
+
 Fill in `.env` — at minimum `SEMANTIC_SCHOLAR_API_KEY`. Leave
 `LLM_BACKEND`/`LLM_BASE_URL`/`LLM_MODEL` alone; every sbatch script below
 overrides those with real environment variables at job time.
