@@ -157,37 +157,71 @@ def ensure_experiment_env(
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
     None. Uses the current interpreter directly when nothing extra is needed;
-    creates an isolated `uv venv` under the experiment directory only if
-    packages are missing, so the shared pipeline environment is never
-    modified by generated code."""
+    creates an isolated venv under the experiment directory only if packages
+    are missing, so the shared pipeline environment is never modified by
+    generated code. Prefers `uv` (faster) when it's on PATH, and falls back
+    to the stdlib `venv` + `pip` otherwise, so provisioning works regardless
+    of which environment launched the pipeline (e.g. an Apptainer container
+    that was only ever set up with plain pip)."""
     requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
     missing = missing_packages(requirements)
     if not missing:
         return Path(sys.executable), None
 
-    if shutil.which("uv") is None:
-        return None, f"missing package(s) {missing} and 'uv' is not on PATH to install them"
     if not network_available:
         return None, f"missing package(s) {missing} and no network access to install them"
 
     venv_dir = experiment_dir / ".venv"
     venv_python = venv_dir / "bin" / "python"
+    use_uv = shutil.which("uv") is not None
+    tool = "uv" if use_uv else "pip"
     try:
-        subprocess.run(
-            ["uv", "venv", str(venv_dir)], check=True, capture_output=True, text=True, timeout=120
-        )
-        subprocess.run(
-            ["uv", "pip", "install", "--python", str(venv_python), "-r", str(requirements_path)],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
+        if use_uv:
+            subprocess.run(
+                ["uv", "venv", str(venv_dir)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            subprocess.run(
+                [
+                    "uv",
+                    "pip",
+                    "install",
+                    "--python",
+                    str(venv_python),
+                    "-r",
+                    str(requirements_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+        else:
+            subprocess.run(
+                [sys.executable, "-m", "venv", str(venv_dir)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            subprocess.run(
+                [str(venv_python), "-m", "pip", "install", "-r", str(requirements_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or str(exc))[-500:]
-        return None, f"failed to provision an isolated environment for {missing}: {detail}"
+        return (
+            None,
+            f"failed to provision an isolated environment for {missing} via {tool}: {detail}",
+        )
     except subprocess.TimeoutExpired:
-        return None, f"provisioning an isolated environment for {missing} timed out"
+        return None, f"provisioning an isolated environment for {missing} via {tool} timed out"
 
     return venv_python, None
 

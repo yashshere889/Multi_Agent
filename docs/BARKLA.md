@@ -34,11 +34,13 @@ overrides those with real environment variables at job time.
 
 ## 2. Pick a backend
 
-Two ready-made job scripts, chosen by model size:
+Three ready-made job scripts, chosen by model size (and, for the 12B model,
+whether you'd rather build your own `.venv` or use a module-provided container):
 
 | | Model | GPU need | Extra setup |
 |---|---|---|---|
 | [`run_pipeline_hf.sbatch`](../scripts/slurm/run_pipeline_hf.sbatch) | Nemotron Nano **12B** v2, in-process transformers | fits `gpu-l40s` (48GB) and up | none — no container, no server |
+| [`run_pipeline_hf_container.sbatch`](../scripts/slurm/run_pipeline_hf_container.sbatch) | Nemotron Nano **12B** v2, via Barkla's `nemotron` Apptainer module | fits `gpu-l40s` (48GB) and up | module-provided container, no build — use if `mamba_ssm` won't build in your own `.venv` |
 | [`run_pipeline.sbatch`](../scripts/slurm/run_pipeline.sbatch) | Nemotron 3 Nano **30B A3B**, served by vLLM | needs an 80GB card (`gpu-h100`) | one-time Apptainer build |
 
 Start with the 12B/HF path for a quick single run — it's strictly less
@@ -54,6 +56,20 @@ export HF_HOME=/mnt/fastscratch/users/$USER/hf_cache
 uv sync --extra huggingface
 uv run hf download nvidia/NVIDIA-Nemotron-Nano-12B-v2
 ```
+
+### One-time setup — HF via nemotron container (12B, no build)
+
+On the login node (no build/GPU needed, just pip):
+```bash
+module load nemotron/nano-12b-v2
+apptainer exec "$NEMOTRON_SIF" python3 -m pip install --user \
+    -e "/mnt/fastscratch/users/$USER/multi-agent-langraph[huggingface]"
+```
+This uses Barkla's own container (mamba_ssm/torch/transformers already built
+in) instead of your own `.venv` — pick this path if `mamba_ssm` won't build
+for you directly. No separate "download the model" step: the wrapper
+downloads weights on first use into a fastscratch cache and every later run
+reuses them.
 
 ### One-time setup — vLLM (30B) path
 
@@ -72,6 +88,8 @@ apptainer exec /mnt/fastscratch/users/$USER/containers/vllm.sif \
 ```bash
 cd /mnt/fastscratch/users/$USER/multi-agent-langraph
 sbatch scripts/slurm/run_pipeline_hf.sbatch "your research question"
+# or, for the nemotron-container/12B path:
+sbatch scripts/slurm/run_pipeline_hf_container.sbatch "your research question"
 # or, for the vLLM/30B path:
 sbatch scripts/slurm/run_pipeline.sbatch "your research question"
 ```

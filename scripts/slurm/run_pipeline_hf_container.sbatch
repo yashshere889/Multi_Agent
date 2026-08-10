@@ -19,6 +19,10 @@
 #   apptainer exec "$NEMOTRON_SIF" python3 -m pip install --user \
 #       -e "/mnt/fastscratch/users/$USER/multi-agent-langraph[huggingface]"
 #
+# The Coder Agent's per-experiment package installs (sandbox.ensure_experiment_env)
+# work here with no extra setup: it falls back to `python -m venv` + `pip` when
+# `uv` isn't on this container's PATH, which it isn't (this module ships plain pip).
+#
 #   cd /mnt/fastscratch/users/$USER/multi-agent-langraph
 #   sbatch scripts/slurm/run_pipeline_hf_container.sbatch "your research question"
 

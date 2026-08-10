@@ -129,6 +129,75 @@ def test_ensure_experiment_env_reports_missing_package_without_network(tmp_path)
     assert "network" in error
 
 
+def test_ensure_experiment_env_prefers_uv_when_available(tmp_path, monkeypatch):
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("definitely_not_a_real_package_xyz\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    recorded_cmds = []
+
+    def fake_run(cmd, **kwargs):
+        recorded_cmds.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert error is None
+    assert python_exec == tmp_path / ".venv" / "bin" / "python"
+    assert all(cmd[0] == "uv" for cmd in recorded_cmds)
+
+
+def test_ensure_experiment_env_falls_back_to_pip_when_uv_missing(tmp_path, monkeypatch):
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("definitely_not_a_real_package_xyz\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: None)
+    recorded_cmds = []
+
+    def fake_run(cmd, **kwargs):
+        recorded_cmds.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert error is None
+    venv_python = tmp_path / ".venv" / "bin" / "python"
+    assert python_exec == venv_python
+    assert recorded_cmds == [
+        [sys.executable, "-m", "venv", str(tmp_path / ".venv")],
+        [str(venv_python), "-m", "pip", "install", "-r", str(requirements)],
+    ]
+    assert not any("uv" in cmd for cmd in recorded_cmds)
+
+
+def test_ensure_experiment_env_pip_failure_is_terminal_with_network(tmp_path, monkeypatch):
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("definitely_not_a_real_package_xyz\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: None)
+
+    def fake_run(cmd, **kwargs):
+        if "pip" in cmd:
+            raise sandbox.subprocess.CalledProcessError(
+                1,
+                cmd,
+                stderr="No matching distribution found for definitely_not_a_real_package_xyz",
+            )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert python_exec is None
+    assert "pip" in error
+    assert "definitely_not_a_real_package_xyz" in error
+
+
 def test_run_experiment_success(tmp_path):
     script = tmp_path / "run.py"
     script.write_text("print('ok')\n")
