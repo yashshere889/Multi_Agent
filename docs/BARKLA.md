@@ -90,9 +90,13 @@ ssh <user>@barklaviz1.liv.ac.uk
 cd /mnt/fastscratch/users/$USER/multi-agent-langraph
 bash scripts/slurm/build_vllm_sif.sh
 export HF_HOME=/mnt/fastscratch/users/$USER/hf_cache
-apptainer exec /mnt/fastscratch/users/$USER/containers/vllm.sif \
+apptainer exec --bind /mnt/fastscratch \
+    /mnt/fastscratch/users/$USER/containers/vllm.sif \
     hf download nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
 ```
+Apptainer only auto-binds `$HOME` — without `--bind /mnt/fastscratch` the
+container can't write to `$HF_HOME`, and `hf download` fails with `[Errno 30]
+Read-only file system`.
 
 ## 3. Run one question
 

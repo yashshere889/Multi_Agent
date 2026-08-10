@@ -34,4 +34,4 @@ echo
 echo "Built: $SIF_DIR/vllm.sif"
 echo "Now pre-download the model (also on this node, not the login node):"
 echo "  export HF_HOME=/mnt/fastscratch/users/\$USER/hf_cache"
-echo "  apptainer exec $SIF_DIR/vllm.sif hf download <model-id>"
+echo "  apptainer exec --bind /mnt/fastscratch $SIF_DIR/vllm.sif hf download <model-id>"
