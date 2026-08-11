@@ -25,10 +25,14 @@ mkdir -p "$SIF_DIR"
 # Pin a release rather than :latest so a rebuild months from now doesn't
 # silently change vLLM under the pipeline. Bump this deliberately.
 #
-# Nemotron 3 Nano is a hybrid Mamba-2 model; support for it is recent, so if
-# the server errors on an unknown architecture, move to a newer tag here
-# before assuming the model or the flags are wrong.
-apptainer build "$SIF_DIR/vllm.sif" docker://vllm/vllm-openai:v0.11.0
+# v0.11.0 predates NemotronHConfig's rms_norm_eps field and fails to load
+# NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 with
+# "AttributeError: 'NemotronHConfig' object has no attribute 'rms_norm_eps'".
+# v0.12.0 is the version the upstream vLLM recipe for this model pins
+# (https://github.com/vllm-project/recipes/blob/main/NVIDIA/Nemotron-3-Nano-30B-A3B.md).
+# If a future model bump errors on an unknown architecture again, check that
+# recipe before assuming the model or the flags are wrong.
+apptainer build "$SIF_DIR/vllm.sif" docker://vllm/vllm-openai:v0.12.0
 
 echo
 echo "Built: $SIF_DIR/vllm.sif"
