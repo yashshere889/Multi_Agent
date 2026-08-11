@@ -21,6 +21,7 @@ from typing import Optional
 from research_pipeline.orchestrator.graph import should_continue_revising
 
 LITERATURE = "literature"
+INTERDISCIPLINARY = "interdisciplinary_literature"
 HYPOTHESIS = "hypothesis"
 EXPERIMENT_PLANNER = "experiment_planner"
 CODER = "coder"
@@ -31,11 +32,12 @@ FINALIZE = "finalize"
 # The node order in orchestrator/graph.py. Kept here rather than introspected
 # off the compiled graph because the conditional edge means the writer/reviewer
 # pair repeats, which a topological walk can't express.
-UPSTREAM_STAGES = (LITERATURE, HYPOTHESIS, EXPERIMENT_PLANNER, CODER)
+UPSTREAM_STAGES = (LITERATURE, INTERDISCIPLINARY, HYPOTHESIS, EXPERIMENT_PLANNER, CODER)
 STAGE_ORDER = UPSTREAM_STAGES + (DRAFT_OR_REVISE, REVIEW, FINALIZE)
 
 LABELS = {
     LITERATURE: "Literature",
+    INTERDISCIPLINARY: "Interdisciplinary Literature",
     HYPOTHESIS: "Hypothesis",
     EXPERIMENT_PLANNER: "Experiment Planner",
     CODER: "Coder",
@@ -71,12 +73,29 @@ def summarize(stage: str, delta: dict) -> dict:
             "titles": [p.get("title") for p in papers[:5]],
         }
 
+    if stage == INTERDISCIPLINARY:
+        output = delta.get("interdisciplinary_output") or {}
+        return {
+            "fields": [
+                {"field": f.get("field"), "rationale": f.get("rationale")} for f in output.get("fields_explored") or []
+            ],
+            "cross_field_papers": len(output.get("cross_field_papers") or []),
+            "papers_total": len(output.get("papers") or []),
+            "insights": [
+                {"insight": i.get("insight"), "source_field": i.get("source_field")}
+                for i in output.get("bridge_insights") or []
+            ],
+        }
+
     if stage == HYPOTHESIS:
         output = delta.get("hypothesis_output") or {}
+        ranks = {r.get("hypothesis_id"): r.get("rank") for r in output.get("ranking") or []}
         return {
             "hypotheses": [
-                {"id": h.get("id"), "statement": h.get("statement")} for h in output.get("hypotheses") or []
+                {"id": h.get("id"), "statement": h.get("statement"), "rank": ranks.get(h.get("id"))}
+                for h in output.get("hypotheses") or []
             ],
+            "selected": output.get("selected_hypothesis_id"),
             "gaps": len(output.get("gaps") or []),
             "papers_used": len(output.get("source_paper_ids") or []),
         }

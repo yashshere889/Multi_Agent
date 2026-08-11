@@ -51,9 +51,25 @@
           {% if s.queries %}<p class="muted">Queries: {{ s.queries | join(' · ') }}</p>{% endif %}
           {% if s.titles %}<ul>{% for t in s.titles %}<li class="muted">{{ t }}</li>{% endfor %}</ul>{% endif %}
 
+        {% elif row.key == 'interdisciplinary_literature' %}
+          <p class="muted">{{ s.cross_field_papers }} cross-field paper(s) added; {{ s.papers_total }} in the merged pool.</p>
+          <ul>{% for f in s.fields %}<li><strong>{{ f.field }}</strong> <span class="muted">{{ f.rationale }}</span></li>{% endfor %}</ul>
+          {% if s.insights %}
+          <ul>{% for i in s.insights %}<li class="muted">({{ i.source_field }}) {{ i.insight }}</li>{% endfor %}</ul>
+          {% endif %}
+
         {% elif row.key == 'hypothesis' %}
           <p class="muted">{{ s.gaps }} gap(s) across {{ s.papers_used }} paper(s).</p>
-          <ul>{% for h in s.hypotheses %}<li><strong>{{ h.id }}</strong> {{ h.statement }}</li>{% endfor %}</ul>
+          <ul>
+            {% for h in s.hypotheses %}
+            <li>
+              <strong>{{ h.id }}</strong>
+              {% if h.rank %}<span class="chip chip-{{ 'ok' if h.id == s.selected else '' }}">rank {{ h.rank }}</span>{% endif %}
+              {{ h.statement }}
+            </li>
+            {% endfor %}
+          </ul>
+          {% if s.selected %}<p class="muted">Taking {{ s.selected }} forward to the experiment plan.</p>{% endif %}
 
         {% elif row.key == 'experiment_planner' %}
           <ul>

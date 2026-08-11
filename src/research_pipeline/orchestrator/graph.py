@@ -1,10 +1,15 @@
 """Builds the top-level pipeline orchestrator LangGraph.
 
-Ties all six agents into one graph — Literature -> Hypothesis -> Experiment
-Planner -> Coder -> Writer <-> Reviewer -> finalize — so a full run is one
-invoke() instead of the six hand-chained CLI calls in README's "Chaining
-agents". Every individual agent subcommand and writer_reviewer_loop.py still
-work standalone for partial or disk-decoupled runs.
+Ties all seven agents into one graph — Literature -> Interdisciplinary
+Literature -> Hypothesis -> Experiment Planner -> Coder -> Writer <-> Reviewer
+-> finalize — so a full run is one invoke() instead of the hand-chained CLI
+calls in README's "Chaining agents". Every individual agent subcommand and
+writer_reviewer_loop.py still work standalone for partial or disk-decoupled runs.
+
+Only the hypothesis the Hypothesis Agent ranked first is planned and executed
+(see run_planner_node); the Writer and Reviewer still receive the full
+hypothesis output, so the paper can say which hypotheses were considered and
+why one was taken forward.
 
 The Writer/Reviewer cycle is a real conditional edge here rather than a Python
 loop: review routes back to draft_or_revise until the paper passes or
@@ -34,6 +39,7 @@ from research_pipeline.orchestrator.nodes import (
     review_node,
     run_coder_node,
     run_hypothesis_node,
+    run_interdisciplinary_literature_node,
     run_literature_node,
     run_planner_node,
 )
@@ -56,6 +62,7 @@ def build_pipeline_graph():
     graph = StateGraph(PipelineState)
 
     graph.add_node("literature", run_literature_node)
+    graph.add_node("interdisciplinary_literature", run_interdisciplinary_literature_node)
     graph.add_node("hypothesis", run_hypothesis_node)
     graph.add_node("experiment_planner", run_planner_node)
     graph.add_node("coder", run_coder_node)
@@ -64,7 +71,11 @@ def build_pipeline_graph():
     graph.add_node("finalize", finalize_node)
 
     graph.set_entry_point("literature")
-    graph.add_edge("literature", "hypothesis")
+    # Unconditional, like every other upstream edge: the cross-field search is
+    # part of what this pipeline does, not an opt-in mode. An agent that finds
+    # no adjacent fields simply passes the in-domain papers through.
+    graph.add_edge("literature", "interdisciplinary_literature")
+    graph.add_edge("interdisciplinary_literature", "hypothesis")
     graph.add_edge("hypothesis", "experiment_planner")
     graph.add_edge("experiment_planner", "coder")
     graph.add_edge("coder", "draft_or_revise")

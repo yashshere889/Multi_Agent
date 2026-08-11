@@ -9,14 +9,18 @@ exists at entry.
 from __future__ import annotations
 
 import operator
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, Optional, TypedDict
 
 
 class ExperimentPlannerState(TypedDict, total=False):
-    # Input — the Hypothesis Agent's output dict, exactly as handed to run().
+    # Inputs — the Hypothesis Agent's output dict, exactly as handed to run(),
+    # plus the optional subset of hypothesis ids to actually plan. None (the
+    # default) plans every hypothesis in the input, as this agent always has.
     hypothesis_output: dict
+    hypothesis_ids: Optional[List[str]]
 
-    # validate_input
+    # validate_input — `hypotheses`/`expected_ids` are the *filtered* set the
+    # rest of the graph plans over; the full input is still validated in full.
     hypotheses: List[dict]
     expected_ids: List[str]
 

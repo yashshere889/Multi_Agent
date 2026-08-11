@@ -69,7 +69,7 @@ Methods overview (JSON):
 
 Gaps (JSON):
 {gaps_block}
-
+{interdisciplinary_block}
 Each hypothesis must:
 - Be specific and testable (not a vague research direction)
 - Reference which gap(s) and/or method(s) above it builds on
@@ -91,4 +91,54 @@ Return ONLY a JSON object with this exact shape:
     {{"id": "H3", "...": "..."}}
   ]
 }}
+"""
+
+# Rendered into HYPOTHESIS_PROMPT only when an Interdisciplinary Literature
+# Agent ran upstream. Kept as an explicitly labelled block rather than mixing
+# cross-field papers into the batch analyses, so the model is nudged to *use*
+# the cross-field material as inspiration and can be seen to have done so —
+# rather than silently averaging it into the in-domain synthesis.
+INTERDISCIPLINARY_BLOCK = """
+Cross-disciplinary bridge insights (JSON) — methods/findings from adjacent \
+fields that an Interdisciplinary Literature Agent connected to this problem:
+{bridge_insights_block}
+
+Where one of these genuinely fits, prefer a hypothesis that draws on it, and \
+say so in that hypothesis's rationale. Do not force a cross-field angle onto a \
+hypothesis it doesn't fit, and do not treat a bridge insight as evidence in its \
+own right.
+"""
+
+RANKING_PROMPT = """{research_question_line}Below are 3 hypotheses that were just \
+generated from the same literature synthesis, plus the synthesis they came from.
+
+Hypotheses (JSON):
+{hypotheses_block}
+
+Literature summary:
+{literature_summary}
+
+Gaps (JSON):
+{gaps_block}
+{interdisciplinary_block}
+Rank all 3 against each other so exactly one can be taken forward to an \
+experiment. Judge each on:
+- feasibility: can it realistically be tested on a shared university GPU cluster, \
+with data that plausibly exists?
+- testability: is the claim specific enough that a result would clearly support \
+or refute it?
+- grounding: how well the literature above (and any bridge insights) actually \
+supports it — not how interesting it sounds.
+
+Return ONLY a JSON object with this exact shape:
+{{
+  "ranking": [
+    {{"hypothesis_id": "H1", "rank": 1, "score": 8.5, "justification": "why it ranks here, against the criteria above"}},
+    {{"hypothesis_id": "H2", "rank": 2, "score": 6.0, "justification": "..."}},
+    {{"hypothesis_id": "H3", "rank": 3, "score": 4.0, "justification": "..."}}
+  ]
+}}
+
+Every hypothesis id above must appear exactly once, `rank` must use each of \
+1, 2 and 3 exactly once (1 = best), and `score` is a 0-10 number.
 """

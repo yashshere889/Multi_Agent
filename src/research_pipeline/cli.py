@@ -27,6 +27,7 @@ from research_pipeline.agents.coder import run_coder_agent
 from research_pipeline.config import settings
 from research_pipeline.agents.experiment_planner import run_experiment_planner_agent
 from research_pipeline.agents.hypothesis import run_hypothesis_agent
+from research_pipeline.agents.interdisciplinary_literature import run_interdisciplinary_literature_agent
 from research_pipeline.agents.literature.graph import build_literature_graph
 from research_pipeline.agents.reviewer import run_reviewer_agent
 from research_pipeline.agents.writer import run_writer_agent
@@ -61,24 +62,67 @@ def run_literature_agent(args: argparse.Namespace) -> None:
         print(f"- [{paper['source']}] {paper['title']} ({paper.get('year')}) -> {paper.get('local_path')}")
 
 
+def _papers_from_file(path: str) -> tuple[list, str | None]:
+    """Reads either a Literature Agent metadata.json / Interdisciplinary
+    Literature Agent output ({"papers": [...], "research_question": ...}) or a
+    bare JSON list of paper dicts — both agents' outputs put the paper list
+    under the same key, which is what makes them interchangeable here."""
+    data = json.loads(Path(path).read_text())
+    if isinstance(data, dict):
+        return data.get("papers", []), data.get("research_question")
+    return data, None
+
+
+def run_interdisciplinary_literature_agent_cli(args: argparse.Namespace) -> None:
+    papers, research_question = _papers_from_file(args.from_file)
+    result = run_interdisciplinary_literature_agent(papers, research_question=research_question, output_dir=args.output_dir)
+
+    print(f"\n{len(result['fields_explored'])} adjacent field(s) explored:")
+    for field in result["fields_explored"]:
+        print(f"- {field['field']}: {field['rationale']}")
+        print(f"    queries: {', '.join(field['queries'])}")
+
+    print(f"\n{len(result['cross_field_papers'])} cross-field paper(s) added to {len(result['core_paper_ids'])} in-domain paper(s):")
+    for paper in result["cross_field_papers"]:
+        print(f"- [{paper['discipline']}] {paper['title']} ({paper.get('year')})")
+
+    print(f"\n{len(result['bridge_insights'])} bridge insight(s):")
+    for insight in result["bridge_insights"]:
+        print(f"- ({insight['source_field']}) {insight['insight']}")
+        print(f"    connection: {insight['connection_to_core_problem']}")
+
+
 def run_hypothesis_agent_cli(args: argparse.Namespace) -> None:
     data = json.loads(Path(args.from_file).read_text())
-    # accepts either a Literature Agent metadata.json ({"papers": [...], "research_question": ...})
+    # accepts a Literature Agent metadata.json, an Interdisciplinary Literature
+    # Agent output (same "papers" key, plus bridge_insights this agent can use),
     # or a bare JSON list of paper dicts
     if isinstance(data, dict):
         papers = data.get("papers", [])
         research_question = data.get("research_question")
+        interdisciplinary_context = data.get("bridge_insights")
     else:
         papers = data
         research_question = None
+        interdisciplinary_context = None
 
-    result = run_hypothesis_agent(papers, research_question=research_question, output_dir=args.output_dir)
+    result = run_hypothesis_agent(
+        papers,
+        research_question=research_question,
+        output_dir=args.output_dir,
+        interdisciplinary_context=interdisciplinary_context,
+    )
 
     print("\nLiterature summary:")
     print(result["literature_summary"])
     print(f"\n{len(result['hypotheses'])} hypotheses generated:")
     for hypothesis in result["hypotheses"]:
         print(f"- [{hypothesis['id']}] {hypothesis['statement']}")
+
+    print("\nRanking:")
+    for entry in sorted(result["ranking"], key=lambda e: e["rank"]):
+        print(f"  {entry['rank']}. [{entry['hypothesis_id']}] score={entry['score']} — {entry['justification']}")
+    print(f"\nSelected: {result['selected_hypothesis_id']}")
 
 
 def run_experiment_planner_agent_cli(args: argparse.Namespace) -> None:
@@ -270,8 +314,20 @@ def build_parser() -> argparse.ArgumentParser:
     literature.add_argument("--download-dir", default="papers", help="directory to save downloaded PDFs + metadata")
     literature.set_defaults(func=run_literature_agent)
 
-    hypothesis = subparsers.add_parser("hypothesis", help="synthesize a paper set into gaps + testable hypotheses")
-    hypothesis.add_argument("--from-file", required=True, help="Literature Agent metadata.json, or a bare JSON list of papers")
+    interdisciplinary = subparsers.add_parser(
+        "interdisciplinary-literature", help="search adjacent fields for cross-disciplinary papers + bridge insights"
+    )
+    interdisciplinary.add_argument("--from-file", required=True, help="Literature Agent metadata.json, or a bare JSON list of papers")
+    interdisciplinary.add_argument(
+        "--output-dir", default=None, help="directory to write interdisciplinary_<timestamp>.json (default: outputs/)"
+    )
+    interdisciplinary.set_defaults(func=run_interdisciplinary_literature_agent_cli)
+
+    hypothesis = subparsers.add_parser("hypothesis", help="synthesize a paper set into gaps + ranked testable hypotheses")
+    hypothesis.add_argument(
+        "--from-file", required=True,
+        help="Literature Agent metadata.json, Interdisciplinary Literature Agent output, or a bare JSON list of papers",
+    )
     hypothesis.add_argument("--output-dir", default=None, help="directory to write hypotheses_<timestamp>.json (default: outputs/)")
     hypothesis.set_defaults(func=run_hypothesis_agent_cli)
 
@@ -318,7 +374,11 @@ def build_parser() -> argparse.ArgumentParser:
     loop.set_defaults(func=run_writer_reviewer_loop_cli)
 
     orchestrate = subparsers.add_parser(
-        "orchestrate", help="run the whole pipeline end to end: literature -> hypothesis -> experiment-planner -> coder -> writer/reviewer loop"
+        "orchestrate",
+        help=(
+            "run the whole pipeline end to end: literature -> interdisciplinary-literature -> hypothesis "
+            "-> experiment-planner -> coder -> writer/reviewer loop"
+        ),
     )
     orchestrate.add_argument("question", help="research question to search for")
     orchestrate.add_argument("--max-results", type=int, default=5, help="max results per generated query, per source")

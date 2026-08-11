@@ -15,9 +15,12 @@ from research_pipeline.agents.hypothesis.papers import NormalizedPaper
 
 
 class HypothesisState(TypedDict, total=False):
-    # Inputs
+    # Inputs. `interdisciplinary_context` is the Interdisciplinary Literature
+    # Agent's `bridge_insights` when one ran upstream, and None/[] otherwise —
+    # the agent works exactly as before without it.
     papers: List[dict]
     research_question: Optional[str]
+    interdisciplinary_context: Optional[list]
 
     # normalize_and_chunk
     normalized: List[NormalizedPaper]
@@ -39,6 +42,12 @@ class HypothesisState(TypedDict, total=False):
 
     # generate_hypotheses
     hypotheses: list
+
+    # rank_hypotheses — the model's scored ordering, plus the winner, which is
+    # derived in Python from whichever entry holds rank 1 rather than being a
+    # second thing the model gets to assert.
+    ranking: list
+    selected_hypothesis_id: str
 
     # assemble_and_validate — the schema-valid dict run() returns
     result: dict

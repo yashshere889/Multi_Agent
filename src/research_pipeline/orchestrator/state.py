@@ -22,6 +22,7 @@ class PipelineState(TypedDict, total=False):
 
     # --- stage outputs, each the exact dict shape run_<name>_agent returns ---
     literature_output: dict
+    interdisciplinary_output: dict
     hypothesis_output: dict
     planner_output: dict
     coder_output: dict

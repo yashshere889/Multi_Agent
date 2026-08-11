@@ -20,6 +20,7 @@ from langchain_core.runnables import RunnableConfig
 from research_pipeline.agents.coder import run_coder_agent
 from research_pipeline.agents.experiment_planner import run_experiment_planner_agent
 from research_pipeline.agents.hypothesis import run_hypothesis_agent
+from research_pipeline.agents.interdisciplinary_literature import run_interdisciplinary_literature_agent
 from research_pipeline.agents.literature.graph import build_literature_graph
 from research_pipeline.agents.reviewer import ReviewerAgent
 from research_pipeline.agents.writer import WriterAgent
@@ -37,6 +38,22 @@ def _quality_threshold(state: PipelineState) -> int:
 
 def _paper_output_dir(state: PipelineState) -> Path:
     return Path(state.get("output_dir") or settings.writer_reviewer_loop_output_dir)
+
+
+def _papers_for_writeup(state: PipelineState) -> dict:
+    """The paper set the Writer cites from and the Reviewer checks citations
+    against — the Interdisciplinary Literature Agent's merged pool when one ran,
+    so a hypothesis grounded in a cross-field paper can actually cite it.
+
+    Both agents already accept "a dict with a 'papers' key" (see
+    writer_agent.extract_literature_papers), which is exactly that agent's
+    output shape, so nothing about their contracts changes. Falls back to the
+    Literature Agent's own output — the shape they were always given — if the
+    interdisciplinary stage isn't in this state. Writer and Reviewer must be
+    handed the *same* set either way, or the Reviewer flags citations the
+    Writer was entitled to make.
+    """
+    return state.get("interdisciplinary_output") or state["literature_output"]
 
 
 def _injected(config: Optional[RunnableConfig], key: str):
@@ -64,18 +81,50 @@ def run_literature_node(state: PipelineState) -> dict:
     return {"literature_output": result}
 
 
-def run_hypothesis_node(state: PipelineState) -> dict:
+def run_interdisciplinary_literature_node(state: PipelineState) -> dict:
     literature_output = state["literature_output"]
-    result = run_hypothesis_agent(
+    result = run_interdisciplinary_literature_agent(
         literature_output["merged_papers"],
         research_question=literature_output.get("research_question"),
+        output_dir=state.get("output_dir"),
+    )
+    return {"interdisciplinary_output": result}
+
+
+def run_hypothesis_node(state: PipelineState) -> dict:
+    # Reads the Interdisciplinary Literature Agent's output, not the Literature
+    # Agent's: its "papers" key is the same shape, already merged with whatever
+    # cross-field papers it found.
+    interdisciplinary_output = state["interdisciplinary_output"]
+    result = run_hypothesis_agent(
+        interdisciplinary_output["papers"],
+        research_question=interdisciplinary_output.get("research_question"),
+        interdisciplinary_context=interdisciplinary_output.get("bridge_insights"),
         output_dir=state.get("output_dir"),
     )
     return {"hypothesis_output": result}
 
 
 def run_planner_node(state: PipelineState) -> dict:
-    return {"planner_output": run_experiment_planner_agent(state["hypothesis_output"], output_dir=state.get("output_dir"))}
+    """Plans only the hypothesis the Hypothesis Agent ranked first, so the
+    Coder/Writer stages spend their effort on one hypothesis rather than three.
+    The Hypothesis Agent still generated and returned all 3 — and the Writer and
+    Reviewer still see all 3 — this only narrows what gets *executed*.
+
+    Falls back to planning everything if `selected_hypothesis_id` is absent,
+    which only happens for a hypothesis output produced before ranking existed
+    and read back off disk."""
+    hypothesis_output = state["hypothesis_output"]
+    selected = hypothesis_output.get("selected_hypothesis_id")
+    if not selected:
+        logger.warning("Hypothesis output carries no selected_hypothesis_id — planning every hypothesis")
+    return {
+        "planner_output": run_experiment_planner_agent(
+            hypothesis_output,
+            output_dir=state.get("output_dir"),
+            hypothesis_ids=[selected] if selected else None,
+        )
+    }
 
 
 def run_coder_node(state: PipelineState) -> dict:
@@ -93,7 +142,7 @@ def draft_or_revise_node(state: PipelineState, config: Optional[RunnableConfig] 
     paper_filename = f"v{iteration}.pdf"
     summary_filename = f"v{iteration}_summary.json"
 
-    upstream = (state["literature_output"], state["hypothesis_output"], state["planner_output"], state["coder_output"])
+    upstream = (_papers_for_writeup(state), state["hypothesis_output"], state["planner_output"], state["coder_output"])
 
     if iteration == 1:
         logger.info("Writer/Reviewer iteration %d: drafting", iteration)
@@ -121,7 +170,8 @@ def review_node(state: PipelineState, config: Optional[RunnableConfig] = None) -
     review = reviewer.run(
         paper_summary["paper_path"],
         paper_summary,
-        state["literature_output"],
+        # The same paper set the Writer drafted against — see _papers_for_writeup.
+        _papers_for_writeup(state),
         state["hypothesis_output"],
         state["planner_output"],
         state["coder_output"],

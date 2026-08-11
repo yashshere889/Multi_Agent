@@ -1,25 +1,50 @@
 # research-pipeline
 
-A multi-agent research pipeline. Currently ships six agents, each usable
+A multi-agent research pipeline. Currently ships seven agents, each usable
 standalone and chained by data shape rather than by coupling to each other
 (see "Chaining agents individually" below); a LangGraph orchestrator runs all
-six end to end in one call (see "Running the whole pipeline"):
+seven end to end in one call (see "Running the whole pipeline"):
 
 - **literature** — searches arXiv + Semantic Scholar, dedupes, downloads PDFs.
   Built as a [LangGraph](https://github.com/langchain-ai/langgraph) `StateGraph`
   because it genuinely benefits from graph fan-out/fan-in (two independent
   HTTP APIs queried in parallel).
-- **hypothesis** — takes the literature agent's papers, synthesizes the body
-  of literature, and produces exactly 3 grounded, testable hypotheses as JSON.
-  Built as a plain Python class/function instead of a graph — its "map over
-  batches, then reduce" flow is naturally sequential, so a graph would add
-  ceremony without buying anything. See its docstring
+- **interdisciplinary-literature** — takes the literature agent's papers,
+  identifies up to `INTERDISCIPLINARY_MAX_FIELDS` *adjacent* fields whose
+  methods could inform the same problem, searches each of them with the same
+  arXiv/Semantic Scholar clients (one `Send` branch per field), and returns the
+  merged, deduped paper pool plus **bridge insights** — concrete "this method
+  from field X could inform this problem because Y" entries, each citing the
+  cross-field papers it came from. Its `papers` key is the same shape the
+  hypothesis agent already consumes, so it drops into the chain without either
+  neighbour changing. Deduplication uses the literature agent's own
+  doi/normalized-title key (not model judgment), and a `supporting_paper_ids`
+  entry naming a paper that isn't in the merged pool is dropped and logged
+  rather than passed downstream. See its docstring
+  ([interdisciplinary_literature_agent.py](src/research_pipeline/agents/interdisciplinary_literature/interdisciplinary_literature_agent.py))
+  for the full input/output contract.
+- **hypothesis** — takes the upstream papers (from either literature agent),
+  synthesizes the body of literature, produces exactly 3 grounded, testable
+  hypotheses as JSON, and **ranks** them against each other on feasibility /
+  testability / grounding, naming a single `selected_hypothesis_id`. All 3 are
+  always generated and always returned — ranking is additive and decides
+  nothing on its own; the winner is derived in Python from whichever ranking
+  entry holds rank 1, and the schema enforces that the ranks are a permutation
+  of 1..3 over exactly the generated ids. When the interdisciplinary agent ran
+  upstream, its bridge insights are shown to the model as explicitly-labelled
+  cross-field inspiration for both the generation and the ranking call. See its
+  docstring
   ([hypothesis_agent.py](src/research_pipeline/agents/hypothesis/hypothesis_agent.py))
   for the full input/output contract.
-- **experiment-planner** — takes the hypothesis agent's 3 hypotheses and turns
+- **experiment-planner** — takes the hypothesis agent's hypotheses and turns
   each into an implementation-ready experiment plan (feasibility, design,
   data requirements, methods, evaluation, step-by-step implementation plan),
-  plus shared-infrastructure notes and a priority order across the 3. Also a
+  plus shared-infrastructure notes and a priority order across them. An
+  optional `hypothesis_ids` argument narrows *which* hypotheses get planned —
+  the orchestrator passes the hypothesis agent's `selected_hypothesis_id`, so a
+  full run executes and writes up one hypothesis rather than three. It changes
+  nothing about the input contract: the complete 3-hypothesis output is still
+  required and still validated in full. Also a
   plain callable, for the same reason as hypothesis: planning per hypothesis
   is independent work (run concurrently, one LLM call each) followed by one
   cross-cutting synthesis call — a graph wouldn't add anything a thread pool
@@ -39,7 +64,7 @@ six end to end in one call (see "Running the whole pipeline"):
   not a missed optimization. See its docstring
   ([coder_agent.py](src/research_pipeline/agents/coder/coder_agent.py)) for
   the full input/output contract and execution model.
-- **writer** — takes the combined output of all four agents above and drafts
+- **writer** — takes the combined output of the agents above and drafts
   a full academic paper (PDF), styled after a NeurIPS submission — title,
   abstract, numbered sections (introduction, related work, hypotheses,
   per-experiment methods/results/discussion, limitations, future work), and a
@@ -86,7 +111,7 @@ Reviewer finds zero issues and every quality score clears the threshold, or
 graph expresses that same loop as a conditional edge, and reuses this module's
 feedback-routing logic rather than duplicating it.
 
-All six are valid patterns for a new agent — pick whichever fits the
+All seven are valid patterns for a new agent — pick whichever fits the
 agent's control flow, not necessarily the literature agent's graph shape.
 
 ## Layout
@@ -99,7 +124,7 @@ src/research_pipeline/
 ├── cli.py                 # `research-pipeline <agent> ...` entry point
 ├── batch.py               # runs `orchestrate` over a file of questions unattended
 ├── writer_reviewer_loop.py # orchestrator: draft -> review -> revise -> re-review loop (not an agent itself)
-├── orchestrator/          # LangGraph orchestrator running all six agents end to end (not an agent itself)
+├── orchestrator/          # LangGraph orchestrator running all seven agents end to end (not an agent itself)
 │   ├── state.py            # PipelineState — one key per stage's full output dict
 │   ├── nodes.py            # thin nodes wrapping each agent's existing entry point
 │   └── graph.py            # StateGraph wiring, incl. the writer/reviewer cycle + compile()
@@ -117,8 +142,14 @@ src/research_pipeline/
     │   ├── clients.py        # arXiv / Semantic Scholar HTTP clients (no LangGraph coupling)
     │   ├── nodes.py          # LangGraph node functions
     │   └── graph.py          # StateGraph wiring + compile()
-    ├── hypothesis/         # plain-callable agent
+    ├── interdisciplinary_literature/  # LangGraph StateGraph agent
     │   ├── schema.py          # output contract (TypedDicts) + validate_output()
+    │   ├── state.py           # graph state schema (TypedDict)
+    │   ├── prompts.py         # prompt templates (adjacent-field identification, bridge synthesis)
+    │   ├── graph.py           # StateGraph wiring — one Send branch per adjacent field + compile()
+    │   └── interdisciplinary_literature_agent.py # InterdisciplinaryLiteratureAgent class + run_interdisciplinary_literature_agent() entry point
+    ├── hypothesis/         # plain-callable agent
+    │   ├── schema.py          # output contract (TypedDicts) + validate_output(), incl. the ranking/selection rules
     │   ├── papers.py          # paper normalization + batching (no LLM calls — unit-testable)
     │   ├── prompts.py         # prompt templates
     │   └── hypothesis_agent.py # HypothesisAgent class + run_hypothesis_agent() entry point
@@ -167,9 +198,10 @@ Either way: register a subcommand for it in `cli.py`.
 
 ### Running the whole pipeline (orchestrator)
 
-`orchestrator/` wires all six agents into a single LangGraph — Literature →
-Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer → finalize — so a
-full run is one call instead of six hand-chained ones:
+`orchestrator/` wires all seven agents into a single LangGraph — Literature →
+Interdisciplinary Literature → Hypothesis → Experiment Planner → Coder →
+Writer ⇄ Reviewer → finalize — so a full run is one call instead of seven
+hand-chained ones:
 
 ```python
 import uuid
@@ -192,13 +224,29 @@ already derives deterministically; the orchestrator adds no model judgment of
 its own. Each node calls the same `run_<name>_agent()` entry point documented
 below, so every stage still writes its own outputs and validates its own input.
 
+One stage narrows the run: the Experiment Planner is asked to plan only the
+hypothesis the Hypothesis Agent ranked first, so the Coder and Writer stages
+spend their effort on one hypothesis instead of three. All 3 hypotheses (with
+their ranking and the justification for the winner) still reach the Writer and
+Reviewer, which is what lets the paper say which hypotheses were considered and
+why one was taken forward. Running `experiment-planner` standalone from the CLI
+or from disk still plans all 3, exactly as before.
+
+The Writer and Reviewer are both handed the *merged* paper pool (in-domain +
+cross-field), not just the Literature Agent's own output — both already accept
+"a dict with a `papers` key", which is exactly the interdisciplinary agent's
+output shape. Without that, a hypothesis grounded in a cross-field paper could
+never be cited: the marker would be stripped as unresolvable and reported as a
+citation issue the Writer had no way to fix. They must be given the same set as
+each other, or the Reviewer flags citations the Writer was entitled to make.
+
 Optional inputs, all defaulting to the agents' own settings:
 `max_results_per_query`, `download_dir`, `output_dir`, `max_iterations`,
 `quality_threshold`. Pass preconfigured `writer`/`reviewer` agents (e.g.
 sharing one `chat_model`) via `config["configurable"]` rather than the state,
 which is checkpointed and so must stay serializable.
 
-### Chaining agents individually (Literature → Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer)
+### Chaining agents individually (Literature → Interdisciplinary Literature → Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer)
 
 Each agent's entry point takes a plain `dict`/`list[dict]` shaped like the
 previous agent's *output*, never the previous agent's internal state — so
@@ -207,8 +255,14 @@ every link in the chain works identically in-process or decoupled via disk:
 ```python
 # in-process: no serialization round-trip
 lit_result = literature_agent.invoke({...})
-hyp_result = run_hypothesis_agent(lit_result["merged_papers"], research_question=lit_result["research_question"])
-plan_result = run_experiment_planner_agent(hyp_result)
+ida_result = run_interdisciplinary_literature_agent(lit_result["merged_papers"], research_question=lit_result["research_question"])
+hyp_result = run_hypothesis_agent(
+    ida_result["papers"],                                    # in-domain + cross-field, deduped
+    research_question=ida_result["research_question"],
+    interdisciplinary_context=ida_result["bridge_insights"],  # optional; omit to skip the cross-field agent entirely
+)
+# plan every hypothesis, or narrow to the one the ranking picked:
+plan_result = run_experiment_planner_agent(hyp_result, hypothesis_ids=[hyp_result["selected_hypothesis_id"]])
 code_result = run_coder_agent(plan_result)
 paper_result = run_writer_agent(lit_result, hyp_result, plan_result, code_result)
 review_result = run_reviewer_agent(paper_result["paper_path"], paper_result, lit_result, hyp_result, plan_result, code_result)
@@ -333,7 +387,7 @@ without warning):
 bash scripts/slurm/build_vllm_sif.sh
 ```
 
-Then run the whole pipeline — server and all six agents — as a single job:
+Then run the whole pipeline — server and all seven agents — as a single job:
 
 ```bash
 # openai backend, Nemotron 3 Nano 30B A3B (~60GB) — vLLM served
@@ -387,6 +441,38 @@ knowing: `settings` is frozen at import, so every `LLM_*` variable must be set
 `PATH`, or the Coder Agent can't provision an isolated environment for generated
 experiment code and reports `code_generated_not_run` instead of results.
 
+**Kaggle as just the backend, browser UI running locally:** the notebook's
+section 3c (skip it if you're running the whole notebook end to end) opens a
+[Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
+in front of `llama-server`, since a Kaggle notebook accepts no inbound
+connections and `LLM_BASE_URL=http://127.0.0.1:8000/v1` is only reachable from
+inside the kernel. [`scripts/kaggle/tunnel.py`](scripts/kaggle/tunnel.py) holds
+that plumbing the same way `gguf_server.py` holds the model server's — stdlib
+only, no pipeline import, downloads and caches the `cloudflared` binary itself:
+
+```python
+import tunnel
+llm_tunnel = tunnel.start_tunnel(gguf_server.DEFAULT_PORT)
+print(llm_tunnel.public_url)   # https://<random-words>.trycloudflare.com
+```
+
+Then, on your own machine (not the Kaggle kernel):
+
+```bash
+uv sync --extra webapp
+LLM_BACKEND=openai LLM_BASE_URL=https://<random-words>.trycloudflare.com/v1 \
+  LLM_MODEL=gemma-4-local LLM_API_KEY=not-needed \
+  uv run research-pipeline serve
+```
+
+Open <http://127.0.0.1:8000> and start a run as usual (see "Watching a run in
+a browser" below) — every LLM call now crosses the tunnel to the Kaggle GPU,
+while arXiv/Semantic Scholar are still queried directly from your machine. The
+tunnel URL is **unauthenticated** — anyone who has it can call the model — and
+only live as long as the notebook's tunnel cell and Kaggle session stay up, so
+treat it as throwaway: don't post it anywhere public, and stop it (notebook
+section 7) once you're done.
+
 ### Semantic Scholar
 
 Get a key at https://www.semanticscholar.org/product/api#api-key and set
@@ -420,8 +506,10 @@ uv run research-pipeline serve
 ```
 
 Then open <http://127.0.0.1:8000>, enter a research question, and watch. Each
-stage reports what it actually produced — papers found, the three hypotheses,
-per-plan feasibility and complexity, per-experiment status and fix attempts,
+stage reports what it actually produced — papers found, the adjacent fields
+explored and the bridge insights they yielded, the three hypotheses with their
+ranking and which one was selected, per-plan feasibility and complexity,
+per-experiment status and fix attempts,
 then the Writer/Reviewer iterations with their quality scores and issue counts.
 The pipeline's own log lines stream underneath, every draft's PDF is openable
 the moment it's written (not just the final one), and a run can be cancelled.
@@ -527,13 +615,31 @@ This searches arXiv + Semantic Scholar, dedupes by DOI/title, downloads
 available PDFs into `papers/`, and writes `papers/metadata.json`.
 
 ```bash
-uv run research-pipeline hypothesis --from-file papers/metadata.json --output-dir outputs
+uv run research-pipeline interdisciplinary-literature --from-file papers/metadata.json --output-dir outputs
+```
+
+This asks the model which adjacent fields could inform the same problem (up to
+`INTERDISCIPLINARY_MAX_FIELDS`, default 3), searches each of them on arXiv +
+Semantic Scholar with that field's own generated queries, merges and dedupes
+what it finds against the in-domain papers, synthesizes bridge insights tying
+the cross-field work back to the core problem, and writes
+`outputs/interdisciplinary_<UTC timestamp>.json` — see
+[interdisciplinary_literature_agent.py](src/research_pipeline/agents/interdisciplinary_literature/interdisciplinary_literature_agent.py)'s
+docstring for the exact output schema. Its `papers` key is a drop-in for the
+`hypothesis` subcommand's `--from-file`, which also picks up its
+`bridge_insights` automatically.
+
+```bash
+uv run research-pipeline hypothesis --from-file outputs/interdisciplinary_<timestamp>.json --output-dir outputs
 ```
 
 This synthesizes the paper set, extracts methods/gaps, generates exactly 3
-hypotheses, and writes `outputs/hypotheses_<UTC timestamp>.json` — see
+hypotheses, ranks them and names a `selected_hypothesis_id`, then writes
+`outputs/hypotheses_<UTC timestamp>.json` — see
 [hypothesis_agent.py](src/research_pipeline/agents/hypothesis/hypothesis_agent.py)'s
-docstring for the exact output schema.
+docstring for the exact output schema. `--from-file` accepts a Literature Agent
+`metadata.json`, an Interdisciplinary Literature Agent output, or a bare JSON
+list of papers.
 
 ```bash
 uv run research-pipeline experiment-planner --from-file outputs/hypotheses_<timestamp>.json --output-dir outputs
@@ -542,7 +648,7 @@ uv run research-pipeline experiment-planner --from-file outputs/hypotheses_<time
 This judges feasibility per hypothesis, produces a full implementation-ready
 plan for each (objective, variables, design, data requirements, methods,
 evaluation, ordered implementation steps, complexity, risks), notes any
-shared infrastructure across the 3 plans, ranks a priority order, and writes
+shared infrastructure across the plans, ranks a priority order, and writes
 `outputs/experiment_plan_<UTC timestamp>.json` — see
 [experiment_planner_agent.py](src/research_pipeline/agents/experiment_planner/experiment_planner_agent.py)'s
 docstring for the exact output schema and its compute/data feasibility
@@ -674,11 +780,11 @@ Reviewer reports zero issues and every quality score clears the threshold;
 otherwise runs to `max_iterations` and returns the last draft alongside
 `unresolved_issues` rather than silently treating it as done.
 
-### LLM used by the hypothesis / experiment-planner / coder / writer / reviewer agents
+### LLM used by the interdisciplinary-literature / hypothesis / experiment-planner / coder / writer / reviewer agents
 
-All five reuse the same `research_pipeline.llm.get_chat_model()` client as
+All six reuse the same `research_pipeline.llm.get_chat_model()` client as
 the literature agent (Nemotron 3 Nano, i.e. whatever `LLM_BASE_URL`/`LLM_MODEL`
-in `.env` points at) rather than a separate client — hypothesis/experiment-planner/coder/reviewer
+in `.env` points at) rather than a separate client — interdisciplinary-literature/hypothesis/experiment-planner/coder/reviewer
 at a lower temperature (0.1) suited to grounded extraction/planning/codegen/judgment,
 writer at 0.2 suited to grounded prose. Each agent also accepts a `chat_model`
 argument, so one shared client (or a fake, in tests) can be threaded through
@@ -735,8 +841,26 @@ uv run pytest
   returned as validated JSON and written to `outputs/`. Batches large paper
   sets to stay within context, retries once on malformed JSON, and never
   silently returns output that fails schema validation.
+- Added the **interdisciplinary-literature** agent, between literature and
+  hypothesis: identifies adjacent fields whose methods could inform the same
+  problem, searches each one concurrently (a `Send` branch per field, reusing
+  the literature agent's own arXiv/Semantic Scholar clients rather than a
+  second copy of them), and produces bridge insights connecting what it found
+  back to the core question. Merging is deterministic — the literature agent's
+  own doi/normalized-title dedupe key, not the model deciding which papers are
+  the same — and a bridge insight citing a paper that isn't in the merged pool
+  has that id stripped and logged, the same rule the writer agent applies to
+  citations.
+- Added **ranking** to the hypothesis agent: it still generates and returns
+  exactly 3 hypotheses, but now also scores them against each other and names
+  a `selected_hypothesis_id`. The winner is derived in Python from whichever
+  ranking entry holds rank 1 — the model is never asked to assert it
+  separately — and the schema rejects a ranking that isn't a permutation of
+  1..3 over exactly the generated ids. The orchestrator uses it to plan and
+  execute only the winner, cutting the coder/writer cost of a run from three
+  hypotheses to one, while the writer and reviewer still see all 3.
 - Added the **experiment-planner** agent: turns each of the hypothesis
-  agent's 3 hypotheses into a full, implementation-ready experiment plan
+  agent's hypotheses into a full, implementation-ready experiment plan
   (concrete, coder-actionable steps — not "analyze the data"), judges
   feasibility against a stated compute/data envelope rather than assuming
   unlimited resources, plans per hypothesis concurrently (they're
@@ -760,7 +884,7 @@ uv run pytest
   generated once, not per experiment.
 - Added the **writer** agent: drafts a full academic paper (PDF), styled
   after a NeurIPS submission (Times font, numbered sections/subsections,
-  author-year citations), from the combined output of the other four agents.
+  author-year citations), from the combined output of the upstream agents.
   Every section's prose is model-written, section by section, each call
   grounded in only the relevant slice of upstream data. Two things are
   deliberately *not* left to the model: whether a hypothesis was

@@ -83,6 +83,8 @@ def _hypothesis_output() -> dict:
     return {
         "literature_summary": "summary", "methods_overview": [], "gaps": [],
         "hypotheses": [_hyp("H1"), _hyp("H2"), _hyp("H3")],
+        "ranking": [{"hypothesis_id": f"H{i}", "rank": i, "score": 9 - i, "justification": "j"} for i in (1, 2, 3)],
+        "selected_hypothesis_id": "H1",
         "source_paper_ids": ["1"], "generated_at": "2026-01-01T00:00:00+00:00", "model": "test-model",
     }
 

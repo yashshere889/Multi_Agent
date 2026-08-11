@@ -36,11 +36,20 @@ class Hypothesis(TypedDict):
     suggested_variables: SuggestedVariables
 
 
+class RankingEntry(TypedDict):
+    hypothesis_id: str
+    rank: int  # 1 = best; the ranks are a permutation of 1..len(hypotheses)
+    score: float
+    justification: str
+
+
 class HypothesisAgentOutput(TypedDict):
     literature_summary: str
     methods_overview: List[MethodEntry]
     gaps: List[GapEntry]
     hypotheses: List[Hypothesis]  # always exactly 3
+    ranking: List[RankingEntry]  # one per hypothesis, ranks a permutation of 1..3
+    selected_hypothesis_id: str  # the id ranked 1 — derived, never the model's own pick
     source_paper_ids: List[str]
     generated_at: str
     model: str
@@ -76,6 +85,8 @@ def validate_output(data: dict) -> None:
             ("methods_overview", list),
             ("gaps", list),
             ("hypotheses", list),
+            ("ranking", list),
+            ("selected_hypothesis_id", str),
         ],
         "output",
         errors,
@@ -120,5 +131,51 @@ def validate_output(data: dict) -> None:
         else:
             _check_fields(variables, [("independent", list), ("dependent", list)], f"{path}.suggested_variables", errors)
 
+    _validate_ranking(data, hypotheses, errors)
+
     if errors:
         raise SchemaValidationError("; ".join(errors))
+
+
+def _validate_ranking(data: dict, hypotheses: list, errors: List[str]) -> None:
+    """The ranking has to be a total order over exactly the hypotheses that were
+    generated, and `selected_hypothesis_id` has to be the one it puts first —
+    all checkable exactly, so none of it is taken on trust. Same style as
+    experiment_planner/schema.py's priority_order check."""
+    ranking = data.get("ranking", [])
+    if not isinstance(ranking, list):
+        return  # already reported as a type error above
+
+    hypothesis_ids = [h.get("id") for h in (hypotheses or []) if isinstance(h, dict)]
+    ranked_ids: List[str] = []
+    ranks: List[int] = []
+    for i, entry in enumerate(ranking):
+        path = f"output.ranking[{i}]"
+        if not isinstance(entry, dict):
+            errors.append(f"{path} should be an object")
+            continue
+        _check_fields(entry, [("hypothesis_id", str), ("rank", int), ("justification", str)], path, errors)
+        # bool is an int subclass, so it would sail through the check above.
+        if isinstance(entry.get("rank"), int) and not isinstance(entry.get("rank"), bool):
+            ranks.append(entry["rank"])
+        score = entry.get("score")
+        if not isinstance(score, (int, float)) or isinstance(score, bool):
+            errors.append(f"{path}.score should be a number, got {type(score).__name__}")
+        ranked_ids.append(entry.get("hypothesis_id"))
+
+    if hypothesis_ids and set(ranked_ids) != set(hypothesis_ids):
+        errors.append(
+            f"output.ranking hypothesis_ids {sorted(set(map(str, ranked_ids)))} don't match "
+            f"output.hypotheses ids {sorted(set(map(str, hypothesis_ids)))}"
+        )
+    if sorted(ranks) != list(range(1, len(ranking) + 1)):
+        errors.append(f"output.ranking ranks should be exactly 1..{len(ranking)}, got {sorted(ranks)}")
+
+    selected = data.get("selected_hypothesis_id")
+    top = [entry.get("hypothesis_id") for entry in ranking if isinstance(entry, dict) and entry.get("rank") == 1]
+    if isinstance(selected, str) and top and selected != top[0]:
+        errors.append(
+            f"output.selected_hypothesis_id is {selected!r}, but the hypothesis ranked 1 is {top[0]!r}"
+        )
+    if isinstance(selected, str) and hypothesis_ids and selected not in hypothesis_ids:
+        errors.append(f"output.selected_hypothesis_id {selected!r} isn't one of the generated hypothesis ids")

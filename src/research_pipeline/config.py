@@ -29,13 +29,19 @@ class Settings:
     llm_reasoning_budget: int | None
     llm_hf_device_map: str
     llm_hf_dtype: str
+    llm_hf_min_gpus: int
     semantic_scholar_api_key: str
     default_max_results_per_query: int
+    interdisciplinary_output_dir: str
+    interdisciplinary_max_fields: int
     hypothesis_output_dir: str
     hypothesis_batch_max_chars: int
     experiment_planner_output_dir: str
     coder_experiments_dir: str
     coder_output_dir: str
+    coder_llm_backend: str | None
+    coder_llm_model: str | None
+    coder_llm_max_tokens: int | None
     coder_max_fix_attempts: int
     coder_run_high_complexity_when_gpu_available: bool
     coder_high_complexity_timeout_seconds: int
@@ -119,13 +125,36 @@ def load_settings() -> Settings:
         # dtype to "float16" on pre-Ampere cards, which have no bfloat16.
         llm_hf_device_map=os.environ.get("LLM_HF_DEVICE_MAP", "auto"),
         llm_hf_dtype=os.environ.get("LLM_HF_DTYPE", "auto"),
+        # 1 (default) means "don't check" — every deployment that doesn't set
+        # this is unaffected. See llm.py's _check_min_gpus.
+        llm_hf_min_gpus=int(os.environ.get("LLM_HF_MIN_GPUS", "1")),
         semantic_scholar_api_key=semantic_scholar_api_key,
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
+        interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
+        # How many adjacent fields the agent is allowed to explore. Each field
+        # costs one arXiv + one Semantic Scholar search per generated query, so
+        # this is the knob that bounds the cross-field search fan-out; the
+        # per-query result count reuses MAX_RESULTS_PER_QUERY rather than
+        # adding a second, near-identical knob.
+        interdisciplinary_max_fields=int(os.environ.get("INTERDISCIPLINARY_MAX_FIELDS", "3")),
         hypothesis_output_dir=os.environ.get("HYPOTHESIS_OUTPUT_DIR", "outputs"),
         hypothesis_batch_max_chars=int(os.environ.get("HYPOTHESIS_BATCH_MAX_CHARS", "12000")),
         experiment_planner_output_dir=os.environ.get("EXPERIMENT_PLANNER_OUTPUT_DIR", "outputs"),
         coder_experiments_dir=os.environ.get("CODER_EXPERIMENTS_DIR", "experiments"),
         coder_output_dir=os.environ.get("CODER_OUTPUT_DIR", "outputs"),
+        # Unset (None) by default: the Coder Agent shares LLM_BACKEND/LLM_MODEL
+        # with every other agent, same as always. Setting these routes it to a
+        # different model — e.g. a code-specialized one — via get_chat_model's
+        # backend/model override, without touching what any other agent uses.
+        coder_llm_backend=os.environ.get("CODER_LLM_BACKEND") or None,
+        coder_llm_model=os.environ.get("CODER_LLM_MODEL") or None,
+        # Unset (None) by default: inherits LLM_MAX_TOKENS like every other
+        # agent. Setting this gives the Coder Agent its own (typically
+        # smaller) completion budget, independent of what other agents need —
+        # useful when it's sized to a tighter GPU memory budget than the rest
+        # of the pipeline, since a smaller max_new_tokens directly bounds peak
+        # KV-cache size during generation.
+        coder_llm_max_tokens=_env_optional_int("CODER_LLM_MAX_TOKENS"),
         coder_max_fix_attempts=int(os.environ.get("CODER_MAX_FIX_ATTEMPTS", "3")),
         # Off by default: "high" complexity always defers to run.sbatch,
         # regardless of GPU availability, because the SLURM path is written

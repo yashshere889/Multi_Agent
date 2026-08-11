@@ -1,8 +1,9 @@
 """Hypothesis Agent.
 
-Sits between the Literature Agent and a future Experiment Planner Agent: takes
-the papers the Literature Agent found, synthesizes the literature, and
-produces exactly 3 grounded, testable hypotheses — all as structured JSON, so
+Sits between the Literature (or Interdisciplinary Literature) Agent and the
+Experiment Planner Agent: takes the papers found upstream, synthesizes the
+literature, produces exactly 3 grounded, testable hypotheses, and ranks them
+against each other so one can be taken forward — all as structured JSON, so
 downstream agents can consume it programmatically without parsing prose.
 
 Input contract
@@ -12,6 +13,15 @@ Input contract
     {"title": str, "authors": list[str], "abstract": str, "year": int | None,
      "source": "arxiv" | "semantic_scholar", "arxiv_id" | "paper_id": str,
      "doi": str | None, ...}
+This is also exactly the shape the Interdisciplinary Literature Agent's
+`papers` key carries, so either agent can feed this one.
+
+`interdisciplinary_context: list | None` (optional) — the Interdisciplinary
+Literature Agent's `bridge_insights`. When given, it's shown to the model
+alongside the literature synthesis as explicitly-labelled cross-field
+inspiration (see prompts.INTERDISCIPLINARY_BLOCK) for both hypothesis
+generation and ranking. When omitted, this agent behaves exactly as it did
+before the parameter existed — standalone/CLI/disk-chained use is unaffected.
 
 Only `title` and `abstract` are actually used today — the current Literature
 Agent doesn't extract full text or per-section content (see
@@ -33,10 +43,21 @@ A dict matching `agents.hypothesis.schema.HypothesisAgentOutput`:
       "hypotheses": [ exactly 3 x {"id", "statement", "rationale",
                                      "related_gaps", "related_methods",
                                      "suggested_variables": {"independent", "dependent"}} ],
+      "ranking": [ one per hypothesis x {"hypothesis_id", "rank", "score",
+                                          "justification"} ],
+      "selected_hypothesis_id": str,    # the id ranked 1
       "source_paper_ids": [str, ...],   # papers actually analyzed, after normalization
       "generated_at": "<UTC ISO 8601>",
       "model": str,
     }
+All 3 hypotheses are always generated and always returned — ranking is additive
+and decides nothing on its own. `selected_hypothesis_id` is derived in Python
+from whichever ranking entry holds rank 1, never read from a field the model
+was asked to fill in separately, and the schema enforces that the ranks are a
+permutation of 1..3 over exactly the generated ids. What (if anything) narrows
+to the selected hypothesis is the caller's choice: the orchestrator plans only
+the winner (see orchestrator/nodes.py:run_planner_node), while the CLI and any
+direct caller still get everything.
 Validated against that schema (agents.hypothesis.schema.validate_output) before
 being returned. Also written to `<output_dir>/hypotheses_<UTC timestamp>.json`
 so it can be inspected or reused without re-running the agent. On a schema
@@ -83,6 +104,10 @@ from research_pipeline.llm_json import LLMJSONError, invoke_json
 
 logger = logging.getLogger(__name__)
 
+# Mirrors the "exactly 3" rule schema.validate_output enforces — used here only
+# to decide whether a ranking call is worth making at all.
+EXPECTED_HYPOTHESIS_COUNT = 3
+
 
 class HypothesisAgentError(RuntimeError):
     """Raised when the agent can't produce schema-valid output, even after retries."""
@@ -102,11 +127,19 @@ class HypothesisAgent:
         self.batch_max_chars = batch_max_chars or settings.hypothesis_batch_max_chars
         self.output_dir = Path(output_dir or settings.hypothesis_output_dir)
 
-    def run(self, papers: List[dict], research_question: Optional[str] = None) -> dict:
-        """Runs the agent's graph end to end. Same signature, same returned dict,
-        and the same HypothesisAgentError on failure as the earlier sequential
-        implementation — the graph is an internal detail, so callers (the CLI,
-        the orchestrator, another agent) are unaffected.
+    def run(
+        self,
+        papers: List[dict],
+        research_question: Optional[str] = None,
+        interdisciplinary_context: Optional[List[dict]] = None,
+    ) -> dict:
+        """Runs the agent's graph end to end. The graph is an internal detail, so
+        callers (the CLI, the orchestrator, another agent) see only this
+        signature, the returned dict, and HypothesisAgentError on failure.
+
+        `interdisciplinary_context` is the Interdisciplinary Literature Agent's
+        `bridge_insights` when one ran upstream; omitting it leaves every prompt
+        exactly as it was before that agent existed.
 
         Node exceptions aren't swallowed by LangGraph, so a HypothesisAgentError
         raised inside a node propagates out of `.invoke` unchanged.
@@ -117,7 +150,11 @@ class HypothesisAgent:
 
         graph = build_hypothesis_graph(self)
         final_state = graph.invoke(
-            {"papers": papers, "research_question": research_question},
+            {
+                "papers": papers,
+                "research_question": research_question,
+                "interdisciplinary_context": interdisciplinary_context or [],
+            },
             config={"configurable": {"thread_id": str(uuid.uuid4())}},
         )
         return final_state["result"]
@@ -162,8 +199,42 @@ class HypothesisAgent:
             state["methods_overview"],
             state["gaps"],
             state.get("research_question"),
+            state.get("interdisciplinary_context"),
         )
         return {"hypotheses": hypotheses_result.get("hypotheses", [])}
+
+    def _node_rank_hypotheses(self, state: HypothesisState) -> dict:
+        """Scores the 3 hypotheses against each other and names the winner.
+
+        The winner is *derived* from the ranking (the entry holding rank 1)
+        rather than asked for separately, so the two can't disagree — and a
+        ranking that isn't a clean permutation of 1..3 over the generated ids is
+        rejected by schema.validate_output rather than papered over here.
+        """
+        hypotheses = state["hypotheses"]
+        if len(hypotheses) != EXPECTED_HYPOTHESIS_COUNT:
+            # Nothing worth an LLM call: assemble_and_validate is about to
+            # reject this output for the count alone, and ranking a broken set
+            # would only add noise to the error it reports.
+            logger.warning(
+                "Skipping ranking: expected %d hypotheses, got %d", EXPECTED_HYPOTHESIS_COUNT, len(hypotheses)
+            )
+            return {"ranking": [], "selected_hypothesis_id": ""}
+
+        ranking = self._rank_hypotheses(
+            hypotheses,
+            state["literature_summary"],
+            state["gaps"],
+            state.get("research_question"),
+            state.get("interdisciplinary_context"),
+        ).get("ranking", [])
+
+        selected = next(
+            (entry.get("hypothesis_id", "") for entry in ranking if isinstance(entry, dict) and entry.get("rank") == 1),
+            "",
+        )
+        logger.info("Ranked %d hypotheses; selected %s", len(ranking), selected or "(none — ranking was malformed)")
+        return {"ranking": ranking, "selected_hypothesis_id": selected}
 
     def _node_assemble_and_validate(self, state: HypothesisState) -> dict:
         result: dict = {
@@ -171,6 +242,8 @@ class HypothesisAgent:
             "methods_overview": state["methods_overview"],
             "gaps": state["gaps"],
             "hypotheses": state["hypotheses"],
+            "ranking": state["ranking"],
+            "selected_hypothesis_id": state["selected_hypothesis_id"],
             "source_paper_ids": state["all_paper_ids"],
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "model": settings.llm_model,
@@ -210,15 +283,49 @@ class HypothesisAgent:
         return self._call_json(prompt)
 
     def _generate_hypotheses(
-        self, literature_summary: str, methods_overview: list, gaps: list, research_question: Optional[str]
+        self,
+        literature_summary: str,
+        methods_overview: list,
+        gaps: list,
+        research_question: Optional[str],
+        interdisciplinary_context: Optional[list] = None,
     ) -> dict:
         prompt = prompts.HYPOTHESIS_PROMPT.format(
             research_question_line=f"Original research question guiding this search: {research_question}\n\n" if research_question else "",
             literature_summary=literature_summary,
             methods_overview_block=json.dumps(methods_overview, indent=2),
             gaps_block=json.dumps(gaps, indent=2),
+            interdisciplinary_block=self._interdisciplinary_block(interdisciplinary_context),
         )
         return self._call_json(prompt)
+
+    def _rank_hypotheses(
+        self,
+        hypotheses: list,
+        literature_summary: str,
+        gaps: list,
+        research_question: Optional[str],
+        interdisciplinary_context: Optional[list] = None,
+    ) -> dict:
+        prompt = prompts.RANKING_PROMPT.format(
+            research_question_line=f"Original research question guiding this search: {research_question}\n\n" if research_question else "",
+            hypotheses_block=json.dumps(hypotheses, indent=2),
+            literature_summary=literature_summary,
+            gaps_block=json.dumps(gaps, indent=2),
+            interdisciplinary_block=self._interdisciplinary_block(interdisciplinary_context),
+        )
+        return self._call_json(prompt)
+
+    @staticmethod
+    def _interdisciplinary_block(interdisciplinary_context: Optional[list]) -> str:
+        """Empty string when no Interdisciplinary Literature Agent ran upstream,
+        so the prompts are byte-identical to what they were before that agent
+        existed."""
+        if not interdisciplinary_context:
+            return ""
+        return prompts.INTERDISCIPLINARY_BLOCK.format(
+            bridge_insights_block=json.dumps(interdisciplinary_context, indent=2)
+        )
 
     # -- Output persistence ----------------------------------------------------
 
@@ -234,9 +341,17 @@ def run_hypothesis_agent(
     papers: List[dict],
     research_question: Optional[str] = None,
     output_dir: Optional[str | Path] = None,
+    interdisciplinary_context: Optional[List[dict]] = None,
 ) -> dict:
     """Module-level entry point — the stable call an Experiment Planner Agent
     (or the CLI) should use. Builds a default-configured HypothesisAgent and
     runs it once; use the HypothesisAgent class directly if you want to reuse
-    one model/config across multiple calls."""
-    return HypothesisAgent(output_dir=output_dir).run(papers, research_question=research_question)
+    one model/config across multiple calls.
+
+    `interdisciplinary_context` is optional and defaults to nothing, so callers
+    that don't run an Interdisciplinary Literature Agent are unaffected."""
+    return HypothesisAgent(output_dir=output_dir).run(
+        papers,
+        research_question=research_question,
+        interdisciplinary_context=interdisciplinary_context,
+    )

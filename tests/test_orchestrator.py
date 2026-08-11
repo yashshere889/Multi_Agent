@@ -29,6 +29,32 @@ def _literature_state() -> dict:
     }
 
 
+def _interdisciplinary_output() -> dict:
+    """The Interdisciplinary Literature Agent's output: the same paper list under
+    'papers', merged with whatever the cross-field search added."""
+    cross_field = {
+        "title": "Ecology Paper", "authors": ["E. Cologist"], "abstract": "curves", "year": 2019,
+        "arxiv_id": "9", "source": "arxiv", "discipline": "ecology",
+    }
+    return {
+        "papers": _literature_state()["merged_papers"] + [cross_field],
+        "core_paper_ids": ["1"],
+        "cross_field_papers": [cross_field],
+        "fields_explored": [{"field": "ecology", "rationale": "same sparsity problem", "queries": ["rarefaction"]}],
+        "bridge_insights": [
+            {
+                "insight": "rarefaction curves quantify coverage",
+                "source_field": "ecology",
+                "connection_to_core_problem": "retrieval corpora are sampled sparsely too",
+                "supporting_paper_ids": ["9"],
+            }
+        ],
+        "research_question": "does RAG help?",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "model": "test-model",
+    }
+
+
 # -- individual nodes ---------------------------------------------------------------
 
 
@@ -50,34 +76,82 @@ def test_literature_node_passes_inputs_through_to_the_subgraph(monkeypatch):
     assert result == {"literature_output": _literature_state()}
 
 
-def test_hypothesis_node_forwards_merged_papers_and_research_question(monkeypatch):
+def test_interdisciplinary_node_forwards_merged_papers_and_research_question(monkeypatch):
     captured = {}
 
     def fake_run(papers, research_question=None, output_dir=None):
         captured.update(papers=papers, research_question=research_question, output_dir=output_dir)
-        return _hypothesis_output()
+        return _interdisciplinary_output()
 
-    monkeypatch.setattr(nodes, "run_hypothesis_agent", fake_run)
-    result = nodes.run_hypothesis_node({"literature_output": _literature_state(), "output_dir": "out"})
+    monkeypatch.setattr(nodes, "run_interdisciplinary_literature_agent", fake_run)
+    result = nodes.run_interdisciplinary_literature_node({"literature_output": _literature_state(), "output_dir": "out"})
 
     assert captured["papers"] == _literature_state()["merged_papers"]
     assert captured["research_question"] == "does RAG help?"
     assert captured["output_dir"] == "out"
+    assert result == {"interdisciplinary_output": _interdisciplinary_output()}
+
+
+def test_hypothesis_node_reads_the_interdisciplinary_output_including_bridge_insights(monkeypatch):
+    captured = {}
+
+    def fake_run(papers, research_question=None, interdisciplinary_context=None, output_dir=None):
+        captured.update(
+            papers=papers,
+            research_question=research_question,
+            interdisciplinary_context=interdisciplinary_context,
+            output_dir=output_dir,
+        )
+        return _hypothesis_output()
+
+    monkeypatch.setattr(nodes, "run_hypothesis_agent", fake_run)
+    result = nodes.run_hypothesis_node({"interdisciplinary_output": _interdisciplinary_output(), "output_dir": "out"})
+
+    assert captured["papers"] == _interdisciplinary_output()["papers"]
+    assert captured["research_question"] == "does RAG help?"
+    assert captured["interdisciplinary_context"] == _interdisciplinary_output()["bridge_insights"]
+    assert captured["output_dir"] == "out"
     assert result == {"hypothesis_output": _hypothesis_output()}
 
 
-def test_planner_node_forwards_hypothesis_output(monkeypatch):
+def test_planner_node_plans_only_the_selected_hypothesis(monkeypatch):
     captured = {}
 
-    def fake_run(hypothesis_output, output_dir=None):
-        captured.update(hypothesis_output=hypothesis_output)
+    def fake_run(hypothesis_output, output_dir=None, hypothesis_ids=None):
+        captured.update(hypothesis_output=hypothesis_output, hypothesis_ids=hypothesis_ids)
         return _planner_output()
 
     monkeypatch.setattr(nodes, "run_experiment_planner_agent", fake_run)
     result = nodes.run_planner_node({"hypothesis_output": _hypothesis_output()})
 
+    # the planner still receives the whole hypothesis output — only the plan set narrows
     assert captured["hypothesis_output"] == _hypothesis_output()
+    assert captured["hypothesis_ids"] == [_hypothesis_output()["selected_hypothesis_id"]]
     assert result == {"planner_output": _planner_output()}
+
+
+def test_writeup_papers_use_the_merged_cross_field_pool_when_one_exists():
+    state = {"literature_output": _literature_state(), "interdisciplinary_output": _interdisciplinary_output()}
+    assert nodes._papers_for_writeup(state) == _interdisciplinary_output()
+
+
+def test_writeup_papers_fall_back_to_the_literature_output():
+    assert nodes._papers_for_writeup({"literature_output": _literature_state()}) == _literature_state()
+
+
+def test_planner_node_falls_back_to_all_hypotheses_without_a_selection(monkeypatch):
+    """A hypothesis output produced before ranking existed, read back off disk."""
+    captured = {}
+
+    def fake_run(hypothesis_output, output_dir=None, hypothesis_ids=None):
+        captured.update(hypothesis_ids=hypothesis_ids)
+        return _planner_output()
+
+    monkeypatch.setattr(nodes, "run_experiment_planner_agent", fake_run)
+    legacy = {k: v for k, v in _hypothesis_output().items() if k != "selected_hypothesis_id"}
+    nodes.run_planner_node({"hypothesis_output": legacy})
+
+    assert captured["hypothesis_ids"] is None
 
 
 def test_coder_node_forwards_planner_output(monkeypatch):
@@ -126,6 +200,7 @@ def _stub_upstream_agents(monkeypatch):
             return _literature_state()
 
     monkeypatch.setattr(nodes, "build_literature_graph", lambda: FakeLiteratureGraph())
+    monkeypatch.setattr(nodes, "run_interdisciplinary_literature_agent", lambda *a, **k: _interdisciplinary_output())
     monkeypatch.setattr(nodes, "run_hypothesis_agent", lambda *a, **k: _hypothesis_output())
     monkeypatch.setattr(nodes, "run_experiment_planner_agent", lambda *a, **k: _planner_output())
     monkeypatch.setattr(nodes, "run_coder_agent", lambda *a, **k: _coder_output())
@@ -163,6 +238,7 @@ def test_pipeline_runs_every_stage_and_converges_on_the_first_review(tmp_path, m
     state = _invoke(tmp_path, AlwaysPassReviewerModel())
     result = state["final_result"]
 
+    assert state["interdisciplinary_output"] == _interdisciplinary_output()
     assert state["hypothesis_output"] == _hypothesis_output()
     assert state["planner_output"] == _planner_output()
     assert state["coder_output"] == _coder_output()

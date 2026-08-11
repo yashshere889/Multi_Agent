@@ -74,6 +74,10 @@ def _valid_output() -> dict:
             }
             for i in (1, 2, 3)
         ],
+        "ranking": [
+            {"hypothesis_id": f"H{i}", "rank": i, "score": 9 - i, "justification": "j"} for i in (1, 2, 3)
+        ],
+        "selected_hypothesis_id": "H1",
         "source_paper_ids": ["1"],
         "generated_at": "2026-01-01T00:00:00+00:00",
         "model": "test-model",
@@ -103,6 +107,64 @@ def test_validate_output_rejects_malformed_suggested_variables():
     data["hypotheses"][0]["suggested_variables"] = {"independent": ["a"]}  # missing "dependent"
     with pytest.raises(SchemaValidationError, match="dependent"):
         validate_output(data)
+
+
+# -- schema.py: the ranking + selection rules ------------------------------------------
+
+
+def test_validate_output_rejects_missing_ranking():
+    data = _valid_output()
+    del data["ranking"]
+    with pytest.raises(SchemaValidationError, match="ranking is missing"):
+        validate_output(data)
+
+
+def test_validate_output_rejects_ranking_ids_that_dont_match_the_hypotheses():
+    data = _valid_output()
+    data["ranking"][2]["hypothesis_id"] = "H99"
+    with pytest.raises(SchemaValidationError, match="don't match"):
+        validate_output(data)
+
+
+def test_validate_output_rejects_ranks_that_arent_a_permutation_of_1_to_3():
+    data = _valid_output()
+    data["ranking"][2]["rank"] = 2  # now 1, 2, 2
+    with pytest.raises(SchemaValidationError, match="ranks should be exactly 1..3"):
+        validate_output(data)
+
+
+def test_validate_output_rejects_non_numeric_score():
+    data = _valid_output()
+    data["ranking"][0]["score"] = "high"
+    with pytest.raises(SchemaValidationError, match="score should be a number"):
+        validate_output(data)
+
+
+def test_validate_output_rejects_selected_id_that_isnt_ranked_first():
+    data = _valid_output()
+    data["selected_hypothesis_id"] = "H2"  # H1 holds rank 1
+    with pytest.raises(SchemaValidationError, match="ranked 1 is 'H1'"):
+        validate_output(data)
+
+
+def test_validate_output_rejects_selected_id_that_isnt_a_generated_hypothesis():
+    data = _valid_output()
+    data["ranking"][0]["rank"], data["ranking"][2]["rank"] = 3, 1
+    data["ranking"][2]["hypothesis_id"] = "H3"
+    data["selected_hypothesis_id"] = "H99"
+    with pytest.raises(SchemaValidationError, match="isn't one of the generated hypothesis ids"):
+        validate_output(data)
+
+
+def test_validate_output_accepts_a_winner_that_isnt_the_first_hypothesis():
+    data = _valid_output()
+    data["ranking"] = [
+        {"hypothesis_id": "H1", "rank": 3, "score": 4.0, "justification": "j"},
+        {"hypothesis_id": "H2", "rank": 1, "score": 8.5, "justification": "j"},
+        {"hypothesis_id": "H3", "rank": 2, "score": 6.0, "justification": "j"},
+    ]
+    data["selected_hypothesis_id"] = "H2"
+    validate_output(data)  # should not raise
 
 
 # -- hypothesis_agent.py: orchestration, with a fake chat model ------------------------
@@ -152,8 +214,21 @@ def _hypotheses_response() -> str:
     })
 
 
+def _ranking_response(winner: str = "H2") -> str:
+    ranks = {winner: 1}
+    for hid in ("H1", "H2", "H3"):
+        if hid not in ranks:
+            ranks[hid] = len(ranks) + 1
+    return json.dumps({
+        "ranking": [
+            {"hypothesis_id": hid, "rank": ranks[hid], "score": 10 - ranks[hid], "justification": "j"}
+            for hid in ("H1", "H2", "H3")
+        ]
+    })
+
+
 def test_run_end_to_end_with_single_batch(tmp_path):
-    fake_model = FakeChatModel([_batch_response(), _synthesis_response(), _hypotheses_response()])
+    fake_model = FakeChatModel([_batch_response(), _synthesis_response(), _hypotheses_response(), _ranking_response()])
     agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
 
     papers = [{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}]
@@ -168,6 +243,73 @@ def test_run_end_to_end_with_single_batch(tmp_path):
     assert json.loads(written[0].read_text())["hypotheses"][0]["id"] == "H1"
 
 
+# -- ranking, end to end ----------------------------------------------------------------
+
+
+def test_run_ranks_all_three_and_selects_the_one_ranked_first(tmp_path):
+    fake_model = FakeChatModel([
+        _batch_response(), _synthesis_response(), _hypotheses_response(), _ranking_response(winner="H3"),
+    ])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    # all 3 are still generated and returned — ranking is additive
+    assert [h["id"] for h in result["hypotheses"]] == ["H1", "H2", "H3"]
+    assert sorted(r["rank"] for r in result["ranking"]) == [1, 2, 3]
+    assert result["selected_hypothesis_id"] == "H3"
+
+
+def test_run_derives_the_winner_from_the_ranking_not_a_model_assertion(tmp_path):
+    # The model also volunteers a (contradictory) selected_hypothesis_id; the
+    # agent must take the id holding rank 1 instead.
+    ranking = json.loads(_ranking_response(winner="H2"))
+    ranking["selected_hypothesis_id"] = "H1"
+    fake_model = FakeChatModel([
+        _batch_response(), _synthesis_response(), _hypotheses_response(), json.dumps(ranking),
+    ])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    assert result["selected_hypothesis_id"] == "H2"
+
+
+def test_run_rejects_a_ranking_that_isnt_a_permutation(tmp_path):
+    bad_ranking = json.dumps({
+        "ranking": [{"hypothesis_id": hid, "rank": 1, "score": 5, "justification": "j"} for hid in ("H1", "H2", "H3")]
+    })
+    fake_model = FakeChatModel([_batch_response(), _synthesis_response(), _hypotheses_response(), bad_ranking])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    with pytest.raises(HypothesisAgentError, match="schema validation"):
+        agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+
+def test_run_passes_bridge_insights_into_both_prompts_when_given(tmp_path):
+    fake_model = FakeChatModel([_batch_response(), _synthesis_response(), _hypotheses_response(), _ranking_response()])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    agent.run(
+        [{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}],
+        interdisciplinary_context=[{"insight": "ecology's rarefaction curves", "source_field": "ecology"}],
+    )
+
+    hypothesis_prompt = fake_model.calls[2][-1][1]
+    ranking_prompt = fake_model.calls[3][-1][1]
+    assert "rarefaction curves" in hypothesis_prompt
+    assert "rarefaction curves" in ranking_prompt
+
+
+def test_run_omits_the_bridge_insight_block_entirely_when_not_given(tmp_path):
+    fake_model = FakeChatModel([_batch_response(), _synthesis_response(), _hypotheses_response(), _ranking_response()])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    assert "bridge insights" not in fake_model.calls[2][-1][1].lower()
+
+
 def test_run_raises_on_no_usable_papers(tmp_path):
     agent = HypothesisAgent(chat_model=FakeChatModel([]), output_dir=tmp_path)
     with pytest.raises(HypothesisAgentError, match="No usable papers"):
@@ -180,6 +322,7 @@ def test_call_json_recovers_via_repair_prompt(tmp_path):
         _batch_response(),  # repair attempt succeeds
         _synthesis_response(),
         _hypotheses_response(),
+        _ranking_response(),
     ])
     agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
     result = agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])

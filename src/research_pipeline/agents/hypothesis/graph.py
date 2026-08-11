@@ -39,6 +39,7 @@ def build_hypothesis_graph(agent: "HypothesisAgent"):
     graph.add_node("analyze_batch", agent._node_analyze_batch)
     graph.add_node("synthesize", agent._node_synthesize)
     graph.add_node("generate_hypotheses", agent._node_generate_hypotheses)
+    graph.add_node("rank_hypotheses", agent._node_rank_hypotheses)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
 
     graph.set_entry_point("normalize_and_chunk")
@@ -51,7 +52,11 @@ def build_hypothesis_graph(agent: "HypothesisAgent"):
     graph.add_edge("analyze_batch", "synthesize")
 
     graph.add_edge("synthesize", "generate_hypotheses")
-    graph.add_edge("generate_hypotheses", "assemble_and_validate")
+    # Ranking is its own node rather than part of hypothesis generation: it's a
+    # separate LLM call with a separate contract, and keeping it separate means
+    # the generated hypotheses are already fixed before anything scores them.
+    graph.add_edge("generate_hypotheses", "rank_hypotheses")
+    graph.add_edge("rank_hypotheses", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
     # In-memory checkpointing, matching the literature graph: a crash partway

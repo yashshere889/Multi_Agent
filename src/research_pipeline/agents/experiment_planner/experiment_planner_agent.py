@@ -24,6 +24,14 @@ Input contract
 If this doesn't validate, ExperimentPlannerAgentError is raised immediately —
 planning against a malformed hypothesis set is never attempted.
 
+`hypothesis_ids: list[str] | None` (optional) narrows which of those hypotheses
+are actually planned — the orchestrator uses it to plan only the hypothesis the
+Hypothesis Agent ranked first (`selected_hypothesis_id`), so execution and
+paper-writing effort goes to one hypothesis rather than three. It changes
+*nothing* about the input contract: the full 3-hypothesis output is still
+required and still validated in full, and an id that isn't in it is an error.
+Omitted (the default), every hypothesis is planned, exactly as before.
+
 Planning assumptions
 ---------------------
 Confirmed with the pipeline owner, baked into prompts.py:SYSTEM_PROMPT:
@@ -40,7 +48,7 @@ Output contract
 ----------------
 A dict matching `agents.experiment_planner.schema.ExperimentPlannerOutput`:
     {
-      "experiment_plans": [ one entry per input hypothesis, always — even
+      "experiment_plans": [ one entry per *planned* hypothesis, always — even
           flagged-infeasible hypotheses still get a full (simplified) plan;
           see schema.py:ExperimentPlan for the per-plan shape ],
       "shared_infrastructure": [str, ...],
@@ -114,11 +122,14 @@ class ExperimentPlannerAgent:
         self.chat_model = chat_model or get_chat_model(temperature=0.1)
         self.output_dir = Path(output_dir or settings.experiment_planner_output_dir)
 
-    def run(self, hypothesis_output: dict) -> dict:
-        """Runs the agent's graph end to end. Same signature, same returned dict,
-        and the same ExperimentPlannerAgentError on failure as the earlier
-        sequential implementation — the graph is an internal detail, so callers
-        (the CLI, the orchestrator, another agent) are unaffected.
+    def run(self, hypothesis_output: dict, hypothesis_ids: Optional[List[str]] = None) -> dict:
+        """Runs the agent's graph end to end. The graph is an internal detail, so
+        callers (the CLI, the orchestrator, another agent) see only this
+        signature, the returned dict, and ExperimentPlannerAgentError on failure.
+
+        `hypothesis_ids` narrows *which* hypotheses get planned; the input is
+        still validated in full either way. Omitting it plans every hypothesis,
+        exactly as this agent always has.
 
         Node exceptions aren't swallowed by LangGraph, so an
         ExperimentPlannerAgentError raised inside a node propagates out of
@@ -130,7 +141,7 @@ class ExperimentPlannerAgent:
 
         graph = build_experiment_planner_graph(self)
         final_state = graph.invoke(
-            {"hypothesis_output": hypothesis_output},
+            {"hypothesis_output": hypothesis_output, "hypothesis_ids": hypothesis_ids},
             config={"configurable": {"thread_id": str(uuid.uuid4())}},
         )
         return final_state["result"]
@@ -148,9 +159,28 @@ class ExperimentPlannerAgent:
                 f"Input doesn't match the Hypothesis Agent's output schema: {exc}"
             ) from exc
 
+        # The *full* hypothesis set is what gets validated, regardless of any
+        # filter: this agent's input contract is still "a complete Hypothesis
+        # Agent output". The filter below only narrows what's planned from it.
         hypotheses = hypothesis_output["hypotheses"]
+        wanted = state.get("hypothesis_ids")
+        if wanted is not None:
+            available = [h["id"] for h in hypotheses]
+            unknown = [hid for hid in wanted if hid not in available]
+            if unknown:
+                raise ExperimentPlannerAgentError(
+                    f"Asked to plan hypothesis id(s) {unknown} that aren't in the input's hypotheses {available}"
+                )
+            hypotheses = [h for h in hypotheses if h["id"] in wanted]
+            if not hypotheses:
+                raise ExperimentPlannerAgentError("hypothesis_ids selected none of the input's hypotheses")
+
         expected_ids = [h["id"] for h in hypotheses]
-        logger.info("Planning experiments for %d hypotheses", len(hypotheses))
+        logger.info(
+            "Planning experiments for %d of %d hypotheses%s",
+            len(hypotheses), len(hypothesis_output["hypotheses"]),
+            f" ({', '.join(expected_ids)})" if wanted is not None else "",
+        )
         return {"hypotheses": hypotheses, "expected_ids": expected_ids}
 
     def _node_plan_one(self, state: ExperimentPlannerState) -> dict:
@@ -231,9 +261,16 @@ class ExperimentPlannerAgent:
         return path
 
 
-def run_experiment_planner_agent(hypothesis_output: dict, output_dir: Optional[str | Path] = None) -> dict:
+def run_experiment_planner_agent(
+    hypothesis_output: dict,
+    output_dir: Optional[str | Path] = None,
+    hypothesis_ids: Optional[List[str]] = None,
+) -> dict:
     """Module-level entry point — the stable call a Coder Agent (or the CLI)
     should use. Builds a default-configured ExperimentPlannerAgent and runs it
     once; use the ExperimentPlannerAgent class directly to reuse one
-    model/config across multiple calls."""
-    return ExperimentPlannerAgent(output_dir=output_dir).run(hypothesis_output)
+    model/config across multiple calls.
+
+    `hypothesis_ids` is optional and defaults to planning all of them, so
+    existing callers are unaffected."""
+    return ExperimentPlannerAgent(output_dir=output_dir).run(hypothesis_output, hypothesis_ids=hypothesis_ids)

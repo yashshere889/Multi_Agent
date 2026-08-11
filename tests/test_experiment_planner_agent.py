@@ -115,6 +115,12 @@ def _hypothesis_output_fixture() -> dict:
         "methods_overview": [{"method": "RAG", "papers_using_it": ["1"], "notes": "common"}],
         "gaps": [{"gap": "gap A", "supporting_evidence": ["1"], "notes": "repeated"}],
         "hypotheses": [_hyp("H1"), _hyp("H2"), _hyp("H3")],
+        "ranking": [
+            {"hypothesis_id": "H2", "rank": 1, "score": 8.5, "justification": "most testable"},
+            {"hypothesis_id": "H1", "rank": 2, "score": 6.0, "justification": "feasible but broad"},
+            {"hypothesis_id": "H3", "rank": 3, "score": 4.0, "justification": "hardest to run"},
+        ],
+        "selected_hypothesis_id": "H2",
         "source_paper_ids": ["1"],
         "generated_at": "2026-01-01T00:00:00+00:00",
         "model": "test-model",
@@ -155,6 +161,60 @@ def test_run_end_to_end(tmp_path):
     written = list(tmp_path.glob("experiment_plan_*.json"))
     assert len(written) == 1
     assert json.loads(written[0].read_text())["experiment_plans"][0]["hypothesis_id"] == "H1"
+
+
+def _single_plan_cross_cutting_response(hypothesis_id: str) -> str:
+    return json.dumps({
+        "shared_infrastructure": ["shared eval harness"],
+        "priority_order": [{"hypothesis_id": hypothesis_id, "rank": 1, "justification": "the only plan"}],
+    })
+
+
+def test_run_with_hypothesis_ids_plans_only_the_named_subset(tmp_path):
+    fake_model = FakeChatModel({
+        '"id": "H2"': _plan_response("H2"),
+        "independently drafted": _single_plan_cross_cutting_response("H2"),
+    })
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(_hypothesis_output_fixture(), hypothesis_ids=["H2"])
+
+    # H1/H3 never reached the fan-out: FakeChatModel would have raised on an
+    # unconfigured prompt if they had.
+    assert [p["hypothesis_id"] for p in result["experiment_plans"]] == ["H2"]
+    assert [e["hypothesis_id"] for e in result["priority_order"]] == ["H2"]
+    assert result["source_hypothesis_ids"] == ["H2"]
+
+
+def test_run_without_hypothesis_ids_still_plans_all_three(tmp_path):
+    fake_model = FakeChatModel({
+        '"id": "H1"': _plan_response("H1"),
+        '"id": "H2"': _plan_response("H2"),
+        '"id": "H3"': _plan_response("H3"),
+        "independently drafted": _cross_cutting_response(),
+    })
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(_hypothesis_output_fixture())
+
+    assert [p["hypothesis_id"] for p in result["experiment_plans"]] == ["H1", "H2", "H3"]
+
+
+def test_run_still_requires_the_full_hypothesis_output_even_when_filtering(tmp_path):
+    """The filter narrows what's planned, never what's validated — a truncated
+    hypothesis set is still rejected."""
+    agent = ExperimentPlannerAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
+    truncated = _hypothesis_output_fixture()
+    truncated["hypotheses"] = truncated["hypotheses"][:1]
+
+    with pytest.raises(ExperimentPlannerAgentError, match="Hypothesis Agent's output schema"):
+        agent.run(truncated, hypothesis_ids=["H1"])
+
+
+def test_run_rejects_a_hypothesis_id_that_isnt_in_the_input(tmp_path):
+    agent = ExperimentPlannerAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
+    with pytest.raises(ExperimentPlannerAgentError, match=r"aren't in the input's hypotheses"):
+        agent.run(_hypothesis_output_fixture(), hypothesis_ids=["H99"])
 
 
 def test_run_rejects_malformed_hypothesis_input(tmp_path):

@@ -20,6 +20,29 @@ def _literature_delta() -> dict:
     }
 
 
+def _interdisciplinary_delta() -> dict:
+    cross_field = {"title": "Ecology Paper", "source": "arxiv", "discipline": "ecology"}
+    return {
+        "interdisciplinary_output": {
+            "papers": [{"title": "RAG Paper", "source": "arxiv"}, cross_field],
+            "core_paper_ids": ["1"],
+            "cross_field_papers": [cross_field],
+            "fields_explored": [{"field": "ecology", "rationale": "same sparsity problem", "queries": ["rarefaction"]}],
+            "bridge_insights": [
+                {
+                    "insight": "rarefaction curves quantify coverage",
+                    "source_field": "ecology",
+                    "connection_to_core_problem": "retrieval corpora are sampled sparsely too",
+                    "supporting_paper_ids": ["9"],
+                }
+            ],
+            "research_question": "q",
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "model": "test-model",
+        }
+    }
+
+
 def _review(overall_pass=True, iteration=1) -> dict:
     return {
         "review": {
@@ -51,6 +74,7 @@ def _final_result(paper_path: str) -> dict:
 def _happy_updates(paper_path: str) -> list[dict]:
     return [
         {"literature": _literature_delta()},
+        {"interdisciplinary_literature": _interdisciplinary_delta()},
         {"hypothesis": {"hypothesis_output": _hypothesis_output()}},
         {"experiment_planner": {"planner_output": _planner_output()}},
         {"coder": {"coder_output": _coder_output()}},
@@ -137,7 +161,10 @@ def test_runner_summarizes_each_stage_from_its_own_delta(store, monkeypatch):
 
     assert by_stage["literature"]["papers_found"] == 2
     assert by_stage["literature"]["papers_downloaded"] == 1  # the one with a local_path
+    assert [f["field"] for f in by_stage["interdisciplinary_literature"]["fields"]] == ["ecology"]
+    assert by_stage["interdisciplinary_literature"]["cross_field_papers"] == 1
     assert [h["id"] for h in by_stage["hypothesis"]["hypotheses"]] == ["H1", "H2", "H3"]
+    assert by_stage["hypothesis"]["selected"] == "H1"
     assert [p["complexity"] for p in by_stage["experiment_planner"]["plans"]] == ["low"] * 3
     assert by_stage["coder"]["experiments"][0]["meets_success_criteria"] is True
     assert by_stage["draft_or_revise"]["supported"] == 2
