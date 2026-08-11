@@ -84,6 +84,45 @@ def compile_check(py_files: list[Path]) -> str | None:
     return None
 
 
+# Small quantized models writing a multi-line call/dict/list habitually
+# append a trailing '\' to every line regardless of whether Python needs one
+# there — it already continues implicitly inside an open (), [], or {}. That
+# habit isn't just harmless noise: once the previous statement's brackets
+# have already closed, a stray trailing backslash still force-continues onto
+# the next (unrelated) line, merging two statements into one invalid logical
+# line. Only a bare backslash immediately before the newline (no trailing
+# whitespace after it) is ever valid line-continuation syntax, so that's the
+# only shape this strips.
+_TRAILING_BACKSLASH_RE = re.compile(r"[ \t]*\\\n")
+
+
+def _strip_redundant_line_continuations(source: str) -> str:
+    return _TRAILING_BACKSLASH_RE.sub("\n", source)
+
+
+def lenient_compile_check(source: str, filename: str) -> tuple[str, str | None]:
+    """Byte-compiles `source` (a string, not yet written to disk). On a
+    SyntaxError, retries once after stripping likely-redundant backslash
+    line-continuations (see _strip_redundant_line_continuations) before
+    giving up. Returns (source_to_use, error_message): error_message is None
+    on success, and source_to_use is the repaired version only if that's what
+    actually compiled — never a transformation applied without verifying it
+    fixed something, exactly like llm_json._fix_invalid_escapes/_loads_lenient
+    apply their own repair only when the strict parse already failed."""
+    try:
+        compile(source, filename, "exec")
+        return source, None
+    except SyntaxError as exc:
+        repaired = _strip_redundant_line_continuations(source)
+        if repaired != source:
+            try:
+                compile(repaired, filename, "exec")
+                return repaired, None
+            except SyntaxError:
+                pass
+        return source, f"{filename}: {exc.msg} (line {exc.lineno})"
+
+
 # Regex rather than AST: this runs against model-generated code that the fix
 # loop may rewrite several times, and a pattern list is cheap to extend when a
 # new footgun shows up. It is a second layer behind the isolated per-experiment
@@ -118,6 +157,38 @@ def static_safety_check(code: str) -> list[str]:
         if re.search(pattern, code):
             findings.append(description)
     return findings
+
+
+def check_shared_infra_files(files: dict[str, str]) -> tuple[dict[str, str], str]:
+    """Runs the same checks a single experiment's run.py gets — lenient
+    compile check, then static safety check — against every shared
+    infrastructure file.
+
+    This exists because every experiment that imports shared infrastructure
+    trusts it unconditionally: a bug there is invisible to (and permanently
+    unfixable by) the per-experiment fix loop, which only ever regenerates
+    that one experiment's own run_py_sections and never touches
+    experiments/_shared/ — see coder_agent.py's module docstring. Checking it
+    here, once, right after it's generated, is what makes a shared-infra bug
+    something the fix loop can actually see and react to.
+
+    Returns (files with any backslash-continuation repairs applied, problem
+    description) — problem is "" when every .py file is clean."""
+    repaired = dict(files)
+    for name, content in files.items():
+        if not name.endswith(".py"):
+            continue
+        fixed_content, error = lenient_compile_check(content, name)
+        repaired[name] = fixed_content
+        if error:
+            return repaired, f"syntax error: {error}"
+    for name, content in repaired.items():
+        if not name.endswith(".py"):
+            continue
+        findings = static_safety_check(content)
+        if findings:
+            return repaired, f"{name} was flagged by the static safety check: {'; '.join(findings)}"
+    return repaired, ""
 
 
 def read_results_json_for_diagnosis(experiment_dir: Path) -> tuple[dict | None, str | None]:
@@ -175,6 +246,15 @@ def ensure_experiment_env(
     venv_python = venv_dir / "bin" / "python"
     use_uv = shutil.which("uv") is not None
     tool = "uv" if use_uv else "pip"
+    # A prior fix attempt can get partway through provisioning (venv created,
+    # then the pip/uv install step fails or times out) and leave venv_dir
+    # behind. Both `uv venv` and the stdlib `venv` module refuse to
+    # (re)populate an existing directory, so without this every subsequent
+    # fix attempt would fail on venv creation itself with the same
+    # "already exists" error, regardless of what changed in the generated
+    # code — the fix loop could never actually recover.
+    if venv_dir.exists():
+        shutil.rmtree(venv_dir, ignore_errors=True)
     try:
         if use_uv:
             subprocess.run(
@@ -233,9 +313,16 @@ def run_experiment(
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
     diagnosable tail of stdout/stderr (or a timeout note) on failure."""
+    # run_script is resolved to an absolute path before being handed to the
+    # subprocess. experiments_dir (CODER_EXPERIMENTS_DIR) defaults to a
+    # relative "experiments", so a caller passing experiment_dir / "run.py"
+    # hands us a relative path here too; since cwd below is that same
+    # relative directory, a relative script arg would get re-resolved
+    # against the subprocess's cwd instead of the launching process's,
+    # doubling the directory (experiments/H1/experiments/H1/run.py).
     try:
         proc = subprocess.run(
-            [str(python_executable), str(run_script)],
+            [str(python_executable), str(run_script.resolve())],
             cwd=str(cwd),
             capture_output=True,
             text=True,

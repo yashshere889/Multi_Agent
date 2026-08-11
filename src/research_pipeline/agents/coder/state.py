@@ -61,6 +61,12 @@ class CoderState(TypedDict, total=False):
     # ever used as the output's "shared_infrastructure_path" anyway.
     shared_dir: str
     shared_files: dict[str, str]
+    # "" unless shared infrastructure still failed a compile/safety check
+    # after its own bounded fix loop — see CoderAgent._setup_shared_infrastructure.
+    # Threaded into every experiment's codegen/fix prompt via
+    # _shared_infra_block so the model knows not to trust a shared import it
+    # can't itself see is broken.
+    shared_infra_warning: str
 
     # The sequential per-plan loop. `plan_index` is the cursor into
     # `ordered_plans`; `experiments` accumulates one finished entry per plan,

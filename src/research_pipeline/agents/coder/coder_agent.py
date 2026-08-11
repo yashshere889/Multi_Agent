@@ -153,6 +153,15 @@ def _truncate(text: str) -> str:
     return text[:ERROR_SUMMARY_MAX_CHARS]
 
 
+def _compact_json(obj: object) -> str:
+    """No pretty-printing whitespace — this is embedded in prompts, not read
+    by a human, and indent=2 runs meaningfully more tokens for the same data
+    (measured ~20-25% on a representative experiment plan). Every prompt in
+    this module uses this instead of json.dumps(..., indent=2); the one
+    exception is _write_summary's output file, which a human actually reads."""
+    return json.dumps(obj, separators=(",", ":"))
+
+
 def _plan_count(planner_output: object) -> int:
     """How many plans the graph will loop over, read defensively. The real
     contract check is validate_planner_output in the graph's first node, and a
@@ -189,8 +198,20 @@ class CoderAgent:
         # streaming=True: this agent's completions are full generated source
         # files (1000s of tokens) requested one experiment at a time, so a
         # slow-but-live stream is safe here in a way it isn't for agents that
-        # fan out concurrent calls — see get_chat_model's docstring.
-        self.chat_model = chat_model or get_chat_model(temperature=0.1, streaming=True)
+        # fan out concurrent calls — see get_chat_model's docstring. Harmless
+        # no-op if CODER_LLM_BACKEND routes this to the huggingface backend,
+        # which has no streaming concept.
+        # backend/model/max_tokens default to None (inherit the pipeline-wide
+        # setting) unless CODER_LLM_BACKEND/CODER_LLM_MODEL/CODER_LLM_MAX_TOKENS
+        # opt this agent into a different model/budget — see get_chat_model's
+        # docstring.
+        self.chat_model = chat_model or get_chat_model(
+            temperature=0.1,
+            streaming=True,
+            backend=settings.coder_llm_backend,
+            model=settings.coder_llm_model,
+            max_tokens=settings.coder_llm_max_tokens,
+        )
         self.experiments_dir = Path(experiments_dir or settings.coder_experiments_dir)
         self.output_dir = Path(output_dir or settings.coder_output_dir)
         self.network_check = network_check or sandbox.has_network_access
@@ -269,10 +290,14 @@ class CoderAgent:
     def _node_setup_shared_infrastructure(self, state: CoderState) -> dict:
         """Runs once for the whole run (the helper itself no-ops the LLM call
         when the planner asked for no shared infrastructure)."""
-        shared_dir, shared_files = self._setup_shared_infrastructure(
+        shared_dir, shared_files, warning = self._setup_shared_infrastructure(
             state["planner_output"], state["ordered_plans"]
         )
-        return {"shared_dir": str(shared_dir), "shared_files": shared_files}
+        return {
+            "shared_dir": str(shared_dir),
+            "shared_files": shared_files,
+            "shared_infra_warning": warning,
+        }
 
     def _node_start_plan_loop(self, state: CoderState) -> dict:
         return {
@@ -308,7 +333,10 @@ class CoderAgent:
 
         try:
             generation = self._generate_experiment_files(
-                plan, state["shared_files"], state["network_available"]
+                plan,
+                state["shared_files"],
+                state["network_available"],
+                state.get("shared_infra_warning", ""),
             )
         except CoderAgentError as exc:
             # A malformed-JSON generation is a per-plan failure, not a
@@ -401,6 +429,7 @@ class CoderAgent:
                 state["network_available"],
                 outcome["error_source"],
                 outcome["error_text"],
+                state.get("shared_infra_warning", ""),
             )
         except CoderAgentError as exc:
             # Same as the initial generation call: a regeneration attempt can
@@ -490,7 +519,21 @@ class CoderAgent:
 
     def _setup_shared_infrastructure(
         self, planner_output: dict, plans: list[dict]
-    ) -> tuple[Path, dict[str, str]]:
+    ) -> tuple[Path, dict[str, str], str]:
+        """Generates shared infrastructure once, then validates it the same
+        way a single experiment's run.py is validated — compile check, then
+        static safety check — and regenerates against the concrete failure,
+        bounded by max_fix_attempts, exactly like the per-experiment fix loop.
+
+        This has to happen here rather than inside that fix loop: every
+        experiment that imports shared infrastructure trusts it
+        unconditionally, and the fix loop only ever regenerates the one
+        experiment currently failing — it has no way to see, let alone fix, a
+        bug that actually lives in experiments/_shared/. If it's still broken
+        after the budget is spent, every experiment's codegen/fix prompt gets
+        an explicit warning instead (see _shared_infra_block) so the model can
+        choose not to rely on it, rather than failing at import time with no
+        idea why."""
         shared_dir = self.experiments_dir / "_shared"
         shared_dir.mkdir(parents=True, exist_ok=True)
         (self.experiments_dir / "__init__.py").touch()
@@ -498,19 +541,54 @@ class CoderAgent:
 
         shared_items = planner_output.get("shared_infrastructure") or []
         if not shared_items:
-            return shared_dir, {}
+            return shared_dir, {}, ""
 
         prompt = prompts.SHARED_INFRA_PROMPT.format(
-            shared_items_block=json.dumps(shared_items, indent=2),
-            plans_block=json.dumps(plans, indent=2),
+            shared_items_block=_compact_json(shared_items),
+            plans_block=_compact_json(plans),
         )
         response = self._call_json(prompt)
         files = response.get("files", {})
+        files, problem = sandbox.check_shared_infra_files(files)
+
+        attempt = 0
+        while problem and attempt < self.max_fix_attempts:
+            attempt += 1
+            logger.info(
+                "Shared infrastructure failed a check (attempt %d/%d): %s",
+                attempt,
+                self.max_fix_attempts,
+                problem,
+            )
+            fix_prompt = prompts.SHARED_INFRA_FIX_PROMPT.format(
+                shared_items_block=_compact_json(shared_items),
+                plans_block=_compact_json(plans),
+                previous_files_block=_compact_json(files),
+                error_text=problem,
+            )
+            response = self._call_json(fix_prompt)
+            files = response.get("files", files)
+            files, problem = sandbox.check_shared_infra_files(files)
+
+        warning = ""
+        if problem:
+            warning = (
+                f"WARNING: shared infrastructure still fails a check after {attempt} repair "
+                f"attempt(s): {problem}. Do not assume this shared code is safe to import as-is "
+                "— if you need this functionality, either avoid importing it or implement the "
+                "needed logic standalone in your own experiment file instead."
+            )
+            logger.warning(
+                "Shared infrastructure still broken after %d attempt(s): %s", attempt, problem
+            )
+
         self._write_files(shared_dir, files)
         logger.info("Wrote %d shared infrastructure file(s) to %s", len(files), shared_dir)
-        return shared_dir, {
-            name: content for name, content in files.items() if name.endswith(".py")
-        }
+        return (
+            shared_dir,
+            {name: content for name, content in files.items() if name.endswith(".py")},
+            warning,
+        )
 
     # -- Per-experiment processing --------------------------------------------
     #
@@ -580,6 +658,12 @@ class CoderAgent:
             agent_helpers=sections.get("helpers", ""),
         )
 
+        # lenient_compile_check may silently repair a redundant trailing
+        # backslash before writing the file (see its docstring) — run_py is
+        # reassigned so the safety check and the file on disk both see
+        # whatever version actually compiled.
+        run_py, compile_error = sandbox.lenient_compile_check(run_py, "run.py")
+
         files = {
             "run.py": run_py,
             "README.md": generation.get("readme", ""),
@@ -587,7 +671,6 @@ class CoderAgent:
         }
         self._write_files(experiment_dir, files)
 
-        compile_error = sandbox.compile_check([experiment_dir / "run.py"])
         if compile_error:
             return {
                 "error_source": "compile_check",
@@ -799,21 +882,29 @@ class CoderAgent:
             raise CoderAgentError(str(exc)) from exc
 
     @staticmethod
-    def _shared_infra_block(shared_files: dict[str, str]) -> str:
+    def _shared_infra_block(shared_files: dict[str, str], warning: str = "") -> str:
         if not shared_files:
             return "No shared infrastructure applies to this experiment — implement it standalone."
         blocks = "\n\n".join(
             f"--- experiments/_shared/{name} ---\n{content}"
             for name, content in shared_files.items()
         )
-        return f"Shared infrastructure already generated for this pipeline:\n\n{blocks}\n\n{prompts.SHARED_IMPORT_NOTE}"
+        warning_block = f"\n\n{warning}" if warning else ""
+        return (
+            f"Shared infrastructure already generated for this pipeline:\n\n{blocks}\n\n"
+            f"{prompts.SHARED_IMPORT_NOTE}{warning_block}"
+        )
 
     def _generate_experiment_files(
-        self, plan: dict, shared_files: dict[str, str], network_available: bool
+        self,
+        plan: dict,
+        shared_files: dict[str, str],
+        network_available: bool,
+        shared_infra_warning: str = "",
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
-            plan_block=json.dumps(plan, indent=2),
-            shared_infra_block=self._shared_infra_block(shared_files),
+            plan_block=_compact_json(plan),
+            shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",
@@ -833,14 +924,13 @@ class CoderAgent:
         network_available: bool,
         error_source: str,
         error_text: str,
+        shared_infra_warning: str = "",
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
             hypothesis_id=plan["hypothesis_id"],
-            plan_block=json.dumps(plan, indent=2),
-            shared_infra_block=self._shared_infra_block(shared_files),
-            previous_sections_block=json.dumps(
-                previous_generation.get("run_py_sections", {}), indent=2
-            ),
+            plan_block=_compact_json(plan),
+            shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
+            previous_sections_block=_compact_json(previous_generation.get("run_py_sections", {})),
             error_source=error_source,
             error_text=error_text,
             network_status="available" if network_available else "NOT available",
@@ -859,7 +949,7 @@ class CoderAgent:
         decides."""
         prompt = prompts.EXPERIMENT_SELF_REVIEW_PROMPT.format(
             hypothesis_id=plan["hypothesis_id"],
-            plan_block=json.dumps(plan, indent=2),
+            plan_block=_compact_json(plan),
             code_block=run_py,
         )
         response = self._call_json(prompt)

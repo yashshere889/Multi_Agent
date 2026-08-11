@@ -29,6 +29,18 @@ apply_chat_template call. Under the huggingface backend guard 2 is thus the
 only thing standing between a reasoning trace and a failed parse, which is
 precisely the case it was written for. LLM_ENABLE_THINKING is honoured where
 it can be, and logged and ignored where it can't.
+
+get_chat_model's `backend`/`model` params are a per-call override of
+LLM_BACKEND/LLM_MODEL, not a second global — CODER_LLM_BACKEND/CODER_LLM_MODEL
+(config.py) are the one place that currently uses them, routing the Coder
+Agent to a code-specialized model (e.g. Qwen3-8B via huggingface, on a Kaggle
+notebook with a GPU count sized for it) while every other agent stays on
+whatever LLM_BACKEND/LLM_MODEL already point at. LLM_HF_MIN_GPUS backs that
+with a fail-fast check (_check_min_gpus): a model sized for N GPUs that only
+finds fewer raises immediately, before spending any time on a multi-GB
+download, rather than OOMing confusingly mid-load — Kaggle's accelerator
+choice is a UI setting the API can't force, so this is the only guarantee
+available that a run actually got what it needed.
 """
 
 from __future__ import annotations
@@ -68,7 +80,9 @@ def _extra_body(enable_thinking: bool) -> dict:
     return body
 
 
-def _openai_chat_model(temperature: float, thinking: bool, streaming: bool) -> BaseChatModel:
+def _openai_chat_model(
+    temperature: float, thinking: bool, streaming: bool, model: str, max_tokens: int
+) -> BaseChatModel:
     # Imported here rather than at module scope purely for symmetry with the
     # huggingface branch, whose import is genuinely expensive.
     from langchain_openai import ChatOpenAI
@@ -76,10 +90,10 @@ def _openai_chat_model(temperature: float, thinking: bool, streaming: bool) -> B
     return ChatOpenAI(
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key,
-        model=settings.llm_model,
+        model=model,
         temperature=temperature,
         top_p=settings.llm_top_p,
-        max_tokens=settings.llm_max_tokens,
+        max_tokens=max_tokens,
         extra_body=_extra_body(thinking),
         # The default of 2 is tuned for a stable local/cluster endpoint. Some
         # deployments of this backend (e.g. a Cloudflare quick tunnel fronting
@@ -93,32 +107,63 @@ def _openai_chat_model(temperature: float, thinking: bool, streaming: bool) -> B
     )
 
 
-def _load_hf_model_and_tokenizer() -> tuple:
+def _check_min_gpus(model_id: str) -> None:
+    """Fails loudly, before spending any time downloading/loading weights, if
+    fewer GPUs are visible than LLM_HF_MIN_GPUS requires. Exists for deployments
+    that size a specific model to a specific GPU count on purpose — e.g. a
+    Kaggle notebook loading an 8B model in bf16 across two T4s so it isn't
+    squeezed against whatever else (a separate llama-server process) already
+    holds VRAM on a single card. Kaggle's accelerator choice is a UI setting
+    the API can't force, so a silent single-GPU fallback would rather OOM
+    confusingly mid-load than fail here with a clear reason."""
+    if settings.llm_hf_min_gpus <= 1:
+        return
+    import torch
+
+    available = torch.cuda.device_count()
+    if available < settings.llm_hf_min_gpus:
+        raise RuntimeError(
+            f"LLM_HF_MIN_GPUS={settings.llm_hf_min_gpus} but only {available} GPU(s) are "
+            f"visible to this process. {model_id} was sized for "
+            f"{settings.llm_hf_min_gpus} — on Kaggle, check Settings -> Accelerator is set "
+            "to a multi-GPU option and the session was restarted after changing it."
+        )
+
+
+def _load_hf_model_and_tokenizer(model_id: str) -> tuple:
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    logger.info("Loading %s onto the GPU (once per process)...", settings.llm_model)
+    _check_min_gpus(model_id)
+    logger.info("Loading %s onto the GPU (once per process)...", model_id)
     model = AutoModelForCausalLM.from_pretrained(
-        settings.llm_model,
+        model_id,
         device_map=settings.llm_hf_device_map,
         dtype=settings.llm_hf_dtype,
         trust_remote_code=True,
     )
-    tokenizer = AutoTokenizer.from_pretrained(settings.llm_model, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     return model, tokenizer
 
 
-def _cached_hf_model_and_tokenizer() -> tuple:
+def _cached_hf_model_and_tokenizer(model_id: str) -> tuple:
+    # Unkeyed by design: every caller of the huggingface backend in a single
+    # process is expected to want the same model (see the module-level cache
+    # comment below for why loading it more than once is actively harmful,
+    # not just wasteful). If two agents ever need two different huggingface
+    # models in the same process, this needs a dict keyed by model_id instead.
     global _hf_model_and_tokenizer
     if _hf_model_and_tokenizer is None:
         with _hf_model_lock:
             if _hf_model_and_tokenizer is None:
-                _hf_model_and_tokenizer = _load_hf_model_and_tokenizer()
+                _hf_model_and_tokenizer = _load_hf_model_and_tokenizer(model_id)
     return _hf_model_and_tokenizer
 
 
-def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel:
+def _huggingface_chat_model(
+    temperature: float, thinking: bool, model: str, max_tokens: int
+) -> BaseChatModel:
     # Imported lazily: langchain-huggingface pulls in torch/transformers, which
     # is several GB and thousands of inodes. It's an optional extra
     # (`uv sync --extra huggingface`) so the default openai backend stays light.
@@ -149,7 +194,7 @@ def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel
     pipeline_kwargs = {
         # max_new_tokens, not max_tokens: transformers counts *generated*
         # tokens, whereas the OpenAI field bounds prompt+completion together.
-        "max_new_tokens": settings.llm_max_tokens,
+        "max_new_tokens": max_tokens,
         "do_sample": do_sample,
         # Without this the pipeline echoes the whole prompt back before the
         # answer, and every strip_fences/json.loads downstream would choke.
@@ -159,13 +204,13 @@ def _huggingface_chat_model(temperature: float, thinking: bool) -> BaseChatModel
         pipeline_kwargs["temperature"] = temperature
         pipeline_kwargs["top_p"] = settings.llm_top_p
 
-    model, tokenizer = _cached_hf_model_and_tokenizer()
+    model_obj, tokenizer = _cached_hf_model_and_tokenizer(model)
     # Building a fresh transformers pipeline around the cached model/tokenizer
     # is cheap (no weights are loaded) — it's just wiring in this call's own
     # generation kwargs (temperature/do_sample differ per agent).
     text_generation_pipeline = transformers_pipeline(
         task="text-generation",
-        model=model,
+        model=model_obj,
         tokenizer=tokenizer,
         **pipeline_kwargs,
     )
@@ -178,6 +223,9 @@ def get_chat_model(
     *,
     enable_thinking: Optional[bool] = None,
     streaming: bool = False,
+    backend: Optional[str] = None,
+    model: Optional[str] = None,
+    max_tokens: Optional[int] = None,
 ) -> BaseChatModel:
     """The one place a chat model is constructed. Callers pass `temperature`
     to trade determinism against variety per agent; `enable_thinking`
@@ -194,10 +242,24 @@ def get_chat_model(
     long-lived SSE streams through a free quick tunnel fail immediately with
     a connection error where the equivalent non-streamed calls succeed.
     invoke() aggregates a stream into one AIMessage either way, so nothing
-    downstream needs to know which mode is in effect."""
+    downstream needs to know which mode is in effect.
+
+    `backend`/`model`/`max_tokens` override LLM_BACKEND/LLM_MODEL/LLM_MAX_TOKENS
+    for this call only — the escape hatch for an agent that genuinely needs a
+    *different* model (or completion budget) than the rest of the pipeline
+    (e.g. CODER_LLM_BACKEND/CODER_LLM_MODEL/CODER_LLM_MAX_TOKENS routing the
+    Coder Agent to a code-specialized model, sized for its own memory budget,
+    while every other agent stays on the pipeline-wide default). Every other
+    agent leaves these unset, so they keep sharing one endpoint exactly as
+    before."""
     thinking = settings.llm_enable_thinking if enable_thinking is None else enable_thinking
     resolved_temperature = settings.llm_temperature if temperature is None else temperature
+    resolved_backend = backend or settings.llm_backend
+    resolved_model = model or settings.llm_model
+    resolved_max_tokens = settings.llm_max_tokens if max_tokens is None else max_tokens
 
-    if settings.llm_backend == "huggingface":
-        return _huggingface_chat_model(resolved_temperature, thinking)
-    return _openai_chat_model(resolved_temperature, thinking, streaming)
+    if resolved_backend == "huggingface":
+        return _huggingface_chat_model(resolved_temperature, thinking, resolved_model, resolved_max_tokens)
+    return _openai_chat_model(
+        resolved_temperature, thinking, streaming, resolved_model, resolved_max_tokens
+    )

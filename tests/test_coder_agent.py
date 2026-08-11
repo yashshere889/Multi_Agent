@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from research_pipeline.agents.coder import sandbox, slurm_submit
-from research_pipeline.agents.coder.coder_agent import CoderAgent, CoderAgentError
+from research_pipeline.agents.coder.coder_agent import CoderAgent, CoderAgentError, _compact_json
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
     SchemaValidationError,
@@ -99,6 +99,65 @@ def test_compile_check_reports_syntax_error(tmp_path):
     error = sandbox.compile_check([bad])
     assert error is not None
     assert "bad.py" in error
+
+
+def test_lenient_compile_check_passes_clean_source():
+    source = "def main():\n    return 1\n"
+    fixed, error = sandbox.lenient_compile_check(source, "good.py")
+    assert error is None
+    assert fixed == source
+
+
+def test_lenient_compile_check_repairs_redundant_trailing_backslash():
+    # A trailing '\' after the closing ')' is redundant (the call already
+    # closed) and, left in, force-continues onto the next statement —
+    # exactly the pattern observed from small quantized models.
+    source = (
+        "def build_model():\n"
+        "    model = dict(\n"
+        "        a=1, \\\n"
+        "        b=2,\n"
+        "    )\\\n"
+        "    return model\n"
+    )
+    fixed, error = sandbox.lenient_compile_check(source, "bad.py")
+    assert error is None
+    assert "\\" not in fixed
+    compile(fixed, "bad.py", "exec")  # doesn't raise
+
+
+def test_lenient_compile_check_reports_original_error_when_repair_does_not_help():
+    source = "def main(:\n    pass\n"
+    fixed, error = sandbox.lenient_compile_check(source, "bad.py")
+    assert error is not None
+    assert "bad.py" in error
+    assert fixed == source  # unmodified — the repair didn't fix a different bug
+
+
+def test_check_shared_infra_files_passes_clean_files():
+    files = {"utils.py": "def load():\n    return 1\n", "README.md": "docs"}
+    repaired, problem = sandbox.check_shared_infra_files(files)
+    assert problem == ""
+    assert repaired == files
+
+
+def test_check_shared_infra_files_repairs_backslash_and_reports_clean():
+    files = {"utils.py": "def load():\n    x = dict(a=1)\\\n    return x\n"}
+    repaired, problem = sandbox.check_shared_infra_files(files)
+    assert problem == ""
+    compile(repaired["utils.py"], "utils.py", "exec")  # doesn't raise
+
+
+def test_check_shared_infra_files_reports_syntax_error():
+    files = {"utils.py": "def load(:\n    pass\n"}
+    _, problem = sandbox.check_shared_infra_files(files)
+    assert "syntax error" in problem
+
+
+def test_check_shared_infra_files_reports_unsafe_pattern():
+    files = {"utils.py": "import os\ndef wipe():\n    os.system('rm -rf /')\n"}
+    _, problem = sandbox.check_shared_infra_files(files)
+    assert "static safety check" in problem
 
 
 def test_render_sbatch_template_includes_hypothesis_id():
@@ -198,6 +257,33 @@ def test_ensure_experiment_env_pip_failure_is_terminal_with_network(tmp_path, mo
     assert "definitely_not_a_real_package_xyz" in error
 
 
+def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, monkeypatch):
+    # Regression test: a prior fix attempt can leave a partial .venv behind
+    # (e.g. venv created but the install step failed), and both `uv venv` and
+    # the stdlib `venv` module refuse to populate an existing directory. Without
+    # clearing it first, every subsequent fix attempt would fail on venv
+    # creation itself regardless of what changed in the generated code.
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("definitely_not_a_real_package_xyz\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    venv_dir = tmp_path / ".venv"
+    venv_dir.mkdir()
+    (venv_dir / "stale_marker").write_text("left behind by a previous fix attempt\n")
+
+    def fake_run(cmd, **kwargs):
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert error is None
+    # The mocked subprocess never recreates the directory, so its absence
+    # here proves the stale one was cleared rather than reused.
+    assert not venv_dir.exists()
+
+
 def test_run_experiment_success(tmp_path):
     script = tmp_path / "run.py"
     script.write_text("print('ok')\n")
@@ -220,6 +306,36 @@ def test_run_experiment_reports_timeout(tmp_path):
     ok, message = sandbox.run_experiment(Path(sys.executable), script, tmp_path, timeout_seconds=1)
     assert ok is False
     assert "timed out" in message
+
+
+def test_run_experiment_resolves_relative_script_path(tmp_path, monkeypatch):
+    # Regression test: CODER_EXPERIMENTS_DIR defaults to a relative
+    # "experiments", so callers can pass a relative run_script alongside a
+    # cwd equal to that same relative directory. Passing the relative script
+    # straight through to subprocess would make the interpreter re-resolve
+    # it against its own (now-different) cwd, doubling the directory
+    # (experiments/H1/experiments/H1/run.py) instead of finding the file.
+    experiment_dir = tmp_path / "experiments" / "H1"
+    experiment_dir.mkdir(parents=True)
+    (experiment_dir / "run.py").write_text("print('ok')\n")
+    monkeypatch.chdir(tmp_path)
+    relative_run_script = Path("experiments") / "H1" / "run.py"
+
+    recorded_cmds = []
+
+    def fake_run(cmd, **kwargs):
+        recorded_cmds.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    ok, message = sandbox.run_experiment(
+        Path(sys.executable), relative_run_script, experiment_dir, timeout_seconds=10
+    )
+    assert ok is True
+    script_arg = Path(recorded_cmds[0][1])
+    assert script_arg.is_absolute()
+    assert script_arg == (experiment_dir / "run.py").resolve()
 
 
 # -- coder_agent.py: orchestration, with a fake chat model and no real network/uv ------
@@ -327,7 +443,7 @@ def test_run_skips_infeasible_plan_without_calling_llm(tmp_path):
 
 
 def test_run_completes_low_complexity_feasible_plan(tmp_path):
-    fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response()})
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -350,7 +466,7 @@ def test_run_completes_low_complexity_feasible_plan(tmp_path):
 
 
 def test_run_marks_high_complexity_as_not_run_and_generates_sbatch(tmp_path):
-    fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
+    fake_model = FakeChatModel({'"hypothesis_id":"H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -374,7 +490,7 @@ def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_pa
         coder_run_high_complexity_when_gpu_available=True,
         coder_high_complexity_timeout_seconds=300,
     )
-    fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
+    fake_model = FakeChatModel({'"hypothesis_id":"H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -394,7 +510,7 @@ def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_pa
 
 def test_run_still_defers_high_complexity_without_gpu_even_with_flag_enabled(tmp_path, monkeypatch):
     _patch_settings(monkeypatch, coder_run_high_complexity_when_gpu_available=True)
-    fake_model = FakeChatModel({'"hypothesis_id": "H2"': _codegen_response()})
+    fake_model = FakeChatModel({'"hypothesis_id":"H2"': _codegen_response()})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -416,7 +532,7 @@ def test_run_detects_syntax_error_and_never_executes(tmp_path):
         **GOOD_SECTIONS,
         "evaluate_function": "def evaluate(experiment_output:\n    pass\n",
     }
-    fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(broken_sections)})
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(broken_sections)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -440,7 +556,7 @@ def test_run_reports_execution_failure(tmp_path):
         **GOOD_SECTIONS,
         "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n",
     }
-    fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(failing_sections)})
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(failing_sections)})
     agent = CoderAgent(
         chat_model=fake_model,
         experiments_dir=tmp_path / "experiments",
@@ -460,7 +576,7 @@ def test_run_reports_missing_required_code_section(tmp_path):
         **GOOD_SECTIONS,
         "evaluate_function": "",
     }  # model omitted a required section
-    fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(incomplete_sections)})
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(incomplete_sections)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -478,7 +594,7 @@ def test_run_reports_missing_required_code_section(tmp_path):
 
 
 def test_run_skips_execution_when_gpu_needed_but_unavailable(tmp_path):
-    fake_model = FakeChatModel({'"hypothesis_id": "H1"': _codegen_response(needs_gpu=True)})
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(needs_gpu=True)})
     experiments_dir = tmp_path / "experiments"
     agent = CoderAgent(
         chat_model=fake_model,
@@ -498,7 +614,7 @@ def test_run_skips_execution_when_gpu_needed_but_unavailable(tmp_path):
 def test_run_missing_package_without_network_skips_execution(tmp_path):
     fake_model = FakeChatModel(
         {
-            '"hypothesis_id": "H1"': _codegen_response(
+            '"hypothesis_id":"H1"': _codegen_response(
                 requirements="definitely_not_a_real_package_xyz\n"
             ),
         }
@@ -524,8 +640,8 @@ def test_run_sets_up_shared_infrastructure_exactly_once(tmp_path):
             "Shared infrastructure items": json.dumps(
                 {"files": {"data_utils.py": "def load():\n    pass\n", "README.md": "shared"}}
             ),
-            '"hypothesis_id": "H1"': _codegen_response(),
-            '"hypothesis_id": "H2"': _codegen_response(),
+            '"hypothesis_id":"H1"': _codegen_response(),
+            '"hypothesis_id":"H2"': _codegen_response(),
         }
     )
     experiments_dir = tmp_path / "experiments"
@@ -552,8 +668,8 @@ def test_run_sets_up_shared_infrastructure_exactly_once(tmp_path):
 def test_run_respects_priority_order(tmp_path):
     fake_model = FakeChatModel(
         {
-            '"hypothesis_id": "H1"': _codegen_response(),
-            '"hypothesis_id": "H2"': _codegen_response(),
+            '"hypothesis_id":"H1"': _codegen_response(),
+            '"hypothesis_id":"H2"': _codegen_response(),
         }
     )
     agent = CoderAgent(
@@ -713,6 +829,75 @@ def _agent(tmp_path, model, **kwargs):
         gpu_check=lambda: False,
         **kwargs,
     )
+
+
+class RecordingScriptedChatModel(ScriptedChatModel):
+    """ScriptedChatModel, but also keeps the full prompt text per kind so a
+    test can assert on what a later call was actually shown."""
+
+    def __init__(self, **responses_by_kind: list[str]):
+        super().__init__(**responses_by_kind)
+        self.prompts_by_kind: dict[str, list[str]] = {}
+
+    def invoke(self, messages):
+        prompt = messages[-1][1]
+        self.prompts_by_kind.setdefault(self._kind(prompt), []).append(prompt)
+        return super().invoke(messages)
+
+
+def test_compact_json_has_no_indentation_whitespace():
+    compact = _compact_json({"a": 1, "b": [1, 2, {"c": 3}]})
+    assert compact == '{"a":1,"b":[1,2,{"c":3}]}'
+    assert "\n" not in compact
+    assert "  " not in compact
+
+
+def test_codegen_prompt_sent_to_model_uses_compact_json(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    # A pretty-printed plan_block would contain '"hypothesis_id": "H1"' (space
+    # after the colon) and newline-indented structure; compact JSON has neither.
+    assert '"hypothesis_id":"H1"' in prompt
+    assert '"hypothesis_id": "H1"' not in prompt
+
+
+BROKEN_SHARED_FILES = {"files": {"utils.py": "def load(:\n    pass\n"}}
+GOOD_SHARED_FILES = {"files": {"utils.py": "def load():\n    return 1\n"}}
+
+
+def test_shared_infra_fix_loop_recovers_after_a_broken_first_generation(tmp_path):
+    model = ScriptedChatModel(
+        shared_infra=[json.dumps(BROKEN_SHARED_FILES), json.dumps(GOOD_SHARED_FILES)],
+        codegen=[_codegen_response()],
+    )
+    experiments_dir = tmp_path / "experiments"
+    agent = _agent(tmp_path, model)
+    result = agent.run(
+        _planner_output([_plan("H1")], shared_infrastructure=["shared eval harness"])
+    )
+
+    assert model.calls_by_kind["shared_infra"] == 2
+    written = (experiments_dir / "_shared" / "utils.py").read_text()
+    compile(written, "utils.py", "exec")  # the repaired/regenerated version was kept
+    assert result["experiments"][0]["status"] == "completed"
+
+
+def test_shared_infra_still_broken_after_max_attempts_warns_downstream_experiments(tmp_path):
+    model = RecordingScriptedChatModel(
+        shared_infra=[
+            json.dumps(BROKEN_SHARED_FILES)
+        ],  # never recovers — same response every retry
+        codegen=[_codegen_response()],
+    )
+    agent = _agent(tmp_path, model, max_fix_attempts=2)
+    agent.run(_planner_output([_plan("H1")], shared_infrastructure=["shared eval harness"]))
+
+    # initial generation + max_fix_attempts regenerations, never more
+    assert model.calls_by_kind["shared_infra"] == 3
+    codegen_prompt = model.prompts_by_kind["codegen"][0]
+    assert "WARNING: shared infrastructure still fails a check" in codegen_prompt
 
 
 def test_fix_loop_recovers_after_a_failed_execution(tmp_path):

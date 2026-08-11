@@ -188,6 +188,36 @@ Return ONLY a JSON object with the exact same shape as before:
 }}
 """
 
+SHARED_INFRA_FIX_PROMPT = """The shared infrastructure you generated failed a check. Fix it.
+
+It will be imported by multiple experiments, so it must be correct standalone \
+— not merely plausible-looking.
+
+Shared infrastructure items (from the Experiment Planner):
+{shared_items_block}
+
+Context — the experiment plans that will use this shared code (JSON):
+{plans_block}
+
+The files you produced last time (JSON):
+{previous_files_block}
+
+What went wrong:
+{error_text}
+
+Diagnose the actual cause and regenerate every file, keeping whatever already \
+worked and correcting what caused the failure. Do not merely describe the bug \
+— the returned code must actually fix it.
+
+Return ONLY a JSON object with the exact same shape as before:
+{{
+  "files": {{
+    "<module_name>.py": "<full file contents>",
+    "README.md": "<what's in here, and which experiments use each module>"
+  }}
+}}
+"""
+
 EXPERIMENT_SELF_REVIEW_PROMPT = """Review the experiment code below for hypothesis {hypothesis_id} \
 BEFORE it is submitted to a shared HPC cluster. It cannot be test-run first — \
 this review is the only check it gets, and a bug wastes real GPU allocation on \
