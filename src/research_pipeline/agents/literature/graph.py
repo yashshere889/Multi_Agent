@@ -16,6 +16,7 @@ from research_pipeline.agents.literature.nodes import (
     merge_and_dedupe_node,
     save_metadata_node,
     search_arxiv_node,
+    search_core_node,
     search_semantic_scholar_node,
 )
 from research_pipeline.agents.literature.state import LiteratureState
@@ -27,19 +28,22 @@ def build_literature_graph():
     graph.add_node("generate_queries", generate_queries)
     graph.add_node("search_arxiv", search_arxiv_node)
     graph.add_node("search_semantic_scholar", search_semantic_scholar_node)
+    graph.add_node("search_core", search_core_node)
     graph.add_node("merge_and_dedupe", merge_and_dedupe_node)
     graph.add_node("download_papers", download_papers_node)
     graph.add_node("save_metadata", save_metadata_node)
 
     graph.set_entry_point("generate_queries")
 
-    # Fan out: both searches start as soon as queries are generated
+    # Fan out: all three searches start as soon as queries are generated
     graph.add_edge("generate_queries", "search_arxiv")
     graph.add_edge("generate_queries", "search_semantic_scholar")
+    graph.add_edge("generate_queries", "search_core")
 
-    # Fan in: merge waits for both branches to complete
+    # Fan in: merge waits for all three branches to complete
     graph.add_edge("search_arxiv", "merge_and_dedupe")
     graph.add_edge("search_semantic_scholar", "merge_and_dedupe")
+    graph.add_edge("search_core", "merge_and_dedupe")
 
     graph.add_edge("merge_and_dedupe", "download_papers")
     graph.add_edge("download_papers", "save_metadata")

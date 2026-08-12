@@ -12,7 +12,7 @@ from typing import List
 
 import requests
 
-from research_pipeline.agents.literature.clients import USER_AGENT, search_arxiv, search_semantic_scholar
+from research_pipeline.agents.literature.clients import USER_AGENT, search_arxiv, search_core, search_semantic_scholar
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
@@ -73,12 +73,17 @@ def search_semantic_scholar_node(state: LiteratureState) -> dict:
     return {"semantic_scholar_papers": search_semantic_scholar(state["search_queries"], max_results)}
 
 
+def search_core_node(state: LiteratureState) -> dict:
+    max_results = state.get("max_results_per_query", settings.default_max_results_per_query)
+    return {"core_papers": search_core(state["search_queries"], max_results)}
+
+
 def _normalize_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]", "", title.lower())
 
 
 def merge_and_dedupe_node(state: LiteratureState) -> dict:
-    all_papers = state["arxiv_papers"] + state["semantic_scholar_papers"]
+    all_papers = state["arxiv_papers"] + state["semantic_scholar_papers"] + state["core_papers"]
     merged: dict[str, Paper] = {}
     for paper in all_papers:
         if not paper.get("title"):

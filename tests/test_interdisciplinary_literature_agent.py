@@ -140,10 +140,10 @@ def _core_papers() -> list[dict]:
     return [{"title": "RAG Paper", "abstract": "about retrieval", "arxiv_id": "1", "source": "arxiv"}]
 
 
-def _agent(tmp_path, chat_model, arxiv_results=None, s2_results=None, **kwargs):
-    """Every network call this agent makes goes through the two injected search
-    functions, so a test never reaches arXiv or Semantic Scholar."""
-    calls = {"arxiv": [], "s2": []}
+def _agent(tmp_path, chat_model, arxiv_results=None, s2_results=None, core_results=None, **kwargs):
+    """Every network call this agent makes goes through the three injected search
+    functions, so a test never reaches arXiv, Semantic Scholar, or CORE."""
+    calls = {"arxiv": [], "s2": [], "core": []}
 
     def fake_arxiv(queries, max_results):
         calls["arxiv"].append((list(queries), max_results))
@@ -153,11 +153,16 @@ def _agent(tmp_path, chat_model, arxiv_results=None, s2_results=None, **kwargs):
         calls["s2"].append((list(queries), max_results))
         return [dict(p) for p in (s2_results or [])]
 
+    def fake_core(queries, max_results):
+        calls["core"].append((list(queries), max_results))
+        return [dict(p) for p in (core_results or [])]
+
     agent = InterdisciplinaryLiteratureAgent(
         chat_model=chat_model,
         output_dir=tmp_path,
         search_arxiv_fn=fake_arxiv,
         search_semantic_scholar_fn=fake_s2,
+        search_core_fn=fake_core,
         **kwargs,
     )
     return agent, calls
@@ -184,6 +189,31 @@ def test_run_end_to_end_merges_cross_field_papers_and_bridges(tmp_path):
     written = list(tmp_path.glob("interdisciplinary_*.json"))
     assert len(written) == 1
     assert json.loads(written[0].read_text())["core_paper_ids"] == ["1"]
+
+
+def test_run_includes_core_results_in_cross_field_search(tmp_path):
+    found = [{"title": "A CORE Paper", "abstract": "x", "paper_id": "99", "source": "core"}]
+    model = FakeChatModel([_fields_response("ecology"), _bridges_response("99")])
+    agent, calls = _agent(tmp_path, model, core_results=found)
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    assert calls["core"] == [(["ecology query"], agent.max_results_per_query)]
+    assert [p["title"] for p in result["papers"]] == ["RAG Paper", "A CORE Paper"]
+    assert result["cross_field_papers"][0]["discipline"] == "ecology"
+
+
+def test_run_dedupes_core_results_against_the_other_two_sources(tmp_path):
+    # arXiv and CORE both return a paper with the same DOI — only one should survive
+    arxiv_results = [{"title": "Ecology Curves", "abstract": "new", "doi": "10.1/eco", "source": "arxiv"}]
+    core_results = [{"title": "Ecology Curves (mirror)", "abstract": "same doi", "doi": "10.1/eco", "source": "core"}]
+    model = FakeChatModel([_fields_response("ecology"), _bridges_response()])
+    agent, _ = _agent(tmp_path, model, arxiv_results=arxiv_results, core_results=core_results)
+
+    result = agent.run(_core_papers())
+
+    assert [p["title"] for p in result["cross_field_papers"]] == ["Ecology Curves"]
+    assert len(result["papers"]) == 2
 
 
 def test_run_fans_out_one_search_per_field_bounded_by_max_fields(tmp_path):

@@ -25,6 +25,7 @@ class LiteratureState(TypedDict, total=False):
     search_queries: List[str]
     arxiv_papers: List[Paper]
     semantic_scholar_papers: List[Paper]
+    core_papers: List[Paper]
     merged_papers: List[Paper]
     download_dir: str
     metadata_path: str

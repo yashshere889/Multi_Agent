@@ -5,14 +5,14 @@ standalone and chained by data shape rather than by coupling to each other
 (see "Chaining agents individually" below); a LangGraph orchestrator runs all
 seven end to end in one call (see "Running the whole pipeline"):
 
-- **literature** — searches arXiv + Semantic Scholar, dedupes, downloads PDFs.
-  Built as a [LangGraph](https://github.com/langchain-ai/langgraph) `StateGraph`
-  because it genuinely benefits from graph fan-out/fan-in (two independent
-  HTTP APIs queried in parallel).
+- **literature** — searches arXiv + Semantic Scholar + CORE, dedupes, downloads
+  PDFs. Built as a [LangGraph](https://github.com/langchain-ai/langgraph)
+  `StateGraph` because it genuinely benefits from graph fan-out/fan-in (three
+  independent HTTP APIs queried in parallel).
 - **interdisciplinary-literature** — takes the literature agent's papers,
   identifies up to `INTERDISCIPLINARY_MAX_FIELDS` *adjacent* fields whose
   methods could inform the same problem, searches each of them with the same
-  arXiv/Semantic Scholar clients (one `Send` branch per field), and returns the
+  arXiv/Semantic Scholar/CORE clients (one `Send` branch per field), and returns the
   merged, deduped paper pool plus **bridge insights** — concrete "this method
   from field X could inform this problem because Y" entries, each citing the
   cross-field papers it came from. Its `papers` key is the same shape the
@@ -139,7 +139,7 @@ src/research_pipeline/
 └── agents/
     ├── literature/         # LangGraph StateGraph agent
     │   ├── state.py         # graph state schema (TypedDict)
-    │   ├── clients.py        # arXiv / Semantic Scholar HTTP clients (no LangGraph coupling)
+    │   ├── clients.py        # arXiv / Semantic Scholar / CORE HTTP clients (no LangGraph coupling)
     │   ├── nodes.py          # LangGraph node functions
     │   └── graph.py          # StateGraph wiring + compile()
     ├── interdisciplinary_literature/  # LangGraph StateGraph agent
@@ -299,7 +299,7 @@ Requires [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
-cp .env.example .env   # then fill in LLM_BASE_URL / SEMANTIC_SCHOLAR_API_KEY
+cp .env.example .env   # then fill in LLM_BASE_URL / SEMANTIC_SCHOLAR_API_KEY / CORE_API_KEY
 ```
 
 Optional, if you're going to change code:
@@ -438,10 +438,10 @@ LLM_BASE_URL=https://<random-words>.trycloudflare.com/v1 \
 
 Open <http://127.0.0.1:8000> and start a run as usual (see "Watching a run in
 a browser" below) — every LLM call now crosses the tunnel to the Kaggle GPU,
-while arXiv/Semantic Scholar are still queried directly from your machine. The
-tunnel URL is **unauthenticated** — anyone who has it can call the model — and
-only live as long as the notebook's tunnel cell and Kaggle session stay up, so
-treat it as throwaway: don't post it anywhere public, and stop it (notebook
+while arXiv/Semantic Scholar/CORE are still queried directly from your machine.
+The tunnel URL is **unauthenticated** — anyone who has it can call the model —
+and only live as long as the notebook's tunnel cell and Kaggle session stay up,
+so treat it as throwaway: don't post it anywhere public, and stop it (notebook
 section 7) once you're done.
 
 ### Semantic Scholar
@@ -450,6 +450,12 @@ Get a key at https://www.semanticscholar.org/product/api#api-key and set
 `SEMANTIC_SCHOLAR_API_KEY` in `.env`. Without it, Semantic Scholar search is
 skipped (logged as a warning) rather than failing the whole run — unauthenticated
 requests to that API are aggressively rate-limited / rejected with 403s.
+
+### CORE
+
+Get a free key at https://core.ac.uk/services/api and set `CORE_API_KEY` in
+`.env`. CORE has no unauthenticated tier, so without a key CORE search is
+skipped entirely (logged as a warning) rather than failing the whole run.
 
 ## Run
 
@@ -582,7 +588,7 @@ uv run research-pipeline literature "recent approaches to reducing hallucination
     --download-dir papers
 ```
 
-This searches arXiv + Semantic Scholar, dedupes by DOI/title, downloads
+This searches arXiv + Semantic Scholar + CORE, dedupes by DOI/title, downloads
 available PDFs into `papers/`, and writes `papers/metadata.json`.
 
 ```bash
@@ -591,7 +597,7 @@ uv run research-pipeline interdisciplinary-literature --from-file papers/metadat
 
 This asks the model which adjacent fields could inform the same problem (up to
 `INTERDISCIPLINARY_MAX_FIELDS`, default 3), searches each of them on arXiv +
-Semantic Scholar with that field's own generated queries, merges and dedupes
+Semantic Scholar + CORE with that field's own generated queries, merges and dedupes
 what it finds against the in-domain papers, synthesizes bridge insights tying
 the cross-field work back to the core problem, and writes
 `outputs/interdisciplinary_<UTC timestamp>.json` — see
@@ -797,7 +803,7 @@ uv run pytest
 ## Notes on this version vs. the original notebook
 
 - LLM/Barkla config is env-driven (`.env`) instead of hardcoded/Kaggle-specific.
-- Semantic Scholar / arXiv requests retry transient failures (429/5xx) with backoff.
+- Semantic Scholar / arXiv / CORE requests retry transient failures (429/5xx) with backoff.
 - Query generation falls back to the raw research question on *any* LLM failure
   (not just bad JSON), and de-dupes near-identical generated queries.
 - Downloaded files are checked against their `Content-Type` / PDF magic bytes
@@ -815,7 +821,7 @@ uv run pytest
 - Added the **interdisciplinary-literature** agent, between literature and
   hypothesis: identifies adjacent fields whose methods could inform the same
   problem, searches each one concurrently (a `Send` branch per field, reusing
-  the literature agent's own arXiv/Semantic Scholar clients rather than a
+  the literature agent's own arXiv/Semantic Scholar/CORE clients rather than a
   second copy of them), and produces bridge insights connecting what it found
   back to the core question. Merging is deterministic — the literature agent's
   own doi/normalized-title dedupe key, not the model deciding which papers are

@@ -1,4 +1,4 @@
-"""HTTP clients for the external literature-search APIs (arXiv, Semantic Scholar).
+"""HTTP clients for the external literature-search APIs (arXiv, Semantic Scholar, CORE).
 
 Kept separate from nodes.py so they're plain, testable functions with no
 LangGraph state coupling.
@@ -22,6 +22,8 @@ USER_AGENT = "research-pipeline-literature-agent/0.1 (+https://github.com/)"
 
 SEMANTIC_SCHOLAR_SEARCH_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 SEMANTIC_SCHOLAR_FIELDS = "title,abstract,authors,year,externalIds,openAccessPdf,url"
+
+CORE_SEARCH_URL = "https://api.core.ac.uk/v3/search/works/"
 
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_ATTEMPTS = 3
@@ -134,4 +136,46 @@ def search_semantic_scholar(queries: List[str], max_results: int) -> List[Paper]
             })
         time.sleep(0.2)
     logger.info("Semantic Scholar: found %d unique papers", len(papers))
+    return papers
+
+
+def search_core(queries: List[str], max_results: int) -> List[Paper]:
+    if not settings.core_api_key:
+        logger.warning("Skipping CORE search: CORE_API_KEY is not set")
+        return []
+
+    headers = {"Authorization": f"Bearer {settings.core_api_key}", "User-Agent": USER_AGENT}
+    papers: List[Paper] = []
+    seen_ids = set()
+    for query in queries:
+        params = {"q": query, "limit": max_results}
+        try:
+            resp = _request_with_retry("GET", CORE_SEARCH_URL, params=params, headers=headers, timeout=30)
+        except requests.RequestException as exc:
+            logger.error("CORE query '%s' failed after retries: %s", query, exc)
+            continue
+        if resp.status_code != 200:
+            logger.error("CORE query '%s' failed: %d %s", query, resp.status_code, resp.text[:200])
+            continue
+        data = resp.json()
+        for work in data.get("results", []):
+            core_id = work.get("id")
+            if core_id is None or core_id in seen_ids:
+                continue
+            seen_ids.add(core_id)
+            papers.append({
+                "source": "core",
+                "paper_id": str(core_id),
+                "title": (work.get("title") or "").strip(),
+                "authors": [a.get("name") for a in (work.get("authors") or []) if a.get("name")],
+                "abstract": (work.get("abstract") or "").strip(),
+                "year": work.get("yearPublished"),
+                "pdf_url": work.get("downloadUrl"),
+                "doi": work.get("doi"),
+                "url": f"https://core.ac.uk/works/{core_id}",
+            })
+        # CORE's free tier is far tighter than Semantic Scholar's (~10 req/10s
+        # historically), so this self-throttles harder than the 0.2s used there.
+        time.sleep(1.0)
+    logger.info("CORE: found %d unique papers", len(papers))
     return papers

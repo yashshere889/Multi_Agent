@@ -3,9 +3,9 @@
 Sits between the Literature Agent and the Hypothesis Agent: takes the papers
 the Literature Agent found in one field, works out which *adjacent* fields
 could inform the same problem, searches those fields with the same arXiv /
-Semantic Scholar clients the Literature Agent uses, and hands the Hypothesis
-Agent a cross-pollinated paper pool plus explicit "bridge insights" tying the
-cross-field work back to the core problem — all as structured JSON.
+Semantic Scholar / CORE clients the Literature Agent uses, and hands the
+Hypothesis Agent a cross-pollinated paper pool plus explicit "bridge insights"
+tying the cross-field work back to the core problem — all as structured JSON.
 
 Input contract
 --------------
@@ -14,7 +14,7 @@ Input contract
 Hypothesis Agent accepts today, so this agent drops into the chain without the
 Literature Agent changing at all:
     {"title": str, "authors": list[str], "abstract": str, "year": int | None,
-     "source": "arxiv" | "semantic_scholar", "arxiv_id" | "paper_id": str,
+     "source": "arxiv" | "semantic_scholar" | "core", "arxiv_id" | "paper_id": str,
      "doi": str | None, ...}
 
 Malformed or empty papers are logged and dropped rather than raising (see
@@ -90,7 +90,7 @@ from research_pipeline.agents.hypothesis.papers import normalize_papers
 from research_pipeline.agents.interdisciplinary_literature import prompts
 from research_pipeline.agents.interdisciplinary_literature.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.interdisciplinary_literature.state import InterdisciplinaryState
-from research_pipeline.agents.literature.clients import search_arxiv, search_semantic_scholar
+from research_pipeline.agents.literature.clients import search_arxiv, search_core, search_semantic_scholar
 
 # The Literature Agent's own dedupe key, imported rather than re-implemented so
 # "are these the same paper?" can only ever be answered one way in this
@@ -153,6 +153,7 @@ class InterdisciplinaryLiteratureAgent:
         output_dir: Optional[str | Path] = None,
         search_arxiv_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
         search_semantic_scholar_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
+        search_core_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config (research_pipeline.llm)
         # at a lower temperature suited to grounded synthesis rather than
@@ -162,10 +163,11 @@ class InterdisciplinaryLiteratureAgent:
         self.max_results_per_query = max_results_per_query or settings.default_max_results_per_query
         self.output_dir = Path(output_dir or settings.interdisciplinary_output_dir)
         # Injectable for the same reason CoderAgent's network_check/gpu_check
-        # are: they're the only two calls in this agent that touch the network,
-        # so tests substitute them rather than reaching arXiv for real.
+        # are: they're the only three calls in this agent that touch the network,
+        # so tests substitute them rather than reaching arXiv/CORE for real.
         self.search_arxiv = search_arxiv_fn or search_arxiv
         self.search_semantic_scholar = search_semantic_scholar_fn or search_semantic_scholar
+        self.search_core = search_core_fn or search_core
 
     def run(self, papers: List[dict], research_question: Optional[str] = None) -> dict:
         """Runs the agent's graph end to end, returning the validated output
@@ -228,6 +230,7 @@ class InterdisciplinaryLiteratureAgent:
         queries = field["queries"]
         found = list(self.search_arxiv(queries, self.max_results_per_query))
         found += list(self.search_semantic_scholar(queries, self.max_results_per_query))
+        found += list(self.search_core(queries, self.max_results_per_query))
         for paper in found:
             paper["discipline"] = field["field"]
         logger.info("Field '%s': %d paper(s) found across %d query/queries", field["field"], len(found), len(queries))

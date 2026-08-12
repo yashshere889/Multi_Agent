@@ -24,6 +24,7 @@ class Settings:
     llm_enable_thinking: bool
     llm_reasoning_budget: int | None
     semantic_scholar_api_key: str
+    core_api_key: str
     default_max_results_per_query: int
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
@@ -75,6 +76,12 @@ def load_settings() -> Settings:
             "SEMANTIC_SCHOLAR_API_KEY is not set — Semantic Scholar search will be skipped "
             "(unauthenticated requests are aggressively rate-limited / rejected)."
         )
+    core_api_key = os.environ.get("CORE_API_KEY", "")
+    if not core_api_key:
+        logger.warning(
+            "CORE_API_KEY is not set — CORE search will be skipped "
+            "(sign up for a free key at https://core.ac.uk/services/api)."
+        )
     return Settings(
         # Any OpenAI-compatible server (vLLM on a Barkla GPU node, LM Studio,
         # llama-server) reached over LLM_BASE_URL.
@@ -96,12 +103,13 @@ def load_settings() -> Settings:
         llm_enable_thinking=_env_bool("LLM_ENABLE_THINKING", False),
         llm_reasoning_budget=_env_optional_int("LLM_REASONING_BUDGET"),
         semantic_scholar_api_key=semantic_scholar_api_key,
+        core_api_key=core_api_key,
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
-        # costs one arXiv + one Semantic Scholar search per generated query, so
-        # this is the knob that bounds the cross-field search fan-out; the
-        # per-query result count reuses MAX_RESULTS_PER_QUERY rather than
+        # costs one arXiv + one Semantic Scholar + one CORE search per generated
+        # query, so this is the knob that bounds the cross-field search fan-out;
+        # the per-query result count reuses MAX_RESULTS_PER_QUERY rather than
         # adding a second, near-identical knob.
         interdisciplinary_max_fields=int(os.environ.get("INTERDISCIPLINARY_MAX_FIELDS", "3")),
         hypothesis_output_dir=os.environ.get("HYPOTHESIS_OUTPUT_DIR", "outputs"),
