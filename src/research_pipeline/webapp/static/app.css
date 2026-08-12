@@ -70,7 +70,7 @@ h1.question { font-weight: 600; line-height: 1.35; }
 
 /* --- form --- */
 .start-form label { display: block; font-weight: 500; margin-bottom: .3rem; font-size: 13px; }
-textarea, input[type="number"] {
+textarea, input[type="number"], select {
   width: 100%;
   padding: .55rem .7rem;
   border: 1px solid var(--line);
@@ -82,6 +82,41 @@ textarea, input[type="number"] {
 textarea { resize: vertical; }
 .fields { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
 .fields > div { flex: 1 1 12rem; }
+
+/* Accent the small controls so they don't render as bright platform blue on a
+   dark card; the rest of their look is the browser default. */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+
+/* Where the run starts. The papers box is hidden until its radio is checked —
+   a sibling selector rather than JavaScript, which is why the two radios sit
+   directly before .own-papers in index.html. */
+.start-mode {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .5rem 1rem 1rem;
+  margin: 1rem 0;
+}
+.start-mode legend { font-size: 13px; font-weight: 500; padding: 0 .35rem; }
+.start-form .start-mode > label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin: 0 1.25rem .25rem .4rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+.own-papers { display: none; margin-top: .75rem; }
+#start_own:checked ~ .own-papers { display: block; }
+.own-papers code { font-size: 12px; }
+
+.start-form label.check {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 1rem;
+  font-weight: 400;
+  cursor: pointer;
+}
 
 button, .button-link {
   display: inline-block;

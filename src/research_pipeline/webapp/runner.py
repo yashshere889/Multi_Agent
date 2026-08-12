@@ -134,6 +134,18 @@ def run(run_dir: str | Path) -> dict:
         "quality_threshold": params.get("quality_threshold"),
     }
 
+    # Which slice of the pipeline to run (see orchestrator/graph.py). Each key is
+    # added only when the caller actually set it, never as an explicit None: the
+    # orchestrator reads all of these with state.get(key, default), which falls
+    # back for an *absent* key but not for one present and null — so an
+    # unconditional assignment would turn "not customized" into "explicitly off".
+    for key in ("start_stage", "end_stage", "seed_papers"):
+        if params.get(key):
+            inputs[key] = params[key]
+    # Presence, not truthiness: False is the meaningful value here.
+    if "include_interdisciplinary" in params:
+        inputs["include_interdisciplinary"] = params["include_interdisciplinary"]
+
     event_log.append(events.RUN_STARTED, question=record["question"], params=params)
     logger.info("Starting run %s: %s", run_id, record["question"])
 
@@ -157,12 +169,16 @@ def run(run_dir: str | Path) -> dict:
 
         for update in graph.stream(None if resuming else inputs, config=config, stream_mode="updates"):
             for node, delta in (update or {}).items():
-                if node not in stages.STAGE_ORDER:
+                # A node name is not always the stage it displays as: the
+                # seeded-papers entry point reports as the Literature stage,
+                # whose delta shape it produces (see stages.stage_for_node).
+                stage = stages.stage_for_node(node)
+                if stage not in stages.STAGE_ORDER:
                     # LangGraph also emits bookkeeping keys such as __interrupt__.
                     logger.debug("Ignoring a non-stage stream key: %s", node)
                     continue
-                event_log.append(events.STAGE_COMPLETED, stage=node, summary=stages.summarize(node, delta or {}))
-                if node == stages.FINALIZE:
+                event_log.append(events.STAGE_COMPLETED, stage=stage, summary=stages.summarize(stage, delta or {}))
+                if stage == stages.FINALIZE:
                     final_result = (delta or {}).get("final_result")
 
         if final_result is None:

@@ -14,10 +14,11 @@ deployment is a tunnel to a compute node.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, get_args
 from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
@@ -27,6 +28,8 @@ from fastapi.templating import Jinja2Templates
 
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
+from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE
+from research_pipeline.orchestrator.state import EndStage
 from research_pipeline.webapp import events, runs, stages
 
 logger = logging.getLogger(__name__)
@@ -38,6 +41,68 @@ STATIC_DIR = PACKAGE_DIR / "static"
 # How many log lines the log pane shows. Enough to follow what's happening
 # without re-sending a whole run's output on every two-second poll.
 LOG_TAIL = 200
+
+# The two ways a run can get its papers. `SEARCH` is the form's default and
+# means "behave exactly as this form always has": it sets no start_stage at all,
+# matching the only-present-when-customized convention runner.py reads.
+SEARCH = "search"
+OWN_PAPERS = "own_papers"
+
+# What the "run up to" select offers. The order and the values come from the
+# orchestrator's own EndStage literal rather than a copy of it, so a stage
+# renamed there fails loudly here (KeyError at import) instead of silently
+# offering the user a value the graph will reject.
+END_STAGE_LABELS = {
+    "literature": "Papers only",
+    "interdisciplinary_literature": "+ cross-field papers",
+    "hypothesis": "+ hypotheses",
+    "experiment_planner": "+ experiment plan",
+    "coder": "+ code & results",
+    "writer_reviewer": "Full paper (default)",
+}
+END_STAGE_CHOICES = tuple((stage, END_STAGE_LABELS[stage]) for stage in get_args(EndStage))
+
+# The stage-output keys finalize_node's partial-run branch reports, in pipeline
+# order, mapped to the display names the progress pane already uses elsewhere.
+STAGE_OUTPUT_LABELS = {
+    "literature_output": stages.LABELS[stages.LITERATURE],
+    "interdisciplinary_output": stages.LABELS[stages.INTERDISCIPLINARY],
+    "hypothesis_output": stages.LABELS[stages.HYPOTHESIS],
+    "planner_output": stages.LABELS[stages.EXPERIMENT_PLANNER],
+    "coder_output": stages.LABELS[stages.CODER],
+}
+
+
+def _stage_name(output_key: str) -> str:
+    """Human-readable name for one of a partial run's stage-output keys."""
+    key = str(output_key)
+    return STAGE_OUTPUT_LABELS.get(key, key.removesuffix("_output").replace("_", " ").title())
+
+
+def _parse_seed_papers(raw: str) -> list[dict]:
+    """The papers textarea, parsed and checked before any run exists.
+
+    Raises ValueError carrying the message to put in front of the user.
+    `seed_literature_output` silently drops entries with no title, so a list
+    where *none* has one would start a run with an empty paper pool and fail
+    several stages later — cheaper to refuse it here.
+    """
+    text = (raw or "").strip()
+    if not text:
+        raise ValueError('Paste your papers as JSON, or choose "Search for papers".')
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"The papers box is not valid JSON: {exc.msg} (line {exc.lineno}, column {exc.colno})."
+        ) from exc
+    if not isinstance(parsed, list) or not parsed:
+        raise ValueError("The papers box must hold a non-empty JSON array of paper objects.")
+    if not all(isinstance(paper, dict) for paper in parsed):
+        raise ValueError("Every entry in the papers array must be a JSON object, e.g. {\"title\": \"...\"}.")
+    if not any(str(paper.get("title") or "").strip() for paper in parsed):
+        raise ValueError("At least one paper needs a non-empty title field — papers without one are dropped.")
+    return parsed
 
 
 def _duration(start: Optional[str], end: Optional[str]) -> str:
@@ -109,20 +174,43 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.filters["duration"] = _duration
     templates.env.filters["short_time"] = _short_time
+    templates.env.filters["stage_name"] = _stage_name
 
     def render(request: Request, name: str, **context) -> HTMLResponse:
         return templates.TemplateResponse(request=request, name=name, context=context)
+
+    def index_page(request: Request, error: Optional[str] = None) -> HTMLResponse:
+        """The start page, which is also where every form error lands — so the
+        form's own options are assembled in exactly one place."""
+        return render(
+            request,
+            "index.html",
+            runs=store.list_runs(),
+            error=error,
+            settings=settings,
+            end_stage_choices=END_STAGE_CHOICES,
+            default_end_stage=DEFAULT_END_STAGE,
+        )
 
     def progress_context(run_id: str) -> dict:
         record = store.get(run_id)
         stage_events = events.read_events(store.run_dir(run_id), types=[events.STAGE_COMPLETED])
         active = _is_active(record)
         paper = _latest_paper(store, record)
+        params = record.get("params") or {}
         return {
             "run": record,
             "active": active,
             "can_resume": _can_resume(record),
-            "rows": stages.build_progress(stage_events, active, (record.get("params") or {}).get("max_iterations")),
+            # The run's own params, so a run covering only part of the pipeline
+            # is not shown pending stages it will never reach.
+            "rows": stages.build_progress(
+                stage_events,
+                active,
+                params.get("max_iterations"),
+                end_stage=params.get("end_stage"),
+                include_interdisciplinary=params.get("include_interdisciplinary", True),
+            ),
             "paper_name": paper.name if paper else None,
         }
 
@@ -132,7 +220,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
-        return render(request, "index.html", runs=store.list_runs(), error=None, settings=settings)
+        return index_page(request)
 
     @app.get("/partials/runs", response_class=HTMLResponse)
     def runs_fragment(request: Request):
@@ -145,34 +233,57 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         max_results: int = Form(settings.default_max_results_per_query),
         max_iterations: Optional[int] = Form(None),
         quality_threshold: Optional[int] = Form(None),
+        start_mode: str = Form(SEARCH),
+        seed_papers: str = Form(""),
+        end_stage: str = Form(DEFAULT_END_STAGE),
+        # A checkbox is simply absent when unchecked, so this arrives as None
+        # rather than as False — the form always asks, so absent means off.
+        include_interdisciplinary: Optional[str] = Form(None),
     ):
         question = question.strip()
         if not question:
-            return render(request, "index.html", runs=store.list_runs(), error="A research question is required.", settings=settings)
+            return index_page(request, error="A research question is required.")
+
+        if end_stage not in END_STAGE_LABELS:
+            return index_page(request, error=f"{end_stage!r} is not a stage this pipeline can stop at.")
+
+        params: dict = {
+            "max_results_per_query": max_results,
+            "max_iterations": max_iterations,
+            "quality_threshold": quality_threshold,
+            # Both always set: the form always presents the choice, and the
+            # defaults it presents are the orchestrator's own defaults, so
+            # setting them explicitly changes nothing for an untouched form.
+            "end_stage": end_stage,
+            "include_interdisciplinary": include_interdisciplinary is not None,
+        }
+
+        # Only written when the user actually chose to supply papers. A `search`
+        # run leaves both keys absent, which is what runner.py reads as "not
+        # customized" — an explicit null there would mean something else.
+        if start_mode == OWN_PAPERS:
+            try:
+                papers = _parse_seed_papers(seed_papers)
+            except ValueError as exc:
+                # Checked before store.create, so a bad paste leaves no run
+                # directory behind, exactly like a blank question.
+                return index_page(request, error=str(exc))
+            params["start_stage"] = OWN_PAPERS
+            params["seed_papers"] = papers
 
         # Refused rather than queued: the pipeline talks to one LLM endpoint, so
         # a second concurrent run competes with the first for it instead of
         # finishing sooner. Saying so is more useful than a silent backlog.
         if store.active_count() >= settings.webapp_max_concurrent_runs:
-            return render(
+            return index_page(
                 request,
-                "index.html",
-                runs=store.list_runs(),
                 error=(
                     f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
                     f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it."
                 ),
-                settings=settings,
             )
 
-        record = store.create(
-            question,
-            {
-                "max_results_per_query": max_results,
-                "max_iterations": max_iterations,
-                "quality_threshold": quality_threshold,
-            },
-        )
+        record = store.create(question, params)
         store.launch(record["run_id"])
         return RedirectResponse(f"/runs/{record['run_id']}", status_code=303)
 
@@ -237,11 +348,18 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         record = store.get(run_id)
         run_dir = store.run_dir(run_id)
         stage_events = events.read_events(run_dir, types=[events.STAGE_COMPLETED])
+        params = record.get("params") or {}
         return {
             **record,
             "active": _is_active(record),
             "stages_completed": [e.get("stage") for e in stage_events],
-            "stages": stages.build_progress(stage_events, _is_active(record), (record.get("params") or {}).get("max_iterations")),
+            "stages": stages.build_progress(
+                stage_events,
+                _is_active(record),
+                params.get("max_iterations"),
+                end_stage=params.get("end_stage"),
+                include_interdisciplinary=params.get("include_interdisciplinary", True),
+            ),
         }
 
     @app.get("/api/runs")

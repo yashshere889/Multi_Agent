@@ -242,6 +242,80 @@ def test_runner_defaults_max_results_when_the_form_left_it_blank(store, monkeypa
     assert graph.seen_inputs["max_results_per_query"] is not None
 
 
+def test_runner_passes_the_run_shape_params_through_to_the_graph(store, monkeypatch):
+    seed_papers = [{"title": "A paper I already have", "source": "manual"}]
+    record = store.create(
+        "q",
+        {
+            "start_stage": "own_papers",
+            "end_stage": "hypothesis",
+            "include_interdisciplinary": False,
+            "seed_papers": seed_papers,
+        },
+    )
+    run_dir = store.run_dir(record["run_id"])
+    updates = [
+        {"seed_literature": _literature_delta()},
+        {"hypothesis": {"hypothesis_output": _hypothesis_output()}},
+        {"finalize": {"final_result": {"stages_completed": ["literature_output", "hypothesis_output"]}}},
+    ]
+    graph = FakeGraph(updates)
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    final = runner.run(run_dir)
+
+    assert graph.seen_inputs["start_stage"] == "own_papers"
+    assert graph.seen_inputs["end_stage"] == "hypothesis"
+    assert graph.seen_inputs["include_interdisciplinary"] is False
+    assert graph.seen_inputs["seed_papers"] == seed_papers
+    assert final["status"] == runs.COMPLETED
+
+
+def test_runner_omits_run_shape_params_the_caller_did_not_set(store, monkeypatch):
+    """Absent must stay absent, not become an explicit None: the orchestrator
+    reads these with state.get(key, default), which falls back only for a key
+    that is missing — a present None would read as "explicitly off"."""
+    record = store.create("q", {"max_results_per_query": 3})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    for key in ("start_stage", "end_stage", "include_interdisciplinary", "seed_papers"):
+        assert key not in graph.seen_inputs
+
+
+def test_runner_omits_run_shape_params_that_are_present_but_null(store, monkeypatch):
+    record = store.create("q", {"start_stage": None, "end_stage": None, "seed_papers": []})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    for key in ("start_stage", "end_stage", "seed_papers"):
+        assert key not in graph.seen_inputs
+
+
+def test_runner_reports_the_seeded_literature_node_as_the_literature_stage(store, monkeypatch):
+    """seed_literature is a different node but the same stage — it produces the
+    same literature_output delta, and dropping it as an unknown node would leave
+    a bring-your-own-papers run with no Literature row at all."""
+    record = store.create("q", {"start_stage": "own_papers", "seed_papers": [{"title": "t"}]})
+    run_dir = store.run_dir(record["run_id"])
+    updates = [{"seed_literature": _literature_delta()}] + _happy_updates("v1.pdf")[1:]
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: FakeGraph(updates))
+
+    runner.run(run_dir)
+
+    stage_events = _stage_events(run_dir)
+    assert [e["stage"] for e in stage_events] == list(stages.STAGE_ORDER)
+    assert "seed_literature" not in [e["stage"] for e in stage_events]
+    # And it is summarized as a literature delta, not dropped to an empty dict.
+    assert stage_events[0]["summary"]["papers_found"] == 2
+
+
 def test_runner_records_a_failure_instead_of_dying_silently(store, monkeypatch):
     record = store.create("q", {})
     run_dir = store.run_dir(record["run_id"])

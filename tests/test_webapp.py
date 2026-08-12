@@ -6,10 +6,13 @@ import sys
 import time
 from dataclasses import replace
 from types import SimpleNamespace
+from typing import get_args
 from urllib.parse import unquote
 
 import pytest
 
+from research_pipeline.orchestrator.nodes import finalize_node
+from research_pipeline.orchestrator.state import EndStage
 from research_pipeline.webapp import app as app_module
 from research_pipeline.webapp import events, runs, stages
 
@@ -71,7 +74,16 @@ def _seed_stage_events(store, run_id, *stage_summaries):
 def test_post_runs_creates_a_run_directory_and_launches_it(client, store, launched):
     response = client.post(
         "/runs",
-        data={"question": "  does retrieval reduce hallucination?  ", "max_results": 3, "max_iterations": 2},
+        # What the untouched form actually submits: the default start mode, the
+        # default end stage, and a checked interdisciplinary box.
+        data={
+            "question": "  does retrieval reduce hallucination?  ",
+            "max_results": 3,
+            "max_iterations": 2,
+            "start_mode": "search",
+            "end_stage": "writer_reviewer",
+            "include_interdisciplinary": "1",
+        },
         follow_redirects=False,
     )
 
@@ -81,10 +93,111 @@ def test_post_runs_creates_a_run_directory_and_launches_it(client, store, launch
 
     record = store.get(run_id)
     assert record["question"] == "does retrieval reduce hallucination?"  # stripped
-    assert record["params"] == {"max_results_per_query": 3, "max_iterations": 2, "quality_threshold": None}
+    assert record["params"] == {
+        "max_results_per_query": 3,
+        "max_iterations": 2,
+        "quality_threshold": None,
+        "end_stage": "writer_reviewer",
+        "include_interdisciplinary": True,
+    }
+    # A searched run stays uncustomized: runner.py reads a *present* key as
+    # "the user chose this", so the seeded-papers keys must be absent, not null.
+    assert "start_stage" not in record["params"]
+    assert "seed_papers" not in record["params"]
     assert record["status"] == runs.RUNNING
     for sub in ("outputs", "papers", "experiments"):
         assert (store.run_dir(run_id) / sub).is_dir()
+
+
+def test_post_runs_accepts_papers_the_user_already_has(client, store, launched):
+    papers = [
+        {"title": "Retrieval-Augmented Generation", "authors": ["Lewis, P."], "year": 2020, "doi": "10.1/rag"},
+        {"title": "Dense Passage Retrieval", "abstract": "..."},
+    ]
+
+    response = client.post(
+        "/runs",
+        data={
+            "question": "does retrieval reduce hallucination?",
+            "start_mode": "own_papers",
+            "seed_papers": json.dumps(papers),
+            "end_stage": "hypothesis",
+            "include_interdisciplinary": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert launched == [run_id]
+
+    params = store.get(run_id)["params"]
+    assert params["start_stage"] == "own_papers"
+    assert params["seed_papers"] == papers
+
+
+@pytest.mark.parametrize(
+    ("seed_papers", "expected"),
+    [
+        ("[{'title': 'not json'}]", "not valid JSON"),
+        ("", "Paste your papers as JSON"),
+        ("[]", "non-empty JSON array"),
+        ('{"title": "an object, not an array"}', "non-empty JSON array"),
+        ('["just a string"]', "must be a JSON object"),
+        ('[{"year": 2020}, {"title": "   "}]', "needs a non-empty title"),
+    ],
+)
+def test_post_runs_rejects_unusable_seed_papers(client, store, launched, seed_papers, expected):
+    """Refused before store.create, so a bad paste leaves nothing behind — the
+    title check included, since paper_seed drops title-less papers silently and
+    a run seeded with none of them would fail several stages later."""
+    response = client.post(
+        "/runs",
+        data={"question": "q", "start_mode": "own_papers", "seed_papers": seed_papers},
+    )
+
+    assert response.status_code == 200
+    assert expected in response.text
+    assert launched == []
+    assert store.list_runs() == []
+
+
+def test_post_runs_records_a_custom_end_stage(client, store):
+    response = client.post(
+        "/runs",
+        data={"question": "q", "end_stage": "coder"},
+        follow_redirects=False,
+    )
+
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.get(run_id)["params"]["end_stage"] == "coder"
+
+
+def test_post_runs_rejects_an_end_stage_the_pipeline_has_no_such_stage_for(client, store, launched):
+    response = client.post("/runs", data={"question": "q", "end_stage": "publish_to_nature"})
+
+    assert response.status_code == 200
+    assert "not a stage this pipeline can stop at" in response.text
+    assert launched == []
+    assert store.list_runs() == []
+
+
+@pytest.mark.parametrize(("checkbox", "expected"), [({"include_interdisciplinary": "1"}, True), ({}, False)])
+def test_post_runs_reads_the_interdisciplinary_checkbox(client, store, checkbox, expected):
+    """HTML sends a checkbox field only when it is checked, so an absent field
+    is the user unticking it — recorded explicitly either way."""
+    response = client.post("/runs", data={"question": "q", **checkbox}, follow_redirects=False)
+
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.get(run_id)["params"]["include_interdisciplinary"] is expected
+
+
+def test_index_offers_every_end_stage_the_orchestrator_accepts(client):
+    body = client.get("/").text
+
+    for stage in get_args(EndStage):
+        assert f'value="{stage}"' in body
+    assert 'value="writer_reviewer" selected' in body
 
 
 def test_post_runs_rejects_a_blank_question(client, store, launched):
@@ -153,6 +266,27 @@ def test_progress_fragment_shows_unresolved_issues_when_review_never_passed(clie
 
     assert "Finished without passing review" in body
     assert "Results &gt; H2 overstates accuracy" in body
+
+
+def test_progress_fragment_summarizes_a_run_that_stopped_at_a_custom_end_stage(client, store):
+    """A partial run's final_result has no Writer/Reviewer fields at all, so the
+    full-run wording would render as 'after  iteration(s)'. Built by the real
+    finalize_node so the template is tested against the shape it will meet."""
+    final_result = finalize_node(
+        {
+            "literature_output": {"merged_papers": [{"title": "RAG Paper"}]},
+            "hypothesis_output": {"hypotheses": [{"id": "H1"}]},
+        }
+    )["final_result"]
+    record = store.create("q", {"end_stage": "hypothesis"})
+    store.update(record["run_id"], status=runs.COMPLETED, final_result=final_result)
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert "Stopped after: Hypothesis" in body
+    assert "Stages completed: Literature → Hypothesis" in body
+    assert "iteration(s)" not in body
+    assert "Passed review" not in body and "Finished without passing review" not in body
 
 
 def test_log_fragment_shows_the_tail_of_the_log(client, store, monkeypatch):

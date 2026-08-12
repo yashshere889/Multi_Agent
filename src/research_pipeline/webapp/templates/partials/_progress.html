@@ -26,7 +26,23 @@
 
   {% if run.error %}<p class="error">{{ run.error }}</p>{% endif %}
 
+  {# Two shapes of final_result, from the two branches of the orchestrator's
+     finalize_node: a full run reports on the Writer/Reviewer loop, while a run
+     that stopped at a custom end_stage never had one and reports the stages it
+     did complete instead. `stages_completed` is the partial branch's own key,
+     so presence — not truthiness — is what tells them apart. #}
   {% if run.final_result %}
+  {% if 'stages_completed' in run.final_result %}
+  <div class="final">
+    {% set completed = run.final_result.stages_completed or [] %}
+    {% if completed %}
+      <strong>Stopped after: {{ completed | last | stage_name }}</strong>
+      <p class="muted">Stages completed: {{ completed | map('stage_name') | join(' → ') }}</p>
+    {% else %}
+      <strong>Stopped before any stage produced output.</strong>
+    {% endif %}
+  </div>
+  {% else %}
   <div class="final">
     <strong>
       {% if run.final_result.converged %}Passed review{% else %}Finished without passing review{% endif %}
@@ -38,6 +54,7 @@
       </ul>
     {% endif %}
   </div>
+  {% endif %}
   {% endif %}
 
   <ol class="stages">
@@ -130,7 +147,11 @@
           {% if s.feedback and not s.overall_pass %}<p class="muted feedback">{{ s.feedback }}</p>{% endif %}
 
         {% elif row.key == 'finalize' %}
-          <p class="muted">Review log written to {{ s.review_history_path }}</p>
+          {% if s.review_history_path %}
+            <p class="muted">Review log written to {{ s.review_history_path }}</p>
+          {% else %}
+            <p class="muted">Run stopped without reaching the Writer/Reviewer stage — no review log.</p>
+          {% endif %}
         {% endif %}
       </div>
       {% endif %}

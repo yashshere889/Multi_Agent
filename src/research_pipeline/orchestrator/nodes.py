@@ -26,6 +26,7 @@ from research_pipeline.agents.reviewer import ReviewerAgent
 from research_pipeline.agents.writer import WriterAgent
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.state import PipelineState
+from research_pipeline.paper_seed import seed_literature_output
 from research_pipeline.writer_reviewer_loop import _consolidate_unresolved, route_feedback_to_sections
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,15 @@ def run_literature_node(state: PipelineState) -> dict:
     return {"literature_output": result}
 
 
+def seed_literature_node(state: PipelineState) -> dict:
+    """The alternative entry point to run_literature_node: skip the search and
+    start from papers the caller supplied. Produces the same LiteratureState
+    shape, so no downstream node can tell which entry point ran."""
+    result = seed_literature_output(state["seed_papers"], state["research_question"])
+    logger.info("Seeded literature stage with %d unique user-provided paper(s)", len(result["merged_papers"]))
+    return {"literature_output": result}
+
+
 def run_interdisciplinary_literature_node(state: PipelineState) -> dict:
     literature_output = state["literature_output"]
     result = run_interdisciplinary_literature_agent(
@@ -92,14 +102,31 @@ def run_interdisciplinary_literature_node(state: PipelineState) -> dict:
 
 
 def run_hypothesis_node(state: PipelineState) -> dict:
-    # Reads the Interdisciplinary Literature Agent's output, not the Literature
-    # Agent's: its "papers" key is the same shape, already merged with whatever
-    # cross-field papers it found.
-    interdisciplinary_output = state["interdisciplinary_output"]
+    """Reads the Interdisciplinary Literature Agent's output when that stage ran
+    — its "papers" key is the same shape, already merged with whatever
+    cross-field papers it found — and falls back to the Literature Agent's own
+    papers when it didn't (include_interdisciplinary=False), the same
+    upstream-or-fallback shape as _papers_for_writeup.
+
+    Skipping the stage means dropping its bridge insights too:
+    `interdisciplinary_context` is already optional (README's "Chaining agents
+    individually" documents omitting it), so this is the agent's own documented
+    standalone call, not a special orchestrator mode."""
+    interdisciplinary_output = state.get("interdisciplinary_output")
+    if interdisciplinary_output:
+        papers = interdisciplinary_output["papers"]
+        research_question = interdisciplinary_output.get("research_question")
+        interdisciplinary_context = interdisciplinary_output.get("bridge_insights")
+    else:
+        literature_output = state["literature_output"]
+        papers = literature_output["merged_papers"]
+        research_question = literature_output.get("research_question")
+        interdisciplinary_context = None
+
     result = run_hypothesis_agent(
-        interdisciplinary_output["papers"],
-        research_question=interdisciplinary_output.get("research_question"),
-        interdisciplinary_context=interdisciplinary_output.get("bridge_insights"),
+        papers,
+        research_question=research_question,
+        interdisciplinary_context=interdisciplinary_context,
         output_dir=state.get("output_dir"),
     )
     return {"hypothesis_output": result}
@@ -191,10 +218,42 @@ def review_node(state: PipelineState, config: Optional[RunnableConfig] = None) -
     return {"review": review, "review_history": history, "converged": bool(review["overall_pass"])}
 
 
+# The stage-output keys a partial run can leave behind, in pipeline order.
+_PARTIAL_STAGE_KEYS = (
+    "literature_output",
+    "interdisciplinary_output",
+    "hypothesis_output",
+    "planner_output",
+    "coder_output",
+)
+
+
+def _finalize_partial_run(state: PipelineState) -> dict:
+    """The result for a run that stopped before the Writer/Reviewer stage.
+
+    Nothing extra is written to disk: every stage already persisted its own
+    output file inside its own run_<name>_agent(), so this only assembles what
+    ran into one dict the caller can use directly."""
+    stages_completed = [key for key in _PARTIAL_STAGE_KEYS if state.get(key)]
+    logger.info("Pipeline finished early after %d stage(s): %s", len(stages_completed), ", ".join(stages_completed))
+    final_result = {
+        "stages_completed": stages_completed,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    final_result.update({key: state[key] for key in stages_completed})
+    return {"final_result": final_result}
+
+
 def finalize_node(state: PipelineState) -> dict:
     """Writes review_log.json and assembles the run's result — the same shape
     and same persistence as run_writer_reviewer_loop, plus every upstream
-    stage's own output files, which each agent already wrote itself."""
+    stage's own output files, which each agent already wrote itself.
+
+    A run that stopped before the Writer/Reviewer stage has no review history to
+    log, so it takes the partial branch instead."""
+    if not state.get("review_history"):
+        return _finalize_partial_run(state)
+
     history = state["review_history"]
     converged = state["converged"]
     unresolved_issues = [] if converged else _consolidate_unresolved(state["review"], _quality_threshold(state))

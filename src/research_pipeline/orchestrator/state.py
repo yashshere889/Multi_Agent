@@ -7,7 +7,17 @@ README's "Chaining agents individually") — no adapter/remapping between nodes.
 
 from __future__ import annotations
 
-from typing import List, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
+
+StartStage = Literal["literature", "own_papers"]
+EndStage = Literal[
+    "literature",
+    "interdisciplinary_literature",
+    "hypothesis",
+    "experiment_planner",
+    "coder",
+    "writer_reviewer",
+]
 
 
 class PipelineState(TypedDict, total=False):
@@ -19,6 +29,16 @@ class PipelineState(TypedDict, total=False):
     output_dir: Optional[str]
     max_iterations: Optional[int]
     quality_threshold: Optional[int]
+
+    # --- run shape: which contiguous slice of the pipeline this run covers ---
+    # All optional, and every default reproduces the original fixed linear run,
+    # so a caller that sets none of them gets exactly today's behavior.
+    start_stage: StartStage  # default "literature" (run the search)
+    end_stage: EndStage  # default "writer_reviewer" (run everything)
+    include_interdisciplinary: bool  # default True
+    # Required iff start_stage == "own_papers": raw paper dicts to seed the
+    # literature stage with, in place of running a search. See paper_seed.py.
+    seed_papers: List[dict]
 
     # --- stage outputs, each the exact dict shape run_<name>_agent returns ---
     literature_output: dict

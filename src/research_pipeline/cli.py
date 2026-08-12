@@ -262,19 +262,32 @@ def run_writer_reviewer_loop_cli(args: argparse.Namespace) -> None:
 def run_orchestrate_cli(args: argparse.Namespace) -> None:
     graph = build_pipeline_graph()
     run_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-    state = graph.invoke(
-        {
-            "research_question": args.question,
-            "max_results_per_query": args.max_results,
-            "download_dir": args.download_dir,
-            "metadata_path": f"{args.download_dir}/metadata.json",
-            "output_dir": args.output_dir,
-            "max_iterations": args.max_iterations,
-            "quality_threshold": args.quality_threshold,
-        },
-        config=run_config,
-    )
+    inputs = {
+        "research_question": args.question,
+        "max_results_per_query": args.max_results,
+        "download_dir": args.download_dir,
+        "metadata_path": f"{args.download_dir}/metadata.json",
+        "output_dir": args.output_dir,
+        "max_iterations": args.max_iterations,
+        "quality_threshold": args.quality_threshold,
+        "end_stage": args.end_stage,
+        "include_interdisciplinary": not args.no_interdisciplinary,
+    }
+    if args.papers_file:
+        # The question is still required and still used: every later stage's
+        # prompts frame their work around it, papers or no papers.
+        inputs["start_stage"] = "own_papers"
+        inputs["seed_papers"] = json.loads(Path(args.papers_file).read_text())
+
+    state = graph.invoke(inputs, config=run_config)
     result = state["final_result"]
+
+    # A run that stopped before the Writer/Reviewer stage has no paper to report
+    # — just which stages ran, each having written its own output file already.
+    if "stages_completed" in result:
+        print(f"\nStopped after: {args.end_stage}")
+        print(f"Stages completed: {', '.join(result['stages_completed'])}")
+        return
 
     print(f"\nFinal paper: {result['final_paper_path']}")
     print(f"Iterations run: {result['iterations_run']}")
@@ -538,6 +551,32 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="minimum 1-5 quality score to pass (default: 4)",
+    )
+    orchestrate.add_argument(
+        "--end-stage",
+        choices=[
+            "literature",
+            "interdisciplinary_literature",
+            "hypothesis",
+            "experiment_planner",
+            "coder",
+            "writer_reviewer",
+        ],
+        default="writer_reviewer",
+        help="stop the run after this stage (default: writer_reviewer, i.e. the whole pipeline)",
+    )
+    orchestrate.add_argument(
+        "--no-interdisciplinary",
+        action="store_true",
+        help="skip the cross-field Interdisciplinary Literature stage",
+    )
+    orchestrate.add_argument(
+        "--papers-file",
+        default=None,
+        help=(
+            "JSON list of paper dicts to start from instead of running the literature search; "
+            "the question argument is still used as the research question by every later stage"
+        ),
     )
     orchestrate.set_defaults(func=run_orchestrate_cli)
 
