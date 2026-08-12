@@ -95,7 +95,11 @@ from typing import Dict, List, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from research_pipeline.agents.experiment_planner import prompts
-from research_pipeline.agents.experiment_planner.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.experiment_planner.schema import (
+    SchemaValidationError,
+    priority_order_errors,
+    validate_output,
+)
 from research_pipeline.agents.experiment_planner.state import ExperimentPlannerState
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError as HypothesisSchemaValidationError
 from research_pipeline.agents.hypothesis.schema import validate_output as validate_hypothesis_output
@@ -104,6 +108,40 @@ from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
 
 logger = logging.getLogger(__name__)
+
+
+def _coerce_priority_order(priority_order: list, expected_ids: List[str]) -> List[dict]:
+    """Deterministically repairs a priority_order that still doesn't match
+    expected_ids after a repair-prompt retry — the last line of defense so a
+    single hallucinated/dropped hypothesis_id can never crash the whole
+    orchestrator run (see _plan_cross_cutting). Keeps whichever entries the
+    model got right (an id that's actually in expected_ids), in the model's
+    own relative order, then appends any it omitted at the end with a generic
+    justification, and renumbers ranks 1..n over the result. Never raises:
+    which ids are valid is entirely mechanical here (exactly expected_ids), so
+    this is Python deciding it rather than asking the model a third time."""
+    expected_set = set(expected_ids)
+    seen: set[str] = set()
+    kept: List[dict] = []
+    for entry in priority_order or []:
+        if not isinstance(entry, dict):
+            continue
+        hid = entry.get("hypothesis_id")
+        if hid in expected_set and hid not in seen:
+            seen.add(hid)
+            kept.append(entry)
+    for hid in expected_ids:
+        if hid not in seen:
+            kept.append(
+                {
+                    "hypothesis_id": hid,
+                    "justification": "Auto-assigned: the model's priority order didn't reference this hypothesis.",
+                }
+            )
+    return [
+        {"hypothesis_id": entry["hypothesis_id"], "rank": i + 1, "justification": entry.get("justification", "")}
+        for i, entry in enumerate(kept)
+    ]
 
 
 class ExperimentPlannerAgentError(RuntimeError):
@@ -248,8 +286,52 @@ class ExperimentPlannerAgent:
         return self._call_json(prompt)
 
     def _plan_cross_cutting(self, experiment_plans: List[dict]) -> dict:
+        """Asks the model for shared_infrastructure/priority_order across every
+        plan, then makes sure priority_order actually stays inside the plan set
+        it was shown — a 2026-08-12 production run crashed the whole
+        orchestrator when the model ranked a hypothesis (H2) that had been
+        filtered out before this call ever saw it, and schema.validate_output
+        correctly rejected the mismatch but nothing downstream could recover
+        from it. Two lines of defense before that ever reaches
+        _node_assemble_and_validate: one repair-prompt retry (mirrors
+        llm_json's JSON-parse repair, but for this semantic constraint), then a
+        deterministic coercion if the model repeats the mistake — which
+        hypothesis_ids are valid is entirely mechanical here (exactly the ids
+        of the plans passed in), so Python decides it rather than asking the
+        model a third time. This function therefore never raises on a
+        priority_order problem; only a genuinely unparseable response (handled
+        by _call_json/invoke_json already) still propagates."""
+        expected_ids = [plan["hypothesis_id"] for plan in experiment_plans]
         prompt = prompts.CROSS_CUTTING_PROMPT.format(n=len(experiment_plans), plans_block=json.dumps(experiment_plans, indent=2))
-        return self._call_json(prompt)
+        cross_cutting = self._call_json(prompt)
+        errors = priority_order_errors(cross_cutting.get("priority_order") or [], expected_ids)
+
+        if errors:
+            logger.warning(
+                "Cross-cutting priority_order didn't match the planned hypotheses (%s) — "
+                "retrying once with a repair prompt",
+                "; ".join(errors),
+            )
+            repair_prompt = prompts.CROSS_CUTTING_REPAIR_PROMPT.format(
+                problem="; ".join(errors),
+                n=len(expected_ids),
+                expected_ids=json.dumps(expected_ids),
+                previous_response=json.dumps(cross_cutting)[:4000],
+            )
+            cross_cutting = self._call_json(repair_prompt)
+            errors = priority_order_errors(cross_cutting.get("priority_order") or [], expected_ids)
+
+        if errors:
+            logger.warning(
+                "Cross-cutting priority_order still didn't match after a repair retry (%s) — "
+                "deterministically coercing it instead of failing the run",
+                "; ".join(errors),
+            )
+            cross_cutting["priority_order"] = _coerce_priority_order(
+                cross_cutting.get("priority_order") or [], expected_ids
+            )
+
+        return cross_cutting
 
     # -- Output persistence ----------------------------------------------------
 

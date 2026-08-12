@@ -115,3 +115,22 @@ Return ONLY a JSON object with this exact shape:
 priority_order must include every hypothesis_id from the plans above exactly \
 once, with ranks 1..{n}.
 """
+
+# Nemotron 3 Nano occasionally ranks a hypothesis it was never shown (e.g. one
+# excluded from this run's plans_block) alongside the ones it was — CROSS_CUTTING_PROMPT
+# already says "exactly once" but that alone doesn't reliably stop it. This mirrors
+# llm_json.JSON_REPAIR_PROMPT's shape (quote the bad response, say exactly what's
+# wrong, ask for the same shape back) but for a semantic constraint schema.py's
+# validate_output enforces, rather than a JSON syntax error.
+CROSS_CUTTING_REPAIR_PROMPT = """Your priority_order did not match the hypotheses actually \
+planned: {problem}
+
+Return ONLY a corrected JSON object with the exact same shape as before — \
+"shared_infrastructure" and "priority_order" — where priority_order includes \
+each of these {n} hypothesis_id(s) exactly once, with ranks 1..{n}: {expected_ids}. \
+Do not include any hypothesis_id that isn't in that list, even if you \
+mentioned it before.
+
+Your previous response was:
+{previous_response}
+"""

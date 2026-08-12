@@ -193,25 +193,13 @@ class CoderAgent:
         gpu_check: Callable[[], bool] | None = None,
         max_fix_attempts: int | None = None,
     ) -> None:
-        # Reuses the pipeline's existing LLM client/config, same as the
-        # Hypothesis and Experiment Planner agents, at a low temperature.
-        # streaming=True: this agent's completions are full generated source
-        # files (1000s of tokens) requested one experiment at a time, so a
-        # slow-but-live stream is safe here in a way it isn't for agents that
-        # fan out concurrent calls — see get_chat_model's docstring. Harmless
-        # no-op if CODER_LLM_BACKEND routes this to the huggingface backend,
-        # which has no streaming concept.
-        # backend/model/max_tokens default to None (inherit the pipeline-wide
-        # setting) unless CODER_LLM_BACKEND/CODER_LLM_MODEL/CODER_LLM_MAX_TOKENS
-        # opt this agent into a different model/budget — see get_chat_model's
-        # docstring.
-        self.chat_model = chat_model or get_chat_model(
-            temperature=0.1,
-            streaming=True,
-            backend=settings.coder_llm_backend,
-            model=settings.coder_llm_model,
-            max_tokens=settings.coder_llm_max_tokens,
-        )
+        # Reuses the pipeline's existing LLM client/config, same as every
+        # other agent, at a low temperature. streaming=True: this agent's
+        # completions are full generated source files (1000s of tokens)
+        # requested one experiment at a time, so a slow-but-live stream is
+        # safe here in a way it isn't for agents that fan out concurrent
+        # calls — see get_chat_model's docstring.
+        self.chat_model = chat_model or get_chat_model(temperature=0.1, streaming=True)
         self.experiments_dir = Path(experiments_dir or settings.coder_experiments_dir)
         self.output_dir = Path(output_dir or settings.coder_output_dir)
         self.network_check = network_check or sandbox.has_network_access

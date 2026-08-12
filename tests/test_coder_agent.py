@@ -193,9 +193,15 @@ def test_ensure_experiment_env_prefers_uv_when_available(tmp_path, monkeypatch):
     requirements.write_text("definitely_not_a_real_package_xyz\n")
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
     recorded_cmds = []
+    venv_python = tmp_path / ".venv" / "bin" / "python"
 
     def fake_run(cmd, **kwargs):
         recorded_cmds.append(cmd)
+        # A real `uv venv` materializes the interpreter; simulate that so this
+        # test exercises the code path the existence check now guards, same
+        # as it would on a real filesystem.
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -213,9 +219,14 @@ def test_ensure_experiment_env_falls_back_to_pip_when_uv_missing(tmp_path, monke
     requirements.write_text("definitely_not_a_real_package_xyz\n")
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: None)
     recorded_cmds = []
+    venv_python = tmp_path / ".venv" / "bin" / "python"
 
     def fake_run(cmd, **kwargs):
         recorded_cmds.append(cmd)
+        # A real `venv` module materializes the interpreter; simulate that so
+        # this test exercises the code path the existence check now guards.
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -224,7 +235,6 @@ def test_ensure_experiment_env_falls_back_to_pip_when_uv_missing(tmp_path, monke
         tmp_path, requirements, network_available=True
     )
     assert error is None
-    venv_python = tmp_path / ".venv" / "bin" / "python"
     assert python_exec == venv_python
     assert recorded_cmds == [
         [sys.executable, "-m", "venv", str(tmp_path / ".venv")],
@@ -257,6 +267,36 @@ def test_ensure_experiment_env_pip_failure_is_terminal_with_network(tmp_path, mo
     assert "definitely_not_a_real_package_xyz" in error
 
 
+def test_ensure_experiment_env_reports_error_when_interpreter_is_missing_after_a_successful_provision(
+    tmp_path, monkeypatch
+):
+    # Regression test for the 2026-08-12 production crash: `uv venv` + `uv pip
+    # install` both exited 0 (no CalledProcessError, no TimeoutExpired) on an
+    # Apptainer container over a network filesystem, but .venv/bin/python
+    # still didn't exist afterward. Without an explicit existence check here,
+    # this Path is trusted on faith and run_experiment's subprocess.run raises
+    # a bare, uncaught FileNotFoundError that crashes the whole orchestrator
+    # run instead of degrading to the same handled "couldn't provision an
+    # environment" result every other failure in this function produces.
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("definitely_not_a_real_package_xyz\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+
+    def fake_run(cmd, **kwargs):
+        # Reports success but never actually creates .venv/bin/python.
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert python_exec is None
+    assert error is not None
+    assert "no interpreter exists" in error
+    assert str(tmp_path / ".venv" / "bin" / "python") in error
+
+
 def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, monkeypatch):
     # Regression test: a prior fix attempt can leave a partial .venv behind
     # (e.g. venv created but the install step failed), and both `uv venv` and
@@ -271,6 +311,12 @@ def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, mon
     (venv_dir / "stale_marker").write_text("left behind by a previous fix attempt\n")
 
     def fake_run(cmd, **kwargs):
+        # Simulates a real `uv venv` recreating the directory from scratch —
+        # if the stale one wasn't actually cleared first, stale_marker would
+        # still be sitting alongside this.
+        venv_python = venv_dir / "bin" / "python"
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -279,9 +325,10 @@ def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, mon
         tmp_path, requirements, network_available=True
     )
     assert error is None
-    # The mocked subprocess never recreates the directory, so its absence
-    # here proves the stale one was cleared rather than reused.
-    assert not venv_dir.exists()
+    # The stale marker is gone even though the directory itself now exists
+    # again (recreated by the mocked provisioning call) — proving the stale
+    # one was cleared rather than reused.
+    assert not (venv_dir / "stale_marker").exists()
 
 
 def test_run_experiment_success(tmp_path):

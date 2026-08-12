@@ -303,6 +303,25 @@ def ensure_experiment_env(
     except subprocess.TimeoutExpired:
         return None, f"provisioning an isolated environment for {missing} via {tool} timed out"
 
+    # A zero-exit-code `uv venv`/`pip install` isn't proof the interpreter is
+    # actually there: a 2026-08-12 production run on an Apptainer container
+    # with fastscratch (a network filesystem) as CODER_EXPERIMENTS_DIR saw
+    # both subprocess calls report success with no venv_python at the end —
+    # both `uv venv` and the stdlib venv module create it via a symlink (or a
+    # copy on some platforms) that network filesystems and container overlay
+    # layers don't always honor the same way a local disk does. Without this
+    # check, the caller trusts the returned path on faith and
+    # run_experiment's subprocess.run raises a bare, uncaught
+    # FileNotFoundError that crashes the whole orchestrator run instead of
+    # degrading to the already-handled "couldn't provision an environment"
+    # result every other failure in this function produces.
+    if not venv_python.exists():
+        return (
+            None,
+            f"{tool} reported success provisioning {missing}, but no interpreter exists at "
+            f"{venv_python} afterward — the venv directory may not be usable on this filesystem",
+        )
+
     return venv_python, None
 
 

@@ -82,6 +82,41 @@ def _check_fields(obj: dict, fields: list[tuple[str, type]], path: str, errors: 
             errors.append(f"{path}.{key} should be {expected_type.__name__}, got {type(obj[key]).__name__}")
 
 
+def priority_order_errors(priority_entries: list, expected_ids: list[str], path_prefix: str = "") -> List[str]:
+    """Checks a raw priority_order list's per-entry shape, that its
+    hypothesis_ids are exactly `expected_ids` (each once), and that ranks are
+    a permutation of 1..len(priority_entries). Returns human-readable
+    problems; empty means clean.
+
+    Factored out of validate_output so the Experiment Planner Agent's own
+    pre-assembly repair/coercion step (experiment_planner_agent.py's
+    _plan_cross_cutting) checks the model's raw cross-cutting response
+    against the exact same rule the final schema validation enforces —
+    "valid" can't drift into two different definitions between the two call
+    sites."""
+    errors: List[str] = []
+    ids: List[str] = []
+    ranks: List[int] = []
+    for i, entry in enumerate(priority_entries):
+        path = f"{path_prefix}priority_order[{i}]"
+        if not isinstance(entry, dict):
+            errors.append(f"{path} should be an object")
+            continue
+        _check_fields(entry, [("hypothesis_id", str), ("rank", int), ("justification", str)], path, errors)
+        ids.append(entry.get("hypothesis_id"))
+        if isinstance(entry.get("rank"), int):
+            ranks.append(entry["rank"])
+
+    if expected_ids and set(ids) != set(expected_ids):
+        errors.append(
+            f"{path_prefix}priority_order hypothesis_ids {sorted(set(ids))} don't match "
+            f"expected hypothesis_ids {sorted(set(expected_ids))}"
+        )
+    if ranks and sorted(ranks) != list(range(1, len(priority_entries) + 1)):
+        errors.append(f"{path_prefix}priority_order ranks should be exactly 1..{len(priority_entries)}, got {ranks}")
+    return errors
+
+
 def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = None) -> None:
     """Raises SchemaValidationError (with every problem found, not just the
     first) if `data` doesn't match ExperimentPlannerOutput. If
@@ -175,25 +210,7 @@ def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = N
             errors.append(f"{path}.estimated_complexity should be one of {sorted(VALID_COMPLEXITIES)}, got {complexity!r}")
 
     priority_entries = data.get("priority_order", []) or []
-    priority_ids: List[str] = []
-    ranks: List[int] = []
-    for i, entry in enumerate(priority_entries):
-        path = f"output.priority_order[{i}]"
-        if not isinstance(entry, dict):
-            errors.append(f"{path} should be an object")
-            continue
-        _check_fields(entry, [("hypothesis_id", str), ("rank", int), ("justification", str)], path, errors)
-        priority_ids.append(entry.get("hypothesis_id"))
-        if isinstance(entry.get("rank"), int):
-            ranks.append(entry["rank"])
-
-    if plan_ids and set(priority_ids) != set(plan_ids):
-        errors.append(
-            f"output.priority_order hypothesis_ids {sorted(set(priority_ids))} don't match "
-            f"output.experiment_plans hypothesis_ids {sorted(set(plan_ids))}"
-        )
-    if ranks and sorted(ranks) != list(range(1, len(priority_entries) + 1)):
-        errors.append(f"output.priority_order ranks should be exactly 1..{len(priority_entries)}, got {ranks}")
+    errors.extend(priority_order_errors(priority_entries, plan_ids, path_prefix="output."))
 
     if expected_hypothesis_ids is not None:
         missing = set(expected_hypothesis_ids) - set(plan_ids)

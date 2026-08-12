@@ -316,40 +316,25 @@ currently scopes them to the coder agent only (see
 ### LLM backend
 
 Every agent is LLM-powered and they all share one model, built in one place:
-[`llm.get_chat_model()`](src/research_pipeline/llm.py). `LLM_BACKEND` picks how
-that model is reached — both return a `BaseChatModel`, so no agent knows which
-is in use:
-
-| `LLM_BACKEND` | How | Use it when |
-|---|---|---|
-| `openai` (default) | HTTP to any OpenAI-compatible server via `LLM_BASE_URL` | Serving a large model (vLLM, LM Studio, `llama-server`), or reusing one server across many runs |
-| `huggingface` | Model loaded **in-process** with transformers | Smaller model, and you'd rather not run a server at all |
-
-**`openai`** targets
+[`llm.get_chat_model()`](src/research_pipeline/llm.py). There is a single
+backend — HTTP to any OpenAI-compatible server via `LLM_BASE_URL`/`LLM_MODEL`
+— and every agent shares the same endpoint; there is no per-agent override.
+The pipeline is wired specifically for that endpoint to be vLLM serving
 [NVIDIA Nemotron 3 Nano](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16)
-(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`) served by vLLM, but nothing is
-Kaggle- or llama.cpp-specific — any OpenAI-compatible server works by changing
-`LLM_BASE_URL`/`LLM_MODEL`. `LLM_MODEL` must match the id the server
-advertises: the SLURM script passes no `--served-model-name`, so that's the
-full HF repo id; the model card's own example aliases it to `model`, in which
-case set `LLM_MODEL=model`.
+(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`), but nothing is vLLM-specific —
+any OpenAI-compatible server works by changing `LLM_BASE_URL`/`LLM_MODEL`.
+`LLM_MODEL` must match the id the server advertises: the SLURM script passes
+no `--served-model-name`, so that's the full HF repo id; the model card's own
+example aliases it to `model`, in which case set `LLM_MODEL=model`.
 
-**`huggingface`** needs the optional extra (`uv sync --extra huggingface`),
-which pulls in torch/transformers — several GB and thousands of inodes, hence
-not a base dependency. It uses `ChatHuggingFace` over `HuggingFacePipeline`,
-adds `LLM_HF_DEVICE_MAP`/`LLM_HF_DTYPE`, and ignores `LLM_BASE_URL`/
-`LLM_API_KEY`. Two behaviours differ and are worth knowing:
-
-- `LLM_ENABLE_THINKING`/`LLM_REASONING_BUDGET` **cannot be sent.** They ride on
-  `extra_body`, an OpenAI wire-protocol field, and there is no request body
-  when the model runs in-process. The setting is logged and ignored, leaving
-  `strip_reasoning` as the sole guard against a `<think>` trace breaking a
-  parse — the exact case it was written for.
-- Sampling is gated by `do_sample`, which transformers defaults to `False`.
-  The factory derives it from the temperature, so `LLM_TEMPERATURE=0` decodes
-  greedily and anything above it samples with `LLM_TOP_P`. Passing a
-  temperature alongside `do_sample=False` would look configured while silently
-  doing nothing.
+> An earlier version of this codebase also supported an in-process
+> `LLM_BACKEND=huggingface` path (no server, model loaded directly with
+> `transformers`) for smaller models like Nemotron Nano 12B v2 on hardware too
+> small for the 30B. That backend has been removed from `llm.py`/`config.py`
+> now that the pipeline targets vLLM + the 30B exclusively —
+> `scripts/slurm/run_pipeline_hf.sbatch`/`run_pipeline_hf_container.sbatch`
+> and `notebooks/kaggle_nemotron_nano_v2_pipeline.ipynb` still reference it and
+> no longer work; use `run_pipeline.sbatch` (below) instead.
 
 **Reasoning mode.** Nemotron 3 Nano thinks before answering, emitting a
 `<think>...</think>` trace. `LLM_ENABLE_THINKING` (default `false`) controls
@@ -363,25 +348,9 @@ agent's JSON parse. Turning thinking on is therefore safe either way; raise
 `LLM_TEMPERATURE`/`LLM_TOP_P` to the card's recommended `1.0`/`1.0` and give
 `LLM_MAX_TOKENS` room if you do.
 
-**On Barkla:** two job scripts, one per backend. Choose on model size — the
-30B needs an 80GB card and benefits enough from vLLM's throughput to justify
-the plumbing; the 12B fits almost anywhere and doesn't.
-
-```bash
-# huggingface backend, Nemotron Nano 12B v2 (~24GB) — no server, no container
-sbatch scripts/slurm/run_pipeline_hf.sbatch "your research question"
-```
-
-[`run_pipeline_hf.sbatch`](scripts/slurm/run_pipeline_hf.sbatch) defaults to
-`gpu-l40s` and needs only `uv sync --extra huggingface` plus a pre-fetched
-checkpoint, both done once on a viz node. It's the shorter path: no container
-build, no port, no health check, and a load failure surfaces as an ordinary
-Python traceback instead of a server that never answers. Barkla also ships a
-tested `nemotron/nano-12b-v2` module built on this same stack.
-
-The vLLM path needs a container first, since there is no vLLM module. Build it
-once on a *viz* node (never the login node — long tasks there are killed
-without warning):
+**On Barkla:** the vLLM path needs a container first, since there is no vLLM
+module. Build it once on a *viz* node (never the login node — long tasks there
+are killed without warning):
 
 ```bash
 bash scripts/slurm/build_vllm_sif.sh
@@ -390,7 +359,7 @@ bash scripts/slurm/build_vllm_sif.sh
 Then run the whole pipeline — server and all seven agents — as a single job:
 
 ```bash
-# openai backend, Nemotron 3 Nano 30B A3B (~60GB) — vLLM served
+# Nemotron 3 Nano 30B A3B (~60GB) — vLLM served
 sbatch scripts/slurm/run_pipeline.sbatch "your research question"
 ```
 
@@ -416,9 +385,11 @@ home is capped at 75GB/100k inodes and the weights alone exceed it.
 runs the whole pipeline in a Kaggle notebook against a 4-bit
 [Gemma 4 12B](https://huggingface.co/unsloth/gemma-4-12b-it-GGUF) GGUF served
 locally by `llama-server`. It changes no pipeline code: `llama-server` speaks
-the OpenAI API, so it is this same `openai` backend with `LLM_BASE_URL` on
-loopback. Quantization is what makes it fit — ~7GB at `Q4_K_M` against ~24GB
-at BF16, on a 16GB T4.
+the OpenAI API, so it's reached the same way any other server is — just point
+`LLM_BASE_URL` at loopback. Quantization is what makes it fit — ~7GB at
+`Q4_K_M` against ~24GB at BF16, on a 16GB T4. (This notebook predates the
+pipeline narrowing to the 30B model above; it's kept as-is for smaller
+hardware, but no longer reflects the pipeline's primary target.)
 
 [`scripts/kaggle/gguf_server.py`](scripts/kaggle/gguf_server.py) holds the
 deployment plumbing (build, download, launch, health-check) and imports nothing
@@ -426,7 +397,7 @@ from `research_pipeline`, so it works from a plain terminal or any GPU box too:
 
 ```bash
 python scripts/kaggle/gguf_server.py --foreground &
-LLM_BACKEND=openai LLM_BASE_URL=http://127.0.0.1:8000/v1 LLM_MODEL=gemma-4-local \
+LLM_BASE_URL=http://127.0.0.1:8000/v1 LLM_MODEL=gemma-4-local \
   research-pipeline orchestrate "your research question"
 ```
 
@@ -460,7 +431,7 @@ Then, on your own machine (not the Kaggle kernel):
 
 ```bash
 uv sync --extra webapp
-LLM_BACKEND=openai LLM_BASE_URL=https://<random-words>.trycloudflare.com/v1 \
+LLM_BASE_URL=https://<random-words>.trycloudflare.com/v1 \
   LLM_MODEL=gemma-4-local LLM_API_KEY=not-needed \
   uv run research-pipeline serve
 ```

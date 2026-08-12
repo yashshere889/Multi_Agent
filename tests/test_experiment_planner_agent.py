@@ -238,11 +238,16 @@ def test_run_overrides_model_echoed_hypothesis_id(tmp_path):
 
 
 def test_run_raises_and_dumps_debug_file_on_schema_failure(tmp_path):
+    # A malformed *plan* (missing "objective") is unrelated to priority_order
+    # and has no repair/coercion path — this must still raise and dump the
+    # invalid file, same as before.
+    broken_plan = _valid_plan("H1")
+    del broken_plan["objective"]
     fake_model = FakeChatModel({
-        '"id": "H1"': _plan_response("H1"),
+        '"id": "H1"': json.dumps(broken_plan),
         '"id": "H2"': _plan_response("H2"),
         '"id": "H3"': _plan_response("H3"),
-        "independently drafted": json.dumps({"shared_infrastructure": [], "priority_order": []}),  # missing entries
+        "independently drafted": _cross_cutting_response(),
     })
     agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
 
@@ -250,3 +255,55 @@ def test_run_raises_and_dumps_debug_file_on_schema_failure(tmp_path):
         agent.run(_hypothesis_output_fixture())
 
     assert list(tmp_path.glob("experiment_plan_*_invalid.json"))
+
+
+def _mismatched_cross_cutting_response() -> str:
+    # Ranks a hypothesis (H99) that was never in the plans shown to this
+    # call — the exact 2026-08-12 production failure (schema.py rejected a
+    # priority_order referencing H2 when only H1 had been planned).
+    return json.dumps({
+        "shared_infrastructure": ["shared eval harness"],
+        "priority_order": [
+            {"hypothesis_id": "H1", "rank": 1, "justification": "highest info gain"},
+            {"hypothesis_id": "H2", "rank": 2, "justification": "cheap"},
+            {"hypothesis_id": "H99", "rank": 3, "justification": "hallucinated hypothesis"},
+        ],
+    })
+
+
+def test_run_recovers_priority_order_via_repair_prompt(tmp_path):
+    fake_model = FakeChatModel({
+        '"id": "H1"': _plan_response("H1"),
+        '"id": "H2"': _plan_response("H2"),
+        '"id": "H3"': _plan_response("H3"),
+        "independently drafted": _mismatched_cross_cutting_response(),
+        # Matches CROSS_CUTTING_REPAIR_PROMPT's fixed wording — the retry call.
+        "did not match the hypotheses actually planned": _cross_cutting_response(),
+    })
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(_hypothesis_output_fixture())  # must not raise
+
+    assert [e["hypothesis_id"] for e in result["priority_order"]] == ["H1", "H2", "H3"]
+    assert [e["rank"] for e in result["priority_order"]] == [1, 2, 3]
+
+
+def test_run_deterministically_coerces_priority_order_when_repair_also_fails(tmp_path):
+    # The model repeats the same broken priority_order on the repair turn too
+    # (an empty list, missing every hypothesis) — the run must still complete
+    # rather than crash the whole orchestrator, per the 2026-08-12 incident.
+    broken = json.dumps({"shared_infrastructure": [], "priority_order": []})
+    fake_model = FakeChatModel({
+        '"id": "H1"': _plan_response("H1"),
+        '"id": "H2"': _plan_response("H2"),
+        '"id": "H3"': _plan_response("H3"),
+        "independently drafted": broken,
+        "did not match the hypotheses actually planned": broken,
+    })
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(_hypothesis_output_fixture())  # must not raise
+
+    assert sorted(e["hypothesis_id"] for e in result["priority_order"]) == ["H1", "H2", "H3"]
+    assert sorted(e["rank"] for e in result["priority_order"]) == [1, 2, 3]
+    assert not list(tmp_path.glob("experiment_plan_*_invalid.json"))
