@@ -22,7 +22,8 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `graph.py` | `build_coder_graph(agent)` — wires the two cycles. Module docstring explains why they're cycles and not `Send` fan-out. |
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
-| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, template rendering. No LLM calls — unit-testable anywhere. |
+| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, template rendering. No LLM calls — unit-testable anywhere. |
+| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `prompts.py` | All prompt templates. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |
@@ -31,10 +32,22 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 ## Conventions
 
 - **Constructor injection, not monkeypatching.** `chat_model`, `experiments_dir`, `output_dir`,
-  `network_check`, `gpu_check`, `max_fix_attempts` are all constructor args
-  (`coder_agent.py:178-201`). Tests pass `network_check=lambda: False, gpu_check=lambda: False`
-  rather than patching `sandbox.has_network_access`/`has_gpu`. Keep any new environment
-  dependency injectable the same way.
+  `network_check`, `gpu_check`, `max_fix_attempts`, `huggingface_lookup_fn` are all constructor
+  args. Tests pass `network_check=lambda: False, gpu_check=lambda: False` rather than patching
+  `sandbox.has_network_access`/`has_gpu`, and a fake `huggingface_lookup_fn` rather than faking
+  four HTTP endpoints. Keep any new environment dependency injectable the same way.
+- **Code-bearing model responses use `llm_sections.py`, not `llm_json.py`.** `_call_sections`
+  (delimited `===BEGIN <field>===` blocks, nothing escaped) is for anything returning source:
+  the experiment codegen/fix calls and shared-infrastructure generation. `_call_json` is left
+  for short structured responses — currently only the self-review verdict. Never move generated
+  code back into a JSON string value; the whole reason that transport was dropped is that
+  hand-escaping multi-line Python is something this model reliably gets wrong. Section *names*
+  are fixed for the experiment calls (`prompts.EXPERIMENT_FIELD_NAMES`) and discovered from the
+  response for shared infra, which names its sections after the files it chose to write.
+- **Prompt shapes are generated from `llm_sections.render_section`, not typed out.**
+  `prompts.EXPERIMENT_SECTION_PLACEHOLDERS` is the one list of fields; the format example the
+  model sees is built from it, so the shape the prompt asks for cannot drift from the shape the
+  parser accepts. Add a field there, not in prose.
 - **Graph nodes are thin.** Every `_node_*(state) -> dict` returns only the keys it produces and
   delegates to a private helper of the shape it had before the graph existed (`_attempt_once`,
   `_generate_experiment_files`, `_setup_shared_infrastructure`, …). Put new behaviour in a
@@ -66,28 +79,44 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `run.py.template` is filled by `str.replace()` on `__TOKEN__` markers
   (`sandbox.py:251`, `:274`) because model-generated Python routinely contains literal `{`/`}`
   that `.format()` would choke on. `run.sbatch.template` *does* use `.format()`
-  (`sandbox.py:225`), safely, because nothing model-generated is spliced into it. `prompts.py`
-  also uses `.format()`, so every literal brace in a prompt's JSON example is escaped `{{`/`}}`
-  — adding an unescaped one raises at call time, not at import.
-- **`static_safety_check` is regex-based, not AST-based** (`sandbox.py:92-120`) — intentional,
-  since it runs against code the fix loop rewrites repeatedly and the pattern list is cheap to
-  extend. It is the **only** gate on the SLURM auto-submit path, where nothing ever executes
-  locally first. Treat additions to `DANGEROUS_PATTERNS` as a security change.
+  (`sandbox.py:225`), safely, because nothing model-generated is spliced into it. Most of
+  `prompts.py` also uses `.format()`, so any literal brace inside a `.format()`-ed template must
+  be escaped `{{`/`}}` — adding an unescaped one raises at call time, not at import. The
+  delimiter shapes have no braces at all (that's one less thing to get wrong than the JSON
+  examples they replaced), and `HF_DATASET_USAGE_NOTE` keeps its literal JSON braces *unescaped*
+  precisely because it is appended by `_hf_dataset_block` and never passed through `.format()`.
+- **`static_safety_check` is regex-based, not AST-based** — intentional, since it runs against
+  code the fix loop rewrites repeatedly and the pattern list is cheap to extend. It is the
+  **only** gate on the SLURM auto-submit path, where nothing ever executes locally first. Treat
+  additions to `DANGEROUS_PATTERNS` as a security change.
+- **`check_data_fallback` in the same file *is* AST-based, and that isn't inconsistency.** Its
+  question is "is this read inside a `try` body?", which is structural; a regex can find
+  `pd.read_csv(` but can't tell a guarded read from an unguarded one, and flagging every read
+  would fail correct code. It is scoped to `load_data`'s own source (a read inside `helpers`
+  parses in isolation and would look unguarded even when its caller wraps it), and a function
+  that fetches from the Dataset Viewer host is exempt as a whole. Read its docstring before
+  widening either rule — a false positive here burns fix attempts on code that was fine.
 - **A `CoderAgentError` from generation must never escape a node.** Both
-  `_node_process_current_plan` (`coder_agent.py:323`) and `_node_snapshot_and_regenerate`
-  (`coder_agent.py:414`) catch it and convert it to `{"generation_error": ...}`, which
-  `_attempt_once` (`coder_agent.py:538`) turns into a normal `invalid_json` outcome that counts
-  against the fix budget. One unparseable model response must not kill a multi-plan run — see
-  commit `558d0d5` and its two regression tests.
+  `_node_generate_experiment_code` and `_node_snapshot_and_regenerate` catch it and convert it to
+  `{"generation_error": ...}`, which `_attempt_once` turns into a normal `invalid_format` outcome
+  that counts against the fix budget. One unparseable model response must not kill a multi-plan
+  run — see commit `558d0d5` and its two regression tests. (That error source was called
+  `invalid_json` until generated code moved off the JSON transport.)
+- **The dataset lookup happens in its own node, before generation.** `process_current_plan` sets
+  up the plan; `search_hf_dataset` looks a dataset up once per plan and parks it in
+  `current_hf_dataset`; `generate_experiment_code` writes the first candidate. The result is
+  threaded into both the codegen *and* the fix prompt from state, so a three-attempt fix loop
+  doesn't re-search. Don't fold the lookup back into the generation call — a run whose
+  experiments silently stopped getting real data should be visible in the trace.
 - **Env-provisioning failures are not retried through the fix loop** (`coder_agent.py:617-632`).
   A missing package or unreachable index isn't something regenerating code can fix, so it
   returns a terminal `code_generated_not_run` result directly.
-- **`VALID_ERROR_SOURCES` (`schema.py:9`) and `_ERROR_STAGE_ORDER` (`coder_agent.py:131`) must
-  stay in sync.** Same seven members; the list additionally encodes check *order*, which
-  `_cleared_previous_error` (`coder_agent.py:750`) uses to decide whether a regeneration made
-  progress. A new failure path needs an entry in both, in the right position.
+- **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
+  sync.** Same eight members; the list additionally encodes check *order*, which
+  `_cleared_previous_error` uses to decide whether a regeneration made progress. A new failure
+  path needs an entry in both, in the right position.
 - **Adding or removing a graph node means updating the recursion-limit constants**
-  (`_FIXED_STEPS` / `_STEPS_PER_PLAN` / `_STEPS_PER_FIX_ATTEMPT`, `coder_agent.py:147-149`).
+  (`_FIXED_STEPS` / `_STEPS_PER_PLAN` / `_STEPS_PER_FIX_ATTEMPT` in `coder_agent.py`).
   LangGraph's default limit of 25 super-steps is the wrong unit here because both loops are real
   cycles; the limit is derived per run from plan count × fix budget.
 - **`count_running_jobs` returns a huge sentinel (`_UNKNOWN_QUEUE_DEPTH`) when `squeue` can't be
@@ -99,15 +128,20 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 `tests/test_coder_agent.py` and `tests/test_slurm_submit.py`. No test hits a real model, a real
 cluster, or the network.
 
-- `FakeChatModel` (`:159`) — canned responses keyed by a substring of the prompt.
-- `ScriptedChatModel` (`:596`) — responses per *prompt kind*, each kind a list consumed in order
+- `FakeChatModel` — canned responses keyed by a substring of the prompt.
+- `ScriptedChatModel` — responses per *prompt kind*, each kind a list consumed in order
   (last entry repeats). Kinds are detected by marker substrings in `KINDS`, which are literal
   excerpts of `prompts.py` — reword a prompt's opening line and these tests misroute.
-- `_agent(tmp_path, model, **kwargs)` (`:638`) — the standard agent under test: tmp dirs, no
-  network, no GPU.
-- `GOOD_SECTIONS` / `_codegen_response()` / `_plan()` / `_planner_output()` (`:178-239`) — valid
-  fixtures to mutate rather than rebuild.
-- `_patch_settings` (`:839`) and the `auto_submit` fixture (`:851`) — the fixture flips
+- `_agent(tmp_path, model, **kwargs)` — the standard agent under test: tmp dirs, and no network
+  or GPU unless a test overrides `network_check`/`gpu_check`.
+- `GOOD_SECTIONS` / `_codegen_response()` / `_plan()` / `_planner_output()` — valid fixtures to
+  mutate rather than rebuild. `_codegen_response()` builds the *delimited* response format via
+  `llm_sections.render_sections`, and is the seam nearly every agent test goes through, so the
+  transport is defined in one place; `_unparseable_sections_response()` is its failure-path twin.
+- `HF_DATASET_MATCH` + `_recording_lookup()` — a fake `huggingface_lookup_fn` and the queries it
+  was asked. `_fake_hf()` routes `huggingface_client`'s `requests.get` by URL substring for the
+  client's own unit tests. No test touches the real network.
+- `_patch_settings` and the `auto_submit` fixture — the fixture flips
   `CODER_AUTO_SUBMIT_SLURM` on and stubs `slurm_submit.count_running_jobs`/`submit_job`, and
   yields the list of what would have been submitted. Never let a test reach real `sbatch`.
 

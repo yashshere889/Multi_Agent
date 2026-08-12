@@ -100,14 +100,16 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from research_pipeline.agents.coder import prompts, sandbox, slurm_submit
+from research_pipeline.agents.coder import huggingface_client, prompts, sandbox, slurm_submit
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
     SchemaValidationError,
@@ -123,16 +125,19 @@ from research_pipeline.agents.experiment_planner.schema import (
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
+from research_pipeline.llm_sections import LLMSectionsError, invoke_sections, render_sections
 
 logger = logging.getLogger(__name__)
 
 # Order the checks run in, used to decide whether a regeneration actually got
-# past the failure it was asked to fix.
+# past the failure it was asked to fix. Must stay in sync with schema.py's
+# VALID_ERROR_SOURCES (same members; this list additionally encodes order).
 _ERROR_STAGE_ORDER = [
-    "invalid_json",
+    "invalid_format",
     "missing_sections",
     "compile_check",
     "static_lint",
+    "missing_data_fallback",
     "self_review",
     "run_experiment",
     "results_json",
@@ -145,7 +150,7 @@ _ERROR_STAGE_ORDER = [
 # the fix budget is. Derived per run from those two numbers rather than guessed —
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
-_STEPS_PER_PLAN = 3  # process_current_plan, the first attempt, finalize/give_up
+_STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 
 
@@ -160,6 +165,57 @@ def _compact_json(obj: object) -> str:
     this module uses this instead of json.dumps(..., indent=2); the one
     exception is _write_summary's output file, which a human actually reads."""
     return json.dumps(obj, separators=(",", ":"))
+
+
+_TRUTHY_TEXT = {"true", "yes", "y", "1"}
+
+# Lines the model writes when it means "nothing to report" — dropped rather than
+# recorded as an assumption, since an assumptions_made list containing the word
+# "none" reads as a real assumption everywhere downstream (the summary JSON, the
+# Writer's framing of what was assumed).
+_NO_ASSUMPTIONS_TEXT = {
+    "none",
+    "n/a",
+    "na",
+    "nil",
+    "no assumptions",
+    "no assumptions needed",
+    "no assumptions were needed",
+    "none needed",
+    "none required",
+}
+
+
+def _parse_bool_text(text: str) -> bool:
+    """Reads a `needs_gpu`/`needs_network` section, which now arrives as raw
+    text ("true"/"false") rather than a JSON boolean.
+
+    Matches on the first word only, so "true — this needs a GPU" is still True.
+    Anything unrecognisable is False, which is exactly what
+    `bool(generation.get("needs_gpu", False))` did before this transport
+    changed: an unparseable needs_gpu means the experiment is attempted locally,
+    and a real GPU requirement then surfaces as a normal execution failure the
+    fix loop can see — whereas defaulting to True would silently defer a
+    perfectly runnable experiment to a SLURM script nobody asked for."""
+    stripped = text.strip().lower()
+    if not stripped:
+        return False
+    first_word = re.split(r"[^a-z0-9]+", stripped, maxsplit=1)[0]
+    return first_word in _TRUTHY_TEXT
+
+
+def _parse_assumptions(text: str) -> list[str]:
+    """Reads an `assumptions_made` section — one assumption per line, each
+    expected to start with "- " — into the list of strings the output schema
+    (and every consumer of it) expects. Bullet markers are stripped, blank
+    lines and "none"-style placeholders dropped."""
+    assumptions = []
+    for line in text.splitlines():
+        item = line.strip().lstrip("-*•").strip()
+        if not item or item.rstrip(".").lower() in _NO_ASSUMPTIONS_TEXT:
+            continue
+        assumptions.append(item)
+    return assumptions
 
 
 def _plan_count(planner_output: object) -> int:
@@ -192,6 +248,7 @@ class CoderAgent:
         network_check: Callable[[], bool] | None = None,
         gpu_check: Callable[[], bool] | None = None,
         max_fix_attempts: int | None = None,
+        huggingface_lookup_fn: Callable[[str], dict | None] | None = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config, same as every
         # other agent, at a low temperature. streaming=True: this agent's
@@ -204,6 +261,14 @@ class CoderAgent:
         self.output_dir = Path(output_dir or settings.coder_output_dir)
         self.network_check = network_check or sandbox.has_network_access
         self.gpu_check = gpu_check or sandbox.has_gpu
+        # Injectable for exactly the same reason network_check/gpu_check are (and
+        # the same reason the Interdisciplinary Literature Agent injects its three
+        # search functions): it is this agent's only outbound HTTP call, so a test
+        # substitutes one function instead of faking four Hugging Face endpoints,
+        # and no test ever reaches the real network.
+        self.huggingface_lookup = (
+            huggingface_lookup_fn or huggingface_client.find_dataset_for_experiment
+        )
         self.max_fix_attempts = (
             settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
         )
@@ -296,9 +361,10 @@ class CoderAgent:
 
     def _node_process_current_plan(self, state: CoderState) -> dict:
         """The per-plan loop body's entry. Infeasible plans are recorded and the
-        cursor advanced right here — they never reach the fix loop, and cost no
-        LLM call. Feasible ones get their directory, a fresh fix-loop state, and
-        a first generation."""
+        cursor advanced right here — they never reach the dataset lookup or the
+        fix loop, and cost no LLM call and no HTTP call. Feasible ones get their
+        directory and a fresh per-plan working set; the lookup and the first
+        generation are the two nodes after this one."""
         plan = state["ordered_plans"][state["plan_index"]]
         hypothesis_id = plan["hypothesis_id"]
 
@@ -319,34 +385,54 @@ class CoderAgent:
         experiment_dir = self.experiments_dir / hypothesis_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
+        return {
+            "current_plan": plan,
+            "current_experiment_dir": str(experiment_dir),
+            "current_fix_history": [],
+            "current_attempt": 0,
+            "current_outcome": {},
+            "current_hf_dataset": {},
+        }
+
+    def _node_search_hf_dataset(self, state: CoderState) -> dict:
+        """Looks up one real Hugging Face dataset for this plan's data
+        requirements, before any code is generated.
+
+        Its own node rather than a line inside the generation call, for the same
+        reason every other step here is a node: the lookup is a real decision
+        point with an observable outcome (matched / didn't), and a run where
+        experiments quietly stopped using real data should be diagnosable from
+        the trace rather than from log archaeology."""
+        return {
+            "current_hf_dataset": self._find_hf_dataset(
+                state["current_plan"], state["network_available"]
+            )
+        }
+
+    def _node_generate_experiment_code(self, state: CoderState) -> dict:
+        """The first generation for this plan, given whatever the lookup found."""
         try:
             generation = self._generate_experiment_files(
-                plan,
+                state["current_plan"],
                 state["shared_files"],
                 state["network_available"],
                 state.get("shared_infra_warning", ""),
+                state.get("current_hf_dataset") or {},
             )
         except CoderAgentError as exc:
-            # A malformed-JSON generation is a per-plan failure, not a
-            # pipeline-ending one — even after invoke_json's own repair retry,
-            # the model can still return something json.loads rejects. Feed it
-            # into the same fix loop that handles compile/lint/run failures
-            # (via _attempt_once's generation_error check) instead of letting
-            # it crash the whole multi-hour run over one bad plan.
+            # A generation whose format can't be parsed is a per-plan failure,
+            # not a pipeline-ending one — even after invoke_sections' own repair
+            # retry, the model can still return a response with sections
+            # missing. Feed it into the same fix loop that handles
+            # compile/lint/run failures (via _attempt_once's generation_error
+            # check) instead of letting it crash the whole multi-hour run over
+            # one bad plan.
             generation = {
                 "run_py_sections": {},
                 "assumptions_made": [],
                 "generation_error": str(exc),
             }
-
-        return {
-            "current_plan": plan,
-            "current_experiment_dir": str(experiment_dir),
-            "current_generation": generation,
-            "current_fix_history": [],
-            "current_attempt": 0,
-            "current_outcome": {},
-        }
+        return {"current_generation": generation}
 
     def _node_attempt(self, state: CoderState) -> dict:
         """One full pass over the current candidate: validate -> compile -> lint
@@ -418,12 +504,13 @@ class CoderAgent:
                 outcome["error_source"],
                 outcome["error_text"],
                 state.get("shared_infra_warning", ""),
+                state.get("current_hf_dataset") or {},
             )
         except CoderAgentError as exc:
             # Same as the initial generation call: a regeneration attempt can
-            # also come back as unparseable JSON. Feed it back through the fix
-            # loop rather than crashing the run — _attempt_once's
-            # generation_error check turns this into a normal "invalid_json"
+            # also come back in an unparseable format. Feed it back through the
+            # fix loop rather than crashing the run — _attempt_once's
+            # generation_error check turns this into a normal "invalid_format"
             # outcome, so it still counts against max_fix_attempts.
             generation = {
                 "run_py_sections": {},
@@ -535,8 +622,9 @@ class CoderAgent:
             shared_items_block=_compact_json(shared_items),
             plans_block=_compact_json(plans),
         )
-        response = self._call_json(prompt)
-        files = response.get("files", {})
+        # field_names=None: one section per file, named after the file, so the
+        # names come from the response rather than from a fixed list.
+        files = self._call_sections(prompt)
         files, problem = sandbox.check_shared_infra_files(files)
 
         attempt = 0
@@ -551,11 +639,10 @@ class CoderAgent:
             fix_prompt = prompts.SHARED_INFRA_FIX_PROMPT.format(
                 shared_items_block=_compact_json(shared_items),
                 plans_block=_compact_json(plans),
-                previous_files_block=_compact_json(files),
+                previous_files_block=render_sections(files),
                 error_text=problem,
             )
-            response = self._call_json(fix_prompt)
-            files = response.get("files", files)
+            files = self._call_sections(fix_prompt) or files
             files, problem = sandbox.check_shared_infra_files(files)
 
         warning = ""
@@ -604,8 +691,8 @@ class CoderAgent:
         generation_error = generation.get("generation_error")
         if generation_error:
             return {
-                "error_source": "invalid_json",
-                "error_text": f"Model did not return a parseable JSON response for this experiment's code: {generation_error}",
+                "error_source": "invalid_format",
+                "error_text": f"Model did not return this experiment's code in the required delimited section format: {generation_error}",
             }
         sections = generation.get("run_py_sections", {})
         assumptions_made = generation.get("assumptions_made", [])
@@ -670,6 +757,17 @@ class CoderAgent:
             return {
                 "error_source": "static_lint",
                 "error_text": f"Generated code was flagged by the static safety check: {'; '.join(findings)}",
+            }
+
+        # Enforces the "guard the read, fall back to synthesized data" instruction
+        # the prompt has always given — checked, not trusted, exactly like every
+        # other stop condition in this loop. Runs on load_data's own source rather
+        # than the rendered run.py; see sandbox.check_data_fallback.
+        fallback_findings = sandbox.check_data_fallback(sections["load_data_function"])
+        if fallback_findings:
+            return {
+                "error_source": "missing_data_fallback",
+                "error_text": f"load_data() assumes its data will be present: {'; '.join(fallback_findings)}",
             }
 
         complexity = plan["estimated_complexity"]
@@ -864,10 +962,53 @@ class CoderAgent:
     # -- LLM calls -----------------------------------------------------------
 
     def _call_json(self, user_prompt: str) -> dict:
+        """For responses that are short structured fields only — currently just
+        the self-review verdict. Anything carrying source code goes through
+        _call_sections instead."""
         try:
             return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt)
         except LLMJSONError as exc:
             raise CoderAgentError(str(exc)) from exc
+
+    def _call_sections(
+        self, user_prompt: str, field_names: Sequence[str] | None = None
+    ) -> dict[str, str]:
+        """For every response that carries generated source code.
+
+        Mirrors _call_json's wrapper shape (same system prompt, same
+        LLM*Error -> CoderAgentError conversion so callers keep catching one
+        exception type), but over llm_sections' delimited transport: code is
+        returned as raw text between markers instead of as JSON string values
+        the model has to escape by hand. `field_names=None` means "discover the
+        section names from the response", which the shared-infrastructure call
+        needs since it names its sections after files it hasn't picked yet."""
+        try:
+            return invoke_sections(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt, field_names)
+        except LLMSectionsError as exc:
+            raise CoderAgentError(str(exc)) from exc
+
+    @staticmethod
+    def _assemble_generation(sections: dict[str, str]) -> dict:
+        """Turns the flat dict of raw section text `_call_sections` returns into
+        the exact `generation` dict shape everything downstream already expects
+        (`run_py_sections` nested, `assumptions_made` a list, `needs_gpu` a
+        bool) — so `_attempt_once`, `sandbox.render_experiment_template` and
+        `schema.py` are untouched by the transport change.
+
+        The text -> bool/list conversions live here rather than in
+        llm_sections.py deliberately: that module owns the transport, and what a
+        field's text *means* is this agent's domain knowledge, the same split
+        the pipeline already makes for `meets_success_criteria`."""
+        return {
+            "run_py_sections": {
+                name: sections.get(name, "") for name in prompts.RUN_PY_SECTION_NAMES
+            },
+            "readme": sections.get("readme", ""),
+            "requirements_txt": sections.get("requirements_txt", ""),
+            "assumptions_made": _parse_assumptions(sections.get("assumptions_made", "")),
+            "needs_network": _parse_bool_text(sections.get("needs_network", "")),
+            "needs_gpu": _parse_bool_text(sections.get("needs_gpu", "")),
+        }
 
     @staticmethod
     def _shared_infra_block(shared_files: dict[str, str], warning: str = "") -> str:
@@ -883,16 +1024,79 @@ class CoderAgent:
             f"{prompts.SHARED_IMPORT_NOTE}{warning_block}"
         )
 
+    def _find_hf_dataset(self, plan: dict, network_available: bool) -> dict:
+        """One real dataset for this plan, or {} — never an exception.
+
+        Skipped without a request when the network probe already failed or
+        CODER_ENABLE_HF_DATASET_SEARCH is off. The lookup client already degrades
+        every failure to None, so the try/except here is only for an injected
+        lookup function that raises: this is an enhancement to a prompt, and a
+        broken dataset search must never be the reason an experiment doesn't get
+        generated at all.
+        """
+        if not network_available or not settings.coder_enable_hf_dataset_search:
+            return {}
+        description = (plan.get("data_requirements") or {}).get("description") or plan["objective"]
+        try:
+            dataset = self.huggingface_lookup(str(description))
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            logger.warning(
+                "Hugging Face dataset lookup raised for %s; generating without it: %s",
+                plan["hypothesis_id"],
+                exc,
+            )
+            return {}
+        return dataset or {}
+
+    @staticmethod
+    def _hf_dataset_block(hf_dataset: dict) -> str:
+        """Renders a matched dataset for the codegen/fix prompt: what it is, its
+        real column names and a few real rows, and the exact REST URL to read it
+        from. Empty string when nothing matched, so a prompt with no dataset
+        reads exactly as it did before this lookup existed."""
+        dataset_id = hf_dataset.get("dataset_id")
+        if not dataset_id:
+            return ""
+        columns = ", ".join(
+            f"{column.get('name')} ({column.get('type', 'unknown')})"
+            for column in hf_dataset.get("columns") or []
+        )
+        config = str(hf_dataset.get("config") or "default")
+        split = str(hf_dataset.get("split") or "train")
+        # safe="" so the namespace slash in "owner/name" is percent-encoded:
+        # these are query-parameter *values*, and a bare slash there is what makes
+        # a hand-built dataset-viewer URL 404.
+        rows_url = (
+            f"{huggingface_client.DATASET_VIEWER_ROWS_URL}"
+            f"?dataset={quote(str(dataset_id), safe='')}"
+            f"&config={quote(config, safe='')}&split={quote(split, safe='')}"
+            "&offset=0&length=100"
+        )
+        return (
+            "A real, public dataset matching this experiment's data requirements was found and "
+            "verified as servable by the Hugging Face Dataset Viewer:\n"
+            f"  dataset: {dataset_id}\n"
+            f"  config: {config}\n"
+            f"  split: {split}\n"
+            f"  columns: {columns or '(unknown)'}\n"
+            f"  first rows: {_compact_json(hf_dataset.get('sample_rows') or [])}\n\n"
+            "Read it over HTTP with `requests` (already available — do NOT add the `datasets` "
+            "package, and do not download the dataset):\n"
+            f"  {rows_url}\n\n" + prompts.HF_DATASET_USAGE_NOTE
+        )
+
     def _generate_experiment_files(
         self,
         plan: dict,
         shared_files: dict[str, str],
         network_available: bool,
         shared_infra_warning: str = "",
+        hf_dataset: dict | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",
@@ -902,7 +1106,9 @@ class CoderAgent:
                 else "Do not fetch remote data — generate/synthesize a small stand-in dataset instead, and say so clearly in assumptions_made and the README."
             ),
         )
-        return self._call_json(prompt)
+        return self._assemble_generation(
+            self._call_sections(prompt, prompts.EXPERIMENT_FIELD_NAMES)
+        )
 
     def _regenerate_with_fix(
         self,
@@ -913,12 +1119,22 @@ class CoderAgent:
         error_source: str,
         error_text: str,
         shared_infra_warning: str = "",
+        hf_dataset: dict | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
             hypothesis_id=plan["hypothesis_id"],
             plan_block=_compact_json(plan),
+            # Carried into the fix prompt too, not just the first generation: the
+            # dataset is often exactly what a data-loading failure needs to be
+            # fixed *with*, and re-running the lookup per attempt would spend
+            # three more HTTP calls to learn the same thing.
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
-            previous_sections_block=_compact_json(previous_generation.get("run_py_sections", {})),
+            # Shown back in the same delimited format it's being asked to answer
+            # in — quoting the previous attempt as escaped JSON would invite the
+            # model to answer in kind, which is the failure mode this transport
+            # exists to remove.
+            previous_sections_block=render_sections(previous_generation.get("run_py_sections", {})),
             error_source=error_source,
             error_text=error_text,
             network_status="available" if network_available else "NOT available",
@@ -928,7 +1144,9 @@ class CoderAgent:
                 else " Do not fetch remote data — synthesize a small stand-in dataset instead, and say so in assumptions_made and the README."
             ),
         )
-        return self._call_json(prompt)
+        return self._assemble_generation(
+            self._call_sections(prompt, prompts.EXPERIMENT_FIELD_NAMES)
+        )
 
     def _self_review(self, plan: dict, run_py: str) -> list[str]:
         """Reads the code back critically before it goes to a shared cluster.

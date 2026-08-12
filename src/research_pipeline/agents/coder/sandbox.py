@@ -5,6 +5,7 @@ the actual execution mechanics are unit-testable without a live model.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import logging
@@ -100,27 +101,76 @@ def _strip_redundant_line_continuations(source: str) -> str:
     return _TRAILING_BACKSLASH_RE.sub("\n", source)
 
 
-def lenient_compile_check(source: str, filename: str) -> tuple[str, str | None]:
+# A newline the model intended inside a generated code section occasionally
+# arrives as the two literal characters '\' + 'n' rather than a real line
+# break: a small quantized model habitually double-escapes when it re-quotes
+# its own previous output during a repair turn, which decodes to that literal
+# 2-char sequence instead of a newline. Python's tokenizer then treats the
+# lone backslash as an (invalid) explicit line continuation: "unexpected
+# character after line continuation character". Unlike
+# _strip_redundant_line_continuations, this can't be a blanket find/replace
+# across the whole file — a *valid* string literal legitimately containing
+# "\n" (e.g. print("a\nb")) is indistinguishable from the corrupted case by
+# regex alone, and rewriting every occurrence would corrupt those too. So
+# this only touches the exact line and column py_compile's SyntaxError
+# reports, which is precise because the corruption itself is what caused the
+# error there.
+_LINE_CONTINUATION_ESCAPES = {"n": "\n", "t": "\t", "r": "\r"}
+
+
+def _repair_literal_line_continuation(source: str, exc: SyntaxError) -> str | None:
+    if exc.msg != "unexpected character after line continuation character":
+        return None
+    if not exc.lineno or not exc.offset:
+        return None
+    lines = source.splitlines(keepends=True)
+    line_idx = exc.lineno - 1
+    if line_idx >= len(lines):
+        return None
+    line = lines[line_idx]
+    # exc.offset (1-indexed) points at the offending character itself — the
+    # one right after the backslash — not at the backslash.
+    char_idx = exc.offset - 1
+    if char_idx < 1 or line[char_idx - 1] != "\\":
+        return None
+    replacement = _LINE_CONTINUATION_ESCAPES.get(line[char_idx])
+    if replacement is None:
+        return None
+    lines[line_idx] = line[: char_idx - 1] + replacement + line[char_idx + 1 :]
+    return "".join(lines)
+
+
+def lenient_compile_check(
+    source: str, filename: str, max_repair_attempts: int = 5
+) -> tuple[str, str | None]:
     """Byte-compiles `source` (a string, not yet written to disk). On a
-    SyntaxError, retries once after stripping likely-redundant backslash
-    line-continuations (see _strip_redundant_line_continuations) before
-    giving up. Returns (source_to_use, error_message): error_message is None
-    on success, and source_to_use is the repaired version only if that's what
-    actually compiled — never a transformation applied without verifying it
-    fixed something, exactly like llm_json._fix_invalid_escapes/_loads_lenient
-    apply their own repair only when the strict parse already failed."""
-    try:
-        compile(source, filename, "exec")
-        return source, None
-    except SyntaxError as exc:
-        repaired = _strip_redundant_line_continuations(source)
-        if repaired != source:
-            try:
-                compile(repaired, filename, "exec")
-                return repaired, None
-            except SyntaxError:
-                pass
-        return source, f"{filename}: {exc.msg} (line {exc.lineno})"
+    SyntaxError, retries after applying whichever repair applies —
+    _repair_literal_line_continuation for a backslash+letter sequence that
+    should have been a real newline/tab/carriage-return, else
+    _strip_redundant_line_continuations for a harmless trailing backslash —
+    bounded by max_repair_attempts since a single generation can contain more
+    than one corrupted spot. Returns (source_to_use, error_message):
+    error_message is None on success, and source_to_use is the repaired
+    version only if that's what actually compiled — never a transformation
+    applied without verifying it fixed something, exactly like
+    llm_json._fix_invalid_escapes/_loads_lenient apply their own repair only
+    when the strict parse already failed."""
+    current = source
+    last_error: SyntaxError | None = None
+    for _ in range(max_repair_attempts):
+        try:
+            compile(current, filename, "exec")
+            return current, None
+        except SyntaxError as exc:
+            last_error = exc
+            repaired = _repair_literal_line_continuation(current, exc)
+            if repaired is None:
+                repaired = _strip_redundant_line_continuations(current)
+            if repaired == current:
+                break
+            current = repaired
+    assert last_error is not None
+    return source, f"{filename}: {last_error.msg} (line {last_error.lineno})"
 
 
 # Regex rather than AST: this runs against model-generated code that the fix
@@ -156,6 +206,157 @@ def static_safety_check(code: str) -> list[str]:
     for pattern, description in DANGEROUS_PATTERNS:
         if re.search(pattern, code):
             findings.append(description)
+    return findings
+
+
+# AST rather than regex, unlike static_safety_check above — and for a reason that
+# isn't stylistic: the question here is "is this call inside a try/except?",
+# which is structural. A regex can find `pd.read_csv(` but cannot tell a guarded
+# read from an unguarded one, and flagging every read would fire on correct code.
+#
+# Attribute names, matched regardless of the module alias, so pd/pandas/whatever
+# all work. `load`/`loadtxt`/`genfromtxt` are numpy's file readers.
+_LOCAL_READ_ATTRS = {
+    "read_csv",
+    "read_excel",
+    "read_parquet",
+    "read_json",
+    "read_table",
+    "read_feather",
+    "read_stata",
+    "read_pickle",
+    "read_hdf",
+    "load",
+    "loadtxt",
+    "genfromtxt",
+}
+_LOCAL_READ_NAMES = {"open"}
+# A read whose first argument comes from one of these is parsing bytes already in
+# memory — a fetched response body — not opening a file that has to exist on
+# disk. `read_csv(StringIO(response.text))` and `read_json(response.text)` are
+# the two shapes the Dataset Viewer path produces.
+_IN_MEMORY_CALLS = {"StringIO", "BytesIO", "json", "text", "decode"}
+_IN_MEMORY_ATTRS = {"text", "content", "body", "stdout"}
+# The Dataset Viewer host the codegen prompt points the model at. A load_data
+# that fetches from it is on the sanctioned remote-data path, where
+# `pd.read_csv(StringIO(response.text))`-style parsing is normal — see
+# check_data_fallback's docstring for why that exempts the whole function.
+_DATASET_VIEWER_HOST = "datasets-server.huggingface.co"
+
+
+def _called_name(node: ast.Call) -> str:
+    """The called function's name as written: "open", "read_csv", "get"."""
+    func = node.func
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    if isinstance(func, ast.Name):
+        return func.id
+    return ""
+
+
+def _reads_in_memory_bytes(first_arg: ast.expr | None) -> bool:
+    if isinstance(first_arg, ast.Call):
+        return _called_name(first_arg) in _IN_MEMORY_CALLS
+    if isinstance(first_arg, ast.Attribute):
+        return first_arg.attr in _IN_MEMORY_ATTRS
+    return False
+
+
+def _reads_a_local_file(node: ast.Call) -> bool:
+    name = _called_name(node)
+    if isinstance(node.func, ast.Name):
+        if name not in _LOCAL_READ_NAMES:
+            return False
+    elif isinstance(node.func, ast.Attribute):
+        if name not in _LOCAL_READ_ATTRS:
+            return False
+    else:
+        return False
+    return not _reads_in_memory_bytes(node.args[0] if node.args else None)
+
+
+def _fetches_from_dataset_viewer(tree: ast.AST) -> bool:
+    """Whether this function names the Dataset Viewer host anywhere — an inline
+    URL, one assigned to a local first, or an f-string built around it. Every
+    string constant in the function is scanned rather than only those inside the
+    request call, because the URL is usually built a line or two before it's
+    used."""
+    return any(
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and _DATASET_VIEWER_HOST in node.value
+        for node in ast.walk(tree)
+    )
+
+
+def _unguarded_read_calls(node: ast.AST, inside_try: bool) -> list[ast.Call]:
+    """Every local-file read reachable from `node` that is not inside a
+    try-block's body. Recursive rather than ast.walk because "am I inside a try?"
+    is exactly the context ast.walk discards.
+
+    Only `Try.body` counts as guarded — not its handlers or `finally`. A read in
+    an `except:` branch is the fallback path, and if *it* assumes a file exists
+    the experiment still dies; it needs its own guard.
+    """
+    found: list[ast.Call] = []
+    if isinstance(node, ast.Call) and not inside_try and _reads_a_local_file(node):
+        found.append(node)
+    for field, value in ast.iter_fields(node):
+        children = value if isinstance(value, list) else [value]
+        for child in children:
+            if not isinstance(child, ast.AST):
+                continue
+            child_inside_try = inside_try or (isinstance(node, ast.Try) and field == "body")
+            found.extend(_unguarded_read_calls(child, child_inside_try))
+    return found
+
+
+def check_data_fallback(load_data_function_source: str) -> list[str]:
+    """Checks that a generated `load_data` doesn't simply assume its data is
+    there. Returns human-readable findings; empty means clean.
+
+    This enforces an instruction the prompt has always given and nothing ever
+    verified: read the data defensively and fall back to a synthesized stand-in
+    if it isn't available. A real production run failed exactly here — the model
+    recorded "assumes survey_data.csv is present" in assumptions_made for a plan
+    that required collecting *new* data, and the experiment died on a
+    FileNotFoundError that no fix attempt could diagnose as a design problem.
+    Same principle as everywhere else in this package: if compliance is
+    checkable, Python checks it rather than the model being trusted.
+
+    Flagged: `open`/`pandas.read_*`/`numpy.load`-style reads that aren't inside a
+    try-block's body. Not flagged: a read of an in-memory buffer
+    (`read_csv(StringIO(body))`), and nothing at all if the function fetches from
+    the Dataset Viewer host the prompt offers it — that path *is* the sanctioned
+    real-data route, and parsing its response body with `read_csv`/`read_json` is
+    the normal way to consume it.
+
+    Scoped to load_data's own source, so a read hidden in a `helpers` function
+    isn't seen. That's deliberate: `helpers` is parsed in isolation, so a read
+    there that load_data already wraps in try/except would look unguarded and
+    produce a false failure — and a false failure burns the fix budget on code
+    that was already correct.
+    """
+    try:
+        tree = ast.parse(load_data_function_source)
+    except SyntaxError:
+        # Not this check's job to report: _attempt_once runs the compile check on
+        # the whole rendered run.py first, and it reports syntax errors with
+        # proper line numbers.
+        return []
+
+    if _fetches_from_dataset_viewer(tree):
+        return []
+
+    findings = []
+    for call in _unguarded_read_calls(tree, inside_try=False):
+        name = _called_name(call)
+        findings.append(
+            f"line {call.lineno}: {name}(...) reads a local file with no try/except around it, so "
+            "the experiment dies if that file doesn't exist. Wrap the read, log the failure, and "
+            "fall back to a small synthesized stand-in dataset (recording that in assumptions_made "
+            "and the README) — or fetch the data over HTTP instead"
+        )
     return findings
 
 

@@ -121,6 +121,7 @@ src/research_pipeline/
 ├── config.py              # env-var settings (LLM endpoint, API keys, defaults)
 ├── llm.py                 # shared ChatOpenAI factory
 ├── llm_json.py            # shared "call the model, expect JSON, retry once on bad JSON" helper
+├── llm_sections.py        # same, for responses carrying source code: a delimited section format, no escaping
 ├── cli.py                 # `research-pipeline <agent> ...` entry point
 ├── batch.py               # runs `orchestrate` over a file of questions unattended
 ├── writer_reviewer_loop.py # orchestrator: draft -> review -> revise -> re-review loop (not an agent itself)
@@ -180,6 +181,26 @@ src/research_pipeline/
 identical "invoke the model, parse JSON, retry once with a repair prompt on
 failure" logic — factored out once a second agent needed it, so it doesn't
 drift between copies. Reuse it for any new agent that asks the model for JSON.
+
+`llm_sections.py` is its counterpart for responses that carry **source code**,
+and exists because JSON is the wrong transport for that. A JSON string value
+forces every newline, quote and backslash in generated code through an escaping
+round-trip the model performs by hand, and a small quantized model gets it wrong
+constantly — a literal `\d` in a regex, a real newline instead of `\n`, a
+stray trailing backslash. Instead of adding a repair for each flavour of
+corruption, code is transported unescaped between markers:
+
+```
+===BEGIN load_data_function===
+def load_data():
+    return pd.read_csv(PATH)   # a real newline is a real newline
+===END load_data_function===
+```
+
+`invoke_sections` mirrors `invoke_json`'s shape exactly (one repair retry, then
+raise), so a call site swaps between them without other changes. The Coder Agent
+uses it for every code-bearing call; short structured responses (its self-review
+verdict, every other agent) stay on `llm_json.py`.
 
 ### Adding a new agent
 
@@ -657,13 +678,43 @@ the compute is already dedicated to this pipeline. Writes
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
 
+#### Real data instead of invented data
+
+Before generating each experiment, the agent looks up one real dataset matching
+the plan's `data_requirements` — Hub search for candidates, then the
+[Hugging Face Dataset Viewer](https://huggingface.co/docs/dataset-viewer/index)
+to confirm the candidate is actually servable and to read its real column names
+and first rows. The match (id, config, split, schema, sample rows) plus the exact
+`/rows` REST URL goes into the codegen prompt, so `load_data()` can pull real
+records with `requests` — no `datasets` package in the experiment's throwaway
+venv, and no dataset cache on shared scratch. The model is told to ignore the
+dataset if it doesn't genuinely fit the plan, and to say so in
+`assumptions_made`.
+
+This is an enhancement to a prompt, never a dependency: it's only attempted when
+the runtime network probe succeeds, and every failure (no network, rate limit, a
+dataset the viewer can't serve) degrades silently to generating exactly as
+before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it off for fully offline or
+reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
+limits.
+
+Whether or not a dataset was found, `load_data()` must not *assume* its data is
+there. `sandbox.check_data_fallback` parses the generated `load_data` and flags
+any `open`/`pandas.read_*`/`numpy.load` that isn't inside a `try` block, routing
+it back through the fix loop as `missing_data_fallback`. This is AST-based rather
+than regex precisely because the question is "is this read guarded?", and it
+exists because a real run produced code that assumed a `survey_data.csv` would
+be present for a plan that required collecting new data — the prompt had always
+asked for a synthesized fallback, and nothing checked.
+
 #### Autonomous fixing and SLURM auto-submission
 
 When generated code fails a check, the agent doesn't give up on it — it feeds
 the actual error back to the model and regenerates, up to
 `CODER_MAX_FIX_ATTEMPTS` times (default 3). The error is whatever the failing
-check produced: a compile error, a static-lint finding, the stdout/stderr tail
-from the run, or the traceback `run.py` recorded in `results.json["error"]`.
+check produced: a compile error, a static-lint finding, an unguarded data read,
+the stdout/stderr tail from the run, or the traceback `run.py` recorded in
+`results.json["error"]`.
 Every stop condition is a real check's verdict rather than a model's opinion
 about whether the code looks right. Env-provisioning failures are deliberately
 not retried — regenerating code can't install a missing package. Each failed

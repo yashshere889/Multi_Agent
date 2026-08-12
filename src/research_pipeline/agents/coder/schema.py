@@ -7,10 +7,16 @@ from typing import TypedDict
 VALID_STATUSES = {"completed", "code_generated_not_run", "skipped", "submitted_to_slurm"}
 
 VALID_ERROR_SOURCES = {
-    "invalid_json",
+    # Renamed from "invalid_json" when generated code moved off the JSON
+    # transport onto llm_sections.py's delimited format — the failure it names
+    # is now "the response wasn't in the required section format at all".
+    "invalid_format",
     "missing_sections",
     "compile_check",
     "static_lint",
+    # load_data reads a local file with nothing to fall back on if it isn't there
+    # — see sandbox.check_data_fallback.
+    "missing_data_fallback",
     "run_experiment",
     "results_json",
     "self_review",

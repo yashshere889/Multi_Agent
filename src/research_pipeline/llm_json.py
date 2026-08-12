@@ -23,6 +23,13 @@ JSON_REPAIR_PROMPT = """Your previous response was not valid JSON matching the r
 schema. Return ONLY the corrected, valid JSON object — no markdown fences, no \
 commentary, nothing before or after it.
 
+Fix only the structural problem (e.g. a missing comma, bracket, or quote). Do \
+NOT re-escape characters that are already correctly escaped — a backslash \
+sequence like \\n, \\t, or \\" in your previous response is already valid JSON \
+and must be copied through unchanged. Adding an extra backslash in front of \
+one of these (e.g. turning \\n into \\\\n) corrupts the string it appears in \
+and is a common mistake to avoid here.
+
 Your previous response was:
 {previous_response}
 """

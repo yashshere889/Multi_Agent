@@ -62,11 +62,12 @@ def route_plan_loop(state: CoderState) -> str:
 
 
 def route_after_process(state: CoderState) -> str:
-    """Feasible plans enter the fix loop; infeasible ones were already recorded
-    as "skipped" (and the cursor advanced) by process_current_plan, so they
-    re-enter the outer loop directly without a single LLM call."""
+    """Feasible plans go on to the dataset lookup and then their first
+    generation; infeasible ones were already recorded as "skipped" (and the
+    cursor advanced) by process_current_plan, so they re-enter the outer loop
+    directly without a single LLM call or HTTP call."""
     if state["current_plan"]["feasible"]:
-        return "attempt"
+        return "search_hf_dataset"
     return route_plan_loop(state)
 
 
@@ -78,6 +79,8 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_node("setup_shared_infrastructure", agent._node_setup_shared_infrastructure)
     graph.add_node("start_plan_loop", agent._node_start_plan_loop)
     graph.add_node("process_current_plan", agent._node_process_current_plan)
+    graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
+    graph.add_node("generate_experiment_code", agent._node_generate_experiment_code)
     graph.add_node("attempt", agent._node_attempt)
     graph.add_node("snapshot_and_regenerate", agent._node_snapshot_and_regenerate)
     graph.add_node("finalize_current_plan", agent._node_finalize_current_plan)
@@ -105,8 +108,16 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_conditional_edges(
         "process_current_plan",
         route_after_process,
-        {"attempt": "attempt", **_plan_loop_targets},
+        {"search_hf_dataset": "search_hf_dataset", **_plan_loop_targets},
     )
+
+    # The dataset lookup is its own step, ahead of the first generation, because
+    # what it finds goes *into* the codegen prompt — and because "did this
+    # experiment get offered real data?" should be visible in a trace rather than
+    # buried inside the generation call. It never branches: a miss is an empty
+    # dict and generation proceeds unchanged.
+    graph.add_edge("search_hf_dataset", "generate_experiment_code")
+    graph.add_edge("generate_experiment_code", "attempt")
 
     # The fix loop. `attempt` is the only node that runs generated code; every
     # exit from it is a real check's verdict, never model judgment.

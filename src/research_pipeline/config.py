@@ -25,6 +25,7 @@ class Settings:
     llm_reasoning_budget: int | None
     semantic_scholar_api_key: str
     core_api_key: str
+    huggingface_api_token: str
     default_max_results_per_query: int
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
@@ -34,6 +35,7 @@ class Settings:
     coder_experiments_dir: str
     coder_output_dir: str
     coder_max_fix_attempts: int
+    coder_enable_hf_dataset_search: bool
     coder_run_high_complexity_when_gpu_available: bool
     coder_high_complexity_timeout_seconds: int
     coder_auto_submit_slurm: bool
@@ -104,6 +106,11 @@ def load_settings() -> Settings:
         llm_reasoning_budget=_env_optional_int("LLM_REASONING_BUDGET"),
         semantic_scholar_api_key=semantic_scholar_api_key,
         core_api_key=core_api_key,
+        # Optional, and deliberately not warned about when unset (unlike the two
+        # keys above): the Coder Agent's Hugging Face dataset lookup works fine
+        # unauthenticated against public datasets — a token only buys higher rate
+        # limits, which matters for a long batch sweep from one IP.
+        huggingface_api_token=os.environ.get("HUGGINGFACE_API_TOKEN", ""),
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
@@ -118,6 +125,14 @@ def load_settings() -> Settings:
         coder_experiments_dir=os.environ.get("CODER_EXPERIMENTS_DIR", "experiments"),
         coder_output_dir=os.environ.get("CODER_OUTPUT_DIR", "outputs"),
         coder_max_fix_attempts=int(os.environ.get("CODER_MAX_FIX_ATTEMPTS", "3")),
+        # On by default: looking up a real Hugging Face dataset for a plan's data
+        # requirements is what stops a generated experiment inventing numbers or
+        # assuming some CSV is already on disk. It's still only ever attempted
+        # when the runtime network probe succeeds, and any failure degrades to
+        # generating exactly as before — so the switch is here for reproducible
+        # offline runs (and to opt a whole batch out of the extra HTTP calls),
+        # not because the lookup is risky.
+        coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
         # Off by default: "high" complexity always defers to run.sbatch,
         # regardless of GPU availability, because the SLURM path is written
         # for a *shared* cluster where nothing should run unreviewed. On a

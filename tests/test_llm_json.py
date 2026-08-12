@@ -71,6 +71,19 @@ def test_invoke_json_repair_turn_quotes_the_answer_not_the_reasoning_trace():
     assert "{oops not json}" in repair_messages[3][1]
 
 
+def test_invoke_json_repair_prompt_warns_against_re_escaping():
+    # The repair turn re-quotes the model's own already-escaped JSON, which
+    # invites the model to "fix" a correctly-escaped \n into a doubled \\n —
+    # decoding to a literal backslash+'n' instead of a newline once the JSON
+    # is parsed. The repair prompt must warn against this explicitly.
+    model = FakeChatModel(["{oops not json}", '{"ok": true}'])
+    invoke_json(model, "sys", "user")
+
+    repair_prompt_text = model.calls[1][3][1]
+    assert "re-escape" in repair_prompt_text
+    assert r"\n" in repair_prompt_text
+
+
 def test_invoke_json_raises_when_both_attempts_are_unparseable():
     model = FakeChatModel(["not json", "still not json"])
     with pytest.raises(LLMJSONError):
@@ -83,9 +96,7 @@ def test_invoke_json_repairs_stray_backslashes_from_embedded_code_without_a_retr
     # deterministic mistake the model will just repeat on a repair turn — so
     # this must be fixed locally, in a single model call.
     model = FakeChatModel([r'{"files": {"a.py": "import re\nPATTERN = \d+"}}'])
-    assert invoke_json(model, "sys", "user") == {
-        "files": {"a.py": "import re\nPATTERN = \\d+"}
-    }
+    assert invoke_json(model, "sys", "user") == {"files": {"a.py": "import re\nPATTERN = \\d+"}}
     assert len(model.calls) == 1
 
 

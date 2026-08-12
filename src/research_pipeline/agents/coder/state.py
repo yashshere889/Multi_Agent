@@ -82,6 +82,13 @@ class CoderState(TypedDict, total=False):
     # loop advances.
     current_plan: dict
     current_experiment_dir: str  # str for the same serialization reason as shared_dir
+    # What the Hugging Face dataset lookup found for this plan (dataset_id,
+    # config, split, columns, sample_rows), or {} when nothing matched, the
+    # network probe failed, or CODER_ENABLE_HF_DATASET_SEARCH is off. Looked up
+    # once per plan and threaded into both the codegen and the fix prompt, so a
+    # fix attempt doesn't re-search for the same answer. Plain JSON-able dict,
+    # like everything else here — it's checkpointed.
+    current_hf_dataset: dict
     # run_py_sections / assumptions_made / needs_gpu / requirements_txt / readme
     current_generation: dict
     current_fix_history: list[dict]

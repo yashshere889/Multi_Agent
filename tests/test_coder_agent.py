@@ -6,13 +6,20 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline.agents.coder import sandbox, slurm_submit
-from research_pipeline.agents.coder.coder_agent import CoderAgent, CoderAgentError, _compact_json
+from research_pipeline.agents.coder import huggingface_client, sandbox, slurm_submit
+from research_pipeline.agents.coder.coder_agent import (
+    CoderAgent,
+    CoderAgentError,
+    _compact_json,
+    _parse_assumptions,
+    _parse_bool_text,
+)
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
     SchemaValidationError,
     validate_output,
 )
+from research_pipeline.llm_sections import render_sections
 
 # -- schema.py: output validation ------------------------------------------------------
 
@@ -132,6 +139,33 @@ def test_lenient_compile_check_reports_original_error_when_repair_does_not_help(
     assert error is not None
     assert "bad.py" in error
     assert fixed == source  # unmodified — the repair didn't fix a different bug
+
+
+def test_lenient_compile_check_repairs_literal_escaped_newline():
+    # Reproduces the JSON double-escaping bug: a newline the model intended
+    # inside a run_py_sections value arrives as the two literal characters
+    # '\' + 'n' instead of a real line break, which the tokenizer reads as an
+    # invalid explicit line continuation.
+    source = (
+        "def load_data():\\n    import pandas as pd\n    df = pd.read_csv('x.csv')\n    return df\n"
+    )
+    fixed, error = sandbox.lenient_compile_check(source, "bad.py")
+    assert error is None
+    assert fixed == (
+        "def load_data():\n    import pandas as pd\n    df = pd.read_csv('x.csv')\n    return df\n"
+    )
+    compile(fixed, "bad.py", "exec")  # doesn't raise
+
+
+def test_lenient_compile_check_literal_newline_repair_is_surgical():
+    # A valid string literal elsewhere in the file that legitimately
+    # contains "\n" must survive untouched — this can't be a blanket
+    # find/replace across the whole source.
+    source = 'MESSAGE = "line one\\nline two"\ndef load_data():\\n    return MESSAGE\n'
+    fixed, error = sandbox.lenient_compile_check(source, "bad.py")
+    assert error is None
+    assert 'MESSAGE = "line one\\nline two"' in fixed
+    compile(fixed, "bad.py", "exec")  # doesn't raise
 
 
 def test_check_shared_infra_files_passes_clean_files():
@@ -389,7 +423,7 @@ def test_run_experiment_resolves_relative_script_path(tmp_path, monkeypatch):
 
 
 class FakeChatModel:
-    """Returns canned JSON responses looked up by a keyword found in the prompt."""
+    """Returns canned responses looked up by a keyword found in the prompt."""
 
     def __init__(self, response_by_keyword: dict[str, str]):
         self._response_by_keyword = response_by_keyword
@@ -424,15 +458,33 @@ GOOD_SECTIONS = {
 def _codegen_response(
     sections=None, readme="# Test experiment\n", requirements="", assumptions=None, needs_gpu=False
 ) -> str:
-    return json.dumps(
-        {
-            "run_py_sections": sections or GOOD_SECTIONS,
-            "readme": readme,
-            "requirements_txt": requirements,
-            "assumptions_made": assumptions or [],
-            "needs_network": False,
-            "needs_gpu": needs_gpu,
-        }
+    """Builds a codegen response in llm_sections.py's delimited format (no
+    escaping of any kind — generated code is carried verbatim between markers).
+
+    This is the one seam nearly every test in this file goes through, so the
+    transport can change here rather than in each test. Note what it no longer
+    has to do: json.dumps used to escape every newline and backslash in the
+    generated code, which is precisely the round-trip a small quantized model
+    kept getting wrong in production."""
+    fields = {
+        **(sections or GOOD_SECTIONS),
+        "readme": readme,
+        "requirements_txt": requirements,
+        "assumptions_made": "\n".join(f"- {item}" for item in (assumptions or [])),
+        "needs_network": "false",
+        "needs_gpu": "true" if needs_gpu else "false",
+    }
+    return render_sections(fields)
+
+
+def _unparseable_sections_response() -> str:
+    """A response the delimited parser can't use: it opens a section and never
+    closes it, and every later field is missing. The format-failure equivalent of
+    the old '{"run_py_sections": {BROKEN' JSON fixture — this is what a
+    completion truncated mid-answer actually looks like."""
+    return (
+        "===BEGIN imports===\nimport json\n===END imports===\n"
+        "===BEGIN load_data_function===\ndef load_data():\n    return None\n"
     )
 
 
@@ -684,8 +736,8 @@ def test_run_missing_package_without_network_skips_execution(tmp_path):
 def test_run_sets_up_shared_infrastructure_exactly_once(tmp_path):
     fake_model = FakeChatModel(
         {
-            "Shared infrastructure items": json.dumps(
-                {"files": {"data_utils.py": "def load():\n    pass\n", "README.md": "shared"}}
+            "Shared infrastructure items": render_sections(
+                {"data_utils.py": "def load():\n    pass\n", "README.md": "shared"}
             ),
             '"hypothesis_id":"H1"': _codegen_response(),
             '"hypothesis_id":"H2"': _codegen_response(),
@@ -868,12 +920,14 @@ RAISING_SECTIONS = {
 
 
 def _agent(tmp_path, model, **kwargs):
+    # network/GPU default to absent (no test may touch either), but both are
+    # overridable so the Hugging Face lookup tests below can turn the network on.
+    kwargs.setdefault("network_check", lambda: False)
+    kwargs.setdefault("gpu_check", lambda: False)
     return CoderAgent(
         chat_model=model,
         experiments_dir=tmp_path / "experiments",
         output_dir=tmp_path / "outputs",
-        network_check=lambda: False,
-        gpu_check=lambda: False,
         **kwargs,
     )
 
@@ -910,13 +964,15 @@ def test_codegen_prompt_sent_to_model_uses_compact_json(tmp_path):
     assert '"hypothesis_id": "H1"' not in prompt
 
 
-BROKEN_SHARED_FILES = {"files": {"utils.py": "def load(:\n    pass\n"}}
-GOOD_SHARED_FILES = {"files": {"utils.py": "def load():\n    return 1\n"}}
+# One delimited section per generated file, named after the file — the
+# shared-infra call is the one place the section names aren't known in advance.
+BROKEN_SHARED_FILES = {"utils.py": "def load(:\n    pass\n"}
+GOOD_SHARED_FILES = {"utils.py": "def load():\n    return 1\n"}
 
 
 def test_shared_infra_fix_loop_recovers_after_a_broken_first_generation(tmp_path):
     model = ScriptedChatModel(
-        shared_infra=[json.dumps(BROKEN_SHARED_FILES), json.dumps(GOOD_SHARED_FILES)],
+        shared_infra=[render_sections(BROKEN_SHARED_FILES), render_sections(GOOD_SHARED_FILES)],
         codegen=[_codegen_response()],
     )
     experiments_dir = tmp_path / "experiments"
@@ -934,7 +990,7 @@ def test_shared_infra_fix_loop_recovers_after_a_broken_first_generation(tmp_path
 def test_shared_infra_still_broken_after_max_attempts_warns_downstream_experiments(tmp_path):
     model = RecordingScriptedChatModel(
         shared_infra=[
-            json.dumps(BROKEN_SHARED_FILES)
+            render_sections(BROKEN_SHARED_FILES)
         ],  # never recovers — same response every retry
         codegen=[_codegen_response()],
     )
@@ -1043,16 +1099,17 @@ def test_env_error_is_not_retried_through_the_llm(tmp_path):
     assert "fix" not in model.calls_by_kind
 
 
-def test_invalid_json_from_initial_generation_routes_through_the_fix_loop_instead_of_crashing(
+def test_unparseable_format_from_initial_generation_routes_through_the_fix_loop_instead_of_crashing(
     tmp_path,
 ):
-    # Regression test: a malformed-JSON codegen response (surviving invoke_json's
-    # own repair retry) used to raise CoderAgentError straight out of
-    # process_current_plan and crash the whole multi-plan run. It must instead be
-    # treated like any other per-plan failure the fix loop can regenerate against.
+    # Regression test: a codegen response the transport can't parse (surviving
+    # invoke_sections' own repair retry) used to raise CoderAgentError straight
+    # out of process_current_plan and crash the whole multi-plan run. It must
+    # instead be treated like any other per-plan failure the fix loop can
+    # regenerate against.
     model = ScriptedChatModel(
         codegen=[
-            '{"run_py_sections": {BROKEN'
+            _unparseable_sections_response()
         ],  # same broken text feeds the internal repair retry too
         fix=[_codegen_response(GOOD_SECTIONS)],
     )
@@ -1061,21 +1118,21 @@ def test_invalid_json_from_initial_generation_routes_through_the_fix_loop_instea
     exp = result["experiments"][0]
     assert exp["status"] == "completed"
     assert exp["fix_attempts"] == 1
-    assert exp["fix_history"][0]["error_source"] == "invalid_json"
+    assert exp["fix_history"][0]["error_source"] == "invalid_format"
     assert exp["fix_history"][0]["resolved"] is True
     assert model.calls_by_kind["fix"] == 1
 
 
-def test_invalid_json_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
+def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
     # The regeneration call (_regenerate_with_fix) goes through the same
-    # _call_json path and can fail the same way — it must be caught too, not
-    # just the initial generation call. invoke_json's internal repair retry
+    # _call_sections path and can fail the same way — it must be caught too, not
+    # just the initial generation call. invoke_sections' internal repair retry
     # sends a fresh prompt with no "fix" marker text, so ScriptedChatModel
     # routes that retry to the "codegen" bucket — a second, broken "codegen"
     # entry keeps both the fix call and its repair retry failing.
     model = ScriptedChatModel(
-        codegen=[_codegen_response(RAISING_SECTIONS), '{"run_py_sections": {STILL_BROKEN'],
-        fix=['{"run_py_sections": {STILL_BROKEN'],
+        codegen=[_codegen_response(RAISING_SECTIONS), _unparseable_sections_response()],
+        fix=[_unparseable_sections_response()],
     )
     result = _agent(tmp_path, model, max_fix_attempts=2).run(
         _planner_output([_plan("H1", complexity="low")])
@@ -1085,7 +1142,87 @@ def test_invalid_json_from_regeneration_still_counts_against_the_fix_budget(tmp_
     assert exp["status"] == "code_generated_not_run"
     assert exp["fix_attempts"] == 2
     assert exp["fix_history"][0]["error_source"] == "run_experiment"
-    assert exp["fix_history"][1]["error_source"] == "invalid_json"
+    assert exp["fix_history"][1]["error_source"] == "invalid_format"
+
+
+# -- coder_agent.py: the delimited code transport ----------------------------------------
+
+
+def test_generated_code_with_regex_escapes_survives_the_transport_verbatim(tmp_path):
+    # The whole point of the delimited transport. As a JSON string value this
+    # source has to arrive as "r\"\\\\d+\"" — four backslashes to mean one — and
+    # a small quantized model reliably writes two, producing either a JSON parse
+    # error or a run.py with a corrupted pattern. Between delimiters there is no
+    # encoding step at all, so what the model writes is what lands on disk.
+    helpers = 'import re\nTOKEN_RE = re.compile(r"\\d+\\s*\\w+")\nSEP = "a\\tb"\n'
+    model = ScriptedChatModel(codegen=[_codegen_response({**GOOD_SECTIONS, "helpers": helpers})])
+    experiments_dir = tmp_path / "experiments"
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert result["experiments"][0]["status"] == "completed"
+    written = (experiments_dir / "H1" / "run.py").read_text()
+    assert 'TOKEN_RE = re.compile(r"\\d+\\s*\\w+")' in written  # single backslashes, unchanged
+    assert "\\\\d" not in written  # never doubled on the way through
+
+
+def test_assumptions_and_needs_gpu_are_parsed_out_of_raw_section_text(tmp_path):
+    # needs_gpu/assumptions_made arrive as text now, so Python decides what that
+    # text means: a dash-prefixed list becomes a real list, and a "true" with
+    # trailing prose after it still reads as True.
+    model = ScriptedChatModel(
+        codegen=[
+            render_sections(
+                {
+                    **GOOD_SECTIONS,
+                    "readme": "# readme\n",
+                    "requirements_txt": "",
+                    "assumptions_made": "- used a synthetic sample\n\n- capped epochs at 5\n",
+                    "needs_network": "false",
+                    "needs_gpu": "true — the plan's model needs one",
+                }
+            )
+        ]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["assumptions_made"] == ["used a synthetic sample", "capped epochs at 5"]
+    # needs_gpu read as True, and no GPU here — so it was deferred, never run.
+    assert exp["status"] == "code_generated_not_run"
+    assert "gpu" in exp["reason"].lower()
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("true", True),
+        ("  TRUE  ", True),
+        ("true — this needs a GPU", True),
+        ("yes", True),
+        ("false", False),
+        ("false, CPU only", False),
+        ("", False),
+        ("unknown", False),  # unrecognisable defaults to "attempt it locally"
+    ],
+)
+def test_parse_bool_text(text, expected):
+    assert _parse_bool_text(text) is expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("- a\n- b", ["a", "b"]),
+        ("a\nb", ["a", "b"]),  # dashes are optional
+        ("* a\n", ["a"]),
+        ("", []),
+        ("- none", []),  # a "nothing to report" placeholder isn't an assumption
+        ("None.\n", []),
+        ("- kept the default seed\n\n\n", ["kept the default seed"]),
+    ],
+)
+def test_parse_assumptions(text, expected):
+    assert _parse_assumptions(text) == expected
 
 
 # -- sandbox.static_safety_check ---------------------------------------------------------
@@ -1118,6 +1255,149 @@ def test_static_safety_check_passes_ordinary_experiment_code():
     assert sandbox.static_safety_check(code) == []
 
 
+# -- sandbox.check_data_fallback ----------------------------------------------------------
+
+
+GUARDED_LOAD_DATA = (
+    "def load_data():\n"
+    "    try:\n"
+    "        return pd.read_csv(CSV_PATH)\n"
+    "    except Exception as exc:\n"
+    "        logger.warning('falling back to synthetic data: %s', exc)\n"
+    "        return _synthesize()\n"
+)
+BARE_LOAD_DATA = "def load_data():\n    return pd.read_csv('survey_data.csv')\n"
+
+
+def test_check_data_fallback_passes_a_guarded_read():
+    assert sandbox.check_data_fallback(GUARDED_LOAD_DATA) == []
+
+
+def test_check_data_fallback_flags_a_bare_read():
+    # The real 2026-08 failure: a plan requiring *new* data collection produced
+    # code that simply assumed survey_data.csv would be sitting there.
+    findings = sandbox.check_data_fallback(BARE_LOAD_DATA)
+    assert len(findings) == 1
+    assert "read_csv" in findings[0]
+    assert "synthesized stand-in" in findings[0]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "    with open('data.txt') as handle:\n        return handle.read()\n",
+        "    return np.load('embeddings.npy')\n",
+        "    return numpy.loadtxt(DATA_PATH)\n",
+        "    return pd.read_parquet(PATH)\n",
+        "    return pd.read_json('rows.json')\n",
+    ],
+)
+def test_check_data_fallback_flags_every_bare_read_flavour(body):
+    assert sandbox.check_data_fallback(f"def load_data():\n{body}") != []
+
+
+def test_check_data_fallback_does_not_treat_an_except_branch_as_a_guard():
+    # The fallback path needs its own guard: if *it* assumes a file exists, the
+    # experiment still dies on a FileNotFoundError.
+    source = (
+        "def load_data():\n"
+        "    try:\n"
+        "        return pd.read_csv(PRIMARY)\n"
+        "    except FileNotFoundError:\n"
+        "        return pd.read_csv(BACKUP)\n"
+    )
+    findings = sandbox.check_data_fallback(source)
+    assert len(findings) == 1
+    assert "line 5" in findings[0]  # the backup read, not the guarded primary
+
+
+def test_check_data_fallback_passes_a_dataset_viewer_fetch():
+    # The sanctioned remote path from the codegen prompt: parsing the response
+    # body with read_csv is normal there, and there is no local file to miss.
+    source = (
+        "def load_data():\n"
+        "    url = 'https://datasets-server.huggingface.co/rows?dataset=acme%2Fsleep'\n"
+        "    response = requests.get(url, timeout=30)\n"
+        "    return pd.read_json(response.text)\n"
+    )
+    assert sandbox.check_data_fallback(source) == []
+
+
+def test_check_data_fallback_exempts_a_function_that_fetches_from_the_dataset_viewer():
+    # Documented rule: a load_data on the sanctioned remote path is exempt as a
+    # whole, so caching the response to disk and reading it back doesn't fail the
+    # check even though that read takes a plain path.
+    source = (
+        "def load_data():\n"
+        "    response = requests.get('https://datasets-server.huggingface.co/rows?dataset=x')\n"
+        "    Path(CACHE_PATH).write_text(response.text)\n"
+        "    return pd.read_csv(CACHE_PATH)\n"
+    )
+    assert sandbox.check_data_fallback(source) == []
+
+
+def test_check_data_fallback_passes_a_read_of_a_fetched_response_body():
+    source = "def load_data():\n    response = _fetch()\n    return pd.read_json(response.text)\n"
+    assert sandbox.check_data_fallback(source) == []
+
+
+def test_check_data_fallback_passes_a_read_of_an_in_memory_buffer():
+    source = (
+        "def load_data():\n    body = _fetch_rows()\n    return pd.read_csv(io.StringIO(body))\n"
+    )
+    assert sandbox.check_data_fallback(source) == []
+
+
+def test_check_data_fallback_passes_a_purely_synthetic_load_data():
+    assert sandbox.check_data_fallback(GOOD_SECTIONS["load_data_function"]) == []
+
+
+def test_check_data_fallback_ignores_unparseable_source():
+    # The compile check owns syntax errors (with real line numbers); this check
+    # must not double-report them.
+    assert sandbox.check_data_fallback("def load_data(:\n    pass\n") == []
+
+
+def test_missing_data_fallback_routes_through_the_fix_loop(tmp_path):
+    # End to end: an unguarded first generation is never executed, the concrete
+    # finding goes back to the model, and a guarded second generation runs.
+    unguarded = {**GOOD_SECTIONS, "load_data_function": BARE_LOAD_DATA}
+    guarded = {**GOOD_SECTIONS, "load_data_function": "def load_data():\n    return None\n"}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(unguarded)], fix=[_codegen_response(guarded)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_attempts"] == 1
+    assert exp["fix_history"][0]["error_source"] == "missing_data_fallback"
+    assert exp["fix_history"][0]["resolved"] is True
+    assert "read_csv" in exp["fix_history"][0]["error_summary"]
+    # The model was told what to fix, in the fix prompt's error slot.
+    assert "missing_data_fallback" in model.prompts_by_kind["fix"][0]
+    # The unguarded version was preserved but never executed — the guarded one is
+    # what ended up on disk and ran.
+    snapshot = Path(exp["fix_history"][0]["code_path"])
+    assert "survey_data.csv" in snapshot.read_text()
+    assert "survey_data.csv" not in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+
+
+def test_missing_data_fallback_gives_up_without_ever_executing(tmp_path):
+    unguarded = {**GOOD_SECTIONS, "load_data_function": BARE_LOAD_DATA}
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(unguarded)], fix=[_codegen_response(unguarded)]
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "assumes its data will be present" in exp["reason"]
+    assert not (tmp_path / "experiments" / "H1" / "results.json").exists()
+
+
 def test_lint_failure_routes_through_the_fix_loop(tmp_path):
     unsafe = {
         **GOOD_SECTIONS,
@@ -1132,6 +1412,293 @@ def test_lint_failure_routes_through_the_fix_loop(tmp_path):
     assert exp["status"] == "completed"
     assert exp["fix_history"][0]["error_source"] == "static_lint"
     assert "rmtree" in exp["fix_history"][0]["error_summary"]
+
+
+# -- coder_agent.py: the Hugging Face dataset lookup -------------------------------------
+# No test here touches the network: the lookup is a single injected function
+# (huggingface_lookup_fn), exactly like network_check/gpu_check.
+
+
+HF_DATASET_MATCH = {
+    "dataset_id": "acme/sleep-survey",
+    "config": "default",
+    "split": "train",
+    "columns": [{"name": "hours_slept", "type": "float32"}, {"name": "score", "type": "int64"}],
+    "sample_rows": [{"hours_slept": 7.5, "score": 88}],
+}
+
+
+def _recording_lookup(result):
+    """A fake huggingface_lookup_fn that records the queries it was asked."""
+    queries: list[str] = []
+
+    def lookup(query):
+        queries.append(query)
+        return result
+
+    return lookup, queries
+
+
+def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    # Queried with the plan's own data description, not the objective.
+    assert queries == ["d"]
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "acme/sleep-survey" in prompt
+    assert "hours_slept (float32)" in prompt  # real column names and dtypes
+    assert '"hours_slept":7.5' in prompt  # real sample rows
+    # The exact REST endpoint, url-encoded, so no `datasets` package is needed.
+    assert "datasets-server.huggingface.co/rows?dataset=acme%2Fsleep-survey" in prompt
+    # And the instruction that keeps Phase C's check satisfiable.
+    assert "fall back to a small synthesized stand-in dataset" in prompt
+
+
+def test_no_dataset_block_when_nothing_matched(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert queries == ["d"]
+    assert result["experiments"][0]["status"] == "completed"
+    # The prompt reads exactly as it did before this lookup existed.
+    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_a_raising_lookup_never_blocks_code_generation(tmp_path):
+    # The lookup is an enhancement to a prompt, never a dependency: an injected
+    # function that raises must not cost the experiment its code.
+    def boom(query):
+        raise RuntimeError("hub is down")
+
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=boom).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_lookup_is_skipped_without_network(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, huggingface_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    assert queries == []  # never attempted — the runtime probe said no network
+
+
+def test_lookup_is_skipped_when_the_setting_is_off(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_enable_hf_dataset_search=False)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert queries == []
+    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_infeasible_plan_never_reaches_the_lookup(tmp_path):
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    _agent(
+        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
+    ).run(_planner_output([_plan("H1", feasible=False)]))
+
+    assert queries == []  # skipped before the lookup node, like the LLM call
+
+
+def test_the_fix_prompt_reuses_the_dataset_found_once_for_the_plan(tmp_path):
+    # The dataset is usually exactly what a data-loading failure needs to be
+    # fixed *with* — and looking it up once per plan (not once per attempt) keeps
+    # a three-attempt fix loop from spending three more searches on it.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert len(queries) == 1
+    assert "acme/sleep-survey" in model.prompts_by_kind["fix"][0]
+
+
+def test_each_plan_gets_its_own_lookup(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1"), _plan("H2")])
+    )
+
+    assert len(queries) == 2
+
+
+# -- huggingface_client.py: against faked requests responses -----------------------------
+
+
+class _FakeResponse:
+    def __init__(self, payload, status_code=200, valid_json=True):
+        self._payload = payload
+        self._valid_json = valid_json
+        self.status_code = status_code
+        self.text = "response body"
+
+    def json(self):
+        if not self._valid_json:
+            raise ValueError("not JSON")
+        return self._payload
+
+
+def _fake_hf(monkeypatch, routes, recorder=None):
+    """Routes huggingface_client's requests.get by URL substring. A route value
+    that is an exception instance is raised instead of returned."""
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        if recorder is not None:
+            recorder.append((url, dict(params or {})))
+        for marker, response in routes.items():
+            if marker in url:
+                if isinstance(response, Exception):
+                    raise response
+                return response
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(huggingface_client.requests, "get", fake_get)
+
+
+def _viewer_routes(search_hits):
+    return {
+        "api/datasets": _FakeResponse(search_hits),
+        "is-valid": _FakeResponse({"viewer": True, "preview": True}),
+        "splits": _FakeResponse(
+            {
+                "splits": [
+                    {"dataset": "acme/sleep", "config": "default", "split": "test"},
+                    {"dataset": "acme/sleep", "config": "default", "split": "train"},
+                ]
+            }
+        ),
+        "first-rows": _FakeResponse(
+            {
+                "features": [
+                    {"name": "hours_slept", "type": {"dtype": "float32", "_type": "Value"}},
+                    {"name": "label", "type": {"_type": "ClassLabel"}},
+                ],
+                "rows": [
+                    {"row_idx": 0, "row": {"hours_slept": 7.5, "label": 1}},
+                    {"row_idx": 1, "row": {"hours_slept": 6.0, "label": 0}},
+                ],
+            }
+        ),
+    }
+
+
+def test_search_datasets_returns_hits(monkeypatch):
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse([{"id": "acme/sleep"}, {"id": "b/c"}])})
+    assert huggingface_client.search_datasets("sleep", limit=2) == [
+        {"id": "acme/sleep"},
+        {"id": "b/c"},
+    ]
+
+
+def test_search_datasets_degrades_on_a_transport_error(monkeypatch):
+    _fake_hf(
+        monkeypatch,
+        {"api/datasets": huggingface_client.requests.RequestException("connection reset")},
+    )
+    assert huggingface_client.search_datasets("sleep") == []
+
+
+def test_search_datasets_degrades_on_a_bad_status(monkeypatch):
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse(None, status_code=429)})
+    assert huggingface_client.search_datasets("sleep") == []
+
+
+def test_search_datasets_degrades_on_a_non_json_body(monkeypatch):
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse(None, valid_json=False)})
+    assert huggingface_client.search_datasets("sleep") == []
+
+
+def test_search_datasets_skips_the_request_for_an_empty_query(monkeypatch):
+    _fake_hf(monkeypatch, {})  # any request would fail the test
+    assert huggingface_client.search_datasets("   ") == []
+
+
+def test_find_dataset_for_experiment_describes_the_first_servable_match(monkeypatch):
+    calls: list[tuple[str, dict]] = []
+    _fake_hf(monkeypatch, _viewer_routes([{"id": "acme/sleep"}]), recorder=calls)
+
+    found = huggingface_client.find_dataset_for_experiment(
+        "A survey of 500 undergraduate students measuring sleep quality and exam scores"
+    )
+
+    assert found == {
+        "dataset_id": "acme/sleep",
+        "config": "default",
+        "split": "train",  # preferred over the "test" split listed first
+        "columns": [
+            {"name": "hours_slept", "type": "float32"},
+            {"name": "label", "type": "ClassLabel"},  # nested type falls back to _type
+        ],
+        "sample_rows": [{"hours_slept": 7.5, "label": 1}, {"hours_slept": 6.0, "label": 0}],
+    }
+    # A prose description is reduced to a keyword query — the Hub's `search`
+    # matches dataset names, so the full sentence would match nothing.
+    search_params = next(params for url, params in calls if "api/datasets" in url)
+    assert search_params["search"] == "survey undergraduate students measuring"
+
+
+def test_find_dataset_for_experiment_returns_none_when_the_viewer_cannot_serve_it(monkeypatch):
+    routes = _viewer_routes([{"id": "acme/sleep"}])
+    routes["is-valid"] = _FakeResponse({"viewer": False, "preview": False})
+    _fake_hf(monkeypatch, routes)
+
+    assert huggingface_client.find_dataset_for_experiment("sleep quality survey") is None
+
+
+def test_find_dataset_for_experiment_returns_none_when_search_finds_nothing(monkeypatch):
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse([])})
+    assert huggingface_client.find_dataset_for_experiment("sleep quality survey") is None
+
+
+def test_find_dataset_for_experiment_skips_a_candidate_with_no_usable_splits(monkeypatch):
+    routes = _viewer_routes([{"id": "acme/sleep"}])
+    routes["splits"] = _FakeResponse({"splits": []})
+    _fake_hf(monkeypatch, routes)
+
+    assert huggingface_client.find_dataset_for_experiment("sleep quality survey") is None
+
+
+def test_find_dataset_for_experiment_truncates_a_huge_cell(monkeypatch):
+    routes = _viewer_routes([{"id": "acme/sleep"}])
+    routes["first-rows"] = _FakeResponse(
+        {
+            "features": [{"name": "text", "type": {"dtype": "string"}}],
+            "rows": [{"row_idx": 0, "row": {"text": "x" * 5000}}],
+        }
+    )
+    _fake_hf(monkeypatch, routes)
+
+    found = huggingface_client.find_dataset_for_experiment("sleep quality survey")
+    assert found is not None
+    cell = found["sample_rows"][0]["text"]
+    assert len(cell) <= huggingface_client.MAX_CELL_CHARS + 1  # + the ellipsis
+
+
+def test_find_dataset_for_experiment_never_raises_on_an_unexpected_payload(monkeypatch):
+    # Every network/decode failure is absorbed by _get_json; this covers the
+    # remaining class — a 200 whose body has the wrong shape entirely.
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse({"unexpected": "shape"})})
+    assert huggingface_client.find_dataset_for_experiment("sleep quality survey") is None
 
 
 # -- coder_agent.py: gated SLURM auto-submit ---------------------------------------------
