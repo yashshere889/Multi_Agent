@@ -261,6 +261,10 @@ def build_progress(
             "status": DONE,
             "summary": event.get("summary") or {},
             "ts": event.get("ts"),
+            # Seeded from the run this one continues rather than executed here
+            # (see runner.py). The row is otherwise identical — same summary,
+            # same shape — so only its timestamp is worth labelling differently.
+            "carried_over": bool(event.get("carried_over")),
         }
         for event in stage_events
         if event.get("stage") in STAGE_ORDER

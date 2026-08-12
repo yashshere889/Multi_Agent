@@ -289,6 +289,194 @@ def test_progress_fragment_summarizes_a_run_that_stopped_at_a_custom_end_stage(c
     assert "Passed review" not in body and "Finished without passing review" not in body
 
 
+# -- continuing a stopped run ----------------------------------------------------------
+
+
+def _stopped_after_hypothesis(store, **params):
+    """A completed run that stopped at a custom end_stage, with its final_result
+    built by the real finalize_node so the route meets the shape it will meet in
+    production."""
+    final_result = finalize_node(
+        {
+            "literature_output": {"merged_papers": [{"title": "RAG Paper"}]},
+            "hypothesis_output": {"hypotheses": [{"id": "H1"}], "selected_hypothesis_id": "H1"},
+        }
+    )["final_result"]
+    record = store.create(
+        "does retrieval reduce hallucination?",
+        {"end_stage": "hypothesis", "max_results_per_query": 3, "max_iterations": 2, **params},
+    )
+    return store.update(record["run_id"], status=runs.COMPLETED, final_result=final_result)
+
+
+def test_continue_starts_a_new_run_seeded_with_the_stopped_run_s_output(client, store, launched):
+    record = _stopped_after_hypothesis(store)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue", data={"end_stage": "coder"}, follow_redirects=False
+    )
+
+    assert response.status_code == 303
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert new_id != record["run_id"]
+    assert launched == [new_id]
+
+    new_record = store.get(new_id)
+    assert new_record["question"] == record["question"]
+    params = new_record["params"]
+    assert params["resume_from"] == "hypothesis"  # the stage the last output key came from
+    assert params["resumed_from_run_id"] == record["run_id"]
+    assert params["end_stage"] == "coder"
+    # every finished stage travels with it, or the run would enter the planner
+    # with nothing to plan
+    assert params["hypothesis_output"] == {"hypotheses": [{"id": "H1"}], "selected_hypothesis_id": "H1"}
+    assert params["literature_output"] == {"merged_papers": [{"title": "RAG Paper"}]}
+    # the settings the user picked for this question are kept, not re-asked
+    assert params["max_results_per_query"] == 3
+    assert params["max_iterations"] == 2
+    # the cross-field stage is behind this resume point, so it is not this
+    # form's to answer
+    assert "include_interdisciplinary" not in params
+    # and the run being continued is left exactly as it was
+    assert store.get(record["run_id"])["status"] == runs.COMPLETED
+    assert store.get(record["run_id"])["final_result"] == record["final_result"]
+
+
+@pytest.mark.parametrize(("checkbox", "expected"), [({"include_interdisciplinary": "1"}, True), ({}, False)])
+def test_continue_from_the_literature_stage_asks_about_the_cross_field_stage(
+    client, store, checkbox, expected
+):
+    """The one resume point with the cross-field stage still ahead of it."""
+    final_result = finalize_node({"literature_output": {"merged_papers": [{"title": "RAG Paper"}]}})["final_result"]
+    record = store.create("q", {"end_stage": "literature"})
+    store.update(record["run_id"], status=runs.COMPLETED, final_result=final_result)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue",
+        data={"end_stage": "hypothesis", **checkbox},
+        follow_redirects=False,
+    )
+
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    params = store.get(new_id)["params"]
+    assert params["resume_from"] == "literature"
+    assert params["include_interdisciplinary"] is expected
+
+
+def test_continue_refuses_a_run_with_nothing_to_continue_from(client, store, launched):
+    """A converged full run has no stages_completed bundle — only the partial
+    branch of finalize_node writes one."""
+    record = store.create("q", {})
+    store.update(
+        record["run_id"],
+        status=runs.COMPLETED,
+        final_result={"converged": True, "iterations_run": 1, "unresolved_issues": []},
+    )
+
+    response = client.post(f"/runs/{record['run_id']}/continue", data={"end_stage": "coder"})
+
+    assert response.status_code == 200
+    assert "no stopped-at stage to continue from" in response.text
+    assert launched == []
+    assert len(store.list_runs()) == 1  # nothing new was created
+
+
+def test_continue_refuses_a_run_that_has_not_finished(client, store, launched):
+    record = store.create("q", {"end_stage": "hypothesis"})
+    _mark_running(store, record["run_id"])
+
+    response = client.post(f"/runs/{record['run_id']}/continue", data={"end_stage": "coder"})
+
+    assert response.status_code == 200
+    assert "no stopped-at stage to continue from" in response.text
+    assert launched == []
+
+
+@pytest.mark.parametrize("end_stage", ["literature", "hypothesis", "publish_to_nature"])
+def test_continue_refuses_an_end_stage_that_is_not_ahead_of_the_resume_point(
+    client, store, launched, end_stage
+):
+    """At or before the resume point there is nothing left to run — the graph
+    would route from its entry point straight to finalize."""
+    record = _stopped_after_hypothesis(store)
+
+    response = client.post(f"/runs/{record['run_id']}/continue", data={"end_stage": end_stage})
+
+    assert response.status_code == 200
+    assert "not a stage it can continue into" in response.text
+    assert launched == []
+    assert len(store.list_runs()) == 1
+
+
+def test_continue_refuses_to_exceed_the_concurrency_cap(client, store, launched, monkeypatch):
+    monkeypatch.setattr(app_module, "settings", replace(app_module.settings, webapp_max_concurrent_runs=1))
+    record = _stopped_after_hypothesis(store)
+    other = store.create("something else", {})
+    _mark_running(store, other["run_id"])
+
+    response = client.post(f"/runs/{record['run_id']}/continue", data={"end_stage": "coder"})
+
+    assert response.status_code == 200
+    assert "already in progress" in response.text
+    assert launched == []
+
+
+def test_progress_fragment_offers_to_continue_a_stopped_run(client, store):
+    record = _stopped_after_hypothesis(store)
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert f'action="/runs/{record["run_id"]}/continue"' in body
+    # only the stages still ahead of the resume point are offered
+    for ahead in ("experiment_planner", "coder", "writer_reviewer"):
+        assert f'value="{ahead}"' in body
+    for behind in ("literature", "interdisciplinary_literature", "hypothesis"):
+        assert f'value="{behind}"' not in body
+    # the cross-field stage is already behind this run, so it is not asked about
+    assert "include_interdisciplinary" not in body
+
+
+def test_progress_fragment_does_not_offer_to_continue_a_full_run(client, store):
+    record = store.create("q", {})
+    store.update(
+        record["run_id"],
+        status=runs.COMPLETED,
+        final_result={"converged": True, "iterations_run": 1, "unresolved_issues": []},
+    )
+
+    assert "/continue" not in client.get(f"/runs/{record['run_id']}/progress").text
+
+
+def test_progress_fragment_does_not_offer_to_continue_a_run_still_in_flight(client, store):
+    """Its stopping point is not settled yet — and the form would be offering to
+    resume from a bundle that does not exist."""
+    record = _stopped_after_hypothesis(store)
+    _mark_running(store, record["run_id"])
+
+    assert "/continue" not in client.get(f"/runs/{record['run_id']}/progress").text
+
+
+def test_progress_fragment_labels_carried_over_stages_and_links_where_they_came_from(client, store):
+    origin = _stopped_after_hypothesis(store)
+    record = store.create(
+        "q", {"end_stage": "coder", "resume_from": "hypothesis", "resumed_from_run_id": origin["run_id"]}
+    )
+    _mark_running(store, record["run_id"])
+    log = events.EventLog(store.run_dir(record["run_id"]))
+    log.append(
+        events.STAGE_COMPLETED,
+        stage="hypothesis",
+        summary=stages.summarize("hypothesis", {"hypothesis_output": {"hypotheses": [{"id": "H1"}]}}),
+        carried_over=True,
+    )
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert "from a previous run" in body
+    assert f'href="/runs/{origin["run_id"]}"' in body
+    assert "Continued from" in body
+
+
 def test_log_fragment_shows_the_tail_of_the_log(client, store, monkeypatch):
     monkeypatch.setattr(app_module, "LOG_TAIL", 2)
     record = store.create("q", {})

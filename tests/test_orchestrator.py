@@ -8,7 +8,11 @@ from research_pipeline.agents.coder import CoderAgentError
 from research_pipeline.agents.reviewer.reviewer_agent import ReviewerAgent
 from research_pipeline.agents.writer.writer_agent import WriterAgent
 from research_pipeline.orchestrator import nodes
-from research_pipeline.orchestrator.graph import build_pipeline_graph, should_continue_revising
+from research_pipeline.orchestrator.graph import (
+    STAGE_FOR_OUTPUT_KEY,
+    build_pipeline_graph,
+    should_continue_revising,
+)
 
 from test_writer_reviewer_loop import (
     FakeWriterModel,
@@ -474,3 +478,116 @@ def test_pipeline_starts_from_user_supplied_papers_without_interdisciplinary(tmp
     assert calls["interdisciplinary"] == []
     assert calls["hypothesis"][0][0][0] == state["literature_output"]["merged_papers"]
     assert state["final_result"]["stages_completed"] == ["literature_output", "hypothesis_output"]
+
+
+# -- resuming a stopped run ---------------------------------------------------------
+
+
+def test_stage_for_output_key_pairs_every_partial_key_with_the_stage_that_wrote_it():
+    """The one place that pairing is written down — the webapp and the CLI both
+    read a stopped run's last output key through it rather than re-deriving it."""
+    assert STAGE_FOR_OUTPUT_KEY == {
+        "literature_output": "literature",
+        "interdisciplinary_output": "interdisciplinary_literature",
+        "hypothesis_output": "hypothesis",
+        "planner_output": "experiment_planner",
+        "coder_output": "coder",
+    }
+    # writer_reviewer is the one stage with no *_output key of its own
+    assert "writer_reviewer" not in STAGE_FOR_OUTPUT_KEY.values()
+
+
+def test_resuming_enters_after_the_stage_the_previous_run_stopped_at(tmp_path, monkeypatch):
+    """The whole feature in one test: the stages already done are seeded into
+    state rather than re-run, and the graph starts at the one after them."""
+    calls = _stub_upstream_agents(monkeypatch)
+
+    state = _invoke(
+        tmp_path,
+        object(),
+        resume_from="hypothesis",
+        end_stage="coder",
+        literature_output=_literature_state(),
+        interdisciplinary_output=_interdisciplinary_output(),
+        hypothesis_output=_hypothesis_output(),
+    )
+
+    # nothing up to and including the resume point ran a second time
+    assert [stage for stage, invocations in calls.items() if invocations] == ["planner", "coder"]
+    # ...and the planner was handed the *seeded* hypothesis output
+    assert calls["planner"][0][0][0] == _hypothesis_output()
+    assert not (tmp_path / "v1.pdf").exists()
+
+    result = state["final_result"]
+    # the bundle stays cumulative, so this run can itself be resumed from
+    assert result["stages_completed"] == [
+        "literature_output", "interdisciplinary_output", "hypothesis_output", "planner_output", "coder_output",
+    ]
+    assert result["hypothesis_output"] == _hypothesis_output()
+    assert result["coder_output"] == _coder_output()
+
+
+def test_resuming_from_literature_runs_the_cross_field_stage_next(tmp_path, monkeypatch):
+    calls = _stub_upstream_agents(monkeypatch)
+
+    state = _invoke(
+        tmp_path,
+        object(),
+        resume_from="literature",
+        end_stage="interdisciplinary_literature",
+        literature_output=_literature_state(),
+    )
+
+    assert calls["literature"] == []
+    assert calls["interdisciplinary"][0][0][0] == _literature_state()["merged_papers"]
+    assert state["final_result"]["stages_completed"] == ["literature_output", "interdisciplinary_output"]
+
+
+def test_resuming_honours_include_interdisciplinary(tmp_path, monkeypatch):
+    """The resume entry point asks the same router every interior edge asks, so
+    a disabled cross-field stage is skipped on the way *in* exactly as in flight."""
+    calls = _stub_upstream_agents(monkeypatch)
+
+    state = _invoke(
+        tmp_path,
+        object(),
+        resume_from="literature",
+        end_stage="hypothesis",
+        include_interdisciplinary=False,
+        literature_output=_literature_state(),
+    )
+
+    assert calls["literature"] == [] and calls["interdisciplinary"] == []
+    assert calls["hypothesis"][0][0][0] == _literature_state()["merged_papers"]
+    assert state["final_result"]["stages_completed"] == ["literature_output", "hypothesis_output"]
+
+
+def test_resuming_from_the_coder_stage_goes_straight_into_the_writer_reviewer_cycle(tmp_path, monkeypatch):
+    """The far end of the range: every upstream stage seeded, so the run is
+    nothing but the Writer/Reviewer loop over a previous run's work."""
+    calls = _stub_upstream_agents(monkeypatch)
+
+    state = _invoke(
+        tmp_path,
+        AlwaysPassReviewerModel(),
+        resume_from="coder",
+        literature_output=_literature_state(),
+        hypothesis_output=_hypothesis_output(),
+        planner_output=_planner_output(),
+        coder_output=_coder_output(),
+    )
+
+    assert all(invocations == [] for invocations in calls.values())
+    assert state["final_result"]["converged"] is True
+    assert state["final_result"]["final_paper_path"] == str(tmp_path / "v1.pdf")
+
+
+def test_a_run_without_resume_from_still_starts_at_the_literature_stage(tmp_path, monkeypatch):
+    """Regression: resume_from is the only thing that moves the entry point, so
+    its absence has to leave the original behavior exactly as it was."""
+    calls = _stub_upstream_agents(monkeypatch)
+
+    state = _invoke(tmp_path, object(), end_stage="literature")
+
+    assert len(calls["literature"]) == 1
+    assert state["final_result"]["stages_completed"] == ["literature_output"]

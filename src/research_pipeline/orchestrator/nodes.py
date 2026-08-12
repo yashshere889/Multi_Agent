@@ -219,7 +219,11 @@ def review_node(state: PipelineState, config: Optional[RunnableConfig] = None) -
 
 
 # The stage-output keys a partial run can leave behind, in pipeline order.
-_PARTIAL_STAGE_KEYS = (
+# Public because a resumed run is seeded from exactly these keys — the webapp
+# and the CLI both need to know which keys of a previous run's final_result are
+# stage outputs to carry forward (see graph.STAGE_FOR_OUTPUT_KEY, which pairs
+# them with the stage names they came from).
+PARTIAL_STAGE_KEYS = (
     "literature_output",
     "interdisciplinary_output",
     "hypothesis_output",
@@ -233,8 +237,12 @@ def _finalize_partial_run(state: PipelineState) -> dict:
 
     Nothing extra is written to disk: every stage already persisted its own
     output file inside its own run_<name>_agent(), so this only assembles what
-    ran into one dict the caller can use directly."""
-    stages_completed = [key for key in _PARTIAL_STAGE_KEYS if state.get(key)]
+    ran into one dict the caller can use directly.
+
+    It reads state, not a record of what this process executed, so a resumed run
+    reports the stages it was *seeded* with alongside the ones it just ran — the
+    bundle stays cumulative, and a resumed run can itself be resumed from."""
+    stages_completed = [key for key in PARTIAL_STAGE_KEYS if state.get(key)]
     logger.info("Pipeline finished early after %d stage(s): %s", len(stages_completed), ", ".join(stages_completed))
     final_result = {
         "stages_completed": stages_completed,

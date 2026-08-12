@@ -28,7 +28,7 @@ from fastapi.templating import Jinja2Templates
 
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
-from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE
+from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE, STAGE_FOR_OUTPUT_KEY, STAGE_SEQUENCE
 from research_pipeline.orchestrator.state import EndStage
 from research_pipeline.webapp import events, runs, stages
 
@@ -77,6 +77,32 @@ def _stage_name(output_key: str) -> str:
     """Human-readable name for one of a partial run's stage-output keys."""
     key = str(output_key)
     return STAGE_OUTPUT_LABELS.get(key, key.removesuffix("_output").replace("_", " ").title())
+
+
+def _continue_options(record: dict) -> tuple[Optional[str], tuple]:
+    """What a finished run can be continued into: the stage it stopped after,
+    and the end stages still ahead of that point.
+
+    Only a run that stopped *cleanly* at a custom end_stage has anything to
+    offer — that is the branch of finalize_node which bundles `stages_completed`
+    together with each stage's raw output. A run that crashed never reached
+    finalize_node, so its intermediate work exists only as separate files under
+    outputs/ and cannot be picked up this way.
+
+    Returns `(None, ())` for everything else, which is also what the template
+    reads as "don't offer to continue this run".
+    """
+    completed = (record.get("final_result") or {}).get("stages_completed") or []
+    resume_from = STAGE_FOR_OUTPUT_KEY.get(completed[-1]) if completed else None
+    if not resume_from:
+        return None, ()
+    resume_index = STAGE_SEQUENCE.index(resume_from)
+    # Offering a stage at or before the resume point would start a run with
+    # nothing left to do: the graph would route straight from its entry point to
+    # finalize (see _entry_router).
+    return resume_from, tuple(
+        choice for choice in END_STAGE_CHOICES if STAGE_SEQUENCE.index(choice[0]) > resume_index
+    )
 
 
 def _parse_seed_papers(raw: str) -> list[dict]:
@@ -198,10 +224,15 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         active = _is_active(record)
         paper = _latest_paper(store, record)
         params = record.get("params") or {}
+        resume_from, continue_choices = _continue_options(record)
         return {
             "run": record,
             "active": active,
             "can_resume": _can_resume(record),
+            # Only a finished partial run offers to continue; while one is still
+            # going there is no settled stopping point to resume from.
+            "resume_from": resume_from,
+            "continue_choices": continue_choices,
             # The run's own params, so a run covering only part of the pipeline
             # is not shown pending stages it will never reach.
             "rows": stages.build_progress(
@@ -290,6 +321,76 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
     @app.get("/runs/{run_id}", response_class=HTMLResponse)
     def run_page(request: Request, run_id: str, error: Optional[str] = None):
         return render(request, "run.html", run=store.get(run_id), error=error)
+
+    @app.post("/runs/{run_id}/continue")
+    def continue_run(
+        run_id: str,
+        end_stage: str = Form(DEFAULT_END_STAGE),
+        include_interdisciplinary: Optional[str] = Form(None),
+    ):
+        """Pick a stopped run back up, as a *new* run seeded with what the old
+        one already produced.
+
+        Always a new run_id rather than a restart of this one: RunStore's status
+        machine only moves forward and _reconcile trusts a terminal event, both
+        of which assume a run's params are fixed when it is created. The old
+        run's record is left exactly as it was; the new one records
+        `resumed_from_run_id` so the lineage is still visible.
+        """
+        record = store.get(run_id)
+        resume_from, choices = _continue_options(record)
+        if not resume_from:
+            return _back_to_run(
+                run_id,
+                (
+                    "This run has no stopped-at stage to continue from. Only a run that finished at a custom "
+                    "end stage carries its completed stages forward; a full or failed run does not."
+                ),
+            )
+
+        if end_stage not in dict(choices):
+            return _back_to_run(
+                run_id,
+                (
+                    f"This run already got as far as {END_STAGE_LABELS.get(resume_from, resume_from)!r}, so "
+                    f"{end_stage!r} is not a stage it can continue into. Pick a later one."
+                ),
+            )
+
+        if store.active_count() >= settings.webapp_max_concurrent_runs:
+            return _back_to_run(
+                run_id,
+                (
+                    f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
+                    f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it."
+                ),
+            )
+
+        previous_params = record.get("params") or {}
+        params: dict = {
+            # Carried from the run being continued, not re-asked: the user chose
+            # them for this question, and the continue form is deliberately two
+            # fields wide.
+            "max_results_per_query": previous_params.get("max_results_per_query"),
+            "max_iterations": previous_params.get("max_iterations"),
+            "quality_threshold": previous_params.get("quality_threshold"),
+            "end_stage": end_stage,
+            "resume_from": resume_from,
+            "resumed_from_run_id": run_id,
+        }
+        # Only meaningful when the cross-field stage is still ahead of the resume
+        # point. Past it, the stage either already ran (and its output is being
+        # carried forward) or was skipped, and neither is this form's to revisit.
+        if resume_from == stages.LITERATURE:
+            params["include_interdisciplinary"] = include_interdisciplinary is not None
+
+        final_result = record["final_result"]
+        for key in final_result["stages_completed"]:
+            params[key] = final_result[key]
+
+        new_record = store.create(record["question"], params)
+        store.launch(new_record["run_id"])
+        return RedirectResponse(f"/runs/{new_record['run_id']}", status_code=303)
 
     @app.get("/runs/{run_id}/progress", response_class=HTMLResponse)
     def progress_fragment(request: Request, run_id: str):

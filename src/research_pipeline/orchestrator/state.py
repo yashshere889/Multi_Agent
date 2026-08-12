@@ -36,6 +36,12 @@ class PipelineState(TypedDict, total=False):
     start_stage: StartStage  # default "literature" (run the search)
     end_stage: EndStage  # default "writer_reviewer" (run everything)
     include_interdisciplinary: bool  # default True
+    # Set only when picking a stopped run back up: the last stage that already
+    # ran, whose *_output keys below are seeded straight into this run's state.
+    # The run then enters at whatever comes *after* it (see graph._entry_router),
+    # so this is the one key that changes where the graph starts without a
+    # matching start_stage value of its own.
+    resume_from: EndStage
     # Required iff start_stage == "own_papers": raw paper dicts to seed the
     # literature stage with, in place of running a search. See paper_seed.py.
     seed_papers: List[dict]

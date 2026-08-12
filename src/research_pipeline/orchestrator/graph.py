@@ -31,6 +31,10 @@ A run can also cover a *contiguous slice* of the pipeline rather than all of it:
 already has (`seed_papers`, see paper_seed.py), `end_stage` picks where the run
 stops, and `include_interdisciplinary` toggles the cross-field stage. All three
 are optional and their defaults reproduce the original fixed linear run.
+
+A run stopped that way can be picked back up: seed a new run's state with the
+previous one's `*_output` dicts and set `resume_from` to the stage it stopped
+after, and the graph enters at whatever comes next instead of at literature.
 """
 
 from __future__ import annotations
@@ -40,6 +44,7 @@ from langgraph.graph import END, StateGraph
 from research_pipeline.checkpointer import get_checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.nodes import (
+    PARTIAL_STAGE_KEYS,
     draft_or_revise_node,
     finalize_node,
     review_node,
@@ -73,6 +78,16 @@ STAGE_SEQUENCE = (
 # on, and a second copy of it there could drift out of step with this one.
 NODE_FOR_STAGE = {stage: stage for stage in STAGE_SEQUENCE}
 NODE_FOR_STAGE["writer_reviewer"] = "draft_or_revise"
+
+# Which stage each of a partial run's output keys came from — the one place that
+# pairing is written down, so resuming ("this run's last key was planner_output,
+# so it stopped after experiment_planner") never re-derives it. It lives here
+# rather than beside PARTIAL_STAGE_KEYS in nodes.py only because nodes.py cannot
+# import this module back without a cycle.
+# The two tuples are already positionally parallel; zip stops at the shorter,
+# dropping "writer_reviewer", which is exactly right — it is the one stage with
+# no *_output key of its own.
+STAGE_FOR_OUTPUT_KEY = dict(zip(PARTIAL_STAGE_KEYS, STAGE_SEQUENCE))
 
 DEFAULT_END_STAGE = "writer_reviewer"
 
@@ -115,9 +130,22 @@ def _after(stage_key: str):
 
 
 def _entry_router(state: PipelineState) -> str:
-    """Start from the Literature Agent's search, or from papers the caller
-    already has. Both paths leave `literature_output` populated in the same
-    shape, so everything downstream is identical (see paper_seed.py)."""
+    """Where this run begins.
+
+    Resuming a stopped run asks exactly the question every interior edge already
+    asks — "given this run's end_stage/include_interdisciplinary, what comes
+    after `resume_from`?" — so it reuses `_after` rather than routing of its own.
+    The stages before that point are not re-run: their outputs were seeded into
+    state by the caller, which every node reads indifferently to whether this
+    run computed them.
+
+    Otherwise: start from the Literature Agent's search, or from papers the
+    caller already has. Both paths leave `literature_output` populated in the
+    same shape, so everything downstream is identical (see paper_seed.py).
+    """
+    resume_from = state.get("resume_from")
+    if resume_from:
+        return _after(resume_from)(state)
     return "seed_literature" if state.get("start_stage") == "own_papers" else "literature"
 
 
@@ -146,11 +174,6 @@ def build_pipeline_graph():
     graph.add_node("review", review_node)
     graph.add_node("finalize", finalize_node)
 
-    graph.set_conditional_entry_point(
-        _entry_router,
-        {"literature": "literature", "seed_literature": "seed_literature"},
-    )
-
     # Every upstream edge is conditional on where this run is told to stop and
     # whether the cross-field stage is enabled. Defaults reproduce the original
     # unconditional chain exactly: literature -> interdisciplinary_literature ->
@@ -164,6 +187,16 @@ def build_pipeline_graph():
         "draft_or_revise": "draft_or_revise",
         "finalize": "finalize",
     }
+
+    # A resumed run can enter at any of those same destinations, not just at one
+    # of the two literature nodes — so the entry point takes the interior edges'
+    # own map, plus the seeded-papers node, which is an entry point and nothing
+    # else.
+    graph.set_conditional_entry_point(
+        _entry_router,
+        {**_stage_destinations, "seed_literature": "seed_literature"},
+    )
+
     # Both literature paths take the same decision — each leaves
     # literature_output populated, and nothing downstream can tell which ran.
     graph.add_conditional_edges("literature", _after("literature"), _stage_destinations)

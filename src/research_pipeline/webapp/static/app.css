@@ -161,6 +161,14 @@ td a:hover { text-decoration: underline; }
 .final { border-left: 3px solid var(--ok); padding: .5rem .75rem; margin: .75rem 0; }
 .issues { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
 
+/* Picking a stopped run back up. Layout only — every colour is inherited from
+   the controls' own rules above. The select needs its width reset because the
+   shared rule stretches it to fill a stacked form column, not a flex row. */
+.continue-form { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.continue-form label { font-size: 13px; font-weight: 500; }
+.continue-form label.check { display: flex; align-items: center; gap: .35rem; font-weight: 400; cursor: pointer; }
+.continue-form select { width: auto; padding: .35rem .5rem; }
+
 ol.stages { list-style: none; margin: 1rem 0 0; padding: 0; }
 .stage { border-left: 2px solid var(--line); padding: 0 0 1rem 1rem; margin-left: .4rem; position: relative; }
 .stage:last-child { padding-bottom: 0; }

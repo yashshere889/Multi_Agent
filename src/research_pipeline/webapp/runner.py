@@ -32,7 +32,8 @@ from typing import Optional
 
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
-from research_pipeline.orchestrator.graph import build_pipeline_graph
+from research_pipeline.orchestrator.graph import STAGE_FOR_OUTPUT_KEY, build_pipeline_graph
+from research_pipeline.orchestrator.nodes import PARTIAL_STAGE_KEYS
 from research_pipeline.webapp import events, runs, stages
 
 logger = logging.getLogger(__name__)
@@ -139,15 +140,45 @@ def run(run_dir: str | Path) -> dict:
     # orchestrator reads all of these with state.get(key, default), which falls
     # back for an *absent* key but not for one present and null — so an
     # unconditional assignment would turn "not customized" into "explicitly off".
-    for key in ("start_stage", "end_stage", "seed_papers"):
+    # `resume_from` travels with the stage outputs it implies: a resumed run is
+    # the previous run's finished stages seeded into state, plus the entry point
+    # that skips past them (see orchestrator/graph.py's _entry_router).
+    for key in ("start_stage", "end_stage", "seed_papers", "resume_from", *PARTIAL_STAGE_KEYS):
         if params.get(key):
             inputs[key] = params[key]
     # Presence, not truthiness: False is the meaningful value here.
     if "include_interdisciplinary" in params:
         inputs["include_interdisciplinary"] = params["include_interdisciplinary"]
 
-    event_log.append(events.RUN_STARTED, question=record["question"], params=params)
+    # Carried-forward stage outputs are named, not inlined: a resumed run's
+    # params hold entire upstream outputs, and every poll of the log pane reads
+    # this file from the start. The full values are already in run.json.
+    event_log.append(
+        events.RUN_STARTED,
+        question=record["question"],
+        params={key: value for key, value in params.items() if key not in PARTIAL_STAGE_KEYS},
+        carried_forward=[key for key in PARTIAL_STAGE_KEYS if params.get(key)],
+    )
     logger.info("Starting run %s: %s", run_id, record["question"])
+
+    # A resumed run never re-executes the stages it was seeded with, so the graph
+    # stream never emits a delta for them and its history would open on whichever
+    # stage happens to run first — reading as though the earlier work had
+    # vanished. These stand in for it, summarized by the same stages.summarize()
+    # a real delta goes through (the shape is identical), and flagged so the page
+    # can say where they came from instead of showing a time this run never spent.
+    if inputs.get("resume_from"):
+        for key in PARTIAL_STAGE_KEYS:
+            if key not in inputs:
+                continue
+            stage = STAGE_FOR_OUTPUT_KEY[key]
+            logger.info("Carrying %s forward from the run this one continues", stage)
+            event_log.append(
+                events.STAGE_COMPLETED,
+                stage=stage,
+                summary=stages.summarize(stage, {key: inputs[key]}),
+                carried_over=True,
+            )
 
     final_result: Optional[dict] = None
     try:

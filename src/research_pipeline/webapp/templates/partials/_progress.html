@@ -26,6 +26,15 @@
 
   {% if run.error %}<p class="error">{{ run.error }}</p>{% endif %}
 
+  {# Lineage, read straight off the params the continue route recorded — no
+     extra storage, and no scan of the other runs to find it. #}
+  {% if run.params and run.params.resumed_from_run_id %}
+    <p class="muted">
+      Continued from <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>;
+      the stages it had already finished were carried over rather than run again.
+    </p>
+  {% endif %}
+
   {# Two shapes of final_result, from the two branches of the orchestrator's
      finalize_node: a full run reports on the Writer/Reviewer loop, while a run
      that stopped at a custom end_stage never had one and reports the stages it
@@ -38,6 +47,30 @@
     {% if completed %}
       <strong>Stopped after: {{ completed | last | stage_name }}</strong>
       <p class="muted">Stages completed: {{ completed | map('stage_name') | join(' → ') }}</p>
+
+      {# Continuing starts a *new* run seeded with the stages above, entering the
+         graph after the one it stopped at (see app.continue_run). Offered only
+         once this run is finished, and only for the stages still ahead of that
+         point — continue_choices is already filtered to those. #}
+      {% if not active and continue_choices %}
+      <form method="post" action="/runs/{{ run.run_id }}/continue" class="continue-form">
+        <label for="continue_end_stage">Continue this run up to</label>
+        <select id="continue_end_stage" name="end_stage">
+          {% for value, label in continue_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if resume_from == 'literature' %}
+        {# The only resume point with the cross-field stage still ahead of it;
+           past that it either already ran or was skipped for good. #}
+        <label class="check" for="continue_interdisciplinary">
+          <input type="checkbox" id="continue_interdisciplinary" name="include_interdisciplinary" value="1" checked>
+          Cross-pollinate with adjacent fields
+        </label>
+        {% endif %}
+        <button type="submit">Continue this run →</button>
+      </form>
+      {% endif %}
     {% else %}
       <strong>Stopped before any stage produced output.</strong>
     {% endif %}
@@ -63,7 +96,14 @@
       <div class="stage-head">
         <span class="dot"></span>
         <span class="stage-label">{{ row.label }}</span>
-        <span class="muted stage-time">{{ row.ts | short_time }}</span>
+        {# A carried-over stage has a timestamp, but it is the moment this run
+           was seeded, not time this run spent — so say where it came from
+           instead of implying the work happened here. #}
+        {% if row.carried_over %}
+          <span class="muted stage-time">from a previous run</span>
+        {% else %}
+          <span class="muted stage-time">{{ row.ts | short_time }}</span>
+        {% endif %}
       </div>
 
       {% set s = row.summary %}
