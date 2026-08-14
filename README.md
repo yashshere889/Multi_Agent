@@ -612,8 +612,15 @@ Three things worth knowing before running it anywhere shared:
   the pipeline with the model server — the runner needs `localhost` access to
   `LLM_BASE_URL`, so a login-node server is no use. Reach it with a tunnel:
   `ssh -L 8000:<compute-node>:8000 <barkla-host>`.
-- **A killed run cannot be resumed.** `build_pipeline_graph()` compiles with
-  `MemorySaver`, which is per-process, so restarting a run starts it over. A run
+  [`run_webapp.sbatch`](scripts/slurm/run_webapp.sbatch) sets this up (vLLM +
+  `serve` on one node, `CHECKPOINTER_BACKEND=sqlite` so a pre-empted job stays
+  resumable) and prints the exact tunnel command — see
+  [BARKLA.md](docs/BARKLA.md) §7.
+- **A killed run can only be resumed with a durable checkpointer.** The default
+  `CHECKPOINTER_BACKEND=memory` is per-process, so a run whose process dies has
+  nothing to resume to and restarting starts it over. With `sqlite` or
+  `postgres` (see `.env.example`), the UI offers a Resume button on a
+  failed/cancelled run instead. Either way, a run
   whose process dies is detected and reported as failed rather than left
   showing as running forever.
 

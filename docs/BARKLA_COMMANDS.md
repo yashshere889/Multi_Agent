@@ -17,6 +17,19 @@ Never run builds, downloads, or production work on `barklalogin1` — it's
 monitored and long/heavy tasks are killed without warning. Off-campus: connect
 to the university VPN first (eduroam needs UoL credentials).
 
+### Tunneling into a service running on a compute node
+
+Compute nodes aren't reachable directly — forward a local port through the
+login node to the node your job landed on:
+```bash
+ssh -L <local-port>:<compute-node>:<remote-port> <user>@barklalogin1.liv.ac.uk
+```
+Used for the web UI (`run_webapp.sbatch`, §7 of [BARKLA.md](BARKLA.md) — the
+job's log prints the exact command) and, for interactive/dev use, a long-lived
+model server (`run_llm_server.sbatch`). Get the node from `squeue -u $USER -o
+"%N %j"` if you don't have the log handy. Re-run the tunnel after every job
+resubmission — the node it points at changes each time.
+
 ## 2. Git — getting code on/off Barkla
 
 Clone/pull happens **on the cluster**, from `fastscratch` (never `home` — 75GB/100k-inode cap):
@@ -46,6 +59,7 @@ Run `rsync`/`scp` against a **viz node**, not the login node (data transfer is a
 sbatch scripts/slurm/run_pipeline.sbatch "your research question"        # vLLM/30B, single question
 sbatch scripts/slurm/run_pipeline_hf.sbatch "your research question"     # HF/12B, single question
 sbatch --array=0-1 scripts/slurm/run_pipeline_batch.sbatch questions.txt 2   # batch sweep
+sbatch scripts/slurm/run_webapp.sbatch                                   # web UI, tunnel in from your laptop
 ```
 Must be submitted from `scratch`/`fastscratch` (compute nodes can't write
 anywhere else). Useful `sbatch`/script directives:

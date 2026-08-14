@@ -223,6 +223,52 @@ Don't go straight to 100 questions. Submit a small slice first
 and outputs look right, and only then scale up the questions file and
 `--array` range.
 
+## 7. Run the web UI over an SSH tunnel
+
+Everything above runs the pipeline unattended via the CLI. For interactively
+starting runs and watching them stage by stage from a browser instead, use the
+web UI ([`research-pipeline serve`](../README.md), covered in full there) —
+[`run_webapp.sbatch`](../scripts/slurm/run_webapp.sbatch) starts vLLM and the
+web server on the same compute node, the same co-location `run_pipeline.sbatch`
+uses and for the same reason: the app binds `127.0.0.1` only (it has no
+authentication and can start jobs / read files) and needs `localhost` access to
+the model server, so a login-node server would be no use.
+
+One-time setup, in addition to §2's vLLM container build:
+```bash
+uv sync --extra webapp --extra checkpoint-sqlite
+```
+The `checkpoint-sqlite` extra isn't needed for the CLI paths above, but
+`run_webapp.sbatch` turns on `CHECKPOINTER_BACKEND=sqlite` for this job, so a
+pre-empted or killed job leaves a run the web UI's own Resume button can pick
+back up rather than one that has to restart from scratch.
+
+```bash
+cd /mnt/fastscratch/users/$USER/multi-agent-langraph
+sbatch scripts/slurm/run_webapp.sbatch
+```
+
+Watch the log for the node and port — both are only known once the job starts,
+and change on every resubmission:
+```bash
+squeue -u $USER -n research-pipeline-webapp
+tail -f webapp_<jobid>.log
+```
+The log prints the exact tunnel command once vLLM and the server are both up.
+From your laptop:
+```bash
+ssh -L 8000:<node-from-log>:<port-from-log> <user>@barklalogin1.liv.ac.uk
+```
+then open `http://localhost:8000`. Runs (PDFs, papers, generated code) land
+under `/mnt/fastscratch/users/$USER/pipeline-runs/webapp-<jobid>/runs/`.
+
+**Only submit this to `gpu-h100`/`gpu-l40s`** (the script's default), not a
+low-priority partition — those are pre-emptible, and a pre-empted job kills
+your browser session mid-review, not just one batch question. The job's
+`--time=08:00:00` default is for one review session; raise it if you expect to
+keep the tab open longer. The tunnel command has to be re-run after every
+resubmission, since the compute node it points at changes each time.
+
 ## Config reference
 
 All of the following go in `.env` (see [`.env.example`](../.env.example) for
