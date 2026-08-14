@@ -112,6 +112,17 @@ def _postgres_saver() -> BaseCheckpointSaver:
     return saver
 
 
+def _backend() -> str:
+    return settings.checkpointer_backend.strip().lower()
+
+
+def is_durable() -> bool:
+    """Whether checkpoints outlive the process that wrote them, i.e. whether
+    resuming anything is possible at all. Callers use this to avoid offering a
+    resume that would silently turn into a full restart."""
+    return _backend() != "memory"
+
+
 def get_checkpointer() -> BaseCheckpointSaver:
     """The one place a checkpointer is constructed. Returns a process-wide
     singleton, so all eight graphs share one connection — sharing is safe
@@ -122,7 +133,7 @@ def get_checkpointer() -> BaseCheckpointSaver:
     if _checkpointer is not None:
         return _checkpointer
 
-    backend = settings.checkpointer_backend.strip().lower()
+    backend = _backend()
     if backend == "memory":
         from langgraph.checkpoint.memory import MemorySaver
 

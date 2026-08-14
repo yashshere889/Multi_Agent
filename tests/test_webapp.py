@@ -5,6 +5,8 @@ import subprocess
 import sys
 import time
 from dataclasses import replace
+from types import SimpleNamespace
+from urllib.parse import unquote
 
 import pytest
 
@@ -30,7 +32,17 @@ def launched(monkeypatch):
 
     def fake_launch(self, run_id):
         calls.append(run_id)
-        return self.update(run_id, status=runs.RUNNING, pid=os.getpid(), started_at=events.utc_now())
+        # Mirrors every field the real launch() writes, including the cleared
+        # terminal ones — a fake that drifts from it hides exactly the bugs
+        # these tests exist to catch.
+        return self.update(
+            run_id,
+            status=runs.RUNNING,
+            pid=os.getpid(),
+            started_at=events.utc_now(),
+            error=None,
+            finished_at=None,
+        )
 
     monkeypatch.setattr(runs.RunStore, "launch", fake_launch)
     return calls
@@ -219,6 +231,135 @@ def test_cancel_leaves_a_finished_run_alone(client, store):
     client.post(f"/runs/{record['run_id']}/cancel")
 
     assert store.get(record["run_id"])["status"] == runs.COMPLETED
+
+
+# -- resuming --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def durable(monkeypatch):
+    """Resume is only offered when checkpoints outlive the process that wrote
+    them, which the default in-memory backend does not."""
+    monkeypatch.setattr(app_module.checkpointer, "is_durable", lambda: True)
+
+
+def _stopped(store, status=runs.FAILED):
+    record = store.create("q", {})
+    return store.update(record["run_id"], status=status, error="died", finished_at=events.utc_now())
+
+
+def test_resume_relaunches_a_failed_run(client, store, launched, durable):
+    record = _stopped(store)
+
+    response = client.post(f"/runs/{record['run_id']}/resume", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert launched == [record["run_id"]]
+    assert store.get(record["run_id"])["status"] == runs.RUNNING
+
+
+def test_resume_clears_the_failure_it_was_resumed_from(client, store, launched, durable):
+    """Otherwise the run shows a running badge next to the error that stopped
+    its previous attempt."""
+    record = _stopped(store)
+
+    client.post(f"/runs/{record['run_id']}/resume")
+
+    resumed = store.get(record["run_id"])
+    assert resumed["error"] is None
+    assert resumed["finished_at"] is None
+
+
+def test_real_launch_clears_the_previous_attempts_terminal_fields(store, monkeypatch):
+    """The same assertion as above against the real launch(), since every other
+    test in this module replaces it with a fake."""
+    record = _stopped(store)
+    monkeypatch.setattr(runs.subprocess, "Popen", lambda *a, **kw: SimpleNamespace(pid=os.getpid(), poll=lambda: None))
+
+    launched_record = store.launch(record["run_id"])
+
+    assert launched_record["status"] == runs.RUNNING
+    assert launched_record["error"] is None
+    assert launched_record["finished_at"] is None
+
+
+def test_resume_works_for_a_cancelled_run_too(client, store, launched, durable):
+    record = _stopped(store, status=runs.CANCELLED)
+
+    client.post(f"/runs/{record['run_id']}/resume")
+
+    assert launched == [record["run_id"]]
+
+
+def test_resume_refuses_a_completed_run(client, store, launched, durable):
+    record = store.create("q", {})
+    store.update(record["run_id"], status=runs.COMPLETED)
+
+    response = client.post(f"/runs/{record['run_id']}/resume", follow_redirects=False)
+
+    assert launched == []
+    assert "cannot be resumed" in unquote(response.headers["location"])
+    assert store.get(record["run_id"])["status"] == runs.COMPLETED
+
+
+def test_resume_refuses_a_run_that_is_already_going(client, store, launched, durable):
+    """The guard that matters: a second runner on one run directory would
+    interleave its events and fight over the same thread_id's checkpoints."""
+    record = store.create("q", {})
+    _mark_running(store, record["run_id"])
+
+    response = client.post(f"/runs/{record['run_id']}/resume", follow_redirects=False)
+
+    assert launched == []
+    assert "cannot be resumed" in unquote(response.headers["location"])
+
+
+def test_resume_respects_the_concurrency_limit(client, store, launched, durable, monkeypatch):
+    monkeypatch.setattr(app_module, "settings", replace(app_module.settings, webapp_max_concurrent_runs=1))
+    busy = store.create("busy", {})
+    _mark_running(store, busy["run_id"])
+    record = _stopped(store)
+
+    response = client.post(f"/runs/{record['run_id']}/resume", follow_redirects=False)
+
+    assert launched == []
+    assert "Too many runs" in unquote(response.headers["location"])
+
+
+def test_resume_button_is_offered_for_a_stopped_run(client, store, durable):
+    record = _stopped(store)
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert f"/runs/{record['run_id']}/resume" in body
+
+
+def test_no_resume_button_without_a_durable_checkpointer(client, store):
+    """Under the default backend there is nothing to resume to, and relaunching
+    would quietly redo the whole pipeline behind a button labelled Resume."""
+    record = _stopped(store)
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert "/resume" not in body
+
+
+def test_no_resume_button_while_a_run_is_still_going(client, store, durable):
+    record = store.create("q", {})
+    _mark_running(store, record["run_id"])
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert "/resume" not in body
+    assert "/cancel" in body
+
+
+def test_a_refused_resume_is_shown_on_the_run_page(client, store, durable):
+    record = _stopped(store)
+
+    body = client.get(f"/runs/{record['run_id']}?error=Nope+not+that").text
+
+    assert "Nope not that" in body
 
 
 # -- serving papers, and refusing to serve anything else -------------------------------

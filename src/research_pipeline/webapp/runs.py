@@ -45,6 +45,13 @@ CANCELLED = "cancelled"
 
 TERMINAL_STATUSES = frozenset({COMPLETED, FAILED, CANCELLED})
 
+# Runs worth offering a resume for: they stopped without a result, so there may
+# be checkpointed progress to pick up. COMPLETED is excluded because there is
+# nothing left to run, and the two non-terminal statuses because the run is
+# already going — relaunching one would put a second process on the same run
+# directory and the same thread_id, interleaving their events and their writes.
+RESUMABLE_STATUSES = frozenset({FAILED, CANCELLED})
+
 
 class RunNotFound(LookupError):
     """Raised for an unknown run id, and for anything that isn't a run id at
@@ -272,7 +279,17 @@ class RunStore:
 
         self._children[run_id] = process
         logger.info("Launched runner for %s as pid %d", run_id, process.pid)
-        return self.update(run_id, status=RUNNING, pid=process.pid, started_at=utc_now())
+        return self.update(
+            run_id,
+            status=RUNNING,
+            pid=process.pid,
+            started_at=utc_now(),
+            # Cleared because this run is in flight again. A no-op for a freshly
+            # created run, and what stops a resumed one from showing the failure
+            # it was resumed *from* next to a running badge.
+            error=None,
+            finished_at=None,
+        )
 
     def cancel(self, run_id: str) -> dict:
         """SIGTERM the runner. The runner installs a handler that records a

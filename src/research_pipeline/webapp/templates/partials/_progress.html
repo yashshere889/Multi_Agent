@@ -15,6 +15,12 @@
       <form method="post" action="/runs/{{ run.run_id }}/cancel">
         <button type="submit" class="danger">Cancel</button>
       </form>
+    {% elif can_resume %}
+      {# Only for a run that stopped without finishing, and only when the
+         checkpointer is durable enough for there to be progress to pick up. #}
+      <form method="post" action="/runs/{{ run.run_id }}/resume">
+        <button type="submit">Resume</button>
+      </form>
     {% endif %}
   </div>
 

@@ -18,12 +18,14 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.webapp import events, runs, stages
 
@@ -61,6 +63,22 @@ def _short_time(ts: Optional[str]) -> str:
 
 def _is_active(record: dict) -> bool:
     return record.get("status") not in runs.TERMINAL_STATUSES
+
+
+def _can_resume(record: dict) -> bool:
+    """Whether to offer a resume for this run. Both halves matter: the run has
+    to have stopped without finishing, and checkpoints have to outlive the
+    process that wrote them. Under the default in-memory backend there is
+    nothing to resume *to*, and relaunching would quietly redo the whole
+    pipeline under this run's id — an hour of work behind a button labelled
+    Resume, which is the opposite of what it says."""
+    return record.get("status") in runs.RESUMABLE_STATUSES and checkpointer.is_durable()
+
+
+def _back_to_run(run_id: str, message: str) -> RedirectResponse:
+    """POST/redirect/GET, with the refusal carried in the URL so a reload
+    doesn't re-submit the action that was just refused."""
+    return RedirectResponse(f"/runs/{run_id}?error={quote(message)}", status_code=303)
 
 
 def _latest_paper(store: runs.RunStore, record: dict) -> Optional[Path]:
@@ -103,6 +121,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         return {
             "run": record,
             "active": active,
+            "can_resume": _can_resume(record),
             "rows": stages.build_progress(stage_events, active, (record.get("params") or {}).get("max_iterations")),
             "paper_name": paper.name if paper else None,
         }
@@ -158,8 +177,8 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         return RedirectResponse(f"/runs/{record['run_id']}", status_code=303)
 
     @app.get("/runs/{run_id}", response_class=HTMLResponse)
-    def run_page(request: Request, run_id: str):
-        return render(request, "run.html", run=store.get(run_id))
+    def run_page(request: Request, run_id: str, error: Optional[str] = None):
+        return render(request, "run.html", run=store.get(run_id), error=error)
 
     @app.get("/runs/{run_id}/progress", response_class=HTMLResponse)
     def progress_fragment(request: Request, run_id: str):
@@ -174,6 +193,29 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
     @app.post("/runs/{run_id}/cancel")
     def cancel_run(run_id: str):
         store.cancel(run_id)
+        return RedirectResponse(f"/runs/{run_id}", status_code=303)
+
+    @app.post("/runs/{run_id}/resume")
+    def resume_run(run_id: str):
+        """Relaunch a run that stopped without finishing. The runner decides
+        what resuming means — it continues from this run's checkpoints if there
+        are any — so this route only has to refuse the cases where launching a
+        second process would be wrong."""
+        record = store.get(run_id)
+
+        # Re-checked here rather than trusted from the button being rendered: a
+        # stale page, a bookmarked URL or a curl can all POST this. Two runners
+        # on one run directory would interleave events and fight over the same
+        # thread_id's checkpoints.
+        if record.get("status") not in runs.RESUMABLE_STATUSES:
+            return _back_to_run(run_id, f"A {record.get('status')} run cannot be resumed.")
+
+        # Same limit, and the same reasoning, as starting a new run: one LLM
+        # endpoint, so a second concurrent run competes with the first.
+        if store.active_count() >= settings.webapp_max_concurrent_runs:
+            return _back_to_run(run_id, "Too many runs already in progress. Wait for one to finish, or cancel it.")
+
+        store.launch(run_id)
         return RedirectResponse(f"/runs/{run_id}", status_code=303)
 
     @app.get("/runs/{run_id}/paper")
