@@ -52,6 +52,14 @@ class WriterState(TypedDict, total=False):
     # drafting node writes against indexed.
     hypotheses: List[dict]
     expected_ids: List[str]
+    # hypotheses filtered to expected_ids: every id in it has a plan_by_id/
+    # experiment_by_id entry, unlike `hypotheses` (all of hypothesis_output's,
+    # which the orchestrator's narrowing can leave at 3 while expected_ids has
+    # 1). Framing nodes (intro, related work, hypotheses section) use the full
+    # `hypotheses`; anything indexing plan_by_id/experiment_by_id per
+    # hypothesis must use this instead, or it KeyErrors on an id that was
+    # never planned.
+    planned_hypotheses: List[dict]
     raw_papers: List[dict]
     paper_index: Dict[str, IndexedPaper]
     valid_paper_ids: List[str]

@@ -190,7 +190,11 @@ class ReviewerAgent:
             raise ReviewerAgentError(f"hypothesis_output doesn't match the Hypothesis Agent's output schema: {exc}") from exc
 
         hypotheses = hypothesis_output["hypotheses"]
-        expected_ids = [h["id"] for h in hypotheses]
+        # Not [h["id"] for h in hypotheses] — see the matching comment in
+        # writer_agent.py._node_prepare_context: the orchestrator narrows
+        # planner_output/coder_output to the selected hypothesis, so validating
+        # against the full hypothesis_output id list always fails post-narrowing.
+        expected_ids = planner_output.get("source_hypothesis_ids") or [h["id"] for h in hypotheses]
 
         try:
             validate_planner_output(planner_output, expected_hypothesis_ids=expected_ids)

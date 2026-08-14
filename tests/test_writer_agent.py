@@ -368,14 +368,42 @@ def test_run_rejects_malformed_hypothesis_input(tmp_path):
 
 
 def test_run_rejects_planner_output_missing_a_hypothesis(tmp_path):
+    # A narrowed-but-internally-consistent planner_output (source_hypothesis_ids
+    # matches experiment_plans) is valid — see
+    # test_run_succeeds_when_planner_output_is_narrowed_to_selected_hypothesis.
+    # This tests the genuinely invalid case: source_hypothesis_ids claims a
+    # hypothesis that has no corresponding plan.
     agent = WriterAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
+    planner_output = _planner_output([_plan("H1"), _plan("H2")])  # missing H3
+    planner_output["source_hypothesis_ids"] = ["H1", "H2", "H3"]
     with pytest.raises(WriterAgentError, match="Experiment Planner's output schema"):
         agent.run(
             _literature_output(),
             _hypothesis_output(),
-            _planner_output([_plan("H1"), _plan("H2")]),  # missing H3
+            planner_output,
             _coder_output([_experiment("H1", "completed", True), _experiment("H2", "completed", True), _experiment("H3", "skipped")]),
         )
+
+
+def test_run_succeeds_when_planner_output_is_narrowed_to_selected_hypothesis(tmp_path):
+    # Mirrors the orchestrator's run_planner_node: hypothesis_output still
+    # carries all 3 hypotheses (for framing), but planner_output/coder_output
+    # only cover the selected one (H1) — source_hypothesis_ids says so, and
+    # experiment_plans/experiments agree. This must not be treated as
+    # planner_output "missing" H2/H3.
+    fake_model = FakeChatModel({}, default="Drafted prose about H1.")
+    agent = WriterAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(
+        _literature_output(),
+        _hypothesis_output(),  # selected_hypothesis_id == "H1", 3 hypotheses total
+        _planner_output([_plan("H1")]),
+        _coder_output([_experiment("H1", "completed", True)]),
+    )
+
+    assert result["hypotheses_supported"] == ["H1"]
+    assert result["hypotheses_refuted"] == []
+    assert result["hypotheses_inconclusive"] == []
 
 
 def test_run_rejects_coder_output_missing_a_hypothesis(tmp_path):

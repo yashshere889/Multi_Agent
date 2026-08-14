@@ -338,7 +338,15 @@ class WriterAgent:
             raise WriterAgentError(f"hypothesis_output doesn't match the Hypothesis Agent's output schema: {exc}") from exc
 
         hypotheses = hypothesis_output["hypotheses"]
-        expected_ids = [h["id"] for h in hypotheses]
+        # Not [h["id"] for h in hypotheses]: the orchestrator's run_planner_node
+        # deliberately narrows planner_output/coder_output to just the selected
+        # hypothesis (see orchestrator/nodes.py), while hypothesis_output here
+        # still carries all 3 for framing (introduction/related work). Validating
+        # the narrowed planner_output against the full 3-hypothesis id list would
+        # always fail with "missing plan(s)" for the two that were never planned.
+        # source_hypothesis_ids is what the Planner actually covered; fall back to
+        # every hypothesis id for planner_output produced before narrowing existed.
+        expected_ids = planner_output.get("source_hypothesis_ids") or [h["id"] for h in hypotheses]
 
         try:
             validate_planner_output(planner_output, expected_hypothesis_ids=expected_ids)
@@ -355,9 +363,11 @@ class WriterAgent:
         logger.info("Drafting paper for %d hypotheses, %d indexed source paper(s)", len(expected_ids), len(paper_index))
 
         experiment_by_id = {e["hypothesis_id"]: e for e in coder_output["experiments"]}
+        expected_id_set = set(expected_ids)
         return {
             "hypotheses": hypotheses,
             "expected_ids": expected_ids,
+            "planned_hypotheses": [h for h in hypotheses if h["id"] in expected_id_set],
             "raw_papers": raw_papers,
             "paper_index": paper_index,
             "valid_paper_ids": list(paper_index.keys()),
@@ -406,14 +416,14 @@ class WriterAgent:
         hypotheses), so they're produced together and can't be split across nodes
         without splitting that bundle too."""
         methods_by_id, results_by_id, discussion_by_id = self._draft_per_hypothesis_sections(
-            state["hypotheses"], state["plan_by_id"], state["experiment_by_id"], state["verdicts"], state.get("revision")
+            state["planned_hypotheses"], state["plan_by_id"], state["experiment_by_id"], state["verdicts"], state.get("revision")
         )
         return {"methods_by_id": methods_by_id, "results_by_id": results_by_id, "discussion_by_id": discussion_by_id}
 
     def _node_draft_limitations(self, state: WriterState) -> dict:
         return {
             "limitations": self._draft_limitations(
-                state["hypotheses"], state["plan_by_id"], state["experiment_by_id"], state.get("revision")
+                state["planned_hypotheses"], state["plan_by_id"], state["experiment_by_id"], state.get("revision")
             )
         }
 
