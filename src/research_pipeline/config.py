@@ -104,16 +104,23 @@ def load_settings() -> Settings:
         # response, so a truncated completion is a hard failure — leave enough
         # room for the longest Writer section (and for a reasoning trace, if
         # LLM_ENABLE_THINKING is turned back on).
-        llm_max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "8192")),
+        llm_max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "16384")),
         # The model's *total* prompt+completion budget, read client-side only to
         # bound how many completion tokens a request may ask for — distinct from
         # llm_max_tokens above, which caps the completion length alone. A long
         # prompt (the Coder Agent's fix prompts carry previous code sections,
-        # errors, plan JSON and shared-infra context) plus a fixed max_tokens can
+        # errors, plan JSON and shared-infra context; the Reviewer's grounding
+        # blocks carry the whole merged paper pool) plus a fixed max_tokens can
         # exceed this and get a 400 from the server instead of a completion; see
-        # coder_agent._bounded_max_tokens. 32768 is Nemotron 3 Nano's real
-        # context length.
-        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "32768")),
+        # coder_agent._bounded_max_tokens. This MUST match whatever
+        # --max-model-len the vLLM server was actually started with (see
+        # scripts/slurm/_vllm_serve.sh) — the sbatch scripts request 2 H100s
+        # (TP=2) specifically to approach Nemotron 3 Nano's real ~1M-token card
+        # ceiling, but whether that fits Barkla's real KV-cache budget is
+        # unverified as of this writing; check the server log's "GPU KV cache
+        # size: N tokens" line and match this to what actually fit, not
+        # blindly to 1M.
+        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "1048576")),
         # Nemotron 3 Nano is a reasoning model that emits <think>...</think>
         # before its answer by default. Off by default here: nothing in this
         # pipeline reads reasoning traces, and the codebase already prefers

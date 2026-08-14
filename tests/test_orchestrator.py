@@ -230,7 +230,7 @@ def test_pipeline_runs_every_stage_and_converges_on_the_first_review(tmp_path, m
     _stub_upstream_agents(monkeypatch)
 
     class AlwaysPassReviewerModel:
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             if "Score this research paper draft" in messages[1][1]:
                 return SimpleNamespace(content=_quality_response({"clarity": 5, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}))
             return SimpleNamespace(content=json.dumps({"hallucinations": [], "framing_issues": []}))
@@ -257,7 +257,7 @@ def test_pipeline_loops_back_through_the_writer_then_converges(tmp_path, monkeyp
         def __init__(self):
             self.quality_calls = 0
 
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             if "Score this research paper draft" in messages[1][1]:
                 self.quality_calls += 1
                 clarity = 2 if self.quality_calls == 1 else 5
@@ -278,7 +278,7 @@ def test_pipeline_stops_at_max_iterations_with_unresolved_issues(tmp_path, monke
     _stub_upstream_agents(monkeypatch)
 
     class AlwaysFailReviewerModel:
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             if "Score this research paper draft" in messages[1][1]:
                 return SimpleNamespace(content=_quality_response({"clarity": 2, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}))
             return SimpleNamespace(content=json.dumps({"hallucinations": [], "framing_issues": []}))

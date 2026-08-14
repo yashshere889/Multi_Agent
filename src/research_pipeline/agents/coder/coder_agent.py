@@ -160,19 +160,28 @@ _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 # Inputs to _bounded_max_tokens, which stops a long prompt plus a fixed
 # max_tokens from overrunning the model's context window.
 #
-# 4 characters per token is the standard rough heuristic for English + code.
-# It's an estimate on purpose: the backend is an arbitrary OpenAI-compatible
+# 4 chars/token (the standard rough heuristic for English prose) undercounted
+# this agent's actual code/JSON-heavy prompts by ~15-20% against vLLM's real
+# tokenizer — code and JSON are denser than prose (short identifiers, lots of
+# punctuation/whitespace runs), which is exactly the kind of text every prompt
+# here carries. That gap crashed 3/3 single-question Barkla runs on
+# 2026-08-14 with a 400 from the server (request tokens > context window)
+# despite this estimate supposedly bounding for it. 3 chars/token
+# deliberately overestimates instead — costing a shorter completion in the
+# worst case, which the fix loop already tolerates, rather than a crash. It's
+# still an estimate on purpose: the backend is an arbitrary OpenAI-compatible
 # HTTP endpoint, so there is no tokenizer on this side to ask for the real
 # count, and pulling one in would tie this agent to one specific model.
-_CHARS_PER_TOKEN_ESTIMATE = 4
+_CHARS_PER_TOKEN_ESTIMATE = 3
 # Below this many tokens a completion would be too truncated to be usable code
 # — mid-function at best. Hitting this floor means the *prompt* is the problem,
 # so it's raised rather than attempted and silently wasted.
 _MIN_GENERATION_TOKENS = 2048
 # Headroom for the estimate being wrong and for provider-side rounding (chat
 # templates, role tokens, tool preambles) that never appears in the prompt text
-# we can measure here.
-_CONTEXT_SAFETY_MARGIN = 512
+# we can measure here. Doubled from 512 alongside the chars/token fix above —
+# both were tightened together after the same 2026-08-14 crashes.
+_CONTEXT_SAFETY_MARGIN = 1024
 
 # Fix-attempt regeneration runs at temperature 0 — the model's most confident
 # completion rather than a fresh sample. The fix prompt asks for every section

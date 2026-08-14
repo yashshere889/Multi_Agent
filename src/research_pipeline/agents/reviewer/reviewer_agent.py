@@ -113,6 +113,30 @@ logger = logging.getLogger(__name__)
 # per-hypothesis grounding assembled specially — see _grounding_for_section.
 _HALLUCINATION_SECTIONS = ("Introduction", "Related Work", "Hypotheses", "Methods", "Results", "Limitations", "Future Work")
 
+# Same estimate/margin as coder_agent._bounded_max_tokens, duplicated rather
+# than imported — each agent stays self-contained (see CLAUDE.md), and the two
+# only need to agree on the *approach*, not share code. 3 chars/token
+# deliberately overestimates prompt size (see coder_agent.py's comment on the
+# same constant for why 4 wasn't conservative enough).
+_CHARS_PER_TOKEN_ESTIMATE = 3
+_MIN_GENERATION_TOKENS = 512
+_CONTEXT_SAFETY_MARGIN = 1024
+
+# The "Related Work" grounding block embeds every paper in the merged pool
+# (literature + interdisciplinary) so a hallucination check can verify a
+# citation's claim against its actual abstract. With the interdisciplinary
+# pool that's ~80+ papers — full abstracts made this single call's prompt
+# 36,803 tokens on its own on 2026-08-14, over the *entire* context window
+# that was in use at the time, before any completion was even requested.
+# Truncating here (not dropping papers) keeps every paper checkable, just with
+# less abstract text per paper — the hallucination check needs "does this
+# claim roughly match what the paper says", not the full abstract verbatim.
+_GROUNDING_ABSTRACT_MAX_CHARS = 500
+
+
+def _estimate_tokens(text: str) -> int:
+    return len(text) // _CHARS_PER_TOKEN_ESTIMATE
+
 
 class ReviewerAgentError(RuntimeError):
     """Raised when the agent can't produce a valid review, even after retries."""
@@ -379,7 +403,12 @@ class ReviewerAgent:
         if heading == "Related Work":
             return {
                 "papers": [
-                    {"title": p.get("title"), "authors": p.get("authors"), "year": p.get("year"), "abstract": p.get("abstract")}
+                    {
+                        "title": p.get("title"),
+                        "authors": p.get("authors"),
+                        "year": p.get("year"),
+                        "abstract": (p.get("abstract") or "")[:_GROUNDING_ABSTRACT_MAX_CHARS],
+                    }
                     for p in raw_papers
                 ],
                 "methods_overview": hypothesis_output.get("methods_overview", []),
@@ -411,9 +440,32 @@ class ReviewerAgent:
 
     # -- LLM calls ---------------------------------------------------------------
 
+    def _bounded_max_tokens(self, user_prompt: str) -> int:
+        """Mirrors coder_agent.CoderAgent._bounded_max_tokens: caps the
+        completion this specific prompt may ask for so prompt_tokens +
+        max_tokens can't exceed the model's context window and get a 400 from
+        the server instead of a response. Unlike the Coder Agent, the Reviewer
+        had no such guard at all until this was added — the "Related Work"
+        grounding block (every paper's abstract in the merged pool) crashed a
+        run on 2026-08-14 with a *prompt* already over the full context
+        window, which is also why _GROUNDING_ABSTRACT_MAX_CHARS trims that
+        block rather than relying on this alone: a smaller max_tokens can't
+        rescue a prompt that's already too big by itself."""
+        prompt_tokens = _estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(user_prompt)
+        headroom = settings.llm_context_window - prompt_tokens - _CONTEXT_SAFETY_MARGIN
+        if headroom < _MIN_GENERATION_TOKENS:
+            raise ReviewerAgentError(
+                f"Prompt is too large for the model's context window: ~{prompt_tokens} estimated "
+                f"prompt tokens leave only {headroom} token(s) for the response, below the "
+                f"{_MIN_GENERATION_TOKENS}-token minimum a usable response needs "
+                f"(LLM_CONTEXT_WINDOW={settings.llm_context_window})."
+            )
+        return min(settings.llm_max_tokens, headroom)
+
     def _call_json(self, user_prompt: str) -> dict:
+        max_tokens = self._bounded_max_tokens(user_prompt)
         try:
-            return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt)
+            return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt, max_tokens=max_tokens)
         except LLMJSONError as exc:
             raise ReviewerAgentError(str(exc)) from exc
 

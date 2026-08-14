@@ -8,6 +8,8 @@ import pytest
 
 from research_pipeline.agents.coder import huggingface_client, prompts, sandbox, slurm_submit
 from research_pipeline.agents.coder.coder_agent import (
+    _CHARS_PER_TOKEN_ESTIMATE,
+    _CONTEXT_SAFETY_MARGIN,
     CoderAgent,
     CoderAgentError,
     _compact_json,
@@ -1521,7 +1523,7 @@ def _bounding_agent(tmp_path):
 
 
 def test_estimate_tokens_uses_the_documented_char_ratio():
-    assert _estimate_tokens("x" * 4000) == 1000
+    assert _estimate_tokens("x" * 4000) == 4000 // _CHARS_PER_TOKEN_ESTIMATE
 
 
 def test_bounded_max_tokens_returns_the_configured_max_when_the_prompt_is_small(
@@ -1537,7 +1539,11 @@ def test_bounded_max_tokens_shrinks_to_the_remaining_headroom(tmp_path, monkeypa
     # than a completion.
     _patch_settings(monkeypatch, llm_context_window=8192, llm_max_tokens=8192)
     prompt = "x" * 4000
-    expected = 8192 - (_estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(prompt)) - 512
+    expected = (
+        8192
+        - (_estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(prompt))
+        - _CONTEXT_SAFETY_MARGIN
+    )
     assert expected < 8192  # the headroom is what binds here, not llm_max_tokens
     assert _bounding_agent(tmp_path)._bounded_max_tokens(prompt) == expected
 
@@ -1554,7 +1560,7 @@ def test_bounded_max_tokens_raises_an_informative_error_when_the_prompt_is_too_l
     # Debuggable from the log line alone: prompt size, headroom, floor, window.
     prompt_tokens = _estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(prompt)
     assert str(prompt_tokens) in message
-    assert str(4096 - prompt_tokens - 512) in message  # the (negative) headroom
+    assert str(4096 - prompt_tokens - _CONTEXT_SAFETY_MARGIN) in message  # the (negative) headroom
     assert "2048" in message  # the minimum a usable completion needs
     assert "4096" in message  # the configured context window
 

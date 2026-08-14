@@ -170,9 +170,14 @@ class FakeChatModel:
         self._response_by_keyword = response_by_keyword
         self._default = default
         self.calls = []
+        # ReviewerAgent._call_json now passes a per-call max_tokens (see
+        # _bounded_max_tokens), so **kwargs is required here — mirrors
+        # test_coder_agent.py's FakeChatModel for the same reason.
+        self.call_kwargs = []
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         self.calls.append(messages)
+        self.call_kwargs.append(kwargs)
         prompt_text = messages[-1][1]
         for keyword, response in self._response_by_keyword.items():
             if keyword in prompt_text:

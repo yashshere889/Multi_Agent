@@ -63,7 +63,7 @@ class FakeWriterModel:
     Results text (so ReviewerAgent's deterministic metric check has something
     real to match against) and cites paper 1 elsewhere."""
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         prompt = messages[1][1]
         if "Propose a single academic paper title" in prompt:
             return SimpleNamespace(content="A Title")
@@ -131,7 +131,7 @@ def _quality_response(scores) -> str:
 
 def test_loop_converges_on_first_iteration_when_review_passes(tmp_path):
     class AlwaysPassReviewerModel:
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             prompt = messages[1][1]
             if "Score this research paper draft" in prompt:
                 return SimpleNamespace(content=_quality_response({"clarity": 5, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}))
@@ -160,7 +160,7 @@ def test_loop_revises_and_converges_on_second_iteration(tmp_path):
         def __init__(self):
             self.quality_calls = 0
 
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             prompt = messages[1][1]
             if "Score this research paper draft" in prompt:
                 self.quality_calls += 1
@@ -188,7 +188,7 @@ def test_loop_revises_and_converges_on_second_iteration(tmp_path):
 
 def test_loop_stops_at_max_iterations_with_unresolved_issues(tmp_path):
     class AlwaysFailReviewerModel:
-        def invoke(self, messages):
+        def invoke(self, messages, **kwargs):
             prompt = messages[1][1]
             if "Score this research paper draft" in prompt:
                 return SimpleNamespace(content=_quality_response({"clarity": 2, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}))
