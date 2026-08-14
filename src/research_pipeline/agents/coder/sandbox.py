@@ -533,16 +533,19 @@ def run_experiment(
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
     diagnosable tail of stdout/stderr (or a timeout note) on failure."""
-    # run_script is resolved to an absolute path before being handed to the
-    # subprocess. experiments_dir (CODER_EXPERIMENTS_DIR) defaults to a
-    # relative "experiments", so a caller passing experiment_dir / "run.py"
-    # hands us a relative path here too; since cwd below is that same
-    # relative directory, a relative script arg would get re-resolved
-    # against the subprocess's cwd instead of the launching process's,
-    # doubling the directory (experiments/H1/experiments/H1/run.py).
+    # run_script and python_executable are both resolved to absolute paths
+    # before being handed to the subprocess. experiments_dir
+    # (CODER_EXPERIMENTS_DIR) defaults to a relative "experiments", so a
+    # caller passing experiment_dir / "run.py" (or a venv python under it)
+    # hands us relative paths here too; since cwd below is that same
+    # relative directory, a relative path would get re-resolved against the
+    # subprocess's cwd instead of the launching process's, doubling the
+    # directory (experiments/H1/experiments/H1/run.py) — or, for
+    # python_executable, raising a FileNotFoundError for a venv interpreter
+    # that does exist, just not under that doubled path.
     try:
         proc = subprocess.run(
-            [str(python_executable), str(run_script.resolve())],
+            [str(python_executable.resolve()), str(run_script.resolve())],
             cwd=str(cwd),
             capture_output=True,
             text=True,

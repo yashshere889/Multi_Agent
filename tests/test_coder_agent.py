@@ -419,6 +419,31 @@ def test_run_experiment_resolves_relative_script_path(tmp_path, monkeypatch):
     assert script_arg == (experiment_dir / "run.py").resolve()
 
 
+def test_run_experiment_resolves_relative_python_executable(tmp_path, monkeypatch):
+    # Regression test for a 2026-08-13 production crash: ensure_experiment_env
+    # returns a venv interpreter path built from experiment_dir, which is
+    # relative whenever CODER_EXPERIMENTS_DIR is (its default). That relative
+    # python_executable was passed straight to subprocess.run alongside
+    # cwd=experiment_dir (also relative) — undoubled, unlike run_script above
+    # — so the OS re-resolved it against the subprocess's new cwd and raised
+    # FileNotFoundError for a venv interpreter that did exist, just not under
+    # that doubled path.
+    experiment_dir = tmp_path / "experiments" / "H1"
+    venv_bin = experiment_dir / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    venv_python = venv_bin / "python"
+    venv_python.symlink_to(sys.executable)
+    (experiment_dir / "run.py").write_text("print('ok')\n")
+    monkeypatch.chdir(tmp_path)
+    relative_python_executable = Path("experiments") / "H1" / ".venv" / "bin" / "python"
+    relative_run_script = Path("experiments") / "H1" / "run.py"
+
+    ok, message = sandbox.run_experiment(
+        relative_python_executable, relative_run_script, experiment_dir, timeout_seconds=10
+    )
+    assert ok is True, message
+
+
 # -- coder_agent.py: orchestration, with a fake chat model and no real network/uv ------
 
 
