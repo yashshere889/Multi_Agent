@@ -52,7 +52,7 @@ whether you'd rather build your own `.venv` or use a module-provided container):
 |---|---|---|---|
 | [`run_pipeline_hf.sbatch`](../scripts/slurm/run_pipeline_hf.sbatch) | Nemotron Nano **12B** v2, in-process transformers | fits `gpu-l40s` (48GB) and up | none — no container, no server |
 | [`run_pipeline_hf_container.sbatch`](../scripts/slurm/run_pipeline_hf_container.sbatch) | Nemotron Nano **12B** v2, via Barkla's `nemotron` Apptainer module | fits `gpu-l40s` (48GB) and up | module-provided container, no build — use if `mamba_ssm` won't build in your own `.venv` |
-| [`run_pipeline.sbatch`](../scripts/slurm/run_pipeline.sbatch) | Nemotron 3 Nano **30B A3B**, served by vLLM | needs an 80GB card (`gpu-h100`) | one-time Apptainer build |
+| [`run_pipeline.sbatch`](../scripts/slurm/run_pipeline.sbatch) | Nemotron 3 Nano **30B A3B**, served by vLLM | `gpu-h100`, 2 GPUs (`--gres=gpu:2`, TP=2 — for KV-cache/context headroom, not because the model needs 2 to fit; 1 GPU is enough to run it) | one-time Apptainer build |
 
 Start with the 12B/HF path for a quick single run — it's strictly less
 plumbing. For a large batch, throughput matters more; see §5's backend note.

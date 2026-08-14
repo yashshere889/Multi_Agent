@@ -21,14 +21,16 @@
 #SBATCH --job-name=llm-server
 #SBATCH --partition=gpu-h100
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --time=08:00:00
 #SBATCH --output=llm_server_%j.log
 
 # See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
-# gpu-h100 (4x H100 80GB) and gpu-l40s (2x L40S 48GB) are open to all users;
-# on gpu-l40s set --gres=gpu:2 and TP=2, since 48GB alone won't hold 60GB of
-# BF16 weights.
+# gpu-h100 (4x H100 80GB) and gpu-l40s (2x L40S 48GB) are open to all users.
+# --gres=gpu:2 / TP=2 here is for KV-cache headroom (see _vllm_serve.sh), not
+# because the model needs 2 GPUs to fit. This is the right script to test that
+# on first — it's just the server, so a bad --max-model-len fails in minutes
+# instead of burning a run_pipeline.sbatch job.
 
 set -euo pipefail
 
@@ -38,7 +40,7 @@ module load apptainer/1.3.6
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=1
+TP=2
 PORT=$(( 8000 + SLURM_JOB_ID % 1000 ))
 
 # shellcheck source=_vllm_serve.sh

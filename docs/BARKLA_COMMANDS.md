@@ -108,8 +108,8 @@ tail -f pipeline_hf_<jobid>.log       # HF/12B path
 
 | Partition | GPUs | Wall-clock cap | Used by |
 |---|---|---|---|
-| `gpu-h100` | 4× H100 80GB per node (shared, common) | 3 days | `run_pipeline.sbatch` (vLLM/30B, `--gres=gpu:1`) |
-| `gpu-l40s` | 2× L40S 48GB per node (shared, common) | 3 days | 12B HF path fits here too (`--gres=gpu:2`, TP=2) |
+| `gpu-h100` | 4× H100 80GB per node (shared, common) | 3 days | `run_pipeline.sbatch` (vLLM/30B, `--gres=gpu:2`, TP=2 — 2 GPUs for KV-cache headroom, not because the model needs 2 to fit; see `scripts/slurm/_vllm_serve.sh`) |
+| `gpu-l40s` | 2× L40S 48GB per node (shared, common) | 3 days | 12B HF path fits here too (`--gres=gpu:2`, TP=2 — here 2 GPUs *are* needed, 48GB < 60GB of weights) |
 
 Don't request multiple partitions in one `sbatch`/`srun` call — node specs
 differ across them and it won't behave as expected.

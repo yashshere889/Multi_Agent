@@ -29,7 +29,7 @@
 #SBATCH --job-name=research-pipeline-webapp
 #SBATCH --partition=gpu-h100
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --time=08:00:00
 #SBATCH --output=webapp_%j.log
 
@@ -37,8 +37,12 @@
 # reasoning). Stick to gpu-h100/gpu-l40s (3-day cap, not pre-emptible) rather
 # than the low-priority partitions — a pre-empted job kills your browser
 # session mid-review, not just a batch question.
-#   gpu-h100   4x H100 80GB   <- default here; 1 GPU fits the 30B BF16 model
-#   gpu-l40s   2x L40S 48GB   <- needs --gres=gpu:2 and TP=2 (48GB < 60GB)
+#   gpu-h100   4x H100 80GB   <- default here, 2 GPUs (KV-cache headroom, not because 1 can't fit the model)
+#   gpu-l40s   2x L40S 48GB   <- needs --gres=gpu:2 and TP=2 (48GB < 60GB of weights, a different reason)
+#
+# _vllm_serve.sh's --max-model-len targets ~1M tokens, sized for TP=2's KV
+# budget — do NOT drop this back to --gres=gpu:1/TP=1 without also lowering
+# that, or vLLM will refuse to start (see _vllm_serve.sh's comment).
 #
 # Do NOT request --cpus-per-task or --mem: Barkla's guide says cores and memory
 # are allocated automatically from the GPU count, and asking manually fights it.
@@ -55,7 +59,7 @@ mkdir -p "$WORK_DIR"
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=1
+TP=2
 
 # gpu-l40s and gpu-h100 nodes are shared between users, so fixed ports can
 # collide with someone else's server. Derive both from the job id, offset so

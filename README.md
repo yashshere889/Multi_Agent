@@ -396,10 +396,18 @@ against `localhost` on the same node. The pipeline is pure CPU and the GPU
 nodes have 96–168 cores, so co-locating costs nothing and avoids both the SSH
 tunnel and any long-running process on the login node.
 
-Defaults to `gpu-h100` with one GPU: the 30B BF16 weights are ~60GB, which
-fits an 80GB H100 or A100 but *not* a single 48GB L40S (use `--gres=gpu:2`
-and `TP=2` there) and not a V100 at all (16GB, and Volta has no bfloat16).
-Both scripts derive their port from the job id, since GPU nodes are shared.
+Defaults to `gpu-h100` with **two** GPUs (`--gres=gpu:2`, `TP=2`): the 30B
+BF16 weights are ~60GB, which fits a single 80GB H100 or A100 on their own
+(not a 48GB L40S, and not a V100 at all — 16GB, and Volta has no bfloat16) —
+the second GPU here isn't for fitting the weights, it's so they shard across
+both cards and leave real KV-cache headroom for `--max-model-len`, which
+targets Nemotron 3 Nano's ~1M-token card ceiling (see
+[`_vllm_serve.sh`](scripts/slurm/_vllm_serve.sh)'s comment for the reasoning
+and what to do if that doesn't fit Barkla's real KV budget). Drop back to one
+GPU (and a smaller `--max-model-len`/`LLM_CONTEXT_WINDOW`) if the extra
+context headroom isn't worth doubling the job's footprint on a shared
+partition. Both scripts derive their port from the job id, since GPU nodes are
+shared.
 
 To keep a long-lived server for interactive work instead, use
 [`run_llm_server.sbatch`](scripts/slurm/run_llm_server.sbatch); it prints the

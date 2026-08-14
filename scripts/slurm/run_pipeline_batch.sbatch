@@ -27,14 +27,20 @@
 #SBATCH --job-name=research-pipeline-batch
 #SBATCH --partition=gpu-h100
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --time=3-00:00:00
 #SBATCH --output=pipeline_batch_%A_%a.log
 
 # See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
-# gpu-h100 (4x H100 80GB) fits the 30B BF16 model on one card; on gpu-l40s set
-# --gres=gpu:2 and TP=2. Do NOT request --cpus-per-task or --mem — Barkla
-# allocates both from the GPU count.
+# --gres=gpu:2/TP=2 here is for KV-cache headroom (_vllm_serve.sh targets
+# ~1M-token --max-model-len, sized for TP=2's budget), not because the 30B
+# model needs 2 GPUs to fit on gpu-h100 — but note this is PER ARRAY TASK: at
+# --array=0-N%C, C concurrent tasks now hold 2*C GPUs instead of C, on a
+# partition shared with everyone else on Barkla. Pick %C with that in mind, or
+# drop back to --gres=gpu:1/TP=1 (and lower _vllm_serve.sh's --max-model-len
+# to match — see its comment) if a sweep doesn't need the extra context.
+# Do NOT request --cpus-per-task or --mem — Barkla allocates both from the GPU
+# count.
 
 set -euo pipefail
 
@@ -53,7 +59,7 @@ mkdir -p "$WORK_DIR"
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=1
+TP=2
 
 # Derived from the task's own job id: array tasks land on shared nodes and a
 # fixed port would collide with a sibling task.

@@ -18,14 +18,23 @@
 #SBATCH --job-name=research-pipeline
 #SBATCH --partition=gpu-h100
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --time=12:00:00
 #SBATCH --output=pipeline_%j.log
 
 # Partition choice (from Barkla's GPU doc §14.3/§14.6) — all users can use:
-#   gpu-h100        4x H100 80GB   3-day limit   <- default here; 1 GPU fits the 30B BF16 model
+#   gpu-h100        4x H100 80GB   3-day limit   <- default here, 2 GPUs requested
 #   gpu-l40s        2x L40S 48GB   3-day limit   <- needs --gres=gpu:2 and TP=2 (48GB < 60GB)
 #   gpu-v100        4x V100 16GB   3-day limit   <- unusable here: no BF16 (SM 7.0), too little VRAM
+#
+# --gres=gpu:2 / TP=2 here isn't because 1 GPU can't fit the 30B model — it
+# fits on one H100 fine. It's so the ~59GB of BF16 weights shard across both
+# cards (~29.5GB each) instead of eating one card almost whole, leaving real
+# room for KV cache — see _vllm_serve.sh's --max-model-len comment for why,
+# and what to do if the KV budget still doesn't cover it. This doubles the
+# job's footprint on a partition shared with everyone else on Barkla; drop
+# back to --gres=gpu:1 / TP=1 in _vllm_serve.sh's caller if that's not worth
+# the extra context headroom for a given run.
 # Low-priority (1-day limit, PRE-EMPTIBLE — job is killed and requeued when the
 # owning group submits, so a half-finished run restarts from scratch):
 #   gpu-a100-lowbig 4x A100 80GB
@@ -49,7 +58,7 @@ mkdir -p "$WORK_DIR"
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=1
+TP=2
 
 # gpu-l40s and gpu-h100 nodes are shared between users, so a fixed port can
 # collide with someone else's server. Derive one from the job id instead.
