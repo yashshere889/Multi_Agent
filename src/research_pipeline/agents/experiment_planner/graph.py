@@ -15,11 +15,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
-from langgraph.types import Send
+from langgraph.types import RetryPolicy, Send
 
 from research_pipeline.agents.experiment_planner.state import ExperimentPlannerState
+from research_pipeline.checkpointer import get_checkpointer
+
+# Outer safety net on the two LLM-calling nodes, default retry_on. See
+# agents/literature/graph.py for the full reasoning.
+_RETRY = RetryPolicy(max_attempts=2)
 
 if TYPE_CHECKING:  # avoids a circular import — experiment_planner_agent imports this module
     from research_pipeline.agents.experiment_planner.experiment_planner_agent import ExperimentPlannerAgent
@@ -37,9 +41,9 @@ def build_experiment_planner_graph(agent: "ExperimentPlannerAgent"):
     graph = StateGraph(ExperimentPlannerState)
 
     graph.add_node("validate_input", agent._node_validate_input)
-    graph.add_node("plan_one", agent._node_plan_one)
+    graph.add_node("plan_one", agent._node_plan_one, retry_policy=_RETRY)
     graph.add_node("reorder_plans", agent._node_reorder_plans)
-    graph.add_node("plan_cross_cutting", agent._node_plan_cross_cutting)
+    graph.add_node("plan_cross_cutting", agent._node_plan_cross_cutting, retry_policy=_RETRY)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
 
     graph.set_entry_point("validate_input")
@@ -55,8 +59,8 @@ def build_experiment_planner_graph(agent: "ExperimentPlannerAgent"):
     graph.add_edge("plan_cross_cutting", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
-    # In-memory checkpointing, matching the hypothesis/literature graphs: a
-    # crash partway through can resume from the last completed node (via the
-    # same thread_id) rather than re-running every LLM call. Swap for a
-    # SqliteSaver if that should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching the hypothesis/literature graphs: a crash partway
+    # through can resume from the last completed node (via the same thread_id)
+    # rather than re-running every LLM call. In-memory by default;
+    # CHECKPOINTER_BACKEND makes that survive process restarts too.
+    return graph.compile(checkpointer=get_checkpointer())

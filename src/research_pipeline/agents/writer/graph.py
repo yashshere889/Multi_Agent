@@ -27,10 +27,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
+from langgraph.types import RetryPolicy
 
 from research_pipeline.agents.writer.state import WriterState
+from research_pipeline.checkpointer import get_checkpointer
+
+# Outer safety net on the drafting nodes, default retry_on. Worth more here
+# than anywhere else: a full draft is a dozen-plus sequential LLM calls, so one
+# connection error that escapes the client's own retries would otherwise throw
+# away every section written before it.
+_RETRY = RetryPolicy(max_attempts=2)
 
 if TYPE_CHECKING:  # avoids a circular import — writer_agent imports this module
     from research_pipeline.agents.writer.writer_agent import WriterAgent
@@ -40,14 +47,14 @@ def build_writer_graph(agent: "WriterAgent"):
     graph = StateGraph(WriterState)
 
     graph.add_node("prepare_context", agent._node_prepare_context)
-    graph.add_node("draft_introduction", agent._node_draft_introduction)
-    graph.add_node("draft_related_work", agent._node_draft_related_work)
-    graph.add_node("draft_hypotheses_section", agent._node_draft_hypotheses_section)
-    graph.add_node("draft_per_hypothesis_sections", agent._node_draft_per_hypothesis_sections)
-    graph.add_node("draft_limitations", agent._node_draft_limitations)
-    graph.add_node("draft_future_work", agent._node_draft_future_work)
-    graph.add_node("draft_abstract", agent._node_draft_abstract)
-    graph.add_node("draft_title", agent._node_draft_title)
+    graph.add_node("draft_introduction", agent._node_draft_introduction, retry_policy=_RETRY)
+    graph.add_node("draft_related_work", agent._node_draft_related_work, retry_policy=_RETRY)
+    graph.add_node("draft_hypotheses_section", agent._node_draft_hypotheses_section, retry_policy=_RETRY)
+    graph.add_node("draft_per_hypothesis_sections", agent._node_draft_per_hypothesis_sections, retry_policy=_RETRY)
+    graph.add_node("draft_limitations", agent._node_draft_limitations, retry_policy=_RETRY)
+    graph.add_node("draft_future_work", agent._node_draft_future_work, retry_policy=_RETRY)
+    graph.add_node("draft_abstract", agent._node_draft_abstract, retry_policy=_RETRY)
+    graph.add_node("draft_title", agent._node_draft_title, retry_policy=_RETRY)
     graph.add_node("resolve_citations", agent._node_resolve_citations)
     graph.add_node("validate_paper_honesty", agent._node_validate_paper_honesty)
     graph.add_node("render_pdf", agent._node_render_pdf)
@@ -72,9 +79,10 @@ def build_writer_graph(agent: "WriterAgent"):
     graph.add_edge("render_pdf", "assemble_and_validate_summary")
     graph.add_edge("assemble_and_validate_summary", END)
 
-    # In-memory checkpointing, matching the literature/hypothesis/planner/reviewer
-    # graphs: a crash partway through can resume from the last completed node (via
-    # the same thread_id) rather than re-running every LLM call — worth more here
-    # than anywhere else in the pipeline, since a full draft is a dozen-plus calls.
-    # Swap for a SqliteSaver if that should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching the literature/hypothesis/planner/reviewer graphs:
+    # a crash partway through can resume from the last completed node (via the
+    # same thread_id) rather than re-running every LLM call — worth more here
+    # than anywhere else in the pipeline, since a full draft is a dozen-plus
+    # calls. In-memory by default; CHECKPOINTER_BACKEND makes that survive
+    # process restarts too.
+    return graph.compile(checkpointer=get_checkpointer())

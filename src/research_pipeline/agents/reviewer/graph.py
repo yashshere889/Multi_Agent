@@ -24,10 +24,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
+from langgraph.types import RetryPolicy
 
 from research_pipeline.agents.reviewer.state import ReviewerState
+from research_pipeline.checkpointer import get_checkpointer
+
+# Outer safety net on the three LLM-calling nodes only; the deterministic checks
+# (citations, results accuracy, hypothesis coverage) touch no network and would
+# fail identically on a retry, so they're left alone.
+_RETRY = RetryPolicy(max_attempts=2)
 
 if TYPE_CHECKING:  # avoids a circular import — reviewer_agent imports this module
     from research_pipeline.agents.reviewer.reviewer_agent import ReviewerAgent
@@ -40,9 +46,9 @@ def build_reviewer_graph(agent: "ReviewerAgent"):
     graph.add_node("check_citations", agent._node_check_citations)
     graph.add_node("check_results_accuracy", agent._node_check_results_accuracy)
     graph.add_node("check_hypothesis_coverage", agent._node_check_hypothesis_coverage)
-    graph.add_node("check_hallucinations", agent._node_check_hallucinations)
-    graph.add_node("check_discussion", agent._node_check_discussion)
-    graph.add_node("score_quality", agent._node_score_quality)
+    graph.add_node("check_hallucinations", agent._node_check_hallucinations, retry_policy=_RETRY)
+    graph.add_node("check_discussion", agent._node_check_discussion, retry_policy=_RETRY)
+    graph.add_node("score_quality", agent._node_score_quality, retry_policy=_RETRY)
     graph.add_node("compute_overall_pass", agent._node_compute_overall_pass)
     graph.add_node("build_feedback", agent._node_build_feedback)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
@@ -70,8 +76,8 @@ def build_reviewer_graph(agent: "ReviewerAgent"):
     graph.add_edge("build_feedback", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
-    # In-memory checkpointing, matching the literature/hypothesis/planner
-    # graphs: a crash partway through can resume from the last completed node
-    # (via the same thread_id) rather than re-running every LLM call. Swap for a
-    # SqliteSaver if that should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching the literature/hypothesis/planner graphs: a crash
+    # partway through can resume from the last completed node (via the same
+    # thread_id) rather than re-running every LLM call. In-memory by default;
+    # CHECKPOINTER_BACKEND makes that survive process restarts too.
+    return graph.compile(checkpointer=get_checkpointer())

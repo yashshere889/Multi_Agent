@@ -7,7 +7,7 @@
 #   uv run pre-commit run --all-files    # manual full pass
 #   uv run pre-commit run --files <path> # manual, one file
 
-exclude: ^(experiments|outputs|papers|runs|notebooks)/
+exclude: ^(checkpoints|experiments|outputs|papers|runs|notebooks)/
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit

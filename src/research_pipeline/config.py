@@ -28,6 +28,11 @@ class Settings:
     core_api_key: str
     huggingface_api_token: str
     default_max_results_per_query: int
+    checkpointer_backend: str
+    checkpointer_sqlite_path: str
+    checkpointer_postgres_uri: str
+    enable_paper_search_cache: bool
+    paper_search_cache_ttl_seconds: int
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
     hypothesis_output_dir: str
@@ -124,6 +129,38 @@ def load_settings() -> Settings:
         # limits, which matters for a long batch sweep from one IP.
         huggingface_api_token=os.environ.get("HUGGINGFACE_API_TOKEN", ""),
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
+        # Where every graph's LangGraph checkpoints go — one of "memory",
+        # "sqlite" or "postgres" (see checkpointer.get_checkpointer). "memory"
+        # is the default and reproduces the behaviour every graph.py hardcoded
+        # before this setting existed: checkpoints live in the process and die
+        # with it. The other two make a crashed run's progress survive the
+        # process, which is the whole point on a pre-empted SLURM job or a
+        # restarted Kaggle kernel; both need an optional dependency
+        # (uv sync --extra checkpoint-sqlite / --extra checkpoint-postgres),
+        # which is why neither is the default.
+        checkpointer_backend=os.environ.get("CHECKPOINTER_BACKEND", "memory"),
+        # One file for every graph in the process. Safe to share: checkpoints
+        # are keyed by (thread_id, checkpoint_ns) and every call site already
+        # mints its own thread_id (a fresh uuid4 per agent call, the run_id for
+        # the orchestrator), so there is nothing to collide.
+        checkpointer_sqlite_path=os.environ.get("CHECKPOINTER_SQLITE_PATH", "checkpoints/pipeline.db"),
+        # Blank = unset, matching SEMANTIC_SCHOLAR_API_KEY's style. Only read
+        # when CHECKPOINTER_BACKEND=postgres.
+        checkpointer_postgres_uri=os.environ.get("CHECKPOINTER_POSTGRES_URI", ""),
+        # Caches the paper-search nodes (arXiv / Semantic Scholar / CORE, and
+        # the interdisciplinary per-field search) on their inputs, so two runs
+        # that generate the same queries hit the APIs once. LangGraph's only
+        # cache backend is in-memory, so this helps a *long-lived* process —
+        # the web app across several runs, an orchestrate-batch sweep across
+        # questions — and does nothing at all for a one-shot CLI invocation,
+        # which starts with an empty cache every time. On by default because
+        # re-querying the same public APIs is pure waste; turn it off to force
+        # a genuinely fresh search on every node execution.
+        enable_paper_search_cache=_env_bool("ENABLE_PAPER_SEARCH_CACHE", True),
+        # How long a cached search stays usable. An hour is short enough that a
+        # long sweep still picks up newly published work, long enough to cover
+        # a batch of related questions.
+        paper_search_cache_ttl_seconds=int(os.environ.get("PAPER_SEARCH_CACHE_TTL_SECONDS", "3600")),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
         # costs one arXiv + one Semantic Scholar + one CORE search per generated

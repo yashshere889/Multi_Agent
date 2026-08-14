@@ -46,13 +46,24 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
+from langgraph.types import RetryPolicy
 
 from research_pipeline.agents.coder.state import CoderState
+from research_pipeline.checkpointer import get_checkpointer
 
 if TYPE_CHECKING:  # avoids a circular import — coder_agent imports this module
     from research_pipeline.agents.coder.coder_agent import CoderAgent
+
+# Deliberately narrow coverage: only the two nodes whose work is a retryable
+# call with no side effects worth repeating. `attempt` and
+# `snapshot_and_regenerate` are the fix loop, and retrying them at the graph
+# level would re-execute generated code or re-provision a venv — this module's
+# whole point is that the loop is sequential and each step's effects are real
+# (and CLAUDE.md is explicit that env-provisioning failures are not retried).
+# `probe_environment` and `search_hf_dataset` are best-effort probes that
+# already degrade gracefully, so a retry buys nothing.
+_RETRY = RetryPolicy(max_attempts=2)
 
 
 def route_plan_loop(state: CoderState) -> str:
@@ -76,11 +87,19 @@ def build_coder_graph(agent: CoderAgent):
 
     graph.add_node("validate_input", agent._node_validate_input)
     graph.add_node("probe_environment", agent._node_probe_environment)
-    graph.add_node("setup_shared_infrastructure", agent._node_setup_shared_infrastructure)
+    graph.add_node(
+        "setup_shared_infrastructure",
+        agent._node_setup_shared_infrastructure,
+        retry_policy=_RETRY,
+    )
     graph.add_node("start_plan_loop", agent._node_start_plan_loop)
     graph.add_node("process_current_plan", agent._node_process_current_plan)
     graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
-    graph.add_node("generate_experiment_code", agent._node_generate_experiment_code)
+    graph.add_node(
+        "generate_experiment_code",
+        agent._node_generate_experiment_code,
+        retry_policy=_RETRY,
+    )
     graph.add_node("attempt", agent._node_attempt)
     graph.add_node("snapshot_and_regenerate", agent._node_snapshot_and_regenerate)
     graph.add_node("finalize_current_plan", agent._node_finalize_current_plan)
@@ -138,8 +157,8 @@ def build_coder_graph(agent: CoderAgent):
 
     graph.add_edge("assemble_and_validate", END)
 
-    # In-memory checkpointing, matching the other five graphs: a crash partway
-    # through can resume from the last completed node (via the same thread_id)
-    # rather than re-running every LLM call and every generated experiment.
-    # Swap for a SqliteSaver if that should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching the other five graphs: a crash partway through can
+    # resume from the last completed node (via the same thread_id) rather than
+    # re-running every LLM call and every generated experiment. In-memory by
+    # default; CHECKPOINTER_BACKEND makes that survive process restarts too.
+    return graph.compile(checkpointer=get_checkpointer())

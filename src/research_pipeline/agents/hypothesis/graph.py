@@ -15,11 +15,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
-from langgraph.types import Send
+from langgraph.types import RetryPolicy, Send
 
 from research_pipeline.agents.hypothesis.state import HypothesisState
+from research_pipeline.checkpointer import get_checkpointer
+
+# Outer safety net over llm.py's client-level retries, on the four LLM-calling
+# nodes. Default retry_on, so output that llm_json.py already failed to repair
+# is treated as the persistent problem it is rather than retried.
+_RETRY = RetryPolicy(max_attempts=2)
 
 if TYPE_CHECKING:  # avoids a circular import — hypothesis_agent imports this module
     from research_pipeline.agents.hypothesis.hypothesis_agent import HypothesisAgent
@@ -36,10 +41,10 @@ def build_hypothesis_graph(agent: "HypothesisAgent"):
     graph = StateGraph(HypothesisState)
 
     graph.add_node("normalize_and_chunk", agent._node_normalize_and_chunk)
-    graph.add_node("analyze_batch", agent._node_analyze_batch)
-    graph.add_node("synthesize", agent._node_synthesize)
-    graph.add_node("generate_hypotheses", agent._node_generate_hypotheses)
-    graph.add_node("rank_hypotheses", agent._node_rank_hypotheses)
+    graph.add_node("analyze_batch", agent._node_analyze_batch, retry_policy=_RETRY)
+    graph.add_node("synthesize", agent._node_synthesize, retry_policy=_RETRY)
+    graph.add_node("generate_hypotheses", agent._node_generate_hypotheses, retry_policy=_RETRY)
+    graph.add_node("rank_hypotheses", agent._node_rank_hypotheses, retry_policy=_RETRY)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
 
     graph.set_entry_point("normalize_and_chunk")
@@ -59,8 +64,8 @@ def build_hypothesis_graph(agent: "HypothesisAgent"):
     graph.add_edge("rank_hypotheses", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
-    # In-memory checkpointing, matching the literature graph: a crash partway
-    # through can resume from the last completed node (via the same thread_id)
-    # rather than re-running every LLM call. Swap for a SqliteSaver if that
-    # should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching the literature graph: a crash partway through can
+    # resume from the last completed node (via the same thread_id) rather than
+    # re-running every LLM call. In-memory by default; CHECKPOINTER_BACKEND
+    # makes that survive process restarts too.
+    return graph.compile(checkpointer=get_checkpointer())

@@ -339,3 +339,58 @@ def test_run_raises_and_dumps_debug_file_on_schema_failure(tmp_path):
         agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
 
     assert list(tmp_path.glob("hypotheses_*_invalid.json"))
+
+
+# -- graph.py: RetryPolicy on the LLM-calling nodes ------------------------------------
+
+
+class _TransientBackendError(Exception):
+    """Stands in for what actually escapes the layers below a node: a connection
+    error that outlived the client's own max_retries, say. Deliberately *not*
+    derived from ValueError/RuntimeError/OSError — LangGraph's default retry_on
+    classifies those as persistent and won't retry them, which is the behaviour
+    the schema-failure tests above depend on."""
+
+
+class FlakyChatModel(FakeChatModel):
+    """A FakeChatModel that raises on its first N invocations before behaving.
+    A failed invocation consumes no canned response, so the retried node sees
+    exactly the responses it would have seen first time round."""
+
+    def __init__(self, responses: list[str], failures: int = 1):
+        super().__init__(responses)
+        self._remaining_failures = failures
+        self.attempts = 0
+
+    def invoke(self, messages):
+        self.attempts += 1
+        if self._remaining_failures > 0:
+            self._remaining_failures -= 1
+            raise _TransientBackendError("connection reset by peer")
+        return super().invoke(messages)
+
+
+def test_retry_policy_recovers_from_one_transient_llm_failure(tmp_path):
+    fake_model = FlakyChatModel(
+        [_batch_response(), _synthesis_response(), _hypotheses_response(), _ranking_response()],
+        failures=1,
+    )
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    # Without RetryPolicy on analyze_batch this run dies on the first call.
+    assert len(result["hypotheses"]) == 3
+    assert fake_model.attempts == 5  # 1 failed + 4 that produced the canned responses
+    assert len(fake_model.calls) == 4
+
+
+def test_retry_policy_is_bounded_and_gives_up_after_max_attempts(tmp_path):
+    fake_model = FlakyChatModel([_batch_response()], failures=99)
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    with pytest.raises(_TransientBackendError):
+        agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    # max_attempts=2 means one retry, not an unbounded loop against a dead backend.
+    assert fake_model.attempts == 2

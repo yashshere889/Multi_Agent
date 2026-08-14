@@ -122,6 +122,7 @@ src/research_pipeline/
 ├── llm.py                 # shared ChatOpenAI factory
 ├── llm_json.py            # shared "call the model, expect JSON, retry once on bad JSON" helper
 ├── llm_sections.py        # same, for responses carrying source code: a delimited section format, no escaping
+├── checkpointer.py        # shared LangGraph checkpointer factory (memory/sqlite/postgres) + shared node cache
 ├── cli.py                 # `research-pipeline <agent> ...` entry point
 ├── batch.py               # runs `orchestrate` over a file of questions unattended
 ├── writer_reviewer_loop.py # orchestrator: draft -> review -> revise -> re-review loop (not an agent itself)
@@ -201,6 +202,11 @@ def load_data():
 raise), so a call site swaps between them without other changes. The Coder Agent
 uses it for every code-bearing call; short structured responses (its self-review
 verdict, every other agent) stay on `llm_json.py`.
+
+`checkpointer.py` is the same "one factory, one place" idea as `llm.py`: all
+eight compiled graphs call `get_checkpointer()`, so the whole pipeline switches
+between in-process and durable checkpointing through one env var rather than
+eight edits. See [Checkpointing and caching](#checkpointing-and-caching).
 
 ### Adding a new agent
 
@@ -477,6 +483,52 @@ requests to that API are aggressively rate-limited / rejected with 403s.
 Get a free key at https://core.ac.uk/services/api and set `CORE_API_KEY` in
 `.env`. CORE has no unauthenticated tier, so without a key CORE search is
 skipped entirely (logged as a warning) rather than failing the whole run.
+
+### Checkpointing and caching
+
+Every agent graph and the orchestrator compile with a LangGraph checkpointer, so
+a run's progress is recorded node by node under its `thread_id`. All eight build
+theirs from one factory,
+[`checkpointer.get_checkpointer()`](src/research_pipeline/checkpointer.py), which
+`CHECKPOINTER_BACKEND` selects:
+
+| Backend | What it does | Needs |
+| --- | --- | --- |
+| `memory` (default) | Checkpoints live in the process and die with it. | — |
+| `sqlite` | One file at `CHECKPOINTER_SQLITE_PATH` (default `checkpoints/pipeline.db`), created on first use. | `uv sync --extra checkpoint-sqlite` |
+| `postgres` | `CHECKPOINTER_POSTGRES_URI`, for a shared or multi-host setup. | `uv sync --extra checkpoint-postgres` |
+
+`memory` is the default because it needs no extra dependency and reproduces what
+every graph did before this setting existed. Switch to `sqlite` wherever the
+process itself is at risk — a pre-empted SLURM job on Barkla, a restarted Kaggle
+kernel, a crashed web-app runner — since that's exactly where in-process
+checkpoints are worth nothing. One file is shared by every graph in the process:
+checkpoints are keyed by `(thread_id, checkpoint_ns)` and every call site already
+mints its own `thread_id`, so there's nothing to collide.
+
+Note the current limit: durable storage makes resuming **possible**, but nothing
+resumes yet. `webapp/runner.py` and `batch.py` still invoke with fresh input
+rather than continuing an existing thread.
+
+Two smaller reliability settings sit alongside it:
+
+- **Node retries.** LLM- and search-calling nodes carry a
+  `RetryPolicy(max_attempts=2)` as an outer safety net over the retries that
+  already exist further down (`llm.py`'s client-level `max_retries`,
+  `clients.py`'s `_request_with_retry`). It uses LangGraph's default `retry_on`,
+  which deliberately does *not* retry `ValueError`/`RuntimeError` and friends —
+  a schema failure that survived `llm_json.py`'s repair round-trip is a
+  persistent problem, not a flaky one. Nodes with non-idempotent side effects are
+  excluded on purpose: the Coder's `attempt`/`snapshot_and_regenerate` fix loop
+  (retrying would re-execute generated code or re-provision an environment) and
+  `download_papers` (already partial-success tolerant).
+- **Paper-search caching.** `ENABLE_PAPER_SEARCH_CACHE` (default `true`) caches
+  the arXiv / Semantic Scholar / CORE search nodes and the interdisciplinary
+  per-field search on their inputs, for `PAPER_SEARCH_CACHE_TTL_SECONDS`
+  (default 3600). LangGraph's only cache backend is in-memory, so this pays off
+  inside one long-lived process — the web app across runs, an `orchestrate-batch`
+  sweep across a question list — and does nothing for a one-shot CLI call, which
+  always starts with an empty cache.
 
 ## Run
 

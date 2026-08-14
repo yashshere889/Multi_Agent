@@ -29,9 +29,9 @@ build default-configured ones.
 
 from __future__ import annotations
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 
+from research_pipeline.checkpointer import get_checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.nodes import (
     draft_or_revise_node,
@@ -88,7 +88,16 @@ def build_pipeline_graph():
     )
     graph.add_edge("finalize", END)
 
-    # In-memory checkpointing, as in the literature subgraph: a crash after the
-    # Coder stage can resume from the same thread_id instead of re-running the
-    # searches, the LLM synthesis, and the generated experiments.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, as in the literature subgraph: a crash after the Coder
+    # stage can resume from the same thread_id instead of re-running the
+    # searches, the LLM synthesis, and the generated experiments. In-memory by
+    # default; CHECKPOINTER_BACKEND makes that survive process restarts too,
+    # which matters most here — this is the graph a pre-empted SLURM job or a
+    # restarted Kaggle kernel is usually halfway through.
+    #
+    # No RetryPolicy on any node here on purpose: each one wraps an entire
+    # sub-agent invocation, so a graph-level retry would re-run a whole agent
+    # (including non-idempotent work like the Coder's file writes and
+    # subprocess executions) instead of one call. Granular retry belongs inside
+    # each sub-agent's own graph, and that's where it lives.
+    return graph.compile(checkpointer=get_checkpointer())

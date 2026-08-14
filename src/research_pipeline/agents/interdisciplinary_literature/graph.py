@@ -18,11 +18,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Union
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
-from langgraph.types import Send
+from langgraph.types import CachePolicy, RetryPolicy, Send
 
 from research_pipeline.agents.interdisciplinary_literature.state import InterdisciplinaryState
+from research_pipeline.checkpointer import get_checkpointer, get_node_cache
+from research_pipeline.config import settings
+
+# Outer safety net over the retries already inside llm.py's client and the
+# injected search functions; default retry_on, so a persistent schema failure
+# still fails fast instead of retry-looping. Same policy object as
+# agents/literature/graph.py's.
+_RETRY = RetryPolicy(max_attempts=2)
 
 if TYPE_CHECKING:  # avoids a circular import — the agent module imports this one
     from research_pipeline.agents.interdisciplinary_literature.interdisciplinary_literature_agent import (
@@ -49,10 +56,19 @@ def fan_out_fields(state: InterdisciplinaryState) -> Union[List[Send], str]:
 def build_interdisciplinary_literature_graph(agent: "InterdisciplinaryLiteratureAgent"):
     graph = StateGraph(InterdisciplinaryState)
 
-    graph.add_node("identify_adjacent_fields", agent._node_identify_adjacent_fields)
-    graph.add_node("search_field", agent._node_search_field)
+    # Cached per *field*, which is exactly the granularity that matters: the
+    # same adjacent field explored by two runs in one process hits arXiv,
+    # Semantic Scholar and CORE once between them.
+    search_cache = (
+        {"cache_policy": CachePolicy(ttl=settings.paper_search_cache_ttl_seconds)}
+        if settings.enable_paper_search_cache
+        else {}
+    )
+
+    graph.add_node("identify_adjacent_fields", agent._node_identify_adjacent_fields, retry_policy=_RETRY)
+    graph.add_node("search_field", agent._node_search_field, retry_policy=_RETRY, **search_cache)
     graph.add_node("merge_cross_field", agent._node_merge_cross_field)
-    graph.add_node("synthesize_bridges", agent._node_synthesize_bridges)
+    graph.add_node("synthesize_bridges", agent._node_synthesize_bridges, retry_policy=_RETRY)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
 
     graph.set_entry_point("identify_adjacent_fields")
@@ -70,8 +86,11 @@ def build_interdisciplinary_literature_graph(agent: "InterdisciplinaryLiterature
     graph.add_edge("synthesize_bridges", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
-    # In-memory checkpointing, matching every other agent's graph: a crash
-    # partway through can resume from the last completed node (via the same
-    # thread_id) rather than re-running the searches and LLM calls. Swap for a
-    # SqliteSaver if that should survive process restarts too.
-    return graph.compile(checkpointer=MemorySaver())
+    # Checkpointing, matching every other agent's graph: a crash partway
+    # through can resume from the last completed node (via the same thread_id)
+    # rather than re-running the searches and LLM calls. In-memory by default;
+    # CHECKPOINTER_BACKEND makes that survive process restarts too.
+    return graph.compile(
+        checkpointer=get_checkpointer(),
+        **({"cache": get_node_cache()} if settings.enable_paper_search_cache else {}),
+    )

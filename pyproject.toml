@@ -40,6 +40,22 @@ webapp = [
     "python-multipart>=0.0.9",
 ]
 
+# Only needed for CHECKPOINTER_BACKEND=sqlite, which makes a run's LangGraph
+# checkpoints survive the process that wrote them. Optional for the same reason
+# as the extras above: the default "memory" backend is what every graph used
+# before this was configurable, and it needs nothing extra installed.
+#   uv sync --extra checkpoint-sqlite
+checkpoint-sqlite = [
+    "langgraph-checkpoint-sqlite>=3.0",
+]
+
+# Only needed for CHECKPOINTER_BACKEND=postgres — same story as sqlite above,
+# for a shared/multi-host database instead of a local file. Pulls in psycopg.
+#   uv sync --extra checkpoint-postgres
+checkpoint-postgres = [
+    "langgraph-checkpoint-postgres>=3.0",
+]
+
 [project.scripts]
 research-pipeline = "research_pipeline.cli:main"
 
