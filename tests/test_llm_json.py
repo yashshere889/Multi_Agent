@@ -14,9 +14,11 @@ class FakeChatModel:
     def __init__(self, responses):
         self.responses = list(responses)
         self.calls = []
+        self.call_kwargs = []
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         self.calls.append(messages)
+        self.call_kwargs.append(kwargs)
         return SimpleNamespace(content=self.responses.pop(0))
 
 
@@ -98,6 +100,32 @@ def test_invoke_json_repairs_stray_backslashes_from_embedded_code_without_a_retr
     model = FakeChatModel([r'{"files": {"a.py": "import re\nPATTERN = \d+"}}'])
     assert invoke_json(model, "sys", "user") == {"files": {"a.py": "import re\nPATTERN = \\d+"}}
     assert len(model.calls) == 1
+
+
+def test_invoke_json_forwards_per_call_max_tokens_and_temperature():
+    # The Coder Agent bounds max_tokens per prompt (its fix prompts can otherwise
+    # push prompt+completion past the model's context window) and pins fix
+    # regeneration to temperature 0.
+    model = FakeChatModel(['{"a": 1}'])
+    invoke_json(model, "sys", "user", max_tokens=123, temperature=0.0)
+    assert model.call_kwargs == [{"max_tokens": 123, "temperature": 0.0}]
+
+
+def test_invoke_json_sends_no_extra_kwargs_by_default():
+    # Guards the "every other agent is unaffected" contract: with neither
+    # override the call is exactly what it was before those parameters existed,
+    # so the client's constructor-time settings still apply untouched.
+    model = FakeChatModel(['{"a": 1}'])
+    invoke_json(model, "sys", "user")
+    assert model.call_kwargs == [{}]
+
+
+def test_invoke_json_repair_turn_reuses_the_same_per_call_overrides():
+    # The retry must be bounded the same way the first call was — a repair turn
+    # that dropped the cap would 400 for exactly the reason the cap exists.
+    model = FakeChatModel(["not json", '{"a": 1}'])
+    invoke_json(model, "sys", "user", max_tokens=123)
+    assert model.call_kwargs == [{"max_tokens": 123}, {"max_tokens": 123}]
 
 
 # -- llm.get_chat_model: Nemotron request fields -----------------------------------------

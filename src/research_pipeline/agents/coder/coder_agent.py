@@ -42,12 +42,14 @@ Execution model (confirmed with the pipeline owner, not assumed)
   reached via run_pipeline.sbatch — single-tenant compute already attached to
   this pipeline, not a shared queue), it runs synchronously instead, bounded
   by `settings.coder_high_complexity_timeout_seconds` rather than the
-  low/medium timeout table.
+  low/medium timeouts.
 - `estimated_complexity in {"low", "medium"}` (and no GPU requirement, or a
   GPU is actually available), or `"high"` under the opt-in above: run
   synchronously in-process with a bounded timeout
-  (research_pipeline.agents.coder.sandbox.TIMEOUT_SECONDS_BY_COMPLEXITY /
-  settings.coder_high_complexity_timeout_seconds), in an isolated `uv venv` if
+  (settings.coder_low_complexity_timeout_seconds /
+  settings.coder_medium_complexity_timeout_seconds /
+  settings.coder_high_complexity_timeout_seconds — all resolved here, since
+  sandbox.py reads no settings), in an isolated `uv venv` if
   the generated requirements.txt needs packages not already importable — the
   shared pipeline environment is never touched. Network access and GPU
   presence are probed at runtime (not hardcoded), so the same code adapts
@@ -135,6 +137,7 @@ logger = logging.getLogger(__name__)
 _ERROR_STAGE_ORDER = [
     "invalid_format",
     "missing_sections",
+    "missing_required_function",
     "compile_check",
     "static_lint",
     "missing_data_fallback",
@@ -152,6 +155,38 @@ _ERROR_STAGE_ORDER = [
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
 _STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
+
+
+# Inputs to _bounded_max_tokens, which stops a long prompt plus a fixed
+# max_tokens from overrunning the model's context window.
+#
+# 4 characters per token is the standard rough heuristic for English + code.
+# It's an estimate on purpose: the backend is an arbitrary OpenAI-compatible
+# HTTP endpoint, so there is no tokenizer on this side to ask for the real
+# count, and pulling one in would tie this agent to one specific model.
+_CHARS_PER_TOKEN_ESTIMATE = 4
+# Below this many tokens a completion would be too truncated to be usable code
+# — mid-function at best. Hitting this floor means the *prompt* is the problem,
+# so it's raised rather than attempted and silently wasted.
+_MIN_GENERATION_TOKENS = 2048
+# Headroom for the estimate being wrong and for provider-side rounding (chat
+# templates, role tokens, tool preambles) that never appears in the prompt text
+# we can measure here.
+_CONTEXT_SAFETY_MARGIN = 512
+
+# Fix-attempt regeneration runs at temperature 0 — the model's most confident
+# completion rather than a fresh sample. The fix prompt asks for every section
+# back, "keeping whatever already worked", and at a nonzero temperature that
+# full-section rewrite has been observed reintroducing *different* bugs each
+# round: in one production trace attempt 1 correctly fixed a ModuleNotFoundError
+# while attempts 2 and 3 each introduced a new backslash syntax error at a
+# different line. Initial generation keeps the constructor's temperature; only
+# the regeneration paths use this.
+_FIX_TEMPERATURE = 0.0
+
+
+def _estimate_tokens(text: str) -> int:
+    return len(text) // _CHARS_PER_TOKEN_ESTIMATE
 
 
 def _truncate(text: str) -> str:
@@ -642,7 +677,7 @@ class CoderAgent:
                 previous_files_block=render_sections(files),
                 error_text=problem,
             )
-            files = self._call_sections(fix_prompt) or files
+            files = self._call_sections(fix_prompt, temperature=_FIX_TEMPERATURE) or files
             files, problem = sandbox.check_shared_infra_files(files)
 
         warning = ""
@@ -711,6 +746,17 @@ class CoderAgent:
             return {
                 "error_source": "missing_sections",
                 "error_text": f"Model response was missing required code section(s): {missing_sections} — run.py was not written or executed.",
+            }
+
+        # Checked before anything expensive happens: a section defining a
+        # differently-named function clears every other check and only fails at
+        # execution, after a venv provision — see
+        # sandbox.check_required_function_names.
+        function_name_findings = sandbox.check_required_function_names(sections)
+        if function_name_findings:
+            return {
+                "error_source": "missing_required_function",
+                "error_text": f"Generated code doesn't define the required function name(s): {'; '.join(function_name_findings)}",
             }
 
         # run.py's metadata block + orchestration are a fixed template, not
@@ -803,11 +849,14 @@ class CoderAgent:
                 )
             }
 
-        timeout_seconds = (
-            settings.coder_high_complexity_timeout_seconds
-            if complexity == "high"
-            else sandbox.TIMEOUT_SECONDS_BY_COMPLEXITY[complexity]
-        )
+        # All three timeouts are settings-driven and read here rather than in
+        # sandbox.py, which deliberately reads no settings at all.
+        if complexity == "high":
+            timeout_seconds = settings.coder_high_complexity_timeout_seconds
+        elif complexity == "medium":
+            timeout_seconds = settings.coder_medium_complexity_timeout_seconds
+        else:
+            timeout_seconds = settings.coder_low_complexity_timeout_seconds
         succeeded, message = sandbox.run_experiment(
             python_executable, experiment_dir / "run.py", experiment_dir, timeout_seconds
         )
@@ -961,17 +1010,63 @@ class CoderAgent:
 
     # -- LLM calls -----------------------------------------------------------
 
-    def _call_json(self, user_prompt: str) -> dict:
+    def _bounded_max_tokens(self, user_prompt: str) -> int:
+        """How many completion tokens this specific prompt may ask for, so the
+        request can't exceed the model's context window.
+
+        get_chat_model fixes max_tokens at client construction, which is fine
+        until the prompt itself is large: this agent's fix prompts carry the
+        previous code sections, the concrete error, the plan JSON and the
+        shared-infrastructure block, and `prompt_tokens + max_tokens >
+        context_window` is a 400 BadRequestError from the server, not a short
+        answer. That crashed 6 of 10 questions in the 2026-08-11 batch run,
+        both before and after a fix attempt's prompt was drafted.
+
+        The estimate is deliberately conservative and is never checked against
+        the real tokenizer (there isn't one on this side — see
+        _CHARS_PER_TOKEN_ESTIMATE). Being conservative costs at most a shorter
+        completion, which the fix loop already handles; being wrong the other
+        way is exactly the crash this exists to prevent.
+
+        Raises CoderAgentError when the prompt leaves less room than
+        _MIN_GENERATION_TOKENS — at that point no completion would be long
+        enough to use, so the prompt is the problem. Callers let that propagate:
+        the generation nodes already convert a CoderAgentError into a normal
+        fix-loop outcome.
+        """
+        prompt_tokens = _estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(user_prompt)
+        headroom = settings.llm_context_window - prompt_tokens - _CONTEXT_SAFETY_MARGIN
+        if headroom < _MIN_GENERATION_TOKENS:
+            raise CoderAgentError(
+                f"Prompt is too large for the model's context window: ~{prompt_tokens} estimated "
+                f"prompt tokens leave only {headroom} token(s) for the response, below the "
+                f"{_MIN_GENERATION_TOKENS}-token minimum a usable completion needs "
+                f"(LLM_CONTEXT_WINDOW={settings.llm_context_window})."
+            )
+        return min(settings.llm_max_tokens, headroom)
+
+    def _call_json(self, user_prompt: str, *, temperature: float | None = None) -> dict:
         """For responses that are short structured fields only — currently just
         the self-review verdict. Anything carrying source code goes through
         _call_sections instead."""
+        max_tokens = self._bounded_max_tokens(user_prompt)
         try:
-            return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt)
+            return invoke_json(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
         except LLMJSONError as exc:
             raise CoderAgentError(str(exc)) from exc
 
     def _call_sections(
-        self, user_prompt: str, field_names: Sequence[str] | None = None
+        self,
+        user_prompt: str,
+        field_names: Sequence[str] | None = None,
+        *,
+        temperature: float | None = None,
     ) -> dict[str, str]:
         """For every response that carries generated source code.
 
@@ -981,9 +1076,20 @@ class CoderAgent:
         returned as raw text between markers instead of as JSON string values
         the model has to escape by hand. `field_names=None` means "discover the
         section names from the response", which the shared-infrastructure call
-        needs since it names its sections after files it hasn't picked yet."""
+        needs since it names its sections after files it hasn't picked yet.
+
+        `temperature` overrides the constructor's for this call only — the fix
+        paths pass _FIX_TEMPERATURE; initial generation leaves it None."""
+        max_tokens = self._bounded_max_tokens(user_prompt)
         try:
-            return invoke_sections(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt, field_names)
+            return invoke_sections(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                field_names,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
         except LLMSectionsError as exc:
             raise CoderAgentError(str(exc)) from exc
 
@@ -1145,7 +1251,9 @@ class CoderAgent:
             ),
         )
         return self._assemble_generation(
-            self._call_sections(prompt, prompts.EXPERIMENT_FIELD_NAMES)
+            self._call_sections(
+                prompt, prompts.EXPERIMENT_FIELD_NAMES, temperature=_FIX_TEMPERATURE
+            )
         )
 
     def _self_review(self, plan: dict, run_py: str) -> list[str]:

@@ -22,7 +22,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `graph.py` | `build_coder_graph(agent)` — wires the two cycles. Module docstring explains why they're cycles and not `Send` fan-out. |
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
-| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, template rendering. No LLM calls — unit-testable anywhere. |
+| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering. No LLM calls, no settings reads — unit-testable anywhere. |
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `prompts.py` | All prompt templates. |
@@ -112,7 +112,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   A missing package or unreachable index isn't something regenerating code can fix, so it
   returns a terminal `code_generated_not_run` result directly.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
-  sync.** Same eight members; the list additionally encodes check *order*, which
+  sync.** Same nine members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress. A new failure
   path needs an entry in both, in the right position.
 - **Adding or removing a graph node means updating the recursion-limit constants**

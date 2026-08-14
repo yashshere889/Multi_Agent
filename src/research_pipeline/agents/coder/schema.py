@@ -12,6 +12,9 @@ VALID_ERROR_SOURCES = {
     # is now "the response wasn't in the required section format at all".
     "invalid_format",
     "missing_sections",
+    # A code section defines no function with the name run.py's fixed
+    # orchestration calls — see sandbox.check_required_function_names.
+    "missing_required_function",
     "compile_check",
     "static_lint",
     # load_data reads a local file with nothing to fall back on if it isn't there

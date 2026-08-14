@@ -20,9 +20,11 @@ class FakeChatModel:
     def __init__(self, responses):
         self.responses = list(responses)
         self.calls = []
+        self.call_kwargs = []
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         self.calls.append(messages)
+        self.call_kwargs.append(kwargs)
         return SimpleNamespace(content=self.responses.pop(0))
 
 
@@ -160,6 +162,28 @@ def test_invoke_sections_raises_when_both_attempts_are_unparseable():
 def test_invoke_sections_discovers_sections_when_no_field_names_are_given():
     model = FakeChatModel([_response({"utils.py": "def f():\n    return 1\n"})])
     assert invoke_sections(model, "sys", "user") == {"utils.py": "def f():\n    return 1\n"}
+
+
+def test_invoke_sections_forwards_per_call_max_tokens_and_temperature():
+    # Mirrors invoke_json's own overrides: the Coder Agent bounds max_tokens per
+    # prompt and pins fix regeneration to temperature 0.
+    model = FakeChatModel([_response({"a": "x"})])
+    invoke_sections(model, "sys", "user", ["a"], max_tokens=123, temperature=0.0)
+    assert model.call_kwargs == [{"max_tokens": 123, "temperature": 0.0}]
+
+
+def test_invoke_sections_sends_no_extra_kwargs_by_default():
+    # Guards the "every other agent is unaffected" contract — with neither
+    # override this is exactly the call it was before those parameters existed.
+    model = FakeChatModel([_response({"a": "x"})])
+    invoke_sections(model, "sys", "user", ["a"])
+    assert model.call_kwargs == [{}]
+
+
+def test_invoke_sections_repair_turn_reuses_the_same_per_call_overrides():
+    model = FakeChatModel(["no markers", _response({"a": "x"})])
+    invoke_sections(model, "sys", "user", ["a"], max_tokens=123)
+    assert model.call_kwargs == [{"max_tokens": 123}, {"max_tokens": 123}]
 
 
 # -- render_section: the format's single definition ---------------------------------------

@@ -6,11 +6,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline.agents.coder import huggingface_client, sandbox, slurm_submit
+from research_pipeline.agents.coder import huggingface_client, prompts, sandbox, slurm_submit
 from research_pipeline.agents.coder.coder_agent import (
     CoderAgent,
     CoderAgentError,
     _compact_json,
+    _estimate_tokens,
     _parse_assumptions,
     _parse_bool_text,
 )
@@ -453,9 +454,14 @@ class FakeChatModel:
     def __init__(self, response_by_keyword: dict[str, str]):
         self._response_by_keyword = response_by_keyword
         self.calls = []
+        # The Coder Agent passes per-call max_tokens (and temperature on the fix
+        # paths) through invoke_json/invoke_sections, so **kwargs is required
+        # here — and recording them is what lets a test assert on the override.
+        self.call_kwargs = []
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         self.calls.append(messages)
+        self.call_kwargs.append(kwargs)
         prompt_text = messages[-1][1]
         for keyword, response in self._response_by_keyword.items():
             if keyword in prompt_text:
@@ -916,6 +922,9 @@ class ScriptedChatModel:
     def __init__(self, **responses_by_kind: list[str]):
         self._responses = responses_by_kind
         self.calls_by_kind: dict[str, int] = {}
+        # Per-call invoke kwargs, per kind — how a test checks that a fix
+        # regeneration carried temperature=0.0 and an initial generation didn't.
+        self.kwargs_by_kind: dict[str, list[dict]] = {}
 
     def _kind(self, prompt: str) -> str:
         for marker, kind in self.KINDS.items():
@@ -923,9 +932,10 @@ class ScriptedChatModel:
                 return kind
         return "codegen"
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         prompt = messages[-1][1]
         kind = self._kind(prompt)
+        self.kwargs_by_kind.setdefault(kind, []).append(kwargs)
         index = self.calls_by_kind.get(kind, 0)
         self.calls_by_kind[kind] = index + 1
         responses = self._responses.get(kind)
@@ -965,10 +975,10 @@ class RecordingScriptedChatModel(ScriptedChatModel):
         super().__init__(**responses_by_kind)
         self.prompts_by_kind: dict[str, list[str]] = {}
 
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         prompt = messages[-1][1]
         self.prompts_by_kind.setdefault(self._kind(prompt), []).append(prompt)
-        return super().invoke(messages)
+        return super().invoke(messages, **kwargs)
 
 
 def test_compact_json_has_no_indentation_whitespace():
@@ -1437,6 +1447,212 @@ def test_lint_failure_routes_through_the_fix_loop(tmp_path):
     assert exp["status"] == "completed"
     assert exp["fix_history"][0]["error_source"] == "static_lint"
     assert "rmtree" in exp["fix_history"][0]["error_summary"]
+
+
+# -- sandbox.check_required_function_names ------------------------------------------------
+
+
+def test_check_required_function_names_passes_correctly_named_sections():
+    assert sandbox.check_required_function_names(GOOD_SECTIONS) == []
+
+
+def test_check_required_function_names_flags_a_wrongly_named_function():
+    # The defect this catches: compiles, is safe, guards its reads — and then
+    # dies on a NameError only after a full venv provision, the most expensive
+    # step in the loop.
+    sections = {
+        **GOOD_SECTIONS,
+        "load_data_function": "def load_the_dataset():\n    return None\n",
+    }
+    findings = sandbox.check_required_function_names(sections)
+    assert len(findings) == 1
+    assert "load_data_function" in findings[0]
+    assert "load_data" in findings[0]
+    assert "load_the_dataset" in findings[0]
+
+
+def test_check_required_function_names_flags_a_section_with_no_function_at_all():
+    sections = {**GOOD_SECTIONS, "evaluate_function": "RESULT = {}\n"}
+    findings = sandbox.check_required_function_names(sections)
+    assert len(findings) == 1
+    assert "no top-level function" in findings[0]
+
+
+def test_check_required_function_names_ignores_a_nested_definition():
+    # Nested in a class, so not callable as the bare global name run.py's
+    # orchestration uses — which is why the check reads tree.body, not ast.walk.
+    sections = {
+        **GOOD_SECTIONS,
+        "build_model_function": "class Factory:\n    def build_model(self):\n        return None\n",
+    }
+    findings = sandbox.check_required_function_names(sections)
+    assert len(findings) == 1
+    assert "build_model_function" in findings[0]
+
+
+def test_check_required_function_names_skips_an_unparseable_section():
+    # compile_check owns syntax errors (with real line numbers, on the whole
+    # rendered run.py); this check must not double-report them.
+    sections = {**GOOD_SECTIONS, "run_experiment_function": "def run_experiment(:\n    pass\n"}
+    assert sandbox.check_required_function_names(sections) == []
+
+
+def test_wrong_function_name_routes_through_the_fix_loop_without_provisioning(tmp_path):
+    # End to end: caught before render/compile/venv, fed back to the model, and
+    # recorded under an error_source the output schema accepts.
+    wrong = {**GOOD_SECTIONS, "load_data_function": "def load_the_dataset():\n    return None\n"}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(wrong)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_history"][0]["error_source"] == "missing_required_function"
+    assert exp["fix_history"][0]["resolved"] is True
+    assert "missing_required_function" in model.prompts_by_kind["fix"][0]
+
+
+# -- coder_agent.py: bounding max_tokens against the context window ----------------------
+
+
+def _bounding_agent(tmp_path):
+    return _agent(tmp_path, FakeChatModel({}))  # never invoked by these tests
+
+
+def test_estimate_tokens_uses_the_documented_char_ratio():
+    assert _estimate_tokens("x" * 4000) == 1000
+
+
+def test_bounded_max_tokens_returns_the_configured_max_when_the_prompt_is_small(
+    tmp_path, monkeypatch
+):
+    _patch_settings(monkeypatch, llm_context_window=32768, llm_max_tokens=8192)
+    assert _bounding_agent(tmp_path)._bounded_max_tokens("write me an experiment") == 8192
+
+
+def test_bounded_max_tokens_shrinks_to_the_remaining_headroom(tmp_path, monkeypatch):
+    # The 2026-08-11 case: a fix prompt large enough that prompt + a fixed
+    # max_tokens overruns the window, which the server answers with a 400 rather
+    # than a completion.
+    _patch_settings(monkeypatch, llm_context_window=8192, llm_max_tokens=8192)
+    prompt = "x" * 4000
+    expected = 8192 - (_estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(prompt)) - 512
+    assert expected < 8192  # the headroom is what binds here, not llm_max_tokens
+    assert _bounding_agent(tmp_path)._bounded_max_tokens(prompt) == expected
+
+
+def test_bounded_max_tokens_raises_an_informative_error_when_the_prompt_is_too_large(
+    tmp_path, monkeypatch
+):
+    _patch_settings(monkeypatch, llm_context_window=4096, llm_max_tokens=8192)
+    prompt = "x" * 20000
+    with pytest.raises(CoderAgentError) as excinfo:
+        _bounding_agent(tmp_path)._bounded_max_tokens(prompt)
+
+    message = str(excinfo.value)
+    # Debuggable from the log line alone: prompt size, headroom, floor, window.
+    prompt_tokens = _estimate_tokens(prompts.SYSTEM_PROMPT) + _estimate_tokens(prompt)
+    assert str(prompt_tokens) in message
+    assert str(4096 - prompt_tokens - 512) in message  # the (negative) headroom
+    assert "2048" in message  # the minimum a usable completion needs
+    assert "4096" in message  # the configured context window
+
+
+def test_generation_calls_carry_the_bounded_max_tokens(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, llm_context_window=32768, llm_max_tokens=8192)
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert model.kwargs_by_kind["codegen"][0]["max_tokens"] == 8192
+
+
+def test_an_oversized_prompt_fails_one_plan_instead_of_crashing_the_run(tmp_path, monkeypatch):
+    # _bounded_max_tokens raises CoderAgentError, which the generation nodes
+    # already convert into a normal fix-loop outcome — no separate bypass path.
+    _patch_settings(monkeypatch, llm_context_window=1024)
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["fix_history"][0]["error_source"] == "invalid_format"
+    assert "context window" in exp["fix_history"][0]["error_summary"]
+
+
+# -- coder_agent.py: fix-attempt regeneration temperature --------------------------------
+
+
+def test_fix_regeneration_runs_at_temperature_zero_and_initial_generation_does_not(tmp_path):
+    # Full-section regeneration at a nonzero temperature has been observed
+    # introducing a *different* bug each attempt; the fix turn wants the model's
+    # most confident completion, not a fresh sample.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert model.kwargs_by_kind["fix"][0]["temperature"] == 0.0
+    # Initial generation keeps the constructor's temperature — no override sent.
+    assert model.kwargs_by_kind["codegen"][0].get("temperature") is None
+
+
+def test_shared_infra_repair_runs_at_temperature_zero(tmp_path):
+    model = ScriptedChatModel(
+        shared_infra=[render_sections(BROKEN_SHARED_FILES), render_sections(GOOD_SHARED_FILES)],
+        codegen=[_codegen_response()],
+    )
+    _agent(tmp_path, model).run(
+        _planner_output([_plan("H1")], shared_infrastructure=["shared eval harness"])
+    )
+
+    first, repair = model.kwargs_by_kind["shared_infra"]
+    assert first.get("temperature") is None
+    assert repair["temperature"] == 0.0
+
+
+# -- coder_agent.py: configurable low/medium execution timeouts --------------------------
+
+
+def _spy_on_run_experiment(monkeypatch):
+    """Records the timeout each execution was given, still running it for real
+    so the plan reaches a normal terminal result."""
+    real_run_experiment = sandbox.run_experiment
+    timeouts = []
+
+    def spy(python_executable, run_script, cwd, timeout_seconds):
+        timeouts.append(timeout_seconds)
+        return real_run_experiment(python_executable, run_script, cwd, timeout_seconds)
+
+    monkeypatch.setattr(sandbox, "run_experiment", spy)
+    return timeouts
+
+
+def test_low_complexity_timeout_comes_from_settings(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_low_complexity_timeout_seconds=77)
+    timeouts = _spy_on_run_experiment(monkeypatch)
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert timeouts == [77]
+
+
+def test_medium_complexity_timeout_comes_from_settings(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_medium_complexity_timeout_seconds=88)
+    timeouts = _spy_on_run_experiment(monkeypatch)
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="medium")]))
+
+    assert timeouts == [88]
+
+
+def test_low_and_medium_timeouts_default_to_the_previously_hardcoded_values():
+    from research_pipeline.config import settings as real_settings
+
+    assert real_settings.coder_low_complexity_timeout_seconds == 120
+    assert real_settings.coder_medium_complexity_timeout_seconds == 300
 
 
 # -- coder_agent.py: the Hugging Face dataset lookup -------------------------------------

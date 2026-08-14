@@ -25,12 +25,6 @@ NETWORK_PROBE_HOST = "pypi.org"
 NETWORK_PROBE_PORT = 443
 NETWORK_PROBE_TIMEOUT_SECONDS = 3.0
 
-# "high" only runs synchronously when CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE
-# is on and a GPU was actually detected — see coder_agent.py — so its timeout
-# comes from settings.coder_high_complexity_timeout_seconds instead of a fixed
-# entry here.
-TIMEOUT_SECONDS_BY_COMPLEXITY = {"low": 120, "medium": 300}
-
 
 def _load_template(name: str) -> str:
     return (TEMPLATES_DIR / name).read_text()
@@ -357,6 +351,64 @@ def check_data_fallback(load_data_function_source: str) -> list[str]:
             "fall back to a small synthesized stand-in dataset (recording that in assumptions_made "
             "and the README) — or fetch the data over HTTP instead"
         )
+    return findings
+
+
+# templates/run.py.template's orchestration calls exactly these four functions,
+# by these exact bare global names — the wiring is fixed template text, not
+# model output, so a section that defines something differently named is simply
+# not callable.
+REQUIRED_FUNCTION_NAMES: dict[str, str] = {
+    "load_data_function": "load_data",
+    "build_model_function": "build_model",
+    "run_experiment_function": "run_experiment",
+    "evaluate_function": "evaluate",
+}
+
+
+def check_required_function_names(sections: dict[str, str]) -> list[str]:
+    """Checks each generated code section actually defines the function the
+    template will call. Returns human-readable findings; empty means clean.
+
+    The model is asked for four sections and trusted to put a correctly named
+    function in each. A section that instead defines `def load_the_dataset():`
+    compiles fine, is safe, and guards its reads — so it clears every other
+    check, gets a full `uv venv` provisioned (up to ~600s, the single most
+    expensive step in the loop), and only then dies on a NameError at
+    execution. The defect is cheaply detectable before any of that, so it is
+    detected here instead: same "check it rather than trust it" rule the rest of
+    this package follows.
+
+    Only *top-level* definitions in the section count, deliberately — not
+    ast.walk. A function nested inside a class or another function isn't
+    reachable as a bare global name from the template's orchestration, so
+    finding one there would be a false pass.
+
+    A section that doesn't parse is skipped silently rather than flagged:
+    reporting syntax errors is compile_check's job, on the whole rendered run.py
+    where the line numbers are meaningful, and a broken section should not also
+    collect a spurious "wrong function name" finding for a function it may well
+    define correctly.
+    """
+    findings = []
+    for section_name, expected_fn in REQUIRED_FUNCTION_NAMES.items():
+        source = sections.get(section_name, "")
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        defined = {
+            node.name
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        if expected_fn not in defined:
+            findings.append(
+                f"{section_name} does not define a top-level `def {expected_fn}(...)` "
+                f"(found: {sorted(defined) or 'no top-level function'}) — run.py's fixed "
+                f"orchestration calls {expected_fn}() by that exact name, so the experiment "
+                "would fail with a NameError"
+            )
     return findings
 
 

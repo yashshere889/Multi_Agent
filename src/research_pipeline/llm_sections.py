@@ -197,6 +197,9 @@ def invoke_sections(
     system_prompt: str,
     user_prompt: str,
     field_names: Sequence[str] | None = None,
+    *,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
 ) -> dict[str, str]:
     """Invokes chat_model expecting the delimited format back; on a parse
     failure, retries once with an explicit repair prompt naming the sections
@@ -213,9 +216,19 @@ def invoke_sections(
     domain knowledge belonging to the agent that asked for it — the same
     "Python decides what the model's output means" split the rest of the
     pipeline uses.
+
+    `max_tokens`/`temperature` override, for this call only, whatever the client
+    was constructed with (see llm.get_chat_model) — mirroring invoke_json's own
+    two optional parameters. Both default to None, and when both are None this
+    is byte-for-byte the same invocation as before they existed.
     """
     messages = [("system", system_prompt), ("human", user_prompt)]
-    response = chat_model.invoke(messages)
+    invoke_kwargs: dict = {}
+    if max_tokens is not None:
+        invoke_kwargs["max_tokens"] = max_tokens
+    if temperature is not None:
+        invoke_kwargs["temperature"] = temperature
+    response = chat_model.invoke(messages, **invoke_kwargs)
     # Stripped once and reused: with a reasoning model the raw content can be
     # mostly <think> trace, and the repair turn must quote the *answer* — a trace
     # would crowd the malformed answer out of the excerpt below and give the
@@ -240,7 +253,7 @@ def invoke_sections(
                 ),
             )
         )
-        response = chat_model.invoke(messages)
+        response = chat_model.invoke(messages, **invoke_kwargs)
         stripped = strip_reasoning(_response_text(response))
         try:
             return parse_sections(stripped, field_names)

@@ -840,8 +840,10 @@ Worth knowing before running it unattended:
   directory** and installs into it — it never touches this pipeline's own
   `.venv` — and only attempts this if network access was detected.
 - Runs `python run.py` as a subprocess with a bounded timeout (120s for
-  `low`, 300s for `medium`; `high` is never run synchronously at all — see
-  `sandbox.py:TIMEOUT_SECONDS_BY_COMPLEXITY`).
+  `low`, 300s for `medium` by default — `CODER_LOW_COMPLEXITY_TIMEOUT_SECONDS`
+  / `CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS`; `high` is never run
+  synchronously at all unless
+  `CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE` is on).
 - Never submits anything to SLURM itself; `run.sbatch` files are generated
   for a human to review and submit.
 

@@ -21,6 +21,7 @@ class Settings:
     llm_temperature: float
     llm_top_p: float
     llm_max_tokens: int
+    llm_context_window: int
     llm_enable_thinking: bool
     llm_reasoning_budget: int | None
     semantic_scholar_api_key: str
@@ -38,6 +39,8 @@ class Settings:
     coder_enable_hf_dataset_search: bool
     coder_run_high_complexity_when_gpu_available: bool
     coder_high_complexity_timeout_seconds: int
+    coder_low_complexity_timeout_seconds: int
+    coder_medium_complexity_timeout_seconds: int
     coder_auto_submit_slurm: bool
     coder_max_concurrent_slurm_jobs: int
     coder_max_slurm_jobs_per_run: int
@@ -97,6 +100,15 @@ def load_settings() -> Settings:
         # room for the longest Writer section (and for a reasoning trace, if
         # LLM_ENABLE_THINKING is turned back on).
         llm_max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "8192")),
+        # The model's *total* prompt+completion budget, read client-side only to
+        # bound how many completion tokens a request may ask for — distinct from
+        # llm_max_tokens above, which caps the completion length alone. A long
+        # prompt (the Coder Agent's fix prompts carry previous code sections,
+        # errors, plan JSON and shared-infra context) plus a fixed max_tokens can
+        # exceed this and get a 400 from the server instead of a completion; see
+        # coder_agent._bounded_max_tokens. 32768 is Nemotron 3 Nano's real
+        # context length.
+        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "32768")),
         # Nemotron 3 Nano is a reasoning model that emits <think>...</think>
         # before its answer by default. Off by default here: nothing in this
         # pipeline reads reasoning traces, and the codebase already prefers
@@ -147,6 +159,14 @@ def load_settings() -> Settings:
         # High-complexity work (e.g. fine-tuning) legitimately runs longer
         # than low/medium's 120s/300s; only consulted when the flag above is on.
         coder_high_complexity_timeout_seconds=int(os.environ.get("CODER_HIGH_COMPLEXITY_TIMEOUT_SECONDS", "1800")),
+        # The low/medium execution timeouts, previously a hardcoded dict in
+        # sandbox.py. Same pattern (and same read site in coder_agent.py) as the
+        # high-complexity timeout above — sandbox.py deliberately reads no
+        # settings at all, so all three are resolved by coder_agent.py. Defaults
+        # are exactly the values that dict held; "high" is not one of these
+        # because it only ever runs synchronously under the opt-in flag above.
+        coder_low_complexity_timeout_seconds=int(os.environ.get("CODER_LOW_COMPLEXITY_TIMEOUT_SECONDS", "120")),
+        coder_medium_complexity_timeout_seconds=int(os.environ.get("CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS", "300")),
         # Off by default: run.sbatch is generated from code nothing has ever
         # executed, and submitting it spends GPU allocation on a cluster other
         # people are queueing for. Turning this on is a deliberate choice for

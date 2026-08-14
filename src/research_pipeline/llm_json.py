@@ -102,11 +102,30 @@ def _loads_lenient(text: str) -> dict:
         return json.loads(_fix_invalid_escapes(text), strict=False)
 
 
-def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str) -> dict:
+def invoke_json(
+    chat_model: BaseChatModel,
+    system_prompt: str,
+    user_prompt: str,
+    *,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
+) -> dict:
     """Invokes chat_model expecting a JSON object back; on a parse failure,
-    retries once with an explicit repair prompt before raising LLMJSONError."""
+    retries once with an explicit repair prompt before raising LLMJSONError.
+
+    `max_tokens`/`temperature` override, for this call only, whatever the client
+    was constructed with (see llm.get_chat_model). Both default to None, and
+    when both are None this is byte-for-byte the same invocation as before they
+    existed — which is every caller except the Coder Agent, whose prompts can
+    grow long enough that a fixed max_tokens overruns the model's context
+    window (see coder_agent._bounded_max_tokens)."""
     messages = [("system", system_prompt), ("human", user_prompt)]
-    response = chat_model.invoke(messages)
+    invoke_kwargs: dict = {}
+    if max_tokens is not None:
+        invoke_kwargs["max_tokens"] = max_tokens
+    if temperature is not None:
+        invoke_kwargs["temperature"] = temperature
+    response = chat_model.invoke(messages, **invoke_kwargs)
     text = strip_fences(response.content)
     try:
         return _loads_lenient(text)
@@ -119,7 +138,7 @@ def invoke_json(chat_model: BaseChatModel, system_prompt: str, user_prompt: str)
         previous = strip_reasoning(response.content)
         messages.append(("assistant", previous))
         messages.append(("human", JSON_REPAIR_PROMPT.format(previous_response=previous[:4000])))
-        response = chat_model.invoke(messages)
+        response = chat_model.invoke(messages, **invoke_kwargs)
         text = strip_fences(response.content)
         try:
             return _loads_lenient(text)
