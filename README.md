@@ -506,9 +506,17 @@ checkpoints are worth nothing. One file is shared by every graph in the process:
 checkpoints are keyed by `(thread_id, checkpoint_ns)` and every call site already
 mints its own `thread_id`, so there's nothing to collide.
 
-Note the current limit: durable storage makes resuming **possible**, but nothing
-resumes yet. `webapp/runner.py` and `batch.py` still invoke with fresh input
-rather than continuing an existing thread.
+Durability is what makes resuming possible, and both unattended entry points use
+it. Relaunching a web-app run continues it from the stage it died in, because
+its `thread_id` has always been the run id; `orchestrate-batch` records each
+question's `thread_id` in the manifest, so a resubmitted job resumes a question
+that was pre-empted half-way instead of only skipping the ones that finished.
+Neither does anything under the default `memory` backend — the checkpoints died
+with the process being resumed — so this is the payoff for turning `sqlite` on.
+
+Resuming replays from the checkpoint, which means it uses the **checkpointed**
+inputs. Editing a run's parameters and relaunching will not change them; start a
+new run for that.
 
 Two smaller reliability settings sit alongside it:
 

@@ -12,6 +12,13 @@ Progress comes from `graph.stream(..., stream_mode="updates")`, which yields
 `{node_name: delta}` as each node returns. The orchestrator graph is used
 exactly as the CLI uses it; nothing about it is modified or re-implemented
 here.
+
+Relaunching a run directory resumes it rather than restarting it, when there
+is anything to resume: thread_id is the run_id, so a second process lands on
+the first one's checkpoints and continues from the stage it died in. That is
+only ever true with a durable CHECKPOINTER_BACKEND — under the default
+"memory" the checkpoints died with the first process and every launch is a
+fresh run, which is the pre-existing behaviour.
 """
 
 from __future__ import annotations
@@ -23,6 +30,7 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
+from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.graph import build_pipeline_graph
 from research_pipeline.webapp import events, runs, stages
@@ -132,7 +140,22 @@ def run(run_dir: str | Path) -> dict:
     final_result: Optional[dict] = None
     try:
         graph = build_pipeline_graph()
-        for update in graph.stream(inputs, config={"configurable": {"thread_id": run_id}}, stream_mode="updates"):
+        config = {"configurable": {"thread_id": run_id}}
+
+        # thread_id has always been the run_id — stable across processes — so
+        # relaunching a run whose process died lands on its own checkpoints
+        # rather than starting over. Whether there is anything there depends on
+        # CHECKPOINTER_BACKEND: with the default "memory" this is always empty
+        # and every launch is a fresh run, exactly as before.
+        resuming = checkpointer.pending_nodes(graph, config)
+        if resuming:
+            # `None` continues from the checkpoint. Stages that already finished
+            # are not re-run, so their events are not re-emitted either — the
+            # UI keeps the rows the earlier attempt already wrote to events.jsonl.
+            logger.info("Resuming run %s at %s", run_id, ", ".join(resuming))
+            event_log.append(events.RUN_RESUMED, pending=list(resuming))
+
+        for update in graph.stream(None if resuming else inputs, config=config, stream_mode="updates"):
             for node, delta in (update or {}).items():
                 if node not in stages.STAGE_ORDER:
                     # LangGraph also emits bookkeeping keys such as __interrupt__.

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,11 +11,24 @@ class FakeGraph:
     """Stands in for the compiled pipeline graph. Raises for any question
     listed in `fail_for`, otherwise returns a minimal final_result."""
 
-    def __init__(self, fail_for=()):
+    def __init__(self, fail_for=(), pending=()):
         self.fail_for = set(fail_for)
         self.invoked = []
+        self.seen_configs = []
+        # What get_state reports as still to do, per thread_id: a thread listed
+        # here looks like a question that was pre-empted part-way through.
+        self.pending = dict(pending)
+        self.resumed = []
+
+    def get_state(self, config):
+        return SimpleNamespace(next=tuple(self.pending.get(config["configurable"]["thread_id"], ())))
 
     def invoke(self, state, config=None):
+        self.seen_configs.append(config)
+        if state is None:
+            # Resuming: the question is in the checkpoint, not the arguments.
+            self.resumed.append(config["configurable"]["thread_id"])
+            return {"final_result": {"final_paper_path": "resumed/v1.pdf", "iterations_run": 1, "converged": True}}
         question = state["research_question"]
         self.invoked.append(question)
         if question in self.fail_for:
@@ -171,6 +185,94 @@ def test_run_batch_retries_a_previously_failed_question_on_resume(tmp_path, monk
     batch.run_batch(questions_file, output_root=output_root)
 
     assert second.invoked == ["q two"]  # only the failure is retried
+
+
+# -- resuming within a question -----------------------------------------------------------
+
+
+def test_run_batch_records_a_thread_id_so_a_later_run_can_resume(tmp_path, graph):
+    questions_file = _questions_file(tmp_path, ["q one"])
+    output_root = tmp_path / "out"
+
+    batch.run_batch(questions_file, output_root=output_root)
+
+    entry = _manifest(output_root)["entries"][0]
+    assert entry["thread_id"] == graph.seen_configs[0]["configurable"]["thread_id"]
+
+
+def test_run_batch_reuses_the_recorded_thread_id_for_an_unfinished_question(tmp_path, monkeypatch):
+    """A pre-empted question has to be retried under the *same* thread_id, or
+    the checkpoints it left behind are unreachable."""
+    questions_file = _questions_file(tmp_path, ["q one"])
+    output_root = tmp_path / "out"
+
+    first = FakeGraph(fail_for=["q one"])
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: first)
+    batch.run_batch(questions_file, output_root=output_root)
+    thread_id = first.seen_configs[0]["configurable"]["thread_id"]
+
+    second = FakeGraph()
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: second)
+    batch.run_batch(questions_file, output_root=output_root)
+
+    assert second.seen_configs[0]["configurable"]["thread_id"] == thread_id
+
+
+def test_run_batch_continues_a_half_finished_question_instead_of_restarting_it(tmp_path, monkeypatch):
+    questions_file = _questions_file(tmp_path, ["q one"])
+    output_root = tmp_path / "out"
+
+    first = FakeGraph(fail_for=["q one"])
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: first)
+    batch.run_batch(questions_file, output_root=output_root)
+    thread_id = first.seen_configs[0]["configurable"]["thread_id"]
+
+    # The checkpointer now reports this thread as stopped before the coder.
+    second = FakeGraph(pending={thread_id: ("coder",)})
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: second)
+    batch.run_batch(questions_file, output_root=output_root)
+
+    assert second.resumed == [thread_id]
+    assert second.invoked == []  # never re-sent the question as fresh input
+    assert _manifest(output_root)["entries"][0]["status"] == "completed"
+
+
+def test_run_batch_starts_clean_when_the_question_at_that_index_changed(tmp_path, monkeypatch):
+    """Indices are positions in a file people edit between sweeps. Resuming
+    index 0's checkpoints under a different question would graft half a run
+    about one question onto another."""
+    output_root = tmp_path / "out"
+
+    first = FakeGraph(fail_for=["q one"])
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: first)
+    batch.run_batch(_questions_file(tmp_path, ["q one"]), output_root=output_root)
+    thread_id = first.seen_configs[0]["configurable"]["thread_id"]
+
+    edited = _questions_file(tmp_path, ["a different question"])
+    second = FakeGraph(pending={thread_id: ("coder",)})
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: second)
+    batch.run_batch(edited, output_root=output_root)
+
+    assert second.resumed == []
+    assert second.invoked == ["a different question"]
+    assert second.seen_configs[0]["configurable"]["thread_id"] != thread_id
+
+
+def test_run_batch_without_resume_ignores_the_recorded_thread_id(tmp_path, monkeypatch):
+    questions_file = _questions_file(tmp_path, ["q one"])
+    output_root = tmp_path / "out"
+
+    first = FakeGraph(fail_for=["q one"])
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: first)
+    batch.run_batch(questions_file, output_root=output_root)
+    thread_id = first.seen_configs[0]["configurable"]["thread_id"]
+
+    second = FakeGraph(pending={thread_id: ("coder",)})
+    monkeypatch.setattr(batch, "build_pipeline_graph", lambda: second)
+    batch.run_batch(questions_file, output_root=output_root, resume=False)
+
+    assert second.resumed == []
+    assert second.invoked == ["q one"]
 
 
 # -- run_batch_slice ----------------------------------------------------------------------

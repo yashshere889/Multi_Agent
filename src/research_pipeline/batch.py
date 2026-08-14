@@ -7,6 +7,13 @@ manifest, which is rewritten after every question rather than at the end.
 
 Each question is an independent graph invocation with its own thread_id and its
 own output directory — nothing is shared between them but the manifest.
+
+Resuming works at two granularities, and the manifest drives both. Between
+questions, a finished question is skipped outright. Within a question, the
+thread_id of every attempt is recorded, so a resubmitted job can continue a
+question that was pre-empted half-way instead of redoing its finished stages —
+though only when CHECKPOINTER_BACKEND is durable, since the default in-memory
+checkpoints do not outlive the job that was pre-empted.
 """
 
 from __future__ import annotations
@@ -20,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.graph import build_pipeline_graph
 
@@ -68,15 +76,34 @@ def _update_manifest(manifest_path: Path, entry: dict) -> None:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
-def _completed_indices(manifest_path: Path) -> set[int]:
+def _manifest_entries(manifest_path: Path) -> dict[int, dict]:
+    """Every entry the manifest holds, keyed by question index. Read without
+    the lock the writer takes: a torn read degrades to "attempt the question
+    again", which is the same safe direction as no manifest at all."""
     if not manifest_path.exists():
-        return set()
+        return {}
     try:
         manifest = json.loads(manifest_path.read_text())
     except json.JSONDecodeError:
         logger.warning("Ignoring an unreadable manifest at %s — every question will be attempted.", manifest_path)
-        return set()
-    return {e["index"] for e in manifest.get("entries", []) if e.get("status") == "completed"}
+        return {}
+    return {e["index"]: e for e in manifest.get("entries", []) if "index" in e}
+
+
+def _thread_id_for(entry: Optional[dict], question: str) -> str:
+    """The thread_id to run this question under: the one a previous attempt
+    recorded, so its checkpoints can be resumed, or a new one.
+
+    The question has to match before a recorded id is reused. Indices are
+    positions in a file people edit between sweeps, so entry 7 in the manifest
+    is not necessarily question 7 today — and resuming the wrong thread would
+    silently graft a half-finished run about one question onto another,
+    producing a paper whose sections disagree about what was being asked.
+    A mismatch is not an error, just a reason to start clean.
+    """
+    if entry and entry.get("thread_id") and entry.get("question") == question:
+        return str(entry["thread_id"])
+    return str(uuid.uuid4())
 
 
 def run_batch(
@@ -104,7 +131,8 @@ def run_batch(
     manifest_path = output_root / MANIFEST_NAME
 
     selected = questions if questions is not None else list(enumerate(load_questions(questions_file)))
-    already_done = _completed_indices(manifest_path) if resume else set()
+    previous = _manifest_entries(manifest_path) if resume else {}
+    already_done = {index for index, entry in previous.items() if entry.get("status") == "completed"}
 
     graph = build_pipeline_graph()
     completed = failed = skipped = 0
@@ -119,12 +147,18 @@ def run_batch(
         slug = _slug(question, index)
         question_output_dir = output_root / slug
         question_download_dir = download_dir_root / slug
+        # Recorded in the manifest so the *next* process can find it. A fresh
+        # uuid4 per attempt, as this used to be unconditionally, is a thread_id
+        # nothing can ever resume: the checkpoints from the pre-empted attempt
+        # are still on disk under an id no later run will ever ask for.
+        thread_id = _thread_id_for(previous.get(index), question)
         _update_manifest(
             manifest_path,
             {
                 "index": index,
                 "question": question,
                 "output_dir": str(question_output_dir),
+                "thread_id": thread_id,
                 "status": "running",
                 "started_at": _utc_now(),
                 "finished_at": None,
@@ -135,8 +169,19 @@ def run_batch(
 
         logger.info("[%d/%d] %s", index + 1, len(selected), question)
         try:
+            config = {"configurable": {"thread_id": thread_id}}
+            # Empty unless a durable CHECKPOINTER_BACKEND is configured *and*
+            # an earlier attempt on this thread stopped part-way: the manifest
+            # resumes at whole-question granularity, this resumes within one,
+            # so a question pre-empted during the writer doesn't redo its
+            # literature search, hypotheses and experiments.
+            resuming = checkpointer.pending_nodes(graph, config)
+            if resuming:
+                logger.info("Resuming question %d at %s", index, ", ".join(resuming))
             state = graph.invoke(
-                {
+                None
+                if resuming
+                else {
                     "research_question": question,
                     "max_results_per_query": max_results_per_query,
                     "download_dir": str(question_download_dir),
@@ -145,7 +190,7 @@ def run_batch(
                     "max_iterations": max_iterations,
                     "quality_threshold": quality_threshold,
                 },
-                config={"configurable": {"thread_id": str(uuid.uuid4())}},
+                config=config,
             )
             result = state["final_result"]
         except Exception as exc:  # noqa: BLE001

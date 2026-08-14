@@ -23,11 +23,10 @@ Both non-default backends live behind an optional dependency, so a plain
 `uv sync` install keeps working exactly as before and only pays for what it
 uses (see pyproject.toml's checkpoint-sqlite / checkpoint-postgres extras).
 
-Note what this module does *not* do: making storage durable makes resuming
-*possible*, but nothing here resumes anything. Callers still invoke with fresh
-input rather than `None`; teaching webapp/runner.py and batch.py to detect "this
-thread_id already has checkpoints, continue it" is a separate behavioural
-change.
+`pending_nodes()` is the other half: it answers "did this thread stop
+part-way?", which is what lets webapp/runner.py and batch.py continue a run
+instead of restarting it. Both call it before deciding whether to invoke with
+their inputs or with `None`.
 """
 
 from __future__ import annotations
@@ -38,6 +37,7 @@ from pathlib import Path
 
 from langgraph.cache.base import BaseCache
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph.state import CompiledStateGraph
 
 from research_pipeline.config import settings
 
@@ -154,6 +154,27 @@ def get_node_cache() -> BaseCache:
 
         _node_cache = InMemoryCache()
     return _node_cache
+
+
+def pending_nodes(graph: CompiledStateGraph, config: dict) -> tuple[str, ...]:
+    """Which nodes a previously checkpointed run still has left to execute —
+    i.e. what resuming that thread would pick up. Empty means "nothing to
+    resume, invoke normally".
+
+    Empty covers three situations that callers do not need to tell apart:
+    the thread has no checkpoints at all (a genuinely new run), the backend is
+    "memory" and this is a fresh process (the previous process's checkpoints
+    died with it, which is exactly why durability is opt-in), and the thread
+    already ran to END. LangGraph reports next=() for all three; only a run
+    that stopped part-way names the node it stopped before.
+
+    Resuming means invoking with `None`, which replays from the checkpoint and
+    therefore uses the *checkpointed* inputs. Anything a caller changed since
+    (a different max_iterations, say) is ignored by design — silently mixing
+    new arguments into a half-finished run is how you get a paper whose early
+    sections answer a different question than its late ones.
+    """
+    return tuple(graph.get_state(config).next or ())
 
 
 def reset_checkpointer() -> None:

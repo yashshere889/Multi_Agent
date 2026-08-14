@@ -25,6 +25,12 @@ logger = logging.getLogger(__name__)
 EVENTS_NAME = "events.jsonl"
 
 RUN_STARTED = "run_started"
+# Emitted instead of nothing when a relaunched run picks up its own
+# checkpoints rather than starting over, so "why did this run skip straight to
+# the coder stage?" is answerable from the event stream alone. Deliberately not
+# a terminal event: it is followed by the same stage/completion events as any
+# other run.
+RUN_RESUMED = "run_resumed"
 STAGE_COMPLETED = "stage_completed"
 LOG = "log"
 RUN_COMPLETED = "run_completed"

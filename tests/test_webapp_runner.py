@@ -1,5 +1,6 @@
 import json
 import logging
+from types import SimpleNamespace
 
 import pytest
 
@@ -100,11 +101,18 @@ class FakeGraph:
     """Stands in for the compiled orchestrator. Yields the same
     `{node_name: delta}` shape LangGraph's stream_mode="updates" produces."""
 
-    def __init__(self, updates, raises=None):
+    def __init__(self, updates, raises=None, pending=()):
         self.updates = updates
         self.raises = raises
+        # What get_state reports as still to do, i.e. whether this thread looks
+        # like a run that stopped part-way. Empty is the ordinary case: a new
+        # thread and a finished one both report no next node.
+        self.pending = tuple(pending)
         self.seen_inputs = None
         self.seen_config = None
+
+    def get_state(self, config):
+        return SimpleNamespace(next=self.pending, values={}, created_at=None)
 
     def stream(self, inputs, config=None, stream_mode=None):
         self.seen_inputs = inputs
@@ -172,6 +180,37 @@ def test_runner_summarizes_each_stage_from_its_own_delta(store, monkeypatch):
     assert by_stage["review"]["overall_pass"] is True
     assert by_stage["review"]["total_issues"] == 0
     assert by_stage["finalize"]["iterations_run"] == 1
+
+
+def test_runner_resumes_a_run_whose_thread_has_pending_nodes(store, monkeypatch):
+    """Relaunching a run that died part-way continues it: the graph is invoked
+    with None, which replays from the checkpoint rather than from the inputs."""
+    record = store.create("q", {})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"), pending=("coder",))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    final = runner.run(run_dir)
+
+    assert graph.seen_inputs is None
+    assert graph.seen_config["configurable"]["thread_id"] == record["run_id"]
+    assert final["status"] == runs.COMPLETED
+    resumed = events.read_events(run_dir, types=[events.RUN_RESUMED])
+    assert [e["pending"] for e in resumed] == [["coder"]]
+
+
+def test_runner_starts_fresh_when_there_is_nothing_to_resume(store, monkeypatch):
+    """The ordinary case, and the only one under the default in-memory
+    checkpointer: no checkpoints for this thread, so the inputs are sent."""
+    record = store.create("q", {})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    assert graph.seen_inputs["research_question"] == "q"
+    assert events.read_events(run_dir, types=[events.RUN_RESUMED]) == []
 
 
 def test_runner_passes_run_scoped_paths_to_the_graph(store, monkeypatch):
