@@ -97,6 +97,26 @@ def test_missing_packages_flags_nonexistent_and_ignores_present():
     assert result == ["definitely_not_a_real_package_xyz"]
 
 
+def test_extract_third_party_imports_excludes_stdlib_and_experiments_package():
+    source = (
+        "import sys\n"
+        "import json\n"
+        "import pandas as pd\n"
+        "from pathlib import Path\n"
+        "from experiments._shared import data_utils\n"
+        "import sklearn.linear_model\n"
+    )
+    assert sandbox.extract_third_party_imports(source) == {"pandas", "sklearn"}
+
+
+def test_extract_third_party_imports_returns_empty_set_for_syntax_error():
+    assert sandbox.extract_third_party_imports("def load(:\n    pass\n") == set()
+
+
+def test_extract_third_party_imports_returns_empty_set_for_no_imports():
+    assert sandbox.extract_third_party_imports("def load():\n    return 1\n") == set()
+
+
 def test_compile_check_passes_valid_file(tmp_path):
     good = tmp_path / "good.py"
     good.write_text("def main():\n    return 1\n")
@@ -212,6 +232,60 @@ def test_ensure_experiment_env_returns_current_interpreter_when_nothing_missing(
     )
     assert error is None
     assert python_exec == Path(sys.executable)
+
+
+def test_ensure_experiment_env_ignores_extra_requirements_already_present(tmp_path):
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("os\n")  # stdlib, never "missing"
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path,
+        requirements,
+        network_available=True,
+        extra_requirements=["sys"],  # also stdlib
+    )
+    assert error is None
+    assert python_exec == Path(sys.executable)
+
+
+def test_ensure_experiment_env_provisions_for_extra_requirements_not_in_requirements_txt(
+    tmp_path, monkeypatch
+):
+    # Reproduces job 10229968: requirements.txt is empty (the model never
+    # declared it), but experiments/_shared/'s own import of a package makes
+    # it genuinely missing — extra_requirements is how that gets surfaced.
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: None)
+    recorded_cmds = []
+    venv_python = tmp_path / ".venv" / "bin" / "python"
+
+    def fake_run(cmd, **kwargs):
+        recorded_cmds.append(cmd)
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path,
+        requirements,
+        network_available=True,
+        extra_requirements=["definitely_not_a_real_package_xyz"],
+    )
+    assert error is None
+    assert python_exec == venv_python
+
+    # The install command must point at a requirements file that actually
+    # contains the extra requirement — installing from the original (empty)
+    # requirements.txt would silently install nothing.
+    install_cmd = recorded_cmds[-1]
+    assert "pip" in install_cmd and "install" in install_cmd
+    resolved_path = Path(install_cmd[install_cmd.index("-r") + 1])
+    assert "definitely_not_a_real_package_xyz" in resolved_path.read_text()
+    # The original requirements.txt on disk documents only what the model
+    # itself declared, and is left untouched.
+    assert requirements.read_text() == ""
 
 
 def test_ensure_experiment_env_reports_missing_package_without_network(tmp_path):

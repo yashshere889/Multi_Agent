@@ -489,6 +489,7 @@ class CoderAgent:
             Path(state["current_experiment_dir"]),
             state["network_available"],
             state["gpu_available"],
+            state["shared_files"],
         )
 
         update: dict = {
@@ -726,6 +727,7 @@ class CoderAgent:
         experiment_dir: Path,
         network_available: bool,
         gpu_available: bool,
+        shared_files: dict[str, str],
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -838,8 +840,21 @@ class CoderAgent:
                 plan, generation, run_py, experiment_dir, requirements_path, complexity
             )
 
+        # experiments/_shared/ imports whatever it needs (e.g. pandas) without
+        # ever being asked for its own requirements_txt — see
+        # sandbox.extract_third_party_imports's docstring for the production
+        # failure (job 10229968) this closes. Passed as extra_requirements
+        # rather than folded into requirements.txt on disk, which should keep
+        # documenting only what this experiment's own generated code declared.
+        shared_infra_requirements = sorted(
+            set().union(
+                *(sandbox.extract_third_party_imports(src) for src in shared_files.values())
+            )
+            if shared_files
+            else set()
+        )
         python_executable, env_error = sandbox.ensure_experiment_env(
-            experiment_dir, requirements_path, network_available
+            experiment_dir, requirements_path, network_available, shared_infra_requirements
         )
         # Checked as `is None` rather than `if env_error` so the interpreter is
         # narrowed to a Path for the run below; ensure_experiment_env's contract

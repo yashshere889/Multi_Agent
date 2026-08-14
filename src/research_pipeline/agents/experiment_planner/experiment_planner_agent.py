@@ -97,6 +97,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from research_pipeline.agents.experiment_planner import prompts
 from research_pipeline.agents.experiment_planner.schema import (
     SchemaValidationError,
+    clean_shared_infrastructure,
     priority_order_errors,
     validate_output,
 )
@@ -300,8 +301,29 @@ class ExperimentPlannerAgent:
         of the plans passed in), so Python decides it rather than asking the
         model a third time. This function therefore never raises on a
         priority_order problem; only a genuinely unparseable response (handled
-        by _call_json/invoke_json already) still propagates."""
+        by _call_json/invoke_json already) still propagates.
+
+        With exactly one plan — every orchestrated run, since the orchestrator
+        always narrows to a single hypothesis before this agent ever runs —
+        nothing can be "shared" by definition, so the LLM call is skipped
+        entirely rather than trusted to notice that itself. A 2026-08-14
+        production run (job 10229968, single-plan) got back
+        "H1 and H2 both require the MultiHop-RAG evaluation harness" despite
+        planning only H2 and having no H1 in this call at all: nearly a
+        verbatim echo of CROSS_CUTTING_PROMPT's own worked example
+        ("H1 and H3 both need the MultiHop-RAG eval harness"). That
+        fabricated shared_infrastructure then misdirected
+        _setup_shared_infrastructure into generating shared code for an
+        unrelated task, which is how H2's actual experiment ended up
+        importing a dependency (pandas) nothing had reason to declare."""
         expected_ids = [plan["hypothesis_id"] for plan in experiment_plans]
+        if len(experiment_plans) == 1:
+            return {
+                "shared_infrastructure": [],
+                "priority_order": [
+                    {"hypothesis_id": expected_ids[0], "rank": 1, "justification": "Only plan in this run."}
+                ],
+            }
         prompt = prompts.CROSS_CUTTING_PROMPT.format(n=len(experiment_plans), plans_block=json.dumps(experiment_plans, indent=2))
         cross_cutting = self._call_json(prompt)
         errors = priority_order_errors(cross_cutting.get("priority_order") or [], expected_ids)
@@ -330,6 +352,16 @@ class ExperimentPlannerAgent:
             cross_cutting["priority_order"] = _coerce_priority_order(
                 cross_cutting.get("priority_order") or [], expected_ids
             )
+
+        kept, dropped = clean_shared_infrastructure(cross_cutting.get("shared_infrastructure") or [], expected_ids)
+        if dropped:
+            logger.warning(
+                "Dropped shared_infrastructure entr%s naming a hypothesis id outside this run's plans %s: %s",
+                "y" if len(dropped) == 1 else "ies",
+                expected_ids,
+                dropped,
+            )
+        cross_cutting["shared_infrastructure"] = kept
 
         return cross_cutting
 

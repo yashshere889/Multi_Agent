@@ -67,6 +67,40 @@ def missing_packages(requirements: list[str]) -> list[str]:
     return missing
 
 
+# experiments/_shared/ is generated once per run and freely imports whatever
+# it needs (e.g. pandas) — but each experiment's own requirements_txt is
+# generated from a prompt that only asks the model to list what *that
+# experiment's own sections* import, so a package the shared module alone
+# depends on can silently never make it into requirements.txt. A 2026-08-14
+# production run (job 10229968) reproduced exactly this: run.py's only fault
+# was `from experiments._shared import data_utils`, which imported pandas;
+# requirements.txt was empty, so ensure_experiment_env saw nothing missing
+# and ran with the bare interpreter, which didn't have pandas either — 3 fix
+# attempts regenerated run.py without ever touching the actual gap. This
+# extracts the shared module's own imports so ensure_experiment_env can
+# provision for them regardless of what the model wrote in requirements.txt.
+def extract_third_party_imports(source: str) -> set[str]:
+    """AST-parses `source` for its top-level import statements and returns
+    the distinct top-level module names it imports, excluding stdlib modules
+    and the pipeline's own `experiments` package (shared-infra files import
+    each other via `from experiments._shared import ...`, which is never a
+    pip-installable requirement). A source that fails to parse returns an
+    empty set — syntax errors are compile_check's job, not this one's."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and node.level == 0:
+                names.add(node.module.split(".")[0])
+    return names - sys.stdlib_module_names - {"experiments"}
+
+
 def compile_check(py_files: list[Path]) -> str | None:
     """Byte-compiles each file to catch syntax errors without executing
     anything. Returns None if every file compiles, else a message describing
@@ -477,6 +511,7 @@ def ensure_experiment_env(
     experiment_dir: Path,
     requirements_path: Path,
     network_available: bool,
+    extra_requirements: list[str] | None = None,
 ) -> tuple[Path | None, str | None]:
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
@@ -486,14 +521,35 @@ def ensure_experiment_env(
     generated code. Prefers `uv` (faster) when it's on PATH, and falls back
     to the stdlib `venv` + `pip` otherwise, so provisioning works regardless
     of which environment launched the pipeline (e.g. an Apptainer container
-    that was only ever set up with plain pip)."""
+    that was only ever set up with plain pip).
+
+    `extra_requirements` is for packages the model never had a reason to put
+    in requirements.txt — namely what experiments/_shared/ itself imports
+    (see extract_third_party_imports). They're checked the same way as
+    requirements.txt entries (skipped if already importable) and, when
+    actually missing, installed the same way; they're just never written to
+    requirements.txt on disk, since that file documents what *this
+    experiment's own code* declared, not what shared infra happens to need."""
     requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
-    missing = missing_packages(requirements)
+    missing = missing_packages(requirements + list(extra_requirements or []))
     if not missing:
         return Path(sys.executable), None
 
     if not network_available:
         return None, f"missing package(s) {missing} and no network access to install them"
+
+    # `pip`/`uv pip install -r` reads whatever file is named below, not the
+    # `missing` list above — so when extra_requirements added something not
+    # already in requirements.txt on disk, install from a merged copy instead
+    # of the original, or that package would be "detected" as needed but
+    # never actually installed. The original requirements.txt on disk is left
+    # untouched either way — it documents what the model itself declared.
+    if extra_requirements:
+        install_requirements_path = experiment_dir / ".resolved_requirements.txt"
+        merged = list(dict.fromkeys(requirements + list(extra_requirements)))
+        install_requirements_path.write_text("\n".join(merged) + "\n")
+    else:
+        install_requirements_path = requirements_path
 
     venv_dir = experiment_dir / ".venv"
     venv_python = venv_dir / "bin" / "python"
@@ -525,7 +581,7 @@ def ensure_experiment_env(
                     "--python",
                     str(venv_python),
                     "-r",
-                    str(requirements_path),
+                    str(install_requirements_path),
                 ],
                 check=True,
                 capture_output=True,
@@ -541,7 +597,7 @@ def ensure_experiment_env(
                 timeout=120,
             )
             subprocess.run(
-                [str(venv_python), "-m", "pip", "install", "-r", str(requirements_path)],
+                [str(venv_python), "-m", "pip", "install", "-r", str(install_requirements_path)],
                 check=True,
                 capture_output=True,
                 text=True,

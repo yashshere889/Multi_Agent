@@ -7,9 +7,12 @@ runtime before an agent run is allowed to return/persist.
 
 from __future__ import annotations
 
+import re
 from typing import List, Optional, TypedDict
 
 VALID_COMPLEXITIES = {"low", "medium", "high"}
+
+_HYPOTHESIS_ID_RE = re.compile(r"\bH\d+\b")
 
 
 class Variables(TypedDict):
@@ -115,6 +118,35 @@ def priority_order_errors(priority_entries: list, expected_ids: list[str], path_
     if ranks and sorted(ranks) != list(range(1, len(priority_entries) + 1)):
         errors.append(f"{path_prefix}priority_order ranks should be exactly 1..{len(priority_entries)}, got {ranks}")
     return errors
+
+
+def clean_shared_infrastructure(entries: list, expected_ids: list[str]) -> tuple[List[str], List[str]]:
+    """Drops any shared_infrastructure entry that names a hypothesis id
+    outside this run's actual plan set — the same "strip it, don't print it"
+    rule the Writer applies to unresolved citations. CROSS_CUTTING_PROMPT's
+    own worked example names a hypothesis id ("H1"/"H3") to illustrate the
+    shape; a small model asked for cross-cutting notes has been observed
+    paraphrasing that example back nearly verbatim (2026-08-14, job
+    10229968: an "H1 and H2" entry produced for a run that only ever planned
+    H2) instead of generating real content or returning the empty list the
+    prompt asks for when nothing is genuinely shared. Any entry mentioning a
+    hypothesis id that isn't one of expected_ids is deterministically not
+    this run's own content, whether it's the copied example or something
+    else invented. Returns (kept, dropped) — the caller logs `dropped`
+    rather than silently losing it."""
+    expected_set = set(expected_ids)
+    kept: List[str] = []
+    dropped: List[str] = []
+    for entry in entries or []:
+        if not isinstance(entry, str):
+            dropped.append(repr(entry))
+            continue
+        mentioned = set(_HYPOTHESIS_ID_RE.findall(entry))
+        if mentioned and not mentioned.issubset(expected_set):
+            dropped.append(entry)
+            continue
+        kept.append(entry)
+    return kept, dropped
 
 
 def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = None) -> None:

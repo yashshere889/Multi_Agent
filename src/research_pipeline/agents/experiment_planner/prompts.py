@@ -105,7 +105,7 @@ Plans (JSON):
 
 Return ONLY a JSON object with this exact shape:
 {{
-  "shared_infrastructure": ["concrete shared item, e.g. 'H1 and H3 both need the MultiHop-RAG eval harness'"],
+  "shared_infrastructure": ["<one sentence, grounded in the plans above — name the specific hypothesis ids and the specific dataset/harness/pipeline they share, using the plans' own language, not an invented example>"],
   "priority_order": [
     {{"hypothesis_id": "...", "rank": 1, "justification": "one line"}},
     {{"hypothesis_id": "...", "rank": 2, "justification": "one line"}}

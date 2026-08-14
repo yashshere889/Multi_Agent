@@ -7,7 +7,11 @@ from research_pipeline.agents.experiment_planner.experiment_planner_agent import
     ExperimentPlannerAgent,
     ExperimentPlannerAgentError,
 )
-from research_pipeline.agents.experiment_planner.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.experiment_planner.schema import (
+    SchemaValidationError,
+    clean_shared_infrastructure,
+    validate_output,
+)
 
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -76,6 +80,26 @@ def test_validate_output_expected_ids_catches_missing_plan():
     data["priority_order"] = data["priority_order"][:2]
     with pytest.raises(SchemaValidationError, match="missing plan"):
         validate_output(data, expected_hypothesis_ids=["H1", "H2", "H3"])
+
+
+def test_clean_shared_infrastructure_keeps_entries_naming_only_expected_ids():
+    kept, dropped = clean_shared_infrastructure(
+        ["H1 and H2 share a preprocessing pipeline", "no hypothesis id mentioned here"],
+        expected_ids=["H1", "H2"],
+    )
+    assert kept == ["H1 and H2 share a preprocessing pipeline", "no hypothesis id mentioned here"]
+    assert dropped == []
+
+
+def test_clean_shared_infrastructure_drops_entries_naming_an_unplanned_hypothesis():
+    # Reproduces job 10229968: a single-plan run (only H2 planned) got back an
+    # entry naming "H1", which was never part of this run's plans at all.
+    kept, dropped = clean_shared_infrastructure(
+        ["H1 and H2 both require the MultiHop-RAG evaluation harness"],
+        expected_ids=["H2"],
+    )
+    assert kept == []
+    assert dropped == ["H1 and H2 both require the MultiHop-RAG evaluation harness"]
 
 
 # -- experiment_planner_agent.py: orchestration, with a fake chat model ----------------
@@ -163,17 +187,13 @@ def test_run_end_to_end(tmp_path):
     assert json.loads(written[0].read_text())["experiment_plans"][0]["hypothesis_id"] == "H1"
 
 
-def _single_plan_cross_cutting_response(hypothesis_id: str) -> str:
-    return json.dumps({
-        "shared_infrastructure": ["shared eval harness"],
-        "priority_order": [{"hypothesis_id": hypothesis_id, "rank": 1, "justification": "the only plan"}],
-    })
-
-
 def test_run_with_hypothesis_ids_plans_only_the_named_subset(tmp_path):
+    # No "independently drafted" (CROSS_CUTTING_PROMPT) entry is configured:
+    # with a single plan, _plan_cross_cutting must not call the model at all
+    # (see test_plan_cross_cutting_skips_llm_call_with_a_single_plan below) —
+    # FakeChatModel would raise on an unconfigured prompt if it tried.
     fake_model = FakeChatModel({
         '"id": "H2"': _plan_response("H2"),
-        "independently drafted": _single_plan_cross_cutting_response("H2"),
     })
     agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
 
@@ -182,8 +202,46 @@ def test_run_with_hypothesis_ids_plans_only_the_named_subset(tmp_path):
     # H1/H3 never reached the fan-out: FakeChatModel would have raised on an
     # unconfigured prompt if they had.
     assert [p["hypothesis_id"] for p in result["experiment_plans"]] == ["H2"]
+    assert result["shared_infrastructure"] == []
     assert [e["hypothesis_id"] for e in result["priority_order"]] == ["H2"]
     assert result["source_hypothesis_ids"] == ["H2"]
+
+
+def test_plan_cross_cutting_skips_llm_call_with_a_single_plan(tmp_path):
+    # Every orchestrated run plans exactly one hypothesis, so this is the
+    # common case in production, not an edge case — nothing can be "shared"
+    # with only one plan, so the cross-cutting call is skipped deterministically
+    # rather than trusted to notice that itself (see job 10229968 in the
+    # docstring of _plan_cross_cutting).
+    fake_model = FakeChatModel({})
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent._plan_cross_cutting([_valid_plan("H2")])
+
+    assert result == {
+        "shared_infrastructure": [],
+        "priority_order": [{"hypothesis_id": "H2", "rank": 1, "justification": "Only plan in this run."}],
+    }
+    assert fake_model.calls == []
+
+
+def test_plan_cross_cutting_drops_shared_infrastructure_naming_an_unplanned_hypothesis(tmp_path):
+    # This run only planned H2 and H3 — "H1" is never one of expected_ids, so
+    # an entry naming it (the exact shape of job 10229968's fabricated entry)
+    # must be dropped even though the rest of the response is well-formed.
+    response = json.dumps({
+        "shared_infrastructure": ["H1 and H2 both require the MultiHop-RAG evaluation harness"],
+        "priority_order": [
+            {"hypothesis_id": "H2", "rank": 1, "justification": "first"},
+            {"hypothesis_id": "H3", "rank": 2, "justification": "second"},
+        ],
+    })
+    fake_model = FakeChatModel({"independently drafted": response})
+    agent = ExperimentPlannerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent._plan_cross_cutting([_valid_plan("H2"), _valid_plan("H3")])
+
+    assert result["shared_infrastructure"] == []
 
 
 def test_run_without_hypothesis_ids_still_plans_all_three(tmp_path):
