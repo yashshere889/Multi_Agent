@@ -26,8 +26,10 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `prompts.py` | All prompt templates. |
+| `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |
 | `templates/run.sbatch.template` | Barkla-shaped SLURM script. |
+| `templates/starters/*.sections` | The starter library's content, one `.sections` file per archetype, in `llm_sections.py`'s own delimited format — parsed by the same `parse_sections` the model's responses are parsed by. |
 
 ## Conventions
 
@@ -108,6 +110,15 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   threaded into both the codegen *and* the fix prompt from state, so a three-attempt fix loop
   doesn't re-search. Don't fold the lookup back into the generation call — a run whose
   experiments silently stopped getting real data should be visible in the trace.
+- **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
+  real network call with its own cache/retry policy), `starters.select_starter` is a
+  deterministic keyword match with no LLM call and no side effect, so it's called directly inside
+  `process_current_plan` and stored as `current_starter_id` — no dedicated graph node, no
+  recursion-limit bump. `""` means "general" (nothing matched, no worked example shown); a real
+  id means `_starter_block` renders that starter's sections into both the codegen and fix
+  prompts, same threading pattern as `current_hf_dataset`. The chosen id is also recorded on the
+  finished `ExperimentResult` as `starter_used`, for the same traceability reason `fix_history`
+  exists.
 - **Env-provisioning failures are not retried through the fix loop** (`coder_agent.py:617-632`).
   A missing package or unreachable index isn't something regenerating code can fix, so it
   returns a terminal `code_generated_not_run` result directly.

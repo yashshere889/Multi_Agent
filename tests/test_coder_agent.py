@@ -2168,3 +2168,65 @@ def test_auto_submit_failure_falls_back_to_manual_review(tmp_path, auto_submit, 
     assert exp["status"] == "code_generated_not_run"
     assert "invalid partition" in exp["reason"]
     assert exp["slurm_job_id"] is None
+
+
+# -- Starter-program selection threading into the codegen/fix prompts and output --
+# starters.select_starter is unit-tested directly in test_coder_starters.py; these
+# tests only check the wiring: that a matching starter's reference code reaches the
+# model and that its id is recorded on the finished result.
+
+
+def _classification_plan(hid: str) -> dict:
+    return {
+        **_plan(hid),
+        "design": "comparative benchmark",
+        "methods": [
+            {"name": "logistic regression", "description": "d", "reused_from_literature": True}
+        ],
+    }
+
+
+def test_codegen_prompt_includes_matching_starter_reference(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_classification_plan("H1")]))
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "pre-validated reference program" in prompt
+    assert "Supervised classification on structured/tabular features" in prompt
+    assert "_train_logistic_regression" in prompt
+
+
+def test_fix_prompt_includes_the_same_starter_reference(tmp_path):
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    _agent(tmp_path, model).run(_planner_output([_classification_plan("H1")]))
+
+    fix_prompt = model.prompts_by_kind["fix"][0]
+    assert "pre-validated reference program" in fix_prompt
+    assert "Supervised classification on structured/tabular features" in fix_prompt
+
+
+def test_no_matching_starter_omits_the_reference_block(tmp_path):
+    """_plan()'s default design/methods don't match any starter's keywords —
+    the prompt should read exactly as it did before this feature existed."""
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "pre-validated reference program" not in prompt
+
+
+def test_starter_used_recorded_on_completed_result(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model).run(_planner_output([_classification_plan("H1")]))
+
+    assert result["experiments"][0]["starter_used"] == "classification"
+
+
+def test_starter_used_is_empty_string_when_nothing_matches(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    assert result["experiments"][0]["starter_used"] == ""

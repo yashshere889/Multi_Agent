@@ -111,7 +111,13 @@ from urllib.parse import quote
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from research_pipeline.agents.coder import huggingface_client, prompts, sandbox, slurm_submit
+from research_pipeline.agents.coder import (
+    huggingface_client,
+    prompts,
+    sandbox,
+    slurm_submit,
+    starters,
+)
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
     SchemaValidationError,
@@ -429,6 +435,11 @@ class CoderAgent:
         experiment_dir = self.experiments_dir / hypothesis_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
+        # Deterministic, pure-function selection — no LLM call, no dedicated
+        # node needed (contrast the HF dataset lookup below, which is a real
+        # network call with its own retry/cache policy).
+        selected_starter = starters.select_starter(plan)
+
         return {
             "current_plan": plan,
             "current_experiment_dir": str(experiment_dir),
@@ -436,6 +447,7 @@ class CoderAgent:
             "current_attempt": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
+            "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
     def _node_search_hf_dataset(self, state: CoderState) -> dict:
@@ -462,6 +474,7 @@ class CoderAgent:
                 state["network_available"],
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
+                state.get("current_starter_id", ""),
             )
         except CoderAgentError as exc:
             # A generation whose format can't be parsed is a per-plan failure,
@@ -490,6 +503,7 @@ class CoderAgent:
             state["network_available"],
             state["gpu_available"],
             state["shared_files"],
+            state.get("current_starter_id", ""),
         )
 
         update: dict = {
@@ -550,6 +564,7 @@ class CoderAgent:
                 outcome["error_text"],
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
+                state.get("current_starter_id", ""),
             )
         except CoderAgentError as exc:
             # Same as the initial generation call: a regeneration attempt can
@@ -594,6 +609,7 @@ class CoderAgent:
                 reason=f"{state['current_outcome']['error_text']}{attempted}",
                 code_path=state["current_experiment_dir"],
                 assumptions_made=state["current_generation"].get("assumptions_made", []),
+                starter_used=state.get("current_starter_id", ""),
             ),
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
@@ -728,6 +744,7 @@ class CoderAgent:
         network_available: bool,
         gpu_available: bool,
         shared_files: dict[str, str],
+        starter_id: str = "",
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -837,7 +854,7 @@ class CoderAgent:
         )
         if (needs_gpu and not gpu_available) or (complexity == "high" and not run_high_locally):
             return self._handle_unrunnable_locally(
-                plan, generation, run_py, experiment_dir, requirements_path, complexity
+                plan, generation, run_py, experiment_dir, requirements_path, complexity, starter_id
             )
 
         # experiments/_shared/ imports whatever it needs (e.g. pandas) without
@@ -870,6 +887,7 @@ class CoderAgent:
                     reason=env_error or "could not provision an environment for this experiment",
                     code_path=str(experiment_dir),
                     assumptions_made=assumptions_made,
+                    starter_used=starter_id,
                 )
             }
 
@@ -902,6 +920,7 @@ class CoderAgent:
                 code_path=str(experiment_dir),
                 assumptions_made=assumptions_made,
                 results=results,
+                starter_used=starter_id,
             )
         }
 
@@ -913,6 +932,7 @@ class CoderAgent:
         experiment_dir: Path,
         requirements_path: Path,
         complexity: str,
+        starter_id: str = "",
     ) -> dict:
         """Plans that can't run here: too heavy, or they need a GPU this
         machine doesn't have. Always writes run.sbatch. Whether it also gets
@@ -939,6 +959,7 @@ class CoderAgent:
                     reason=f"{why_unrunnable} — generated {sbatch_path.name} instead of running synchronously; {detail}",
                     code_path=str(experiment_dir),
                     assumptions_made=assumptions_made,
+                    starter_used=starter_id,
                 )
             }
 
@@ -985,6 +1006,7 @@ class CoderAgent:
                 code_path=str(experiment_dir),
                 assumptions_made=assumptions_made,
                 slurm_job_id=job_id,
+                starter_used=starter_id,
             )
         }
 
@@ -1019,6 +1041,7 @@ class CoderAgent:
         assumptions_made: list[str] | None = None,
         results: dict | None = None,
         slurm_job_id: str | None = None,
+        starter_used: str = "",
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -1030,6 +1053,10 @@ class CoderAgent:
             "fix_attempts": 0,
             "fix_history": [],
             "slurm_job_id": slurm_job_id,
+            # The starters.STARTERS id this plan's codegen/fix prompts were
+            # grounded in, or "" for "general" (no match) — traceability, same
+            # instinct as fix_history existing at all.
+            "starter_used": starter_used,
         }
 
     # -- LLM calls -----------------------------------------------------------
@@ -1154,6 +1181,30 @@ class CoderAgent:
             f"{prompts.SHARED_IMPORT_NOTE}{warning_block}"
         )
 
+    @staticmethod
+    def _starter_block(starter_id: str) -> str:
+        """Renders the chosen starters.STARTERS entry as a worked reference
+        example for the codegen/fix prompt, or "" for "" (no match — the
+        "general" fallback), so a plan with no matching starter reads exactly
+        as it did before this library existed."""
+        starter = starters.STARTERS.get(starter_id) if starter_id else None
+        if starter is None:
+            return ""
+        rendered = "\n\n".join(
+            f"--- {name} ---\n{content}"
+            for name, content in starter["sections"].items()
+            if content.strip()
+        )
+        return (
+            f"A pre-validated reference program for a similar task ({starter['description']}) "
+            "is below — real, runnable code that already passes every check this experiment's "
+            "own code will be checked against. Adapt its STRUCTURE and patterns (train/test "
+            "split, real metric computation, guarded fallbacks, JSON-serializable return "
+            "values, the two reserved evaluate() keys) to THIS plan's actual data_requirements/"
+            "methods/design — do not reuse its synthetic data or copy it verbatim if the plan "
+            f"calls for something different:\n\n{rendered}\n"
+        )
+
     def _find_hf_dataset(self, plan: dict, network_available: bool) -> dict:
         """One real dataset for this plan, or {} — never an exception.
 
@@ -1222,11 +1273,13 @@ class CoderAgent:
         network_available: bool,
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
+        starter_id: str = "",
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            starter_block=self._starter_block(starter_id),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",
@@ -1250,6 +1303,7 @@ class CoderAgent:
         error_text: str,
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
+        starter_id: str = "",
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
             hypothesis_id=plan["hypothesis_id"],
@@ -1257,8 +1311,11 @@ class CoderAgent:
             # Carried into the fix prompt too, not just the first generation: the
             # dataset is often exactly what a data-loading failure needs to be
             # fixed *with*, and re-running the lookup per attempt would spend
-            # three more HTTP calls to learn the same thing.
+            # three more HTTP calls to learn the same thing. Same reasoning for
+            # the starter block — it stays grounded in the same worked example
+            # across every fix attempt instead of drifting.
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            starter_block=self._starter_block(starter_id),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             # Shown back in the same delimited format it's being asked to answer
             # in — quoting the previous attempt as escaped JSON would invite the

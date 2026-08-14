@@ -89,6 +89,12 @@ class CoderState(TypedDict, total=False):
     # fix attempt doesn't re-search for the same answer. Plain JSON-able dict,
     # like everything else here — it's checkpointed.
     current_hf_dataset: dict
+    # The id of the starters.STARTERS entry chosen for this plan by
+    # starters.select_starter (a pure function of the plan's own text — no LLM
+    # call), or "" for "general" (no match, no worked example shown). Set once
+    # per plan in process_current_plan and threaded into both the codegen and
+    # the fix prompt from state, same pattern as current_hf_dataset.
+    current_starter_id: str
     # run_py_sections / assumptions_made / needs_gpu / requirements_txt / readme
     current_generation: dict
     current_fix_history: list[dict]

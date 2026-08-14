@@ -1,0 +1,107 @@
+===BEGIN imports===
+import math
+import random
+===END imports===
+
+===BEGIN configuration===
+RANDOM_SEED: int = 7
+N_SAMPLES: int = 240
+TEST_FRACTION: float = 0.25
+LEARNING_RATE: float = 0.05
+N_EPOCHS: int = 400
+===END configuration===
+
+===BEGIN load_data_function===
+def load_data() -> Any:
+    """Synthesizes a linear-regression dataset: the target is a noisy linear
+    combination of two features. Real generated code should replace this with
+    the plan's actual data_requirements — this starter demonstrates the
+    train/test split and feature/target shape a regression experiment needs,
+    not a dataset to reuse verbatim."""
+    rng = random.Random(RANDOM_SEED)
+    features: list[list[float]] = []
+    targets: list[float] = []
+    for _ in range(N_SAMPLES):
+        x1 = rng.uniform(-5.0, 5.0)
+        x2 = rng.uniform(-5.0, 5.0)
+        noise = rng.gauss(0.0, 1.0)
+        y = 3.0 * x1 - 2.0 * x2 + 1.0 + noise
+        features.append([x1, x2])
+        targets.append(y)
+
+    n_test = int(N_SAMPLES * TEST_FRACTION)
+    return {
+        "X_train": features[n_test:],
+        "y_train": targets[n_test:],
+        "X_test": features[:n_test],
+        "y_test": targets[:n_test],
+    }
+===END load_data_function===
+
+===BEGIN build_model_function===
+def build_model() -> Any:
+    """Returns the untrained model's hyperparameters; the weights themselves
+    are learned inside run_experiment(), which is where the training loop
+    belongs."""
+    return {"learning_rate": LEARNING_RATE, "n_epochs": N_EPOCHS}
+===END build_model_function===
+
+===BEGIN run_experiment_function===
+def run_experiment(data: Any, model: Any) -> dict[str, Any]:
+    weights, bias = _train_linear_regression(
+        data["X_train"], data["y_train"], model["learning_rate"], model["n_epochs"]
+    )
+    y_pred = [_predict(weights, bias, row) for row in data["X_test"]]
+    return {"y_true": data["y_test"], "y_pred": y_pred}
+===END run_experiment_function===
+
+===BEGIN evaluate_function===
+def evaluate(experiment_output: dict[str, Any]) -> dict[str, Any]:
+    metrics = _regression_metrics(experiment_output["y_true"], experiment_output["y_pred"])
+    # A real generation should compare `metrics` against THIS experiment's
+    # actual SUCCESS_CRITERIA text rather than a fixed threshold — this
+    # starter uses a simple sanity threshold to demonstrate the shape.
+    meets = metrics["r2"] >= 0.5
+    return {
+        **metrics,
+        "meets_success_criteria": meets,
+        "success_notes": f"Linear regression reached R^2={metrics['r2']:.2f} on the held-out test split.",
+    }
+===END evaluate_function===
+
+===BEGIN helpers===
+def _predict(weights: list[float], bias: float, row: list[float]) -> float:
+    return bias + sum(w * x for w, x in zip(weights, row))
+
+
+def _train_linear_regression(
+    X: list[list[float]], y: list[float], learning_rate: float, n_epochs: int
+) -> tuple[list[float], float]:
+    n_features = len(X[0])
+    weights = [0.0] * n_features
+    bias = 0.0
+    n = len(X)
+    for _ in range(n_epochs):
+        grad_w = [0.0] * n_features
+        grad_b = 0.0
+        for row, target in zip(X, y):
+            error = _predict(weights, bias, row) - target
+            for i, x in enumerate(row):
+                grad_w[i] += error * x
+            grad_b += error
+        weights = [w - learning_rate * (gw / n) for w, gw in zip(weights, grad_w)]
+        bias -= learning_rate * (grad_b / n)
+    return weights, bias
+
+
+def _regression_metrics(y_true: list[float], y_pred: list[float]) -> dict[str, float]:
+    n = len(y_true)
+    errors = [t - p for t, p in zip(y_true, y_pred)]
+    mae = sum(abs(e) for e in errors) / n if n else 0.0
+    rmse = math.sqrt(sum(e * e for e in errors) / n) if n else 0.0
+    mean_y = sum(y_true) / n if n else 0.0
+    ss_tot = sum((t - mean_y) ** 2 for t in y_true)
+    ss_res = sum(e * e for e in errors)
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot else 0.0
+    return {"mae": mae, "rmse": rmse, "r2": r2}
+===END helpers===

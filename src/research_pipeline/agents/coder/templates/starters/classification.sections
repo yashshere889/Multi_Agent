@@ -1,0 +1,112 @@
+===BEGIN imports===
+import math
+import random
+===END imports===
+
+===BEGIN configuration===
+RANDOM_SEED: int = 42
+N_SAMPLES: int = 240
+TEST_FRACTION: float = 0.25
+LEARNING_RATE: float = 0.1
+N_EPOCHS: int = 300
+===END configuration===
+
+===BEGIN load_data_function===
+def load_data() -> Any:
+    """Synthesizes a binary classification dataset: the label is 1 when a
+    noisy linear combination of two features crosses zero. Real generated
+    code should replace this with the plan's actual data_requirements — this
+    starter demonstrates the train/test split and feature/label shape a
+    classification experiment needs, not a dataset to reuse verbatim."""
+    rng = random.Random(RANDOM_SEED)
+    features: list[list[float]] = []
+    labels: list[int] = []
+    for _ in range(N_SAMPLES):
+        x1 = rng.uniform(-3.0, 3.0)
+        x2 = rng.uniform(-3.0, 3.0)
+        noise = rng.gauss(0.0, 0.5)
+        score = 2.0 * x1 - 1.5 * x2 + 0.5 + noise
+        features.append([x1, x2])
+        labels.append(1 if score > 0 else 0)
+
+    n_test = int(N_SAMPLES * TEST_FRACTION)
+    return {
+        "X_train": features[n_test:],
+        "y_train": labels[n_test:],
+        "X_test": features[:n_test],
+        "y_test": labels[:n_test],
+    }
+===END load_data_function===
+
+===BEGIN build_model_function===
+def build_model() -> Any:
+    """Returns the untrained model's hyperparameters; the weights themselves
+    are learned inside run_experiment(), which is where the training loop
+    belongs."""
+    return {"learning_rate": LEARNING_RATE, "n_epochs": N_EPOCHS}
+===END build_model_function===
+
+===BEGIN run_experiment_function===
+def run_experiment(data: Any, model: Any) -> dict[str, Any]:
+    weights, bias = _train_logistic_regression(
+        data["X_train"], data["y_train"], model["learning_rate"], model["n_epochs"]
+    )
+    y_prob = [_predict_proba(weights, bias, row) for row in data["X_test"]]
+    y_pred = [1 if p >= 0.5 else 0 for p in y_prob]
+    return {"y_true": data["y_test"], "y_pred": y_pred, "y_prob": y_prob}
+===END run_experiment_function===
+
+===BEGIN evaluate_function===
+def evaluate(experiment_output: dict[str, Any]) -> dict[str, Any]:
+    metrics = _classification_metrics(experiment_output["y_true"], experiment_output["y_pred"])
+    # A real generation should compare `metrics` against THIS experiment's
+    # actual SUCCESS_CRITERIA text rather than a fixed threshold — this
+    # starter uses a simple sanity threshold to demonstrate the shape.
+    meets = metrics["accuracy"] >= 0.65
+    return {
+        **metrics,
+        "meets_success_criteria": meets,
+        "success_notes": f"Logistic regression reached {metrics['accuracy']:.2f} accuracy on the held-out test split.",
+    }
+===END evaluate_function===
+
+===BEGIN helpers===
+def _predict_proba(weights: list[float], bias: float, row: list[float]) -> float:
+    z = bias + sum(w * x for w, x in zip(weights, row))
+    if z >= 0:
+        return 1.0 / (1.0 + math.exp(-z))
+    ez = math.exp(z)
+    return ez / (1.0 + ez)
+
+
+def _train_logistic_regression(
+    X: list[list[float]], y: list[int], learning_rate: float, n_epochs: int
+) -> tuple[list[float], float]:
+    n_features = len(X[0])
+    weights = [0.0] * n_features
+    bias = 0.0
+    n = len(X)
+    for _ in range(n_epochs):
+        grad_w = [0.0] * n_features
+        grad_b = 0.0
+        for row, label in zip(X, y):
+            error = _predict_proba(weights, bias, row) - label
+            for i, x in enumerate(row):
+                grad_w[i] += error * x
+            grad_b += error
+        weights = [w - learning_rate * (gw / n) for w, gw in zip(weights, grad_w)]
+        bias -= learning_rate * (grad_b / n)
+    return weights, bias
+
+
+def _classification_metrics(y_true: list[int], y_pred: list[int]) -> dict[str, float]:
+    tp = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
+    tn = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 0)
+    fp = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 1)
+    fn = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 0)
+    accuracy = (tp + tn) / len(y_true) if y_true else 0.0
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1}
+===END helpers===

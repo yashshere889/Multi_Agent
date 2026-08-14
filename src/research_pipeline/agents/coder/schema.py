@@ -52,6 +52,9 @@ class ExperimentResult(TypedDict):
     fix_attempts: int
     fix_history: list[FixAttempt]
     slurm_job_id: str | None  # set only when status == "submitted_to_slurm"
+    starter_used: (
+        str  # starters.STARTERS id this plan's prompts were grounded in, or "" for "general"
+    )
 
 
 class CoderAgentOutput(TypedDict):

@@ -1,0 +1,140 @@
+===BEGIN imports===
+import math
+import random
+from collections import Counter
+===END imports===
+
+===BEGIN configuration===
+RANDOM_SEED: int = 3
+N_SAMPLES: int = 200
+TEST_FRACTION: float = 0.25
+LAPLACE_SMOOTHING: float = 1.0
+===END configuration===
+
+===BEGIN load_data_function===
+def load_data() -> Any:
+    """Synthesizes short 'documents' as bags of words drawn from two
+    disjoint vocabularies (positive-leaning vs negative-leaning), labeled
+    accordingly — a minimal stand-in for a real text-classification corpus.
+    Real generated code should replace this with the plan's actual
+    data_requirements (e.g. a real review/sentiment dataset); this starter
+    demonstrates the tokenize -> vectorize -> classify shape for text, not a
+    dataset to reuse verbatim."""
+    rng = random.Random(RANDOM_SEED)
+    positive_vocab = [
+        "great", "excellent", "love", "amazing", "wonderful", "fantastic",
+        "good", "happy", "best", "brilliant",
+    ]
+    negative_vocab = [
+        "terrible", "awful", "hate", "horrible", "worst", "disappointing",
+        "bad", "sad", "poor", "boring",
+    ]
+    neutral_vocab = ["the", "movie", "product", "service", "item", "experience", "it", "was"]
+
+    documents: list[str] = []
+    labels: list[int] = []
+    for _ in range(N_SAMPLES):
+        label = rng.randint(0, 1)
+        vocab = positive_vocab if label == 1 else negative_vocab
+        words = [rng.choice(neutral_vocab) for _ in range(3)] + [
+            rng.choice(vocab) for _ in range(rng.randint(2, 4))
+        ]
+        rng.shuffle(words)
+        documents.append(" ".join(words))
+        labels.append(label)
+
+    n_test = int(N_SAMPLES * TEST_FRACTION)
+    return {
+        "train_docs": documents[n_test:],
+        "train_labels": labels[n_test:],
+        "test_docs": documents[:n_test],
+        "test_labels": labels[:n_test],
+    }
+===END load_data_function===
+
+===BEGIN build_model_function===
+def build_model() -> Any:
+    return {"smoothing": LAPLACE_SMOOTHING}
+===END build_model_function===
+
+===BEGIN run_experiment_function===
+def run_experiment(data: Any, model: Any) -> dict[str, Any]:
+    naive_bayes = _train_naive_bayes(data["train_docs"], data["train_labels"], model["smoothing"])
+    y_pred = [_predict_naive_bayes(naive_bayes, doc) for doc in data["test_docs"]]
+    return {"y_true": data["test_labels"], "y_pred": y_pred}
+===END run_experiment_function===
+
+===BEGIN evaluate_function===
+def evaluate(experiment_output: dict[str, Any]) -> dict[str, Any]:
+    metrics = _classification_metrics(experiment_output["y_true"], experiment_output["y_pred"])
+    # A real generation should compare `metrics` against THIS experiment's
+    # actual SUCCESS_CRITERIA text rather than a fixed threshold — this
+    # starter uses a simple sanity threshold to demonstrate the shape.
+    meets = metrics["accuracy"] >= 0.65
+    return {
+        **metrics,
+        "meets_success_criteria": meets,
+        "success_notes": f"Naive Bayes text classifier reached {metrics['accuracy']:.2f} accuracy on the held-out test split.",
+    }
+===END evaluate_function===
+
+===BEGIN helpers===
+def _tokenize(document: str) -> list[str]:
+    return document.lower().split()
+
+
+def _train_naive_bayes(docs: list[str], labels: list[int], smoothing: float) -> dict[str, Any]:
+    vocab: set[str] = set()
+    class_word_counts: dict[int, Counter] = {0: Counter(), 1: Counter()}
+    class_doc_counts: dict[int, int] = {0: 0, 1: 0}
+
+    for doc, label in zip(docs, labels):
+        tokens = _tokenize(doc)
+        vocab.update(tokens)
+        class_word_counts[label].update(tokens)
+        class_doc_counts[label] += 1
+
+    total_docs = len(docs)
+    vocab_size = len(vocab)
+    class_priors = {
+        c: (math.log(count / total_docs) if total_docs and count else math.log(1e-9))
+        for c, count in class_doc_counts.items()
+    }
+    class_totals = {c: sum(counts.values()) for c, counts in class_word_counts.items()}
+
+    return {
+        "class_word_counts": class_word_counts,
+        "class_totals": class_totals,
+        "class_priors": class_priors,
+        "smoothing": smoothing,
+        "vocab_size": vocab_size,
+    }
+
+
+def _predict_naive_bayes(naive_bayes: dict[str, Any], document: str) -> int:
+    tokens = _tokenize(document)
+    smoothing = naive_bayes["smoothing"]
+    vocab_size = naive_bayes["vocab_size"] or 1
+    best_class, best_score = 0, float("-inf")
+    for c in (0, 1):
+        score = naive_bayes["class_priors"][c]
+        counts = naive_bayes["class_word_counts"][c]
+        total = naive_bayes["class_totals"][c]
+        for token in tokens:
+            score += math.log((counts.get(token, 0) + smoothing) / (total + smoothing * vocab_size))
+        if score > best_score:
+            best_class, best_score = c, score
+    return best_class
+
+
+def _classification_metrics(y_true: list[int], y_pred: list[int]) -> dict[str, float]:
+    tp = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
+    tn = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 0)
+    fp = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 1)
+    fn = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 0)
+    accuracy = (tp + tn) / len(y_true) if y_true else 0.0
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1}
+===END helpers===

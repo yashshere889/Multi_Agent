@@ -1,0 +1,101 @@
+===BEGIN imports===
+import math
+import random
+from collections import Counter
+===END imports===
+
+===BEGIN configuration===
+RANDOM_SEED: int = 11
+N_SAMPLES_PER_CLUSTER: int = 50
+N_CLUSTERS: int = 3
+MAX_ITERATIONS: int = 100
+===END configuration===
+
+===BEGIN load_data_function===
+def load_data() -> Any:
+    """Synthesizes 2D points from N_CLUSTERS well-separated Gaussian blobs.
+    True cluster labels are kept only so evaluate() can compute a purity
+    metric — the clustering algorithm itself never sees them. Real generated
+    code should replace this with the plan's actual data_requirements; this
+    starter demonstrates the unlabeled-features-in, cluster-assignments-out
+    shape, not a dataset to reuse verbatim."""
+    rng = random.Random(RANDOM_SEED)
+    centers = [(0.0, 0.0), (8.0, 8.0), (8.0, -8.0)][:N_CLUSTERS]
+    points: list[list[float]] = []
+    true_labels: list[int] = []
+    for label, (cx, cy) in enumerate(centers):
+        for _ in range(N_SAMPLES_PER_CLUSTER):
+            points.append([rng.gauss(cx, 1.2), rng.gauss(cy, 1.2)])
+            true_labels.append(label)
+    return {"points": points, "true_labels": true_labels}
+===END load_data_function===
+
+===BEGIN build_model_function===
+def build_model() -> Any:
+    return {"k": N_CLUSTERS, "max_iterations": MAX_ITERATIONS, "seed": RANDOM_SEED}
+===END build_model_function===
+
+===BEGIN run_experiment_function===
+def run_experiment(data: Any, model: Any) -> dict[str, Any]:
+    assignments, centroids, inertia = _kmeans(
+        data["points"], model["k"], model["max_iterations"], model["seed"]
+    )
+    return {
+        "assignments": assignments,
+        "centroids": centroids,
+        "inertia": inertia,
+        "true_labels": data["true_labels"],
+    }
+===END run_experiment_function===
+
+===BEGIN evaluate_function===
+def evaluate(experiment_output: dict[str, Any]) -> dict[str, Any]:
+    purity = _cluster_purity(experiment_output["assignments"], experiment_output["true_labels"])
+    # A real generation should compare against THIS experiment's actual
+    # SUCCESS_CRITERIA text rather than a fixed threshold — this starter uses
+    # a simple sanity threshold to demonstrate the shape.
+    meets = purity >= 0.7
+    return {
+        "inertia": experiment_output["inertia"],
+        "purity": purity,
+        "meets_success_criteria": meets,
+        "success_notes": f"K-means reached purity={purity:.2f} against the synthetic ground-truth clusters.",
+    }
+===END evaluate_function===
+
+===BEGIN helpers===
+def _euclidean(a: list[float], b: list[float]) -> float:
+    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+
+def _kmeans(
+    points: list[list[float]], k: int, max_iterations: int, seed: int
+) -> tuple[list[int], list[list[float]], float]:
+    rng = random.Random(seed)
+    centroids = [list(p) for p in rng.sample(points, k)]
+    assignments = [0] * len(points)
+
+    for _ in range(max_iterations):
+        new_assignments = [
+            min(range(k), key=lambda c: _euclidean(point, centroids[c])) for point in points
+        ]
+        if new_assignments == assignments:
+            break
+        assignments = new_assignments
+
+        for c in range(k):
+            members = [p for p, a in zip(points, assignments) if a == c]
+            if members:
+                centroids[c] = [sum(coord) / len(members) for coord in zip(*members)]
+
+    inertia = sum(_euclidean(point, centroids[a]) ** 2 for point, a in zip(points, assignments))
+    return assignments, centroids, inertia
+
+
+def _cluster_purity(assignments: list[int], true_labels: list[int]) -> float:
+    clusters: dict[int, list[int]] = {}
+    for cluster_id, label in zip(assignments, true_labels):
+        clusters.setdefault(cluster_id, []).append(label)
+    correct = sum(Counter(labels).most_common(1)[0][1] for labels in clusters.values())
+    return correct / len(true_labels) if true_labels else 0.0
+===END helpers===
