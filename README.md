@@ -401,9 +401,10 @@ BF16 weights are ~60GB, which fits a single 80GB H100 or A100 on their own
 (not a 48GB L40S, and not a V100 at all — 16GB, and Volta has no bfloat16) —
 the second GPU here isn't for fitting the weights, it's so they shard across
 both cards and leave real KV-cache headroom for `--max-model-len`, which
-targets Nemotron 3 Nano's ~1M-token card ceiling (see
-[`_vllm_serve.sh`](scripts/slurm/_vllm_serve.sh)'s comment for the reasoning
-and what to do if that doesn't fit Barkla's real KV budget). Drop back to one
+targets Nemotron 3 Nano's actual 262144-token `max_position_embeddings`
+ceiling (see [`_vllm_serve.sh`](scripts/slurm/_vllm_serve.sh)'s comment for
+the reasoning and what to do if that doesn't fit Barkla's real KV budget).
+Drop back to one
 GPU (and a smaller `--max-model-len`/`LLM_CONTEXT_WINDOW`) if the extra
 context headroom isn't worth doubling the job's footprint on a shared
 partition. Both scripts derive their port from the job id, since GPU nodes are

@@ -114,13 +114,12 @@ def load_settings() -> Settings:
         # exceed this and get a 400 from the server instead of a completion; see
         # coder_agent._bounded_max_tokens. This MUST match whatever
         # --max-model-len the vLLM server was actually started with (see
-        # scripts/slurm/_vllm_serve.sh) — the sbatch scripts request 2 H100s
-        # (TP=2) specifically to approach Nemotron 3 Nano's real ~1M-token card
-        # ceiling, but whether that fits Barkla's real KV-cache budget is
-        # unverified as of this writing; check the server log's "GPU KV cache
-        # size: N tokens" line and match this to what actually fit, not
-        # blindly to 1M.
-        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "1048576")),
+        # scripts/slurm/_vllm_serve.sh) — 262144, Nemotron 3 Nano's actual
+        # max_position_embeddings ceiling. The sbatch scripts request 2 H100s
+        # (TP=2) so that fits Barkla's real KV-cache budget with room to
+        # spare; check the server log's "GPU KV cache size: N tokens" line
+        # and lower this to match if it's ever less than 262144.
+        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "262144")),
         # Nemotron 3 Nano is a reasoning model that emits <think>...</think>
         # before its answer by default. Off by default here: nothing in this
         # pipeline reads reasoning traces, and the codebase already prefers

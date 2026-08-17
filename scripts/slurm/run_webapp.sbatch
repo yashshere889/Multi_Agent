@@ -40,7 +40,7 @@
 #   gpu-h100   4x H100 80GB   <- default here, 2 GPUs (KV-cache headroom, not because 1 can't fit the model)
 #   gpu-l40s   2x L40S 48GB   <- needs --gres=gpu:2 and TP=2 (48GB < 60GB of weights, a different reason)
 #
-# _vllm_serve.sh's --max-model-len targets ~1M tokens, sized for TP=2's KV
+# _vllm_serve.sh's --max-model-len targets 262144 tokens, sized for TP=2's KV
 # budget — do NOT drop this back to --gres=gpu:1/TP=1 without also lowering
 # that, or vLLM will refuse to start (see _vllm_serve.sh's comment).
 #

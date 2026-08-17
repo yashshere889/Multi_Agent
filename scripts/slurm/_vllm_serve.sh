@@ -22,22 +22,31 @@ vllm_serve_background() {
     # binds $HOME by default — fastscratch must be bound explicitly or the
     # model cache silently misses and re-downloads into the container's tmpfs.
     #
-    # --max-model-len targets Nemotron's actual ~1M-token card ceiling: on one
-    # 80GB H100 that's not deployable (the ~59GB BF16 weights alone leave too
-    # little KV-cache headroom), which is why TP/--gres above are 2, not 1 —
-    # sharding the weights across 2 H100s leaves each card mostly free for KV
-    # cache instead of mostly consumed by weights. This has NOT been verified
-    # against the real per-GPU KV budget on Barkla (this repo's TP=2 precedent
-    # is only for the 12B model on gpu-l40s, not this 30B hybrid Mamba+attention
-    # model on gpu-h100) — if 1048576 doesn't fit, vLLM refuses to start and
-    # exits within seconds rather than hanging, which wait_for_vllm's `kill -0`
-    # check below catches immediately (no 30-minute wait, no wasted job time).
-    # Check the log for vLLM's own "GPU KV cache size: N tokens" line to see
-    # what actually fit, and lower this to match if it errored. Test via
-    # run_llm_server.sbatch (server only, no pipeline) before trusting this in
-    # a full run_pipeline.sbatch job. LLM_CONTEXT_WINDOW in .env must match
-    # whatever value ends up working here, since that's what
-    # coder_agent._bounded_max_tokens sizes completions against client-side.
+    # --max-model-len is set to 262144, not the ~1M-token figure once assumed
+    # here: that number was wrong, not just optimistic — Nemotron 3 Nano's own
+    # config.json caps max_position_embeddings at 262144, and a value above
+    # that fails vLLM's own startup validation outright (a hard architectural
+    # ceiling, not a KV-cache/memory budget question). Confirmed on Barkla:
+    # 08-15 jobs 10231751/10231760/10231770 all died in seconds with
+    # "User-specified max_model_len (1048576) is greater than the derived
+    # max_model_len (max_position_embeddings=262144.0)" before vLLM ever
+    # started listening.
+    #
+    # 262144 is still ~4x smaller than the 1048576 this repo used to request,
+    # so it should sit comfortably within TP=2's KV-cache budget — the reason
+    # TP/--gres are 2, not 1, is unchanged: sharding the ~59GB of BF16 weights
+    # across 2 H100s leaves each card mostly free for KV cache instead of
+    # mostly consumed by weights. That said, the exact per-GPU KV budget on
+    # Barkla is still unverified for this model, so if 262144 somehow doesn't
+    # fit, vLLM refuses to start and exits within seconds rather than hanging,
+    # which wait_for_vllm's `kill -0` check below catches immediately (no
+    # 30-minute wait, no wasted job time). Check the log for vLLM's own "GPU
+    # KV cache size: N tokens" line to see what actually fit, and lower this
+    # to match if it ever errors again. Test via run_llm_server.sbatch (server
+    # only, no pipeline) before trusting a value in a full run_pipeline.sbatch
+    # job. LLM_CONTEXT_WINDOW in .env must match whatever value ends up
+    # working here, since that's what coder_agent._bounded_max_tokens sizes
+    # completions against client-side.
     #
     # Deliberately no --served-model-name: vLLM then advertises the model under
     # its full HF id, which is what LLM_MODEL is set to. Alias it and every
@@ -56,7 +65,7 @@ vllm_serve_background() {
             --host 0.0.0.0 \
             --port "$PORT" \
             --tensor-parallel-size "$TP" \
-            --max-model-len 1048576 \
+            --max-model-len 262144 \
             --gpu-memory-utilization 0.95 \
             --max-num-seqs 8 \
             --trust-remote-code \

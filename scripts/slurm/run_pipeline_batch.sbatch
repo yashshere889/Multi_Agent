@@ -33,7 +33,7 @@
 
 # See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
 # --gres=gpu:2/TP=2 here is for KV-cache headroom (_vllm_serve.sh targets
-# ~1M-token --max-model-len, sized for TP=2's budget), not because the 30B
+# 262144's --max-model-len, sized for TP=2's budget), not because the 30B
 # model needs 2 GPUs to fit on gpu-h100 — but note this is PER ARRAY TASK: at
 # --array=0-N%C, C concurrent tasks now hold 2*C GPUs instead of C, on a
 # partition shared with everyone else on Barkla. Pick %C with that in mind, or
