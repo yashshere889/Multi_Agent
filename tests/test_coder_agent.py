@@ -1141,6 +1141,37 @@ def test_fix_loop_recovers_after_a_syntax_error(tmp_path):
     assert exp["fix_history"][0]["error_source"] == "compile_check"
 
 
+MISSING_REQUIREMENT_SECTIONS = {
+    **GOOD_SECTIONS,
+    "imports": "import definitely_not_a_real_package_xyz\n",
+}
+
+
+def test_own_code_import_missing_from_requirements_is_caught_before_execution(tmp_path):
+    """Regression test for a 2026-08-17 production run (job 10247173): the
+    model's `imports` section imported a package it never listed in
+    `requirements_txt`, and this plan had no shared_infrastructure at all — so
+    the job-10229968 guard (which only ever inspected shared_files) never even
+    ran. ensure_experiment_env saw nothing missing, handed back the bare
+    interpreter, and execution failed with the same ModuleNotFoundError on all
+    3 fix attempts, since nothing forced the regenerated requirements_txt to
+    include the package either. coder_agent.py now also extracts run_py's own
+    imports, so this should be caught deterministically before execution
+    rather than only surfacing as a run_experiment failure the fix loop can't
+    reliably resolve — no `fix` response is configured, so this test fails
+    loudly (via ScriptedChatModel's AssertionError) if the old code path
+    (execute first, discover the gap only via a crash) is ever reintroduced."""
+    model = ScriptedChatModel(codegen=[_codegen_response(MISSING_REQUIREMENT_SECTIONS)])
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "definitely_not_a_real_package_xyz" in exp["reason"]
+    assert "no network access" in exp["reason"]
+    assert exp["fix_attempts"] == 0  # caught up front, never needed a regeneration
+    assert model.calls_by_kind["codegen"] == 1  # never had to run generated code at all
+
+
 def test_fix_loop_gives_up_after_max_attempts(tmp_path):
     model = ScriptedChatModel(
         codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)]

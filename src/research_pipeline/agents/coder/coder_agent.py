@@ -857,21 +857,28 @@ class CoderAgent:
                 plan, generation, run_py, experiment_dir, requirements_path, complexity, starter_id
             )
 
-        # experiments/_shared/ imports whatever it needs (e.g. pandas) without
-        # ever being asked for its own requirements_txt — see
-        # sandbox.extract_third_party_imports's docstring for the production
-        # failure (job 10229968) this closes. Passed as extra_requirements
-        # rather than folded into requirements.txt on disk, which should keep
-        # documenting only what this experiment's own generated code declared.
-        shared_infra_requirements = sorted(
-            set().union(
+        # Both experiments/_shared/ and this experiment's own run_py can import a
+        # package the model never declared in requirements_txt — see
+        # sandbox.extract_third_party_imports's docstring for the shared-infra
+        # production failure (job 10229968) that originally motivated this. A
+        # 2026-08-17 run (job 10247173) reproduced the same gap on the
+        # experiment's *own* code: this plan had no shared infrastructure at
+        # all, so that guard never even ran, and the model's `imports`/
+        # `load_data_function` section imported pandas while its
+        # requirements_txt section didn't list it — ensure_experiment_env saw
+        # nothing missing and handed back the bare interpreter, which failed
+        # identically on all 3 fix attempts since nothing forced the
+        # regenerated requirements_txt to actually include it. run_py is
+        # parsed here too, not just shared_files, to close that. Passed as
+        # extra_requirements rather than folded into requirements.txt on disk,
+        # which should keep documenting only what the model itself declared.
+        extra_requirements = sorted(
+            sandbox.extract_third_party_imports(run_py).union(
                 *(sandbox.extract_third_party_imports(src) for src in shared_files.values())
             )
-            if shared_files
-            else set()
         )
         python_executable, env_error = sandbox.ensure_experiment_env(
-            experiment_dir, requirements_path, network_available, shared_infra_requirements
+            experiment_dir, requirements_path, network_available, extra_requirements
         )
         # Checked as `is None` rather than `if env_error` so the interpreter is
         # narrowed to a Path for the run below; ensure_experiment_env's contract
