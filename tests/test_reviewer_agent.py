@@ -85,6 +85,38 @@ def test_check_citations_accepts_real_citation_in_either_style():
     assert issues == []
 
 
+def test_check_citations_flags_leaked_unresolved_marker_syntax():
+    """A 2026-08-17 production run (job 10247173) shipped a "reviewed" paper
+    with malformed [[cite:...]]-shaped marker text printed raw in the final
+    PDF — a defect neither this function (before this check existed) nor the
+    LLM hallucination pass had a check aimed at (the LLM pass quoted the
+    leaked text back as an ordinary "needs more grounding" hallucination
+    instead). This test's marker uses an id that isn't in the index at all,
+    so it's a genuine leak regardless of what CitationRegistry's own
+    resolution logic can or can't already handle — the Reviewer must catch
+    any [[cite:/[[citet: text that reaches the printed page, on its own."""
+    index = build_paper_index([_paper()])
+    section_texts = {"Related Work": "Composite indices lack validation [[cite:999],[888]]. Later text."}
+    issues = checks.check_citations(section_texts, index, citations_used=["1"])
+    assert len(issues) == 1
+    assert issues[0]["location"] == "Related Work"
+    assert "[[cite:" in issues[0]["issue"]
+
+
+def test_check_citations_caps_leaked_marker_issues_per_section():
+    index = build_paper_index([_paper()])
+    leaked = " ".join(f"[[cite:{900 + i}],[{950 + i}]]." for i in range(10))
+    issues = checks.check_citations({"Methods": leaked}, index, citations_used=["1"])
+    assert len(issues) == 5  # _MAX_LEAKED_MARKER_ISSUES_PER_SECTION, not 10
+
+
+def test_check_citations_does_not_flag_a_fully_resolved_section():
+    index = build_paper_index([_paper()])
+    section_texts = {"Intro": "A grounded claim (Smith, 2020) with no marker syntax left."}
+    issues = checks.check_citations(section_texts, index, citations_used=["1"])
+    assert issues == []
+
+
 def _experiment(hid, status, accuracy=None, meets=None, reason=""):
     if status != "completed":
         return {"hypothesis_id": hid, "status": status, "reason": reason, "assumptions_made": [], "code_path": None, "results": None}

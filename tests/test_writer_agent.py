@@ -110,6 +110,58 @@ def test_citation_registry_strips_unknown_id_and_records_it_as_unresolved():
     assert registry.unresolved == [{"section": "Related Work", "paper_id": "999"}]
 
 
+def test_citation_registry_tolerates_stray_bracket_around_single_id():
+    """Regression test for a 2026-08-17 production run (job 10247173): the
+    model habitually wraps a cited id in its own extra bracket. For a single
+    id this happened to still satisfy the old regex, but the captured id kept
+    a stray leading "[" and so was always treated as unknown — a real,
+    grounded citation silently dropped over one stray character."""
+    index = build_paper_index([_raw_paper(arxiv_id="1")])
+    text = "Claim A [[cite:[1]]."
+    registry = _scanned_registry(index, {"Intro": text})
+    assert registry.resolve(text, section="Intro") == "Claim A (Smith, 2020)."
+    assert registry.unresolved == []
+
+
+def test_citation_registry_tolerates_stray_brackets_around_multiple_ids():
+    """The actual malformed shape observed in production:
+    [[cite:ID1],[ID2]] — the first id bare, the second individually
+    bracketed. The old regex ([^\\]]+ for the id group) couldn't match this
+    at all (the internal "]" breaks it), so the whole marker fell through
+    unresolved and printed as literal bracket-soup in the final PDF."""
+    index = build_paper_index([_raw_paper(arxiv_id="1"), _raw_paper(title="Second", authors=["C. Jones"], year=2021, arxiv_id="2")])
+    text = "Two sources agree [[cite:1],[2]]."
+    registry = _scanned_registry(index, {"Intro": text})
+    resolved = registry.resolve(text, section="Intro")
+    assert resolved == "Two sources agree (Smith, 2020; Jones, 2021)."
+    assert "[[cite:" not in resolved
+    assert registry.unresolved == []
+
+
+def test_citation_registry_caps_repeated_unresolved_notes_from_one_marker():
+    """Regression test for the other half of job 10247173: a degenerate
+    generation loop produced one syntactically valid marker repeating the
+    same non-paper id thousands of times (e.g. [[cite:H3,H3,H3,...]]) — it
+    resolves to "" correctly, but logged one identical "unknown paper id"
+    note per repetition, so a single bad completion produced ~2,400
+    near-duplicate notes. Repeats within one marker are now capped."""
+    index = build_paper_index([_raw_paper(arxiv_id="1")])
+    text = "[[cite:" + ",".join(["999"] * 20) + "]]"
+    registry = _scanned_registry(index, {"Limitations": text})
+    assert registry.unresolved == [{"section": "Limitations", "paper_id": "999"}] * 3
+
+
+def test_citation_registry_unclosed_marker_still_fails_to_match():
+    """A genuinely truncated marker (no closing "]]" at all) must still fail
+    to match — the fix for stray brackets must not become so lenient that it
+    starts accepting an incomplete marker as if it had closed."""
+    index = build_paper_index([_raw_paper(arxiv_id="1")])
+    text = "Claim A [[cite:1"
+    registry = _scanned_registry(index, {"Intro": text})
+    assert registry.resolve(text, section="Intro") == text  # left untouched, not silently resolved
+    assert registry.unresolved == []
+
+
 def test_citation_registry_disambiguates_same_author_same_year():
     index = build_paper_index([
         _raw_paper(arxiv_id="1", title="Alpha Study", authors=["A. Smith"], year=2020),

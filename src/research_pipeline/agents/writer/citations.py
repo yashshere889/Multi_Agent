@@ -43,8 +43,34 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 
 from research_pipeline.agents.hypothesis.papers import normalize_paper
 
-MARKER_RE = re.compile(r"\[\[(cite|citet):([^\]]+)\]\]")
+# The id group is `.+?` (lazy, any char) rather than `[^\]]+`: a 2026-08-17
+# production run (job 10247173) showed the model habitually wraps each cited
+# id in its own extra bracket — [[cite:[ID1],[ID2]]] instead of the prompt's
+# [[cite:ID1,ID2]] — and `[^\]]+` can never match that at all (the first
+# internal "]" breaks it), so the whole malformed marker fell through
+# untouched and printed as literal bracket-soup in the final PDF. `.+?` finds
+# the first "]]" regardless of internal brackets, so the marker is at least
+# matched; _ID_STRIP_CHARS below then strips the stray per-id brackets so the
+# ids resolve correctly instead of being corrupted. `.` doesn't cross a
+# newline without re.DOTALL, so a genuinely unclosed/truncated marker (no "]]"
+# on the same line) still correctly fails to match, exactly as before.
+MARKER_RE = re.compile(r"\[\[(cite|citet):(.+?)\]\]")
 _ADJACENT_PARENS_RE = re.compile(r"\)\s*\(")
+# Characters stripped from each comma-split id fragment before it's looked up
+# — whitespace (normal) and stray brackets (the malformation MARKER_RE above
+# now lets through as part of the captured group).
+_ID_STRIP_CHARS = " \t\n[]"
+# Caps how many "unknown paper id" notes a single (section, id) pair can add
+# to `unresolved`. Reproduces a second part of the same 2026-08-17 incident:
+# a degenerate generation loop produced one syntactically valid marker
+# repeating the same (non-paper) id thousands of times —
+# [[cite:H3,H3,H3,...]] — which silently resolves to "" (correct: H3 isn't a
+# paper id) but logged one identical note per repetition, so a single bad
+# completion produced ~2,400 near-duplicate notes and buried any real signal
+# in `notes_for_review`. A few repeats of a genuinely recurring issue across
+# *different* sentences/markers are still worth keeping (hence a small cap,
+# not 1) — this only bounds the pathological single-marker-repeats-itself case.
+_MAX_UNRESOLVED_NOTES_PER_KEY = 3
 
 # Citation-*shaped* literal text (not a [[cite:ID]]/[[citet:ID]] marker) — the
 # same patterns the Reviewer Agent uses to catch a citation the Writer typed
@@ -205,16 +231,23 @@ class CitationRegistry:
         self.unresolved: List[UnresolvedCitation] = []
         self._used_ids: set[str] = set()
         self._suffix_by_id: Dict[str, str] = {}
+        self._unresolved_counts: Dict[Tuple[str, str], int] = {}
         self._finalized = False
 
     def scan(self, text: str, section: str) -> None:
         for match in MARKER_RE.finditer(text):
             for raw_id in match.group(2).split(","):
-                paper_id = raw_id.strip()
+                paper_id = raw_id.strip(_ID_STRIP_CHARS)
+                if not paper_id:
+                    continue
                 if paper_id in self.paper_index:
                     self._used_ids.add(paper_id)
-                else:
+                    continue
+                key = (section, paper_id)
+                count = self._unresolved_counts.get(key, 0)
+                if count < _MAX_UNRESOLVED_NOTES_PER_KEY:
                     self.unresolved.append({"section": section, "paper_id": paper_id})
+                    self._unresolved_counts[key] = count + 1
 
     def finalize(self) -> None:
         """Assigns "a"/"b"/... disambiguation suffixes to papers that share
@@ -254,7 +287,11 @@ class CitationRegistry:
 
         def _sub(match: "re.Match[str]") -> str:
             kind = match.group(1)
-            ids = [pid.strip() for pid in match.group(2).split(",")]
+            # Must normalize exactly the way scan() did — self._used_ids and
+            # self._suffix_by_id are keyed by the post-strip id, so an
+            # unstripped id here would look "unknown" even though scan()
+            # already resolved it.
+            ids = [pid.strip(_ID_STRIP_CHARS) for pid in match.group(2).split(",")]
             known = [pid for pid in ids if pid in self.paper_index]
             if not known:
                 return ""

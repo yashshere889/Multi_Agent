@@ -40,6 +40,16 @@ author names, no numbers, no other bracket syntax). Do not fabricate a \
 citation for a claim that isn't actually grounded in one of the given papers \
 — write the claim without a citation instead.
 
+Exact marker format — this is checked mechanically, so get it exactly right: \
+the WHOLE citation is ONE pair of double brackets; multiple ids inside it are \
+separated ONLY by commas, with NO extra brackets around any individual id.
+Correct: [[cite:1706.03762,1810.04805]]
+WRONG — never do this: [[cite:[1706.03762],[1810.04805]]]
+WRONG — never do this: [[cite:[1706.03762]]]
+A malformed marker is not silently fixed: it either gets dropped as an \
+unresolvable citation, or, worse, prints its raw broken bracket syntax \
+directly in the paper.
+
 Honesty rules:
 - If you are told an experiment's status is not "completed" (e.g. "skipped" \
 or "code_generated_not_run"), you MUST state plainly, in your own words, that \

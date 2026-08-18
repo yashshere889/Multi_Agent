@@ -40,11 +40,25 @@ _INCONCLUSIVE_KEYWORDS = ("inconclusive", "not run", "not executed", "no results
 
 _NUMBER_RE = re.compile(r"-?\d+\.?\d*%?")
 
+# Any literal "[[cite:" / "[[citet:" that survives into the rendered text is
+# always a defect — a well-formed marker is fully consumed by
+# CitationRegistry.resolve(), so this can only match a marker malformed badly
+# enough to escape it. Captures a short trailing snippet (not the whole
+# marker, which can run to an unclosed end-of-line) so the issue text stays
+# readable — [^\[]{0,60} rather than .{0,60}: excluding "[" stops the snippet
+# before it can swallow a *second* leaked marker's own opening "[[", which
+# would otherwise hide it from a later finditer() match entirely. Capped per
+# section so a single degenerate generation — the same repetition-loop
+# failure mode citations.py's _MAX_UNRESOLVED_NOTES_PER_KEY guards against —
+# can't flood citation_issues with near-duplicates either.
+_LEAKED_MARKER_RE = re.compile(r"\[\[(?:cite|citet):[^\[]{0,60}")
+_MAX_LEAKED_MARKER_ISSUES_PER_SECTION = 5
+
 
 def check_citations(
     section_texts: Dict[str, str], paper_index: Dict[str, IndexedPaper], citations_used: List[str]
 ) -> List[dict]:
-    """Two checks, both deterministic:
+    """Three checks, all deterministic:
     1. Every id the Writer's own summary claims was cited (`citations_used`)
        actually exists in the Literature Agent's paper index — should always
        hold given how the Writer resolves citations, but re-checked here
@@ -57,6 +71,20 @@ def check_citations(
        written in a different shape, and can't (on its own) tell a citation
        is to the *wrong* paper if that paper happens to share a surname/year
        with a real one — this is a coarse net, not a full disambiguator.
+    3. No literal `[[cite:`/`[[citet:` marker syntax survives into the
+       rendered text at all. A well-formed marker is always fully consumed by
+       CitationRegistry.resolve() (replaced with a real citation or with ""),
+       so any leftover match here means a marker was malformed badly enough
+       to escape the Writer's own resolution — a 2026-08-17 production run
+       (job 10247173) shipped a "reviewed" paper with raw
+       "[[cite:ID1],[ID2]]"-shaped garbage printed directly in the text, and
+       neither this function nor the LLM hallucination pass had a check aimed
+       at that specific defect — the LLM pass quoted the leaked text back as
+       an ordinary "needs more grounding" hallucination instead, so the
+       feedback that reached the Writer never named the real problem. This
+       check exists so that class of defect is always a citation_issue, named
+       correctly, rather than depending on the LLM noticing and phrasing it
+       usefully.
     """
     issues: List[dict] = []
 
@@ -94,6 +122,23 @@ def check_citations(
                             ),
                         }
                     )
+
+    for section, text in section_texts.items():
+        for match in list(_LEAKED_MARKER_RE.finditer(text))[:_MAX_LEAKED_MARKER_ISSUES_PER_SECTION]:
+            issues.append(
+                {
+                    "location": section,
+                    "issue": (
+                        f'Found literal unresolved citation marker text "{match.group(0)}..." printed in the '
+                        "paper — a [[cite:ID]]/[[citet:ID]] marker survived into the rendered text instead of "
+                        "being resolved to an author-year citation. This means the marker's syntax was malformed "
+                        "(commonly: an extra bracket around one of the ids, e.g. [[cite:[ID1],[ID2]]] instead of "
+                        "[[cite:ID1,ID2]]) — rewrite this citation using the exact [[cite:ID1,ID2]] / "
+                        "[[citet:ID]] format, with no brackets around individual ids."
+                    ),
+                }
+            )
+
     return issues
 
 
