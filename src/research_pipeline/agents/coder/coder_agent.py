@@ -144,12 +144,15 @@ _ERROR_STAGE_ORDER = [
     "invalid_format",
     "missing_sections",
     "missing_required_function",
+    "empty_body",
     "compile_check",
     "static_lint",
     "missing_data_fallback",
+    "ignored_available_dataset",
     "self_review",
     "run_experiment",
     "results_json",
+    "implausible_results",
 ]
 
 
@@ -504,6 +507,7 @@ class CoderAgent:
             state["gpu_available"],
             state["shared_files"],
             state.get("current_starter_id", ""),
+            state.get("current_hf_dataset") or {},
         )
 
         update: dict = {
@@ -745,6 +749,7 @@ class CoderAgent:
         gpu_available: bool,
         shared_files: dict[str, str],
         starter_id: str = "",
+        hf_dataset: dict | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -785,6 +790,19 @@ class CoderAgent:
             return {
                 "error_source": "missing_required_function",
                 "error_text": f"Generated code doesn't define the required function name(s): {'; '.join(function_name_findings)}",
+            }
+
+        # Checked before anything expensive too, same reasoning as the function-
+        # name check above: a body that's just `pass`/`...`/a NotImplementedError
+        # clears every check below (nothing dangerous, no unguarded read to
+        # flag) and only shows up as a hollow "completed" result after a full
+        # venv provision and execution — see
+        # sandbox.check_nontrivial_function_bodies.
+        empty_body_findings = sandbox.check_nontrivial_function_bodies(sections)
+        if empty_body_findings:
+            return {
+                "error_source": "empty_body",
+                "error_text": f"Generated code has no real implementation: {'; '.join(empty_body_findings)}",
             }
 
         # run.py's metadata block + orchestration are a fixed template, not
@@ -842,6 +860,23 @@ class CoderAgent:
             return {
                 "error_source": "missing_data_fallback",
                 "error_text": f"load_data() assumes its data will be present: {'; '.join(fallback_findings)}",
+            }
+
+        # A real, pre-verified dataset was offered (see _hf_dataset_block) —
+        # checks the offer was actually engaged with rather than silently
+        # dropped, the two sanctioned outcomes being "used it" or "declined it
+        # in assumptions_made" (HF_DATASET_USAGE_NOTE says either is fine).
+        # See sandbox.check_hf_dataset_usage.
+        dataset_usage_findings = sandbox.check_hf_dataset_usage(
+            sections.get("configuration", ""),
+            sections["load_data_function"],
+            assumptions_made,
+            hf_dataset or {},
+        )
+        if dataset_usage_findings:
+            return {
+                "error_source": "ignored_available_dataset",
+                "error_text": f"A real dataset was offered but not used: {'; '.join(dataset_usage_findings)}",
             }
 
         complexity = plan["estimated_complexity"]
@@ -917,6 +952,16 @@ class CoderAgent:
             return {
                 "error_source": "results_json",
                 "error_text": f"run.py exited successfully but did not produce a valid results.json: {diagnosis}",
+            }
+
+        # A real result on disk isn't the same as a meaningful one — see
+        # sandbox.check_results_plausibility for exactly what this does and
+        # doesn't catch.
+        plausibility_findings = sandbox.check_results_plausibility(results.get("metrics") or {})
+        if plausibility_findings:
+            return {
+                "error_source": "implausible_results",
+                "error_text": f"results.json's metrics look hollow: {'; '.join(plausibility_findings)}",
             }
 
         return {

@@ -119,8 +119,9 @@ pieces requested in the user prompt.
 
 Hard rules:
 - Write real, complete, runnable code. Never write pseudocode, stubs, \
-"# TODO: implement this", or a function that raises NotImplementedError \
-instead of doing the work.
+"# TODO: implement this", a bare `pass`/`...` placeholder body, or a function \
+that raises NotImplementedError instead of doing the work. A comment \
+describing what the function should do is not a substitute for writing it.
 - Prefer the Python standard library. Only depend on a third-party package if \
 the experiment genuinely needs it (e.g. numpy/pandas/scikit-learn for the \
 specific method called for) — list every such import name, one per line, in \

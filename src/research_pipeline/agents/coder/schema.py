@@ -15,13 +15,24 @@ VALID_ERROR_SOURCES = {
     # A code section defines no function with the name run.py's fixed
     # orchestration calls — see sandbox.check_required_function_names.
     "missing_required_function",
+    # A required function's body is empty, `pass`, `...`, or a bare
+    # NotImplementedError raise — see sandbox.check_nontrivial_function_bodies.
+    "empty_body",
     "compile_check",
     "static_lint",
     # load_data reads a local file with nothing to fall back on if it isn't there
     # — see sandbox.check_data_fallback.
     "missing_data_fallback",
+    # A real dataset was found and offered but load_data() shows no sign of
+    # using it, and it wasn't declined in assumptions_made either — see
+    # sandbox.check_hf_dataset_usage.
+    "ignored_available_dataset",
     "run_experiment",
     "results_json",
+    # results.json parsed fine but its metrics look hollow (empty, NaN/Infinity,
+    # a placeholder string, or every numeric metric exactly 0) — see
+    # sandbox.check_results_plausibility.
+    "implausible_results",
     "self_review",
 }
 

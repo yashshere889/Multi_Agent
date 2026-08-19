@@ -952,6 +952,56 @@ def test_read_results_json_accepts_well_formed_file(tmp_path):
     assert data["notes"] == ""  # defaulted
 
 
+# -- sandbox.check_results_plausibility ---------------------------------------------------
+
+
+def test_check_results_plausibility_passes_a_real_looking_result():
+    assert sandbox.check_results_plausibility({"accuracy": 0.87, "f1": 0.81}) == []
+
+
+def test_check_results_plausibility_flags_empty_metrics():
+    findings = sandbox.check_results_plausibility({})
+    assert len(findings) == 1
+    assert "no metrics at all" in findings[0]
+
+
+def test_check_results_plausibility_flags_nan():
+    findings = sandbox.check_results_plausibility({"accuracy": float("nan")})
+    assert len(findings) == 1
+    assert "accuracy" in findings[0]
+
+
+def test_check_results_plausibility_flags_infinity():
+    findings = sandbox.check_results_plausibility({"loss": float("inf")})
+    assert len(findings) == 1
+    assert "loss" in findings[0]
+
+
+def test_check_results_plausibility_flags_all_zero_metrics():
+    findings = sandbox.check_results_plausibility({"accuracy": 0, "f1": 0.0})
+    assert len(findings) == 1
+    assert "exactly 0" in findings[0]
+
+
+def test_check_results_plausibility_passes_one_zero_among_real_metrics():
+    # Only an *all*-zero metrics set is suspicious — a single legitimately
+    # zero metric alongside real ones (e.g. a perfectly separable toy split)
+    # is not.
+    assert sandbox.check_results_plausibility({"accuracy": 0.9, "false_positives": 0}) == []
+
+
+def test_check_results_plausibility_flags_placeholder_string():
+    findings = sandbox.check_results_plausibility({"accuracy": "N/A"})
+    assert len(findings) == 1
+    assert "accuracy" in findings[0]
+
+
+def test_check_results_plausibility_ignores_bool_metrics_for_the_zero_check():
+    # bool is a subclass of int in Python — a genuine boolean flag must not
+    # be treated as a numeric-zero finding.
+    assert sandbox.check_results_plausibility({"converged": False}) == []
+
+
 # -- sandbox.render_experiment_template: brace-safety ------------------------------------
 
 
@@ -1483,6 +1533,130 @@ def test_check_data_fallback_passes_a_read_of_a_fetched_response_body():
     assert sandbox.check_data_fallback(source) == []
 
 
+# -- sandbox.py: check_nontrivial_function_bodies ---------------------------------------
+
+
+# The exact shape a real Kaggle run reported as `status: "completed",
+# fix_attempts: 0`: every required function is a comment (echoing the
+# planner's/prompt's own instruction text back) followed by a bare `pass`.
+HOLLOW_SECTIONS = {
+    **GOOD_SECTIONS,
+    "load_data_function": (
+        "def load_data():\n"
+        "    # Load the survey data, clean missing values, and normalize columns\n"
+        "    pass\n"
+    ),
+    "build_model_function": (
+        "def build_model():\n    # Build a logistic regression classifier\n    pass\n"
+    ),
+    "run_experiment_function": (
+        "def run_experiment(data, model):\n    # Train the model and collect predictions\n    pass\n"
+    ),
+    "evaluate_function": (
+        "def evaluate(experiment_output):\n    # Compute accuracy and F1 against the baseline\n    pass\n"
+    ),
+}
+
+
+def test_check_nontrivial_function_bodies_flags_bare_pass_with_echoed_comments():
+    findings = sandbox.check_nontrivial_function_bodies(HOLLOW_SECTIONS)
+    assert len(findings) == 4
+    assert "load_data_function" in findings[0]
+
+
+def test_check_nontrivial_function_bodies_flags_ellipsis_body():
+    sections = {"evaluate_function": "def evaluate(experiment_output):\n    ...\n"}
+    findings = sandbox.check_nontrivial_function_bodies(sections)
+    assert len(findings) == 1
+    assert "evaluate" in findings[0]
+
+
+def test_check_nontrivial_function_bodies_flags_docstring_only_body():
+    sections = {
+        "build_model_function": ('def build_model():\n    """Builds and returns the model."""\n')
+    }
+    assert len(sandbox.check_nontrivial_function_bodies(sections)) == 1
+
+
+def test_check_nontrivial_function_bodies_flags_bare_not_implemented_raise():
+    sections = {
+        "run_experiment_function": (
+            "def run_experiment(data, model):\n    raise NotImplementedError\n"
+        )
+    }
+    assert len(sandbox.check_nontrivial_function_bodies(sections)) == 1
+
+
+def test_check_nontrivial_function_bodies_passes_a_docstring_plus_real_code():
+    sections = {
+        "load_data_function": (
+            'def load_data():\n    """Loads the dataset."""\n    return pd.read_csv(PATH)\n'
+        )
+    }
+    assert sandbox.check_nontrivial_function_bodies(sections) == []
+
+
+def test_check_nontrivial_function_bodies_passes_good_sections():
+    assert sandbox.check_nontrivial_function_bodies(GOOD_SECTIONS) == []
+
+
+def test_check_nontrivial_function_bodies_skips_a_section_that_does_not_parse():
+    # compile_check's job to report a syntax error; this check should not also
+    # collect a spurious finding for a section it can't even parse.
+    sections = {"evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
+    assert sandbox.check_nontrivial_function_bodies(sections) == []
+
+
+def test_run_reports_hollow_stub_functions_and_never_executes(tmp_path):
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(HOLLOW_SECTIONS)})
+    experiments_dir = tmp_path / "experiments"
+    agent = CoderAgent(
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "no real implementation" in exp["reason"].lower()
+    assert not (experiments_dir / "H1" / "results.json").exists()  # never executed
+
+
+def test_run_reports_implausible_results_and_does_not_report_completed(tmp_path):
+    # evaluate() is a real, non-trivial function (so check_nontrivial_function_bodies
+    # and check_hf_dataset_usage both pass) that always returns an all-zero
+    # result regardless of its input — the run genuinely executes, but the
+    # output it produces is exactly the hollow tail check_results_plausibility
+    # exists to catch.
+    hollow_metrics_sections = {
+        **GOOD_SECTIONS,
+        "evaluate_function": (
+            "def evaluate(experiment_output):\n"
+            "    _ = experiment_output\n"
+            '    return {"accuracy": 0, "f1": 0.0, "meets_success_criteria": False}\n'
+        ),
+    }
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(hollow_metrics_sections)})
+    experiments_dir = tmp_path / "experiments"
+    agent = CoderAgent(
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "exactly 0" in exp["reason"]
+    # It really did run — this is a plausibility rejection, not a compile/lint one.
+    assert (experiments_dir / "H1" / "results.json").exists()
+
+
 def test_check_data_fallback_passes_a_read_of_an_in_memory_buffer():
     source = (
         "def load_data():\n    body = _fetch_rows()\n    return pd.read_csv(io.StringIO(body))\n"
@@ -1779,6 +1953,28 @@ HF_DATASET_MATCH = {
     "sample_rows": [{"hours_slept": 7.5, "score": 88}],
 }
 
+# A load_data() that actually uses HF_DATASET_MATCH's dataset id (matching
+# check_hf_dataset_usage) rather than GOOD_SECTIONS' `return None` — the tests
+# below script a model that took the offered dataset, not one that silently
+# ignored it (a separate scenario covered by test_coder_agent's
+# ignored_available_dataset tests).
+GOOD_SECTIONS_WITH_HF_DATASET = {
+    **GOOD_SECTIONS,
+    "load_data_function": (
+        "def load_data():\n"
+        "    try:\n"
+        "        response = requests.get(\n"
+        "            'https://datasets-server.huggingface.co/rows"
+        "?dataset=acme%2Fsleep-survey&config=default&split=train&offset=0&length=100',\n"
+        "            timeout=30,\n"
+        "        )\n"
+        "        response.raise_for_status()\n"
+        "        return [entry['row'] for entry in response.json()['rows']]\n"
+        "    except Exception:\n"
+        "        return [{'hours_slept': 7.5, 'score': 88}]\n"
+    ),
+}
+
 
 def _recording_lookup(result):
     """A fake huggingface_lookup_fn that records the queries it was asked."""
@@ -1792,7 +1988,7 @@ def _recording_lookup(result):
 
 
 def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
-    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
     lookup, queries = _recording_lookup(HF_DATASET_MATCH)
     _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
         _planner_output([_plan("H1")])
@@ -1872,7 +2068,8 @@ def test_the_fix_prompt_reuses_the_dataset_found_once_for_the_plan(tmp_path):
     # fixed *with* — and looking it up once per plan (not once per attempt) keeps
     # a three-attempt fix loop from spending three more searches on it.
     model = RecordingScriptedChatModel(
-        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)],
     )
     lookup, queries = _recording_lookup(HF_DATASET_MATCH)
     result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
@@ -1885,13 +2082,100 @@ def test_the_fix_prompt_reuses_the_dataset_found_once_for_the_plan(tmp_path):
 
 
 def test_each_plan_gets_its_own_lookup(tmp_path):
-    model = ScriptedChatModel(codegen=[_codegen_response()])
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
     lookup, queries = _recording_lookup(HF_DATASET_MATCH)
     _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
         _planner_output([_plan("H1"), _plan("H2")])
     )
 
     assert len(queries) == 2
+
+
+def test_run_reports_a_silently_ignored_offered_dataset(tmp_path):
+    # The offered dataset is real ("acme/sleep-survey"), but load_data() (via
+    # the default GOOD_SECTIONS fixture) neither reads it nor declines it in
+    # assumptions_made — the exact silent-third-option check_hf_dataset_usage
+    # exists to catch.
+    model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    experiments_dir = tmp_path / "experiments"
+    agent = CoderAgent(
+        chat_model=model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: True,
+        gpu_check=lambda: False,
+        huggingface_lookup_fn=lookup,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "acme/sleep-survey" in exp["reason"]
+    assert "not used" in exp["reason"].lower() or "no sign of it" in exp["reason"].lower()
+    assert not (experiments_dir / "H1" / "results.json").exists()
+
+
+def test_run_accepts_an_explicitly_declined_offered_dataset(tmp_path):
+    # HF_DATASET_USAGE_NOTE explicitly sanctions ignoring the offered dataset
+    # when it doesn't fit, provided the model says so in assumptions_made —
+    # that documented escape hatch must not be flagged as hollow.
+    model = FakeChatModel(
+        {
+            '"hypothesis_id":"H1"': _codegen_response(
+                assumptions=["acme/sleep-survey doesn't include the label column this task needs"]
+            )
+        }
+    )
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    agent = CoderAgent(
+        chat_model=model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: True,
+        gpu_check=lambda: False,
+        huggingface_lookup_fn=lookup,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert result["experiments"][0]["status"] == "completed"
+
+
+def test_check_hf_dataset_usage_passes_when_nothing_was_offered():
+    assert sandbox.check_hf_dataset_usage("", "def load_data():\n    return None\n", [], {}) == []
+
+
+def test_check_hf_dataset_usage_flags_a_silently_unused_dataset():
+    findings = sandbox.check_hf_dataset_usage(
+        "", "def load_data():\n    return None\n", [], HF_DATASET_MATCH
+    )
+    assert len(findings) == 1
+    assert "acme/sleep-survey" in findings[0]
+
+
+def test_check_hf_dataset_usage_passes_a_reference_in_load_data():
+    source = (
+        "def load_data():\n"
+        "    url = 'https://datasets-server.huggingface.co/rows?dataset=acme%2Fsleep-survey'\n"
+        "    return requests.get(url, timeout=30).json()\n"
+    )
+    assert sandbox.check_hf_dataset_usage("", source, [], HF_DATASET_MATCH) == []
+
+
+def test_check_hf_dataset_usage_passes_a_reference_in_configuration():
+    # A dataset id stashed in a module-level constant and referenced by name
+    # inside load_data() is still a legitimate use, not an unused offer.
+    config = "DATASET_ID = 'acme/sleep-survey'\n"
+    source = "def load_data():\n    return _fetch(DATASET_ID)\n"
+    assert sandbox.check_hf_dataset_usage(config, source, [], HF_DATASET_MATCH) == []
+
+
+def test_check_hf_dataset_usage_passes_when_declined_in_assumptions():
+    assumptions = ["Declined acme/sleep-survey — wrong schema for this task"]
+    findings = sandbox.check_hf_dataset_usage(
+        "", "def load_data():\n    return None\n", assumptions, HF_DATASET_MATCH
+    )
+    assert findings == []
 
 
 # -- huggingface_client.py: against faked requests responses -----------------------------

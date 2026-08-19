@@ -9,6 +9,7 @@ import ast
 import importlib.util
 import json
 import logging
+import math
 import py_compile
 import re
 import shutil
@@ -16,6 +17,7 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
@@ -446,6 +448,128 @@ def check_required_function_names(sections: dict[str, str]) -> list[str]:
     return findings
 
 
+def _is_docstring_expr(stmt: ast.stmt) -> bool:
+    return (
+        isinstance(stmt, ast.Expr)
+        and isinstance(stmt.value, ast.Constant)
+        and isinstance(stmt.value.value, str)
+    )
+
+
+def _raises_not_implemented(stmt: ast.stmt) -> bool:
+    if not isinstance(stmt, ast.Raise) or stmt.exc is None:
+        return False
+    exc = stmt.exc
+    call_func = exc.func if isinstance(exc, ast.Call) else exc
+    name = call_func.id if isinstance(call_func, ast.Name) else getattr(call_func, "attr", None)
+    return name == "NotImplementedError"
+
+
+def check_nontrivial_function_bodies(sections: dict[str, str]) -> list[str]:
+    """Checks each required function actually does something, not just names
+    itself correctly — see check_required_function_names for the "right name,
+    wrong content" half of this problem.
+
+    A real production run reported `status: "completed", fix_attempts: 0` for
+    an experiment whose four required functions were each just a comment
+    followed by a bare `pass`: valid Python, safe, clears compile_check and
+    static_safety_check (nothing dangerous happens) and check_data_fallback
+    (no read call to guard), so nothing before execution ever looked at
+    whether the body did anything. The model's comments plausibly echoed its
+    own instructions back, so this deliberately ignores comments/docstrings
+    entirely and looks only at the executable statements.
+
+    A body counts as trivial (after dropping a leading docstring) if it is
+    empty, only `pass`, only `...`, or only a bare `raise NotImplementedError`
+    — the exact anti-patterns prompts.py's SYSTEM_PROMPT already asks the
+    model not to write. This is deliberately narrower than "did it use its
+    arguments": a function that does real work with a fixed, hardcoded input
+    is legitimate (e.g. build_model() takes no arguments at all), and a
+    broader heuristic risks flagging real short implementations as hollow.
+    """
+    findings = []
+    for section_name, expected_fn in REQUIRED_FUNCTION_NAMES.items():
+        source = sections.get(section_name, "")
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        for node in tree.body:
+            if not (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == expected_fn
+            ):
+                continue
+            body = node.body
+            if body and _is_docstring_expr(body[0]):
+                body = body[1:]
+            is_trivial = not body or all(
+                isinstance(stmt, ast.Pass)
+                or (
+                    isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Constant)
+                    and stmt.value.value is Ellipsis
+                )
+                or _raises_not_implemented(stmt)
+                for stmt in body
+            )
+            if is_trivial:
+                findings.append(
+                    f"{section_name}'s `{expected_fn}` has no real implementation — its body "
+                    "(ignoring comments and any docstring) is empty, `pass`, `...`, or just "
+                    "raises NotImplementedError, so it would run without error but do nothing"
+                )
+    return findings
+
+
+def check_hf_dataset_usage(
+    configuration_source: str,
+    load_data_source: str,
+    assumptions_made: list[str],
+    hf_dataset: dict,
+) -> list[str]:
+    """When coder_agent._find_hf_dataset matched a real, pre-verified dataset
+    and offered it to the model (see _hf_dataset_block), checks that
+    load_data() shows some sign of actually using it. Returns human-readable
+    findings; empty means clean, including whenever no dataset was offered at
+    all (`hf_dataset` has no `dataset_id`).
+
+    This is not "the dataset id must appear in the code or the attempt
+    fails": prompts.py's HF_DATASET_USAGE_NOTE explicitly sanctions ignoring
+    the offered dataset when it doesn't genuinely fit the plan, provided the
+    model says so in assumptions_made — a real Hub search match can still be
+    the wrong shape for a given plan. So this checks for the dataset id in
+    either of the two sanctioned places (used in the generated code, or named
+    as declined in assumptions_made) and only flags the silent third option:
+    neither — load_data() quietly using something else (typically synthesized
+    data) with no trace the offer was ever engaged with, which is exactly
+    what a model that echoes past the offer without reading it produces.
+
+    Checked as a plain substring of the dataset id (raw, and percent-encoded
+    the same way `_hf_dataset_block`'s rows_url encodes it) rather than an
+    AST walk for a specific HTTP call shape, since the id is the one fixed
+    trace consistent with how the prompt hands the dataset over — the model
+    can build the actual read call in more shapes than are worth enumerating.
+    """
+    dataset_id = hf_dataset.get("dataset_id")
+    if not dataset_id:
+        return []
+    dataset_id = str(dataset_id)
+    quoted_id = quote(dataset_id, safe="")
+    code = f"{configuration_source}\n{load_data_source}"
+    if dataset_id in code or quoted_id in code:
+        return []
+    if any(dataset_id in note for note in assumptions_made):
+        return []
+    return [
+        f"a real dataset ({dataset_id}) was found and offered for this experiment's "
+        "load_data(), but neither the generated code nor assumptions_made shows any sign "
+        "of it — load_data() appears to have silently used something else (e.g. "
+        "synthesized data) instead, without saying so. Either read this dataset as "
+        "instructed, or explicitly say in assumptions_made that it doesn't fit and why."
+    ]
+
+
 def check_shared_infra_files(files: dict[str, str]) -> tuple[dict[str, str], str]:
     """Runs the same checks a single experiment's run.py gets — lenient
     compile check, then static safety check — against every shared
@@ -505,6 +629,76 @@ def read_results_json_for_diagnosis(experiment_dir: Path) -> tuple[dict | None, 
 
     data.setdefault("notes", "")
     return data, None
+
+
+# Case-insensitive placeholder strings a model sometimes leaves in place of a
+# real computed metric — not code (compile_check/static_safety_check already
+# ran), just a value that made it all the way to results.json.
+_PLACEHOLDER_METRIC_VALUES = {
+    "n/a",
+    "na",
+    "tbd",
+    "todo",
+    "unknown",
+    "placeholder",
+    "none",
+    "pending",
+}
+
+
+def check_results_plausibility(metrics: dict) -> list[str]:
+    """Sanity-checks a completed experiment's own reported metrics before
+    read_results_json_for_diagnosis's success is trusted as a real result.
+    Returns human-readable findings; empty means clean.
+
+    Deliberately narrow: this catches the sloppy tail of hollow completions —
+    evaluate() returning no metrics at all, NaN/Infinity (almost always a
+    division by zero or a computation that never touched real data), or an
+    obvious placeholder string ("N/A", "TBD") standing in for a number — not
+    a plausible-looking fabricated one. A hardcoded `return {"accuracy":
+    0.85}` that ignores its input entirely produces a result indistinguishable
+    from a real one at this remove; nothing this cheap can tell the two
+    apart. check_nontrivial_function_bodies already covers the bodies simple
+    enough to catch structurally (bare pass/.../NotImplementedError); this is
+    the equivalent check for the *output* of a body that runs without error.
+
+    `bool` values are excluded from the numeric checks even though Python
+    treats bool as an int subclass — a metric that is a genuine boolean flag
+    (e.g. "converged": false) is not a "metric is exactly zero" finding.
+    """
+    if not metrics:
+        return [
+            "evaluate() returned no metrics at all — results.json's metrics object is "
+            "empty, so there is nothing to check success criteria against"
+        ]
+
+    findings = []
+    numeric_values = {
+        name: value
+        for name, value in metrics.items()
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    }
+    for name, value in numeric_values.items():
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            findings.append(
+                f"metric '{name}' is {value} — usually a division by zero or a computation "
+                "that never actually ran on real data"
+            )
+
+    if numeric_values and not findings and all(value == 0 for value in numeric_values.values()):
+        findings.append(
+            f"every numeric metric is exactly 0 ({', '.join(sorted(numeric_values))}) — check "
+            "whether evaluate() is actually computing anything from its input, or just "
+            "returning a default"
+        )
+
+    for name, value in metrics.items():
+        if isinstance(value, str) and value.strip().lower() in _PLACEHOLDER_METRIC_VALUES:
+            findings.append(
+                f"metric '{name}' is the placeholder value {value!r}, not a real number"
+            )
+
+    return findings
 
 
 def ensure_experiment_env(
