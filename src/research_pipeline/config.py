@@ -103,8 +103,13 @@ def load_settings() -> Settings:
         # Every agent parses structured JSON or full paper sections out of the
         # response, so a truncated completion is a hard failure — leave enough
         # room for the longest Writer section (and for a reasoning trace, if
-        # LLM_ENABLE_THINKING is turned back on).
-        llm_max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "16384")),
+        # LLM_ENABLE_THINKING is turned back on). 16384 wasn't enough: on
+        # Barkla job 10271093 (2026-08-19) the Reviewer's hallucination check
+        # on a long Discussion section produced a ~75K-char hallucinations
+        # list that got cut off mid-string at exactly that cap, and the
+        # repair retry — bound by the same max_tokens — hit the identical
+        # truncation point again and crashed the whole pipeline run.
+        llm_max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "32768")),
         # The model's *total* prompt+completion budget, read client-side only to
         # bound how many completion tokens a request may ask for — distinct from
         # llm_max_tokens above, which caps the completion length alone. A long
