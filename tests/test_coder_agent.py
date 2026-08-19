@@ -13,6 +13,7 @@ from research_pipeline.agents.coder.coder_agent import (
     CoderAgent,
     CoderAgentError,
     _compact_json,
+    _consecutive_error_streak,
     _estimate_tokens,
     _parse_assumptions,
     _parse_bool_text,
@@ -1275,6 +1276,98 @@ def test_fix_loop_truncates_a_long_error_summary(tmp_path):
 
     summary = result["experiments"][0]["fix_history"][0]["error_summary"]
     assert 0 < len(summary) <= ERROR_SUMMARY_MAX_CHARS
+
+
+def test_consecutive_error_streak_counts_trailing_same_source_entries():
+    assert _consecutive_error_streak([]) == 0
+    assert _consecutive_error_streak([{"error_source": "run_experiment"}]) == 1
+    assert (
+        _consecutive_error_streak(
+            [{"error_source": "run_experiment"}, {"error_source": "run_experiment"}]
+        )
+        == 2
+    )
+    # A different error_source anywhere in the trailing run stops the count —
+    # only entries that stayed on the same failure category as the most recent
+    # one contribute.
+    assert (
+        _consecutive_error_streak(
+            [
+                {"error_source": "compile_check"},
+                {"error_source": "run_experiment"},
+                {"error_source": "run_experiment"},
+            ]
+        )
+        == 2
+    )
+    assert (
+        _consecutive_error_streak(
+            [{"error_source": "run_experiment"}, {"error_source": "compile_check"}]
+        )
+        == 1
+    )
+
+
+def test_stuck_block_is_empty_below_streak_two():
+    assert CoderAgent._stuck_block(0, "") == ""
+    assert CoderAgent._stuck_block(1, "") == ""
+
+
+def test_stuck_block_quotes_the_previous_failure_from_streak_two():
+    block = CoderAgent._stuck_block(2, "Execution failed: boom")
+    assert "STUCK WARNING" in block
+    assert "Execution failed: boom" in block
+    assert "Do not resubmit" in block
+
+
+def test_fix_loop_escalates_prompt_after_repeated_same_error(tmp_path):
+    # RAISING_SECTIONS always fails the same way (RuntimeError in
+    # run_experiment), so a fix that keeps returning it never clears the
+    # "run_experiment" error_source — every regeneration after the first
+    # should see a STUCK WARNING quoting the immediately preceding attempt's
+    # own error_summary, so the model is told not to just repeat itself.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)]
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=3).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["fix_attempts"] == 3
+    assert [entry["same_error_streak"] for entry in exp["fix_history"]] == [1, 2, 3]
+
+    fix_prompts = model.prompts_by_kind["fix"]
+    assert "STUCK WARNING" not in fix_prompts[0]  # first failure — nothing to escalate yet
+    assert "STUCK WARNING" in fix_prompts[1]
+    assert "STUCK WARNING" in fix_prompts[2]
+    # The escalated prompt quotes the *previous* attempt's own summary, not the
+    # current one — it's telling the model what it already tried and failed.
+    assert exp["fix_history"][0]["error_summary"] in fix_prompts[1]
+    assert exp["fix_history"][1]["error_summary"] in fix_prompts[2]
+
+
+def test_fix_loop_does_not_escalate_when_the_error_category_changes(tmp_path):
+    # First fix response has a different failure shape (a syntax error, not a
+    # runtime one) before the second one repeats the original — the streak
+    # must reset rather than keep counting across unrelated failure kinds.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(BROKEN_SYNTAX_SECTIONS), _codegen_response(RAISING_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=3).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert [entry["error_source"] for entry in exp["fix_history"]] == [
+        "run_experiment",
+        "compile_check",
+        "run_experiment",
+    ]
+    assert [entry["same_error_streak"] for entry in exp["fix_history"]] == [1, 1, 1]
+    assert "STUCK WARNING" not in model.prompts_by_kind["fix"][0]
+    assert "STUCK WARNING" not in model.prompts_by_kind["fix"][1]
 
 
 def test_env_error_is_not_retried_through_the_llm(tmp_path):

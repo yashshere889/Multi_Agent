@@ -211,6 +211,28 @@ def _truncate(text: str) -> str:
     return text[:ERROR_SUMMARY_MAX_CHARS]
 
 
+def _consecutive_error_streak(fix_history: list[dict]) -> int:
+    """How many trailing entries in fix_history share the most recent one's
+    error_source — 1 if this failure is a new kind, 2+ if the model's last
+    fix attempt(s) landed back on the exact same failure category.
+
+    Narrower than _cleared_previous_error's "resolved" flag on purpose:
+    "resolved" is False both for a regression to an earlier check *and* for a
+    repeat of the same one, which is the right signal for fix_history's own
+    bookkeeping. This is specifically "did the model just fail on the same
+    thing again" — the case where quoting the model its own most recent
+    (unsuccessful) fix is useful context rather than noise."""
+    if not fix_history:
+        return 0
+    current_source = fix_history[-1]["error_source"]
+    streak = 0
+    for entry in reversed(fix_history):
+        if entry["error_source"] != current_source:
+            break
+        streak += 1
+    return streak
+
+
 def _compact_json(obj: object) -> str:
     """No pretty-printing whitespace — this is embedded in prompts, not read
     by a human, and indent=2 runs meaningfully more tokens for the same data
@@ -558,6 +580,19 @@ class CoderAgent:
             ),
             "resolved": False,
         }
+        # Computed against fix_history *with* this entry included, so a streak
+        # of 2 means "this failure and the one immediately before it were both
+        # this error_source" — i.e. the fix that was just tried for it didn't
+        # work. previous_error_summary is that prior attempt's own summary
+        # (already in state["current_fix_history"], not the new entry), shown
+        # to the model so it doesn't just repeat the same fix. See
+        # _consecutive_error_streak's docstring for why this is narrower than
+        # "resolved".
+        streak = _consecutive_error_streak([*state["current_fix_history"], entry])
+        entry["same_error_streak"] = streak
+        previous_error_summary = (
+            state["current_fix_history"][-1]["error_summary"] if streak >= 2 else ""
+        )
         try:
             generation = self._regenerate_with_fix(
                 plan,
@@ -569,6 +604,8 @@ class CoderAgent:
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
+                stuck_streak=streak,
+                previous_error_summary=previous_error_summary,
             )
         except CoderAgentError as exc:
             # Same as the initial generation call: a regeneration attempt can
@@ -1257,6 +1294,25 @@ class CoderAgent:
             f"calls for something different:\n\n{rendered}\n"
         )
 
+    @staticmethod
+    def _stuck_block(streak: int, previous_error_summary: str) -> str:
+        """Empty below streak 2 (this failure is a new kind, or the first one) —
+        a fix prompt with no repeat failure reads exactly as it did before
+        this escalation existed. From streak 2 on, names the repeat explicitly
+        and quotes the model's own last (unsuccessful) fix, so it diagnoses a
+        different cause instead of resubmitting a variation of the same one."""
+        if streak < 2:
+            return ""
+        return (
+            f"STUCK WARNING: this is the same failure category as your last {streak - 1} "
+            "fix attempt(s) on this experiment — none of them actually resolved it. Your "
+            f"most recent attempt's diagnosis was:\n{previous_error_summary}\n\n"
+            "Do not resubmit a small variation of that same fix. Identify a different root "
+            "cause, or replace the affected logic with a simpler, more conservative "
+            "implementation (e.g. drop the risky pattern or library entirely) rather than "
+            "patching around it again.\n\n"
+        )
+
     def _find_hf_dataset(self, plan: dict, network_available: bool) -> dict:
         """One real dataset for this plan, or {} — never an exception.
 
@@ -1356,6 +1412,8 @@ class CoderAgent:
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
         starter_id: str = "",
+        stuck_streak: int = 0,
+        previous_error_summary: str = "",
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
             hypothesis_id=plan["hypothesis_id"],
@@ -1374,6 +1432,7 @@ class CoderAgent:
             # model to answer in kind, which is the failure mode this transport
             # exists to remove.
             previous_sections_block=render_sections(previous_generation.get("run_py_sections", {})),
+            stuck_block=self._stuck_block(stuck_streak, previous_error_summary),
             error_source=error_source,
             error_text=error_text,
             network_status="available" if network_available else "NOT available",

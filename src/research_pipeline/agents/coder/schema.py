@@ -51,6 +51,12 @@ class FixAttempt(TypedDict):
     error_summary: str  # truncated to ERROR_SUMMARY_MAX_CHARS
     code_path: str  # snapshot of the code that produced this error
     resolved: bool  # whether the regeneration cleared the check that failed
+    # How many trailing entries (this one included) share this error_source —
+    # see coder_agent._consecutive_error_streak. Not in _check_fix_history's
+    # required fields below: summaries written before this field existed still
+    # have to load, same "checked when present but not required" rule as the
+    # rest of this function.
+    same_error_streak: int
 
 
 class ExperimentResult(TypedDict):
@@ -139,6 +145,13 @@ def _check_fix_history(exp: dict, path: str, errors: list[str]) -> None:
         if isinstance(summary, str) and len(summary) > ERROR_SUMMARY_MAX_CHARS:
             errors.append(
                 f"{entry_path}.error_summary exceeds {ERROR_SUMMARY_MAX_CHARS} characters"
+            )
+        # Optional (see FixAttempt) — checked only when present, same reason
+        # error_summary's length check above isn't in _check_fields either.
+        if "same_error_streak" in entry and not isinstance(entry["same_error_streak"], int):
+            errors.append(
+                f"{entry_path}.same_error_streak should be int, "
+                f"got {type(entry['same_error_streak']).__name__}"
             )
 
 

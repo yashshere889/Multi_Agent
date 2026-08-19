@@ -281,7 +281,7 @@ The experiment plan is unchanged (JSON):
 The code sections you produced last time:
 {previous_sections_block}
 
-What went wrong — detected by {error_source}:
+{stuck_block}What went wrong — detected by {error_source}:
 {error_text}
 
 Network access on this machine: {network_status}.{network_note}
