@@ -5,8 +5,15 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from langgraph.store.memory import InMemoryStore
 
-from research_pipeline.agents.coder import huggingface_client, prompts, sandbox, slurm_submit
+from research_pipeline.agents.coder import (
+    fix_pattern_store,
+    huggingface_client,
+    prompts,
+    sandbox,
+    slurm_submit,
+)
 from research_pipeline.agents.coder.coder_agent import (
     _CHARS_PER_TOKEN_ESTIMATE,
     _CONTEXT_SAFETY_MARGIN,
@@ -14,6 +21,7 @@ from research_pipeline.agents.coder.coder_agent import (
     CoderAgentError,
     _compact_json,
     _consecutive_error_streak,
+    _default_slurm_review_prompt,
     _estimate_tokens,
     _parse_assumptions,
     _parse_bool_text,
@@ -1144,6 +1152,12 @@ def _agent(tmp_path, model, **kwargs):
     # overridable so the Hugging Face lookup tests below can turn the network on.
     kwargs.setdefault("network_check", lambda: False)
     kwargs.setdefault("gpu_check", lambda: False)
+    # A fresh, isolated in-memory store per call — never the real
+    # fix_pattern_store.get_store() singleton (CODER_FIX_STORE_BACKEND
+    # defaults to sqlite, which would write a real file). A test that wants
+    # two agents to share recorded fix patterns passes its own fix_store=
+    # explicitly, overriding this default.
+    kwargs.setdefault("fix_store", InMemoryStore())
     return CoderAgent(
         chat_model=model,
         experiments_dir=tmp_path / "experiments",
@@ -1426,6 +1440,108 @@ def test_fix_loop_does_not_escalate_when_the_error_category_changes(tmp_path):
     assert [entry["same_error_streak"] for entry in exp["fix_history"]] == [1, 1, 1]
     assert "STUCK WARNING" not in model.prompts_by_kind["fix"][0]
     assert "STUCK WARNING" not in model.prompts_by_kind["fix"][1]
+
+
+def test_resolved_fix_is_recorded_to_the_fix_pattern_store(tmp_path):
+    # RAISING_SECTIONS' run_experiment_function raises; GOOD_SECTIONS' doesn't
+    # — the section that actually differs between broken and fixed.
+    store = InMemoryStore()
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    _agent(tmp_path, model, fix_store=store).run(_planner_output([_plan("H1", complexity="low")]))
+
+    recalled = fix_pattern_store.recall_fixes(store, "run_experiment")
+    assert len(recalled) == 1
+    changed = recalled[0]["changed_sections"]
+    assert "run_experiment_function" in changed
+    assert "raise RuntimeError" in changed["run_experiment_function"]["before"]
+    assert "raise RuntimeError" not in changed["run_experiment_function"]["after"]
+
+
+def test_unresolved_fix_is_not_recorded_to_the_fix_pattern_store(tmp_path):
+    # A regeneration that fails the *same* check again taught nothing — only a
+    # resolution (the check that failed no longer does) should be recorded.
+    store = InMemoryStore()
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(RAISING_SECTIONS)]
+    )
+    _agent(tmp_path, model, fix_store=store, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+    assert fix_pattern_store.recall_fixes(store, "run_experiment") == []
+
+
+def test_fix_prompt_shows_a_past_fix_recorded_for_the_same_error_source(tmp_path):
+    # Simulates a pattern recorded by an earlier, separate run against the
+    # same (shared) store — this run's own fix loop never has to rediscover
+    # this fix; it should just be shown it.
+    store = InMemoryStore()
+    fix_pattern_store.record_fix(
+        store,
+        error_source="run_experiment",
+        error_summary="RuntimeError: boom",
+        broken_sections={
+            "run_experiment_function": "def run_experiment(data, model):\n    raise RuntimeError('boom')\n"
+        },
+        fixed_sections={
+            "run_experiment_function": "def run_experiment(data, model):\n    return {'metrics_from_a_past_fix': True}\n"
+        },
+    )
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    _agent(tmp_path, model, fix_store=store).run(_planner_output([_plan("H1", complexity="low")]))
+
+    fix_prompt = model.prompts_by_kind["fix"][0]
+    assert "metrics_from_a_past_fix" in fix_prompt
+    assert "Real fixes that resolved this exact error_source" in fix_prompt
+
+
+def test_fix_prompt_omits_the_pattern_block_when_the_store_is_disabled(tmp_path, monkeypatch):
+    import research_pipeline.agents.coder.coder_agent as coder_agent_module
+
+    monkeypatch.setattr(
+        coder_agent_module,
+        "settings",
+        dataclasses.replace(coder_agent_module.settings, coder_enable_fix_pattern_store=False),
+    )
+    store = InMemoryStore()
+    fix_pattern_store.record_fix(
+        store,
+        error_source="run_experiment",
+        error_summary="RuntimeError: boom",
+        broken_sections={"run_experiment_function": "raise\n"},
+        fixed_sections={"run_experiment_function": "return {'should_not_appear': True}\n"},
+    )
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    _agent(tmp_path, model, fix_store=store).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert "should_not_appear" not in model.prompts_by_kind["fix"][0]
+    # The pre-seeded entry is still the only one — this run's own resolved fix
+    # was not additionally recorded while the store is disabled.
+    recalled = fix_pattern_store.recall_fixes(store, "run_experiment")
+    assert len(recalled) == 1
+    assert recalled[0]["error_summary"] == "RuntimeError: boom"
+
+
+def test_a_broken_fix_pattern_store_degrades_gracefully_instead_of_crashing_the_run(tmp_path):
+    class ExplodingStore:
+        def search(self, *args, **kwargs):
+            raise RuntimeError("store is down")
+
+        def put(self, *args, **kwargs):
+            raise RuntimeError("store is down")
+
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model, fix_store=ExplodingStore()).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+    assert result["experiments"][0]["status"] == "completed"
 
 
 def test_env_error_is_not_retried_through_the_llm(tmp_path):
@@ -2523,6 +2639,28 @@ def auto_submit(monkeypatch):
     return submitted
 
 
+@pytest.fixture
+def slurm_submit_stubs(monkeypatch):
+    """Same real-SLURM-call stubbing as `auto_submit`, but leaves
+    coder_auto_submit_slurm alone — for the interactive-review tests below,
+    which reach the exact same submit path via a human's "submit" answer
+    instead of the auto-submit flag."""
+    submitted = []
+    _patch_settings(
+        monkeypatch,
+        coder_max_concurrent_slurm_jobs=4,
+        coder_max_slurm_jobs_per_run=10,
+    )
+    monkeypatch.setattr(slurm_submit, "count_running_jobs", lambda user=None: 0)
+
+    def fake_submit(sbatch_path, cwd):
+        submitted.append(Path(sbatch_path))
+        return f"999{len(submitted)}", None
+
+    monkeypatch.setattr(slurm_submit, "submit_job", fake_submit)
+    return submitted
+
+
 def _clean_review() -> str:
     return json.dumps({"looks_correct": True, "concerns": []})
 
@@ -2634,6 +2772,170 @@ def test_auto_submit_failure_falls_back_to_manual_review(tmp_path, auto_submit, 
     assert exp["status"] == "code_generated_not_run"
     assert "invalid partition" in exp["reason"]
     assert exp["slurm_job_id"] is None
+
+
+# -- coder_agent.py: interactive SLURM review (interrupt()/Command) ---------------------
+
+
+def test_interactive_review_off_by_default_never_calls_the_prompt(tmp_path):
+    # Same shape as test_auto_submit_off_by_default_leaves_sbatch_for_review:
+    # with neither flag set, a plan that can't run here goes straight to
+    # manual review — the reviewer callable must never even be reached.
+    def fail_if_called(payload):
+        pytest.fail("interactive review prompt was called with interactive review off")
+
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, slurm_review_prompt=fail_if_called).run(
+        _planner_output([_plan("H1", complexity="high")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "submit it yourself" in exp["reason"]
+
+
+def test_interactive_review_submits_when_reviewer_approves(tmp_path, slurm_submit_stubs):
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(
+        tmp_path,
+        model,
+        interactive_slurm_review=True,
+        slurm_review_prompt=lambda payload: "submit",
+    ).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "submitted_to_slurm"
+    assert exp["slurm_job_id"] == "9991"
+    assert len(slurm_submit_stubs) == 1
+
+
+def test_interactive_review_leaves_for_manual_review_when_reviewer_declines(
+    tmp_path, slurm_submit_stubs
+):
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(
+        tmp_path,
+        model,
+        interactive_slurm_review=True,
+        slurm_review_prompt=lambda payload: "skip",
+    ).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "reviewer chose not to submit" in exp["reason"]
+    assert slurm_submit_stubs == []  # never reached submit_job
+
+
+def test_interactive_review_treats_any_non_submit_answer_as_skip(tmp_path, slurm_submit_stubs):
+    # slurm_review_prompt's contract is "submit", or anything else means
+    # skip — a stray keystroke must never be read as approval.
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(
+        tmp_path,
+        model,
+        interactive_slurm_review=True,
+        slurm_review_prompt=lambda payload: "please wait",
+    ).run(_planner_output([_plan("H1", complexity="high")]))
+
+    assert result["experiments"][0]["status"] == "code_generated_not_run"
+    assert slurm_submit_stubs == []
+
+
+def test_interactive_review_approval_still_goes_through_the_self_review_gate(
+    tmp_path, slurm_submit_stubs
+):
+    # A human saying "submit" is one more gate, not a bypass of the existing
+    # ones — a self-review concern must still route through the fix loop
+    # exactly like it does under CODER_AUTO_SUBMIT_SLURM.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response()],
+        self_review=[
+            json.dumps({"looks_correct": False, "concerns": ["ignores the plan's dataset"]}),
+            _clean_review(),
+        ],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(
+        tmp_path,
+        model,
+        interactive_slurm_review=True,
+        slurm_review_prompt=lambda payload: "submit",
+    ).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "submitted_to_slurm"
+    assert exp["fix_history"][0]["error_source"] == "self_review"
+
+
+def test_interactive_review_approval_still_respects_the_concurrent_job_cap(
+    tmp_path, slurm_submit_stubs, monkeypatch
+):
+    monkeypatch.setattr(slurm_submit, "count_running_jobs", lambda user=None: 4)
+    model = ScriptedChatModel(codegen=[_codegen_response()], self_review=[_clean_review()])
+    result = _agent(
+        tmp_path,
+        model,
+        interactive_slurm_review=True,
+        slurm_review_prompt=lambda payload: "submit",
+    ).run(_planner_output([_plan("H1", complexity="high")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert "already queued" in exp["reason"]
+    assert slurm_submit_stubs == []
+
+
+def test_interactive_review_prompt_sees_the_generated_code_and_hypothesis_id(
+    tmp_path, slurm_submit_stubs
+):
+    seen = {}
+
+    def capture(payload):
+        seen.update(payload)
+        return "skip"
+
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model, interactive_slurm_review=True, slurm_review_prompt=capture).run(
+        _planner_output([_plan("H1", complexity="high")])
+    )
+
+    assert seen["hypothesis_id"] == "H1"
+    assert "estimated_complexity is 'high'" in seen["why_unrunnable"]
+    assert "def load_data" in seen["run_py"]
+    assert seen["sbatch_path"].endswith("run.sbatch")
+
+
+def test_default_slurm_review_prompt_shows_the_code_and_reads_submit_from_stdin(
+    monkeypatch, capsys
+):
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")
+    decision = _default_slurm_review_prompt(
+        {
+            "hypothesis_id": "H1",
+            "why_unrunnable": "experiment needs a GPU, none detected in this environment",
+            "run_py": "\n".join(f"line {i}" for i in range(60)),
+            "code_path": "experiments/H1",
+            "sbatch_path": "experiments/H1/run.sbatch",
+        }
+    )
+    assert decision == "submit"
+    out = capsys.readouterr().out
+    assert "H1" in out
+    assert "more lines" in out  # 60 lines exceeds the preview cap, so it's truncated
+
+
+def test_default_slurm_review_prompt_treats_a_blank_answer_as_skip(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda prompt="": "")
+    decision = _default_slurm_review_prompt(
+        {
+            "hypothesis_id": "H1",
+            "why_unrunnable": "x",
+            "run_py": "one line\n",
+            "code_path": "experiments/H1",
+            "sbatch_path": "experiments/H1/run.sbatch",
+        }
+    )
+    assert decision == "skip"
 
 
 # -- Starter-program selection threading into the codegen/fix prompts and output --

@@ -278,6 +278,7 @@ The experiment plan is unchanged (JSON):
 
 {hf_dataset_block}
 {starter_block}
+{fix_pattern_block}
 The code sections you produced last time:
 {previous_sections_block}
 

@@ -110,8 +110,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langgraph.store.base import BaseStore
+from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    fix_pattern_store,
     huggingface_client,
     prompts,
     sandbox,
@@ -233,6 +236,42 @@ def _consecutive_error_streak(fix_history: list[dict]) -> int:
     return streak
 
 
+# How many lines of run.py to show inline before pointing at the file instead
+# — a full generated program can run to hundreds of lines, which would bury
+# the actual question ("submit, or leave it?") under a wall of code a
+# terminal has to scroll past.
+_SLURM_REVIEW_CODE_PREVIEW_LINES = 40
+
+
+def _default_slurm_review_prompt(payload: dict) -> str:
+    """CoderAgent's default slurm_review_prompt — a plain terminal prompt, for
+    a direct, attended `research-pipeline coder ...` CLI call (see
+    CODER_INTERACTIVE_SLURM_REVIEW). Anything else that wants this decision
+    made a different way (a test, a future webapp UI) injects its own
+    callable instead of using this one; see the constructor.
+
+    Returns "submit" or "skip" — CoderAgent.run()'s interrupt loop passes
+    whatever this returns straight through as Command(resume=...), so any
+    other string is treated as "skip" the same as an explicit one (a human's
+    stray keystroke shouldn't submit a job to a shared cluster)."""
+    lines = payload["run_py"].splitlines()
+    preview = "\n".join(lines[:_SLURM_REVIEW_CODE_PREVIEW_LINES])
+    if len(lines) > _SLURM_REVIEW_CODE_PREVIEW_LINES:
+        preview += f"\n... ({len(lines) - _SLURM_REVIEW_CODE_PREVIEW_LINES} more lines — see {payload['code_path']}/run.py)"
+    print(
+        f"\n{'=' * 70}\n"
+        f"Hypothesis {payload['hypothesis_id']} can't run here: {payload['why_unrunnable']}.\n"
+        f"Generated {payload['sbatch_path']} — first "
+        f"{min(len(lines), _SLURM_REVIEW_CODE_PREVIEW_LINES)} line(s) of run.py:\n\n"
+        f"{preview}\n\n"
+        f"Nothing has executed this code. It still has to pass a static safety check and an "
+        f"LLM pre-flight review before it can be submitted, and both SLURM job caps still apply.\n"
+        f"{'=' * 70}"
+    )
+    answer = input("Submit to SLURM now? [y/N] ").strip().lower()
+    return "submit" if answer in {"y", "yes"} else "skip"
+
+
 def _compact_json(obj: object) -> str:
     """No pretty-printing whitespace — this is embedded in prompts, not read
     by a human, and indent=2 runs meaningfully more tokens for the same data
@@ -324,6 +363,9 @@ class CoderAgent:
         gpu_check: Callable[[], bool] | None = None,
         max_fix_attempts: int | None = None,
         huggingface_lookup_fn: Callable[[str], dict | None] | None = None,
+        fix_store: BaseStore | None = None,
+        interactive_slurm_review: bool | None = None,
+        slurm_review_prompt: Callable[[dict], str] | None = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config, same as every
         # other agent, at a low temperature. streaming=True: this agent's
@@ -347,6 +389,22 @@ class CoderAgent:
         self.max_fix_attempts = (
             settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
         )
+        # Injectable for the same reason huggingface_lookup_fn is: a test needs
+        # an isolated store (its own patterns, not another test's or a real
+        # sqlite file) rather than the process-wide singleton
+        # fix_pattern_store.get_store() would otherwise hand back.
+        self.fix_store = fix_store or fix_pattern_store.get_store()
+        self.interactive_slurm_review = (
+            settings.coder_interactive_slurm_review
+            if interactive_slurm_review is None
+            else interactive_slurm_review
+        )
+        # Only ever called from run()'s interrupt loop, never from inside a
+        # graph node directly — see _handle_unrunnable_locally, which calls
+        # interrupt() itself and leaves *asking* a human to whoever resumes
+        # the graph. The default reads a real terminal answer; a test (or a
+        # future webapp) injects its own callable instead.
+        self.slurm_review_prompt = slurm_review_prompt or _default_slurm_review_prompt
         self._slurm_jobs_submitted = 0
 
     def run(self, planner_output: dict) -> dict:
@@ -370,15 +428,29 @@ class CoderAgent:
         self._slurm_jobs_submitted = 0
 
         graph = build_coder_graph(self)
+        config = {
+            "configurable": {"thread_id": str(uuid.uuid4())},
+            "recursion_limit": _recursion_limit_for(
+                _plan_count(planner_output), self.max_fix_attempts
+            ),
+        }
         final_state = graph.invoke(
             {"planner_output": planner_output, "experiments": [], "slurm_jobs_submitted": 0},
-            config={
-                "configurable": {"thread_id": str(uuid.uuid4())},
-                "recursion_limit": _recursion_limit_for(
-                    _plan_count(planner_output), self.max_fix_attempts
-                ),
-            },
+            config=config,
         )
+        # A paused graph (self.interactive_slurm_review, see
+        # _handle_unrunnable_locally's interrupt() call) reports itself via
+        # "__interrupt__" in the returned state rather than raising — asking
+        # is this instance's job (slurm_review_prompt), not the graph's; the
+        # graph only knows it needs an answer, not how to get one. Resuming
+        # replays the paused node from the top up to that same interrupt()
+        # call, which then returns the decision instead of pausing again — see
+        # https://docs.langchain.com/oss/python/langgraph/interrupts. A single
+        # run can hit this more than once (one per plan deferred to sbatch),
+        # hence the loop rather than a single check.
+        while "__interrupt__" in final_state:
+            decision = self.slurm_review_prompt(final_state["__interrupt__"][0].value)
+            final_state = graph.invoke(Command(resume=decision), config=config)
         return final_state["result"]
 
     # -- Graph nodes -----------------------------------------------------------
@@ -544,6 +616,13 @@ class CoderAgent:
                 *fix_history[:-1],
                 {**fix_history[-1], "resolved": resolved},
             ]
+            if resolved:
+                self._maybe_record_fix_pattern(
+                    fix_history[-1]["error_source"],
+                    fix_history[-1]["error_summary"],
+                    state.get("current_broken_sections") or {},
+                    state["current_generation"].get("run_py_sections", {}),
+                )
         return update
 
     def _route_after_attempt(self, state: CoderState) -> str:
@@ -622,6 +701,12 @@ class CoderAgent:
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
             "current_attempt": attempt + 1,
+            # The sections that just failed (state["current_generation"], read
+            # before this node's own reassignment above) — i.e. what entry's
+            # error_source was produced by. Read back once entry's `resolved`
+            # is known, to pair "what was broken" with "what fixed it" — see
+            # fix_pattern_store.record_fix and state.py's field comment.
+            "current_broken_sections": dict(state["current_generation"].get("run_py_sections", {})),
         }
 
     def _node_finalize_current_plan(self, state: CoderState) -> dict:
@@ -1053,7 +1138,35 @@ class CoderAgent:
             }
 
         if not settings.coder_auto_submit_slurm:
-            return leave_for_review("review and submit it yourself with `sbatch run.sbatch`.")
+            if not self.interactive_slurm_review:
+                return leave_for_review("review and submit it yourself with `sbatch run.sbatch`.")
+
+            # Pauses the whole graph here — see run()'s interrupt loop, which
+            # is what actually asks a human and resumes with the answer. On
+            # resume, this node re-executes from the top (LangGraph's
+            # documented interrupt contract) and reaches this same call a
+            # second time, which is when it returns the decision instead of
+            # pausing again — everything above this line (writing run.sbatch,
+            # the checks _attempt_once already ran) is either idempotent or
+            # already done by the time a real answer comes back, so replaying
+            # it is harmless.
+            decision = interrupt(
+                {
+                    "hypothesis_id": hypothesis_id,
+                    "why_unrunnable": why_unrunnable,
+                    "run_py": run_py,
+                    "code_path": str(experiment_dir),
+                    "sbatch_path": str(sbatch_path),
+                }
+            )
+            if decision != "submit":
+                return leave_for_review(
+                    "left for manual review — reviewer chose not to submit it now."
+                )
+            # decision == "submit": fall through to the exact same
+            # safety-check + cap + submit sequence coder_auto_submit_slurm
+            # takes. A human saying "submit" is one more gate, not a bypass of
+            # the ones below.
 
         # The static safety check already ran in _attempt_once, before this
         # branch — anything it flags never reaches submission.
@@ -1107,6 +1220,32 @@ class CoderAgent:
             return True
         order = _ERROR_STAGE_ORDER
         return order.index(outcome["error_source"]) > order.index(previous_source)
+
+    def _maybe_record_fix_pattern(
+        self,
+        error_source: str,
+        error_summary: str,
+        broken_sections: dict[str, str],
+        fixed_sections: dict[str, str],
+    ) -> None:
+        """Persists the fix that just resolved error_source, for
+        _fix_pattern_block to show a future fix attempt on the same
+        error_source. A store outage degrades to "nothing recorded" rather
+        than failing the run — same resilience contract as _find_hf_dataset's
+        network lookup: this is a prompt enhancement, never a reason a real,
+        working experiment result is lost."""
+        if not settings.coder_enable_fix_pattern_store:
+            return
+        try:
+            fix_pattern_store.record_fix(
+                self.fix_store,
+                error_source=error_source,
+                error_summary=error_summary,
+                broken_sections=broken_sections,
+                fixed_sections=fixed_sections,
+            )
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            logger.warning("Could not persist a fix pattern for %s: %s", error_source, exc)
 
     @staticmethod
     def _snapshot_attempt(experiment_dir: Path, attempt: int) -> Path:
@@ -1294,6 +1433,43 @@ class CoderAgent:
             f"calls for something different:\n\n{rendered}\n"
         )
 
+    def _fix_pattern_block(self, error_source: str) -> str:
+        """Up to 2 real past fixes for this exact error_source, from
+        fix_pattern_store — the fix-loop counterpart to _starter_block: same
+        "ground the model in a real worked example" idea, populated by this
+        pipeline's own run history instead of a hand-authored library. ""
+        when disabled, empty, or the store is unreachable, so a fix prompt
+        with no recorded history for this error_source reads exactly as it
+        did before this store existed."""
+        if not settings.coder_enable_fix_pattern_store:
+            return ""
+        try:
+            recalled = fix_pattern_store.recall_fixes(self.fix_store, error_source)
+        except Exception as exc:  # noqa: BLE001 — a prompt enhancement, not a dependency
+            logger.warning(
+                "Fix-pattern lookup failed for %s; continuing without it: %s", error_source, exc
+            )
+            return ""
+        if not recalled:
+            return ""
+
+        rendered_patterns = []
+        for i, pattern in enumerate(recalled, start=1):
+            sections_text = "\n\n".join(
+                f"--- {name} (before) ---\n{change['before'] or '<none — new section>'}\n"
+                f"--- {name} (after; this is what fixed it) ---\n{change['after']}"
+                for name, change in (pattern.get("changed_sections") or {}).items()
+            )
+            rendered_patterns.append(
+                f"Past fix #{i}, for the same failure "
+                f"({str(pattern.get('error_summary', ''))[:200]}):\n{sections_text}"
+            )
+        return (
+            "Real fixes that resolved this exact error_source in past runs, most recent "
+            "first — this is not this plan's own code, so adapt the PATTERN of what changed "
+            "rather than copying it verbatim:\n\n" + "\n\n".join(rendered_patterns) + "\n"
+        )
+
     @staticmethod
     def _stuck_block(streak: int, previous_error_summary: str) -> str:
         """Empty below streak 2 (this failure is a new kind, or the first one) —
@@ -1426,6 +1602,11 @@ class CoderAgent:
             # across every fix attempt instead of drifting.
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
             starter_block=self._starter_block(starter_id),
+            # Looked up fresh every fix call, unlike the starter/dataset blocks
+            # above — it depends on error_source, which can (and often does)
+            # change attempt to attempt, so caching it per-plan the way those
+            # two are would show the wrong error's patterns after a shift.
+            fix_pattern_block=self._fix_pattern_block(error_source),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             # Shown back in the same delimited format it's being asked to answer
             # in — quoting the previous attempt as escaped JSON would invite the
@@ -1479,9 +1660,23 @@ class CoderAgent:
         return path
 
 
-def run_coder_agent(planner_output: dict, output_dir: str | Path | None = None) -> dict:
+def run_coder_agent(
+    planner_output: dict,
+    output_dir: str | Path | None = None,
+    *,
+    interactive_slurm_review: bool | None = None,
+) -> dict:
     """Module-level entry point — the stable call the pipeline (or a manual
     trigger) should use. Builds a default-configured CoderAgent and runs it
     once; use the CoderAgent class directly to reuse one model/config across
-    multiple calls."""
-    return CoderAgent(output_dir=output_dir).run(planner_output)
+    multiple calls.
+
+    `interactive_slurm_review` defaults to None (CODER_INTERACTIVE_SLURM_REVIEW,
+    itself defaulting to off) rather than being a plain bool default — every
+    caller that doesn't pass it explicitly gets exactly today's behavior. The
+    orchestrator and batch.py deliberately never pass it: they run unattended,
+    and this setting exists specifically for a direct, attended CLI call (see
+    cli.py's --interactive-slurm-review)."""
+    return CoderAgent(output_dir=output_dir, interactive_slurm_review=interactive_slurm_review).run(
+        planner_output
+    )

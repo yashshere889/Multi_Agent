@@ -42,11 +42,16 @@ class Settings:
     coder_output_dir: str
     coder_max_fix_attempts: int
     coder_enable_hf_dataset_search: bool
+    coder_enable_fix_pattern_store: bool
+    coder_fix_store_backend: str
+    coder_fix_store_sqlite_path: str
+    coder_fix_store_postgres_uri: str
     coder_run_high_complexity_when_gpu_available: bool
     coder_high_complexity_timeout_seconds: int
     coder_low_complexity_timeout_seconds: int
     coder_medium_complexity_timeout_seconds: int
     coder_auto_submit_slurm: bool
+    coder_interactive_slurm_review: bool
     coder_max_concurrent_slurm_jobs: int
     coder_max_slurm_jobs_per_run: int
     writer_output_dir: str
@@ -154,7 +159,9 @@ def load_settings() -> Settings:
         # are keyed by (thread_id, checkpoint_ns) and every call site already
         # mints its own thread_id (a fresh uuid4 per agent call, the run_id for
         # the orchestrator), so there is nothing to collide.
-        checkpointer_sqlite_path=os.environ.get("CHECKPOINTER_SQLITE_PATH", "checkpoints/pipeline.db"),
+        checkpointer_sqlite_path=os.environ.get(
+            "CHECKPOINTER_SQLITE_PATH", "checkpoints/pipeline.db"
+        ),
         # Blank = unset, matching SEMANTIC_SCHOLAR_API_KEY's style. Only read
         # when CHECKPOINTER_BACKEND=postgres.
         checkpointer_postgres_uri=os.environ.get("CHECKPOINTER_POSTGRES_URI", ""),
@@ -171,7 +178,9 @@ def load_settings() -> Settings:
         # How long a cached search stays usable. An hour is short enough that a
         # long sweep still picks up newly published work, long enough to cover
         # a batch of related questions.
-        paper_search_cache_ttl_seconds=int(os.environ.get("PAPER_SEARCH_CACHE_TTL_SECONDS", "3600")),
+        paper_search_cache_ttl_seconds=int(
+            os.environ.get("PAPER_SEARCH_CACHE_TTL_SECONDS", "3600")
+        ),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
         # costs one arXiv + one Semantic Scholar + one CORE search per generated
@@ -193,6 +202,20 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        # On by default, and — unlike CHECKPOINTER_BACKEND — defaulting to
+        # "sqlite" rather than "memory": a checkpointer's in-memory default is
+        # fine because most runs are one-shot processes anyway, but this
+        # store's entire value is accumulating across many separate process
+        # invocations, so an in-memory default would silently do nothing for
+        # the pipeline's most common usage pattern. See
+        # agents/coder/fix_pattern_store.py's module docstring.
+        coder_enable_fix_pattern_store=_env_bool("CODER_ENABLE_FIX_PATTERN_STORE", True),
+        coder_fix_store_backend=os.environ.get("CODER_FIX_STORE_BACKEND", "sqlite"),
+        coder_fix_store_sqlite_path=os.environ.get(
+            "CODER_FIX_STORE_SQLITE_PATH", "coder_fix_patterns.db"
+        ),
+        # Only read when CODER_FIX_STORE_BACKEND=postgres.
+        coder_fix_store_postgres_uri=os.environ.get("CODER_FIX_STORE_POSTGRES_URI", ""),
         # Off by default: "high" complexity always defers to run.sbatch,
         # regardless of GPU availability, because the SLURM path is written
         # for a *shared* cluster where nothing should run unreviewed. On a
@@ -203,38 +226,65 @@ def load_settings() -> Settings:
         # run synchronously exactly like low/medium, but only when gpu_check()
         # confirms a GPU is actually present; needs_gpu-without-a-GPU still
         # always defers, since there's nothing to run it on either way.
-        coder_run_high_complexity_when_gpu_available=_env_bool("CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE", False),
+        coder_run_high_complexity_when_gpu_available=_env_bool(
+            "CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE", False
+        ),
         # High-complexity work (e.g. fine-tuning) legitimately runs longer
         # than low/medium's 120s/300s; only consulted when the flag above is on.
-        coder_high_complexity_timeout_seconds=int(os.environ.get("CODER_HIGH_COMPLEXITY_TIMEOUT_SECONDS", "1800")),
+        coder_high_complexity_timeout_seconds=int(
+            os.environ.get("CODER_HIGH_COMPLEXITY_TIMEOUT_SECONDS", "1800")
+        ),
         # The low/medium execution timeouts, previously a hardcoded dict in
         # sandbox.py. Same pattern (and same read site in coder_agent.py) as the
         # high-complexity timeout above — sandbox.py deliberately reads no
         # settings at all, so all three are resolved by coder_agent.py. Defaults
         # are exactly the values that dict held; "high" is not one of these
         # because it only ever runs synchronously under the opt-in flag above.
-        coder_low_complexity_timeout_seconds=int(os.environ.get("CODER_LOW_COMPLEXITY_TIMEOUT_SECONDS", "120")),
-        coder_medium_complexity_timeout_seconds=int(os.environ.get("CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS", "300")),
+        coder_low_complexity_timeout_seconds=int(
+            os.environ.get("CODER_LOW_COMPLEXITY_TIMEOUT_SECONDS", "120")
+        ),
+        coder_medium_complexity_timeout_seconds=int(
+            os.environ.get("CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS", "300")
+        ),
         # Off by default: run.sbatch is generated from code nothing has ever
         # executed, and submitting it spends GPU allocation on a cluster other
         # people are queueing for. Turning this on is a deliberate choice for
         # unattended batch runs, and is still gated by the two caps below plus
         # a clean static safety check.
         coder_auto_submit_slurm=_env_bool("CODER_AUTO_SUBMIT_SLURM", False),
+        # Off by default, and meant only for a direct, attended `research-pipeline
+        # coder ...` CLI call — never set this for orchestrate/orchestrate-batch/the
+        # webapp, which run unattended and would hang waiting on a prompt no one is
+        # there to answer. When on, a plan that can't run here (no GPU, or high
+        # complexity without CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE) pauses the
+        # graph (LangGraph interrupt()) instead of unconditionally handing the
+        # decision to a human outside the pipeline — see
+        # CoderAgent._handle_unrunnable_locally. The self-review/job-cap gates below
+        # still apply even when a human approves; this only adds a gate, it never
+        # removes one.
+        coder_interactive_slurm_review=_env_bool("CODER_INTERACTIVE_SLURM_REVIEW", False),
         # Checked against squeue, so it holds across every process in a batch.
         coder_max_concurrent_slurm_jobs=int(os.environ.get("CODER_MAX_CONCURRENT_SLURM_JOBS", "4")),
         # Per-question ceiling, so one runaway plan set can't flood the queue.
         coder_max_slurm_jobs_per_run=int(os.environ.get("CODER_MAX_SLURM_JOBS_PER_RUN", "10")),
         writer_output_dir=os.environ.get("WRITER_OUTPUT_DIR", "outputs"),
-        writer_related_work_batch_max_chars=int(os.environ.get("WRITER_RELATED_WORK_BATCH_MAX_CHARS", "12000")),
+        writer_related_work_batch_max_chars=int(
+            os.environ.get("WRITER_RELATED_WORK_BATCH_MAX_CHARS", "12000")
+        ),
         # No real author identity flows through the pipeline, so this defaults to
         # NeurIPS's own anonymized-submission placeholder text rather than fabricating one.
         writer_paper_authors=os.environ.get("WRITER_PAPER_AUTHORS", "Anonymous Author(s)"),
-        writer_paper_affiliation=os.environ.get("WRITER_PAPER_AFFILIATION", "Anonymous Institution"),
+        writer_paper_affiliation=os.environ.get(
+            "WRITER_PAPER_AFFILIATION", "Anonymous Institution"
+        ),
         reviewer_output_dir=os.environ.get("REVIEWER_OUTPUT_DIR", "outputs"),
-        writer_reviewer_loop_output_dir=os.environ.get("WRITER_REVIEWER_LOOP_OUTPUT_DIR", "outputs/paper"),
+        writer_reviewer_loop_output_dir=os.environ.get(
+            "WRITER_REVIEWER_LOOP_OUTPUT_DIR", "outputs/paper"
+        ),
         writer_reviewer_max_iterations=int(os.environ.get("WRITER_REVIEWER_MAX_ITERATIONS", "3")),
-        writer_reviewer_quality_threshold=int(os.environ.get("WRITER_REVIEWER_QUALITY_THRESHOLD", "4")),
+        writer_reviewer_quality_threshold=int(
+            os.environ.get("WRITER_REVIEWER_QUALITY_THRESHOLD", "4")
+        ),
         batch_output_root=os.environ.get("BATCH_OUTPUT_ROOT", "outputs/batch"),
         # Stops a long batch early when something systemic is wrong (the model
         # server is down, the API key expired) instead of burning the rest of

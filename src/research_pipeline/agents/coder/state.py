@@ -97,6 +97,16 @@ class CoderState(TypedDict, total=False):
     current_starter_id: str
     # run_py_sections / assumptions_made / needs_gpu / requirements_txt / readme
     current_generation: dict
+    # The run_py_sections of whatever current_generation *was* right before the
+    # most recent snapshot_and_regenerate call replaced it — i.e. the code that
+    # produced current_fix_history[-1]'s error. Read by the attempt node once
+    # that entry's `resolved` is known, to pair "what was broken" with "what
+    # fixed it" for fix_pattern_store.record_fix. Not part of the validated
+    # output — see fix_pattern_store.py for why this is checkpointed state
+    # rather than a value threaded through Python call args: it has to survive
+    # exactly one extra node hop (regenerate -> attempt) the same way every
+    # other current_* working-set key does.
+    current_broken_sections: dict
     current_fix_history: list[dict]
     current_attempt: int  # 0-based, matching the old `for attempt in range(max_fix_attempts + 1)`
     current_outcome: dict  # {"result": ...} or {"error_source", "error_text"}
