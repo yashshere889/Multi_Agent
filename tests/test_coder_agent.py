@@ -248,6 +248,64 @@ def test_ensure_experiment_env_ignores_extra_requirements_already_present(tmp_pa
     assert python_exec == Path(sys.executable)
 
 
+def test_ensure_experiment_env_falls_back_to_venv_when_bare_interpreter_import_fails(
+    tmp_path, monkeypatch
+):
+    """Regression test for job 10271093: find_spec() said the requirement is
+    importable in this process (trivially true here, 'os' is stdlib), but a
+    subprocess launched with the same interpreter genuinely fails to import
+    it — reproducing the gap where find_spec's in-process answer (likely
+    fooled on the real run by an HPC module-loaded site-packages path) didn't
+    match what run_experiment's subprocess could actually do. 3 fix attempts
+    on that run regenerated code against a failure that was never about the
+    code. ensure_experiment_env must fall through to real venv provisioning
+    rather than trusting the bare interpreter on faith."""
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("os\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    venv_python = tmp_path / ".venv" / "bin" / "python"
+    recorded_cmds = []
+
+    def fake_run(cmd, **kwargs):
+        recorded_cmds.append(cmd)
+        if "-c" in cmd:
+            return SimpleNamespace(
+                returncode=1, stdout="", stderr="ImportError: no module named os"
+            )
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True
+    )
+    assert error is None
+    assert python_exec == venv_python
+    assert any("-c" in cmd for cmd in recorded_cmds)
+    assert any(cmd[0] == "uv" and "venv" in cmd for cmd in recorded_cmds)
+
+
+def test_ensure_experiment_env_reports_missing_when_bare_interpreter_import_fails_without_network(
+    tmp_path, monkeypatch
+):
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("os\n")
+
+    def fake_run(cmd, **kwargs):
+        return SimpleNamespace(returncode=1, stdout="", stderr="ImportError")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=False
+    )
+    assert python_exec is None
+    assert "os" in error
+    assert "network" in error
+
+
 def test_ensure_experiment_env_provisions_for_extra_requirements_not_in_requirements_txt(
     tmp_path, monkeypatch
 ):

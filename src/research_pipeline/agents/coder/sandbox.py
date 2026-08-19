@@ -48,13 +48,12 @@ def has_gpu() -> bool:
     return shutil.which("nvidia-smi") is not None
 
 
-def missing_packages(requirements: list[str]) -> list[str]:
-    """requirements: lines like 'numpy' or 'numpy>=1.20'. Checked via Python's
-    import machinery using the requirement name as the module name (good
-    enough for the common case; a handful of packages have a distribution
-    name that differs from their import name, e.g. scikit-learn -> sklearn —
-    generated requirements.txt files are expected to list the import name)."""
-    missing = []
+def _normalize_requirements(requirements: list[str]) -> list[tuple[str, str]]:
+    """Strips comments/version specifiers from requirement lines, returning
+    (requirement_name, importable_module_name) pairs. Shared by
+    missing_packages and _verify_bare_interpreter_imports so both agree on
+    what a requirement line actually names."""
+    pairs = []
     for line in requirements:
         name = line.strip()
         if not name or name.startswith("#"):
@@ -63,10 +62,54 @@ def missing_packages(requirements: list[str]) -> list[str]:
             if sep in name:
                 name = name.split(sep, 1)[0].strip()
                 break
-        module_name = name.replace("-", "_")
-        if importlib.util.find_spec(module_name) is None:
-            missing.append(name)
-    return missing
+        pairs.append((name, name.replace("-", "_")))
+    return pairs
+
+
+def missing_packages(requirements: list[str]) -> list[str]:
+    """requirements: lines like 'numpy' or 'numpy>=1.20'. Checked via Python's
+    import machinery using the requirement name as the module name (good
+    enough for the common case; a handful of packages have a distribution
+    name that differs from their import name, e.g. scikit-learn -> sklearn —
+    generated requirements.txt files are expected to list the import name)."""
+    return [
+        name
+        for name, module_name in _normalize_requirements(requirements)
+        if importlib.util.find_spec(module_name) is None
+    ]
+
+
+def _verify_bare_interpreter_imports(requirements: list[str], cwd: Path) -> list[str]:
+    """find_spec() (missing_packages, above) only proves a module is
+    importable in *this* process — not in a subprocess launched with the same
+    interpreter from the experiment directory, which is what run_experiment
+    actually does. A 2026-08-19 production run (job 10271093) hit exactly
+    that gap: pandas wasn't "missing" by find_spec's reckoning (likely
+    visible via an HPC module-loaded site-packages path this process
+    inherits), so ensure_experiment_env hands back the bare interpreter on
+    faith — but the subprocess run_experiment launches from experiments/H1/
+    couldn't import it, and 3 fix attempts regenerated code against a
+    failure that was never about the code at all. Runs one real
+    `python -c "import ..."` from the same cwd run_experiment will use, so
+    what's trusted is what will actually run — same reasoning as this
+    function's neighbour, the venv_python.exists() check below. Returns the
+    requirement names (not module names) that failed to import, or [] if
+    every one imported cleanly (including when there's nothing to check)."""
+    pairs = _normalize_requirements(requirements)
+    if not pairs:
+        return []
+    import_stmt = "; ".join(f"import {module_name}" for _, module_name in pairs)
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", import_stmt],
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return [name for name, _ in pairs]
+    return [] if proc.returncode == 0 else [name for name, _ in pairs]
 
 
 # experiments/_shared/ is generated once per run and freely imports whatever
@@ -725,9 +768,17 @@ def ensure_experiment_env(
     requirements.txt on disk, since that file documents what *this
     experiment's own code* declared, not what shared infra happens to need."""
     requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
-    missing = missing_packages(requirements + list(extra_requirements or []))
+    combined_requirements = requirements + list(extra_requirements or [])
+    missing = missing_packages(combined_requirements)
     if not missing:
-        return Path(sys.executable), None
+        # find_spec() says nothing's missing, but that alone isn't proof the
+        # bare interpreter can actually import these from a subprocess — see
+        # _verify_bare_interpreter_imports's docstring for the incident (job
+        # 10271093) this closes. Falls through to real provisioning below,
+        # exactly like anything missing_packages itself flagged, if it can't.
+        missing = _verify_bare_interpreter_imports(combined_requirements, experiment_dir)
+        if not missing:
+            return Path(sys.executable), None
 
     if not network_available:
         return None, f"missing package(s) {missing} and no network access to install them"
