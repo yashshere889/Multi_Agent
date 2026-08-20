@@ -911,3 +911,110 @@ def test_files_page_for_a_run_that_has_only_just_started(client, store):
     assert "Run files" in body
     assert "run.json" in body
     assert "Stage outputs and drafts" not in body
+
+
+# -- the experiment inspector -------------------------------------------------
+
+
+def _coder_summary(store, run_id, experiments_list):
+    run_dir = store.run_dir(run_id)
+    (run_dir / "outputs").mkdir(parents=True, exist_ok=True)
+    (run_dir / "outputs" / "coder_agent_summary_20260820T120000Z.json").write_text(
+        json.dumps({"experiments": experiments_list, "generated_at": "2026-08-20T12:00:00+00:00"})
+    )
+    return run_dir
+
+
+def test_run_page_links_to_the_experiments_page(client, store):
+    record = store.create("q", {})
+
+    assert f'/runs/{record["run_id"]}/experiments' in client.get(f"/runs/{record['run_id']}").text
+
+
+def test_experiments_page_renders_metrics_fixes_and_files(client, store):
+    record = store.create("q", {})
+    run_id = record["run_id"]
+    run_dir = store.run_dir(run_id)
+    code_dir = run_dir / "experiments" / "H1"
+    (code_dir / "fix_attempts" / "attempt_1").mkdir(parents=True)
+    (code_dir / "run.py").write_text("def main(): pass\n")
+    _coder_summary(
+        store,
+        run_id,
+        [
+            {
+                "hypothesis_id": "H1",
+                "status": "completed",
+                "code_path": str(code_dir),
+                "results": {"metrics": {"f1": 0.71}, "meets_success_criteria": True, "notes": ""},
+                "fix_attempts": 1,
+                "fix_history": [
+                    {
+                        "attempt": 1,
+                        "error_source": "missing_data_fallback",
+                        "error_summary": "load_data reads reviews.csv unguarded",
+                        "code_path": str(code_dir / "fix_attempts" / "attempt_1"),
+                        "resolved": True,
+                        "same_error_streak": 1,
+                    }
+                ],
+                "assumptions_made": ["treated missing labels as negatives"],
+                "data_provenance": {},
+            }
+        ],
+    )
+
+    body = client.get(f"/runs/{run_id}/experiments").text
+
+    assert "H1" in body
+    assert "0.71" in body
+    assert "missing_data_fallback" in body
+    assert "load_data reads reviews.csv unguarded" in body
+    assert "treated missing labels as negatives" in body
+    assert "experiments/H1/run.py" in body
+
+
+def test_experiments_page_says_loudly_when_a_verdict_was_withheld(client, store):
+    record = store.create("q", {})
+    run_id = record["run_id"]
+    _coder_summary(
+        store,
+        run_id,
+        [
+            {
+                "hypothesis_id": "H1",
+                "status": "completed",
+                "code_path": "",
+                "results": {
+                    "metrics": {"rmse": 2.1},
+                    "meets_success_criteria": "unknown",
+                    "model_reported_meets_success_criteria": False,
+                    "verdict_withheld_because": "One or more inputs are synthetic surrogates",
+                    "notes": "",
+                },
+                "fix_attempts": 0,
+                "fix_history": [],
+                "data_provenance": {
+                    "inputs": [{"name": "CMS claims", "kind": "synthetic_surrogate", "reason": "needs a DUA"}],
+                    "surrogate_count": 1,
+                },
+            }
+        ],
+    )
+
+    body = client.get(f"/runs/{run_id}/experiments").text
+
+    assert "Verdict withheld" in body
+    assert "synthetic surrogates" in body
+    assert "synthetic_surrogate" in body
+    assert "needs a DUA" in body
+    # the metrics still stand, only the verdict is withheld
+    assert "2.1" in body
+
+
+def test_experiments_page_for_a_run_that_never_reached_the_coder(client, store):
+    record = store.create("q", {"end_stage": "hypothesis"})
+
+    body = client.get(f"/runs/{record['run_id']}/experiments").text
+
+    assert "No experiments to inspect" in body

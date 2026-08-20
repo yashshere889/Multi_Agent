@@ -252,3 +252,51 @@ table.files td:first-child { white-space: normal; word-break: break-all; }
   line-height: 1.45;
   tab-size: 4;
 }
+
+/* --- experiment inspector ------------------------------------------------ */
+
+.experiment-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.experiment-head h2 { margin: 0; }
+.experiment h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--muted); font-weight: 500; margin: 1.1rem 0 .4rem; }
+
+/* The one thing on this page that must not read as a footnote: metrics with no
+   verdict look like a bug until you know the agent withheld it on purpose. */
+.withheld {
+  border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  padding: .6rem .8rem;
+  margin: .75rem 0;
+}
+.withheld p { margin: 0 0 .3rem; }
+.withheld p:last-child { margin-bottom: 0; }
+
+table.metrics { width: auto; }
+table.metrics td { padding: .2rem .9rem .2rem 0; border: 0; }
+.metric-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.inputs, .experiment-files { margin: .3rem 0; padding-left: 1.1rem; }
+.inputs li, .experiment-files li { margin-bottom: .35rem; }
+
+.fix-history { margin: .3rem 0; padding-left: 1.4rem; }
+.fix-history > li { margin-bottom: .8rem; }
+.fix-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .3rem; }
+
+/* Tracebacks and lint output, capped so three failed attempts don't turn the
+   page into a scroll. */
+.fix-error {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: .5rem .6rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

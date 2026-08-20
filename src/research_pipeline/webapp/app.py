@@ -30,7 +30,7 @@ from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE, STAGE_FOR_OUTPUT_KEY, STAGE_SEQUENCE
 from research_pipeline.orchestrator.state import EndStage
-from research_pipeline.webapp import artifacts, events, runs, stages
+from research_pipeline.webapp import artifacts, events, experiments, runs, stages
 
 logger = logging.getLogger(__name__)
 
@@ -444,6 +444,21 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         if not path or not path.exists() or path.suffix.lower() != ".pdf":
             raise runs.RunNotFound(f"no such paper for run {run_id}")
         return FileResponse(path, media_type="application/pdf", filename=f"{run_id[:8]}_{path.name}")
+
+    @app.get("/runs/{run_id}/experiments", response_class=HTMLResponse)
+    def experiments_page(request: Request, run_id: str):
+        """Every generated experiment in the detail the progress panel can't
+        carry: what each fix attempt failed with, what data the run actually
+        used, and why a verdict was withheld when it was."""
+        record = store.get(run_id)
+        views, summary_rel = experiments.load_experiments(store.run_dir(run_id))
+        return render(
+            request,
+            "experiments.html",
+            run=record,
+            experiments=views,
+            summary_rel=summary_rel,
+        )
 
     @app.get("/runs/{run_id}/files", response_class=HTMLResponse)
     def files_page(request: Request, run_id: str):
