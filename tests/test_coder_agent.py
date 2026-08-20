@@ -1747,6 +1747,69 @@ def test_static_safety_check_flags_dangerous_code(code, expected):
     assert any(expected in f for f in findings)
 
 
+@pytest.mark.parametrize(
+    "code",
+    [
+        "model.eval()",
+        # As it actually appears in generated code: indented inside a function,
+        # which is what makes the source parseable in the first place.
+        "def build_model():\n    model = load()\n    model.eval()  # inference mode\n    return model",
+        "with torch.no_grad():\n    model.eval()\n    out = model(x)",
+        "self.model.eval()",
+        "cursor.exec(query)",
+        "estimator.eval(data)",
+    ],
+)
+def test_static_safety_check_allows_methods_that_share_a_builtin_name(code):
+    """`model.eval()` is PyTorch's switch to inference mode, not the builtin.
+
+    The old `\\beval\\s*\\(` matched it — `.` before `eval` is a word boundary —
+    which blocked essentially every experiment this pipeline generates, and was
+    unfixable by regeneration because the code was already correct: a real run
+    spent all three fix attempts being told to remove a line that had to stay.
+    """
+    assert sandbox.static_safety_check(code) == []
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        ("result = eval(user_input)", "eval"),
+        ("exec(src)", "exec"),
+        ("import builtins\nbuiltins.eval(x)", "eval"),
+        ("__import__('os').system('x')", "__import__"),
+    ],
+)
+def test_static_safety_check_still_flags_the_real_builtin(code, expected):
+    findings = sandbox.static_safety_check(code)
+    assert any(expected in f for f in findings), findings
+
+
+def test_static_safety_check_reports_where_the_finding_is():
+    """ "eval() call" alone gave the fix loop nothing to act on — it could not
+    tell the model which line to change."""
+    code = "import os\nmodel.eval()\nscore = eval(expr)\n"
+
+    findings = sandbox.static_safety_check(code)
+
+    assert len(findings) == 1
+    assert "line 3" in findings[0]
+    assert "score = eval(expr)" in findings[0]
+
+
+def test_static_safety_check_falls_back_to_regex_on_unparseable_source():
+    """Both callers check compilation first, so this is the path a direct caller
+    takes. Imprecise on purpose — better a false positive than a silent pass.
+
+    The `model.eval()` false positive survives here and that is fine: source
+    this branch sees does not compile, so in the pipeline compile_check has
+    already failed it and the model gets a syntax error, never a safety finding.
+    """
+    findings = sandbox.static_safety_check("def broken(:\n    eval(x)")
+
+    assert any("eval" in f for f in findings)
+
+
 def test_static_safety_check_passes_ordinary_experiment_code():
     code = "\n".join(
         GOOD_SECTIONS[k]

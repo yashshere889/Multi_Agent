@@ -298,10 +298,20 @@ def lenient_compile_check(
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
+# Builtins whose *call* is the problem. Deliberately not in DANGEROUS_PATTERNS:
+# a regex cannot tell `eval(user_input)` from `model.eval()`, and `\beval\s*\(`
+# matches both — the `.` before `eval` is a word boundary. That false positive
+# blocked every PyTorch experiment this pipeline generates, since switching a
+# model to inference mode is spelled `model.eval()`, and it was unfixable by
+# regeneration: the code was already correct, so all three fix attempts were
+# spent being told to remove something that had to stay. See _builtin_call_findings.
+DANGEROUS_BUILTIN_CALLS: dict[str, str] = {
+    "eval": "eval() call",
+    "exec": "exec() call",
+    "__import__": "dynamic __import__() call",
+}
+
 DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\b__import__\s*\(", "dynamic __import__() call"),
     (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
     (r"\bos\.system\s*\(", "os.system() call"),
     (r"\bos\.popen\s*\(", "os.popen() call"),
@@ -318,11 +328,66 @@ DANGEROUS_PATTERNS: list[tuple[str, str]] = [
 ]
 
 
+class _BuiltinCallVisitor(ast.NodeVisitor):
+    """Finds calls to the builtins in DANGEROUS_BUILTIN_CALLS.
+
+    Only a bare name (`eval(...)`) or an explicit `builtins.eval(...)` counts.
+    An attribute call on some object — `model.eval()`, `cursor.exec()` — is a
+    method that happens to share the name and is not the builtin at all.
+    """
+
+    def __init__(self) -> None:
+        self.findings: list[tuple[int, str]] = []
+
+    def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        name = None
+        if isinstance(func, ast.Name):
+            name = func.id
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if func.value.id == "builtins":
+                name = func.attr
+        if name in DANGEROUS_BUILTIN_CALLS:
+            self.findings.append((node.lineno, DANGEROUS_BUILTIN_CALLS[name]))
+        self.generic_visit(node)
+
+
+def _builtin_call_findings(code: str) -> list[str]:
+    """Dangerous builtin calls, with the line each was found on.
+
+    Both callers run this only after a successful compile check, so the parse
+    below all but always succeeds. The regex fallback covers the case where it
+    doesn't — a caller reaching for this function directly on unparsed source.
+    It is the imprecise path on purpose: better a false positive than silently
+    passing an `eval` nobody looked at.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return [
+            description
+            for name, description in DANGEROUS_BUILTIN_CALLS.items()
+            if re.search(rf"\b{re.escape(name)}\s*\(", code)
+        ]
+
+    visitor = _BuiltinCallVisitor()
+    visitor.visit(tree)
+    lines = code.splitlines()
+    findings = []
+    for lineno, description in visitor.findings:
+        # The line itself, because "eval() call" alone gave the fix loop nothing
+        # to act on — it could not tell the model *where*, and a run that hit
+        # this spent every attempt guessing.
+        source = lines[lineno - 1].strip() if 0 < lineno <= len(lines) else ""
+        findings.append(f"{description} on line {lineno}: {source}" if source else description)
+    return findings
+
+
 def static_safety_check(code: str) -> list[str]:
     """Scans generated Python source for patterns that shouldn't appear in an
     experiment script, before it is executed or submitted anywhere. Returns a
     list of human-readable findings; empty means clean."""
-    findings = []
+    findings = _builtin_call_findings(code)
     for pattern, description in DANGEROUS_PATTERNS:
         if re.search(pattern, code):
             findings.append(description)
