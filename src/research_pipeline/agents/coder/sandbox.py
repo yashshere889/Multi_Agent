@@ -979,6 +979,35 @@ def ensure_experiment_env(
     return venv_python, None
 
 
+def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
+    """Can *this* interpreter import this module, from the directory run.py runs in?
+
+    A subprocess, not find_spec, and the target interpreter rather than
+    sys.executable — same reasoning as _verify_bare_interpreter_imports, whose
+    docstring records the run where the two answers differed. What is trusted
+    here has to be what will actually run.
+
+    Exists because an installer's exit code is not proof of repair: `uv pip
+    install pandas` returns 0 when it believes pandas is already present for
+    that interpreter, and on Barkla job 10279290 that happened six times in a
+    row while the experiment kept failing to import it. Believing the exit code
+    turned one unfixable environment into six wasted installs per attempt.
+    """
+    if not module:
+        return False
+    try:
+        proc = subprocess.run(
+            [str(python_executable), "-c", f"import {module.split('.')[0]}"],
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return proc.returncode == 0
+
+
 def install_into_env(python_executable: Path, packages: list[str]) -> tuple[bool, str]:
     """Install packages into an already-provisioned interpreter. Returns (ok, detail).
 

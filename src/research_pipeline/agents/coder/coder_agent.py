@@ -1180,9 +1180,31 @@ class CoderAgent:
                     }
                 installed, detail = repair.install_for(python_executable, failure)
                 env_repairs += 1
-                logger.info("[%s] %s", hypothesis_id, detail)
-                if installed:
+                # An installer's exit code is not proof of repair. `uv pip
+                # install pandas` returns 0 when it believes pandas is already
+                # present for that interpreter, which on Barkla job 10279290 it
+                # did six times in a row while the experiment went on failing to
+                # import it. Verify against the interpreter that will actually
+                # run the code, and treat "installed, still missing" as the
+                # environment being broken in a way installing cannot fix —
+                # otherwise the budget drains re-running an identical failure,
+                # which is the exact behaviour this whole routing layer exists
+                # to prevent.
+                if installed and sandbox.module_importable(
+                    python_executable, failure.module or "", experiment_dir
+                ):
+                    logger.info("[%s] %s", hypothesis_id, detail)
                     continue  # re-run the *unchanged* code
+                if installed:
+                    return {
+                        "error_source": failure.error_source,
+                        "error_text": (
+                            f"{failure.summary} The package installed successfully but "
+                            f"{failure.module!r} is still not importable by {python_executable} — "
+                            "the interpreter running the experiment is not the one being installed "
+                            "into, or its site-packages are not on that interpreter's path."
+                        ),
+                    }
                 return {
                     "error_source": failure.error_source,
                     "error_text": f"{failure.summary} {detail}",

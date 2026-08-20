@@ -3194,6 +3194,9 @@ def test_a_missing_package_is_installed_and_the_code_is_never_regenerated(tmp_pa
 
     monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
     monkeypatch.setattr(sandbox, "install_into_env", fake_install)
+    # A real install makes the module importable; this fake stands in for that,
+    # which the agent verifies rather than trusting the installer's exit code.
+    monkeypatch.setattr(sandbox, "module_importable", lambda *a, **k: True)
 
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
     exp = result["experiments"][0]
@@ -3570,3 +3573,46 @@ def test_extracted_imports_reach_the_installer_as_distribution_names(tmp_path, m
     assert "scikit-learn" in installed_from
     assert "sklearn" not in installed_from, "the shim name must never reach the installer"
     assert "numpy" in installed_from and "pandas" in installed_from
+
+
+def test_an_install_that_does_not_make_the_import_work_is_not_retried(tmp_path, monkeypatch):
+    """An installer's exit code is not proof of repair.
+
+    Barkla job 10279290: `uv pip install pandas` returned 0 six times in a row —
+    it believed pandas was already present for that interpreter — while the
+    experiment went on failing to import it. Trusting the exit code turned one
+    unfixable environment into six wasted installs per attempt, then spent the
+    code budget on source that was never wrong.
+    """
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    installs = []
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        runs.append(1)
+        return False, "ModuleNotFoundError: No module named 'pandas'"
+
+    def fake_install(python_executable, packages):
+        installs.append(list(packages))
+        return True, "installed"  # succeeds, and changes nothing
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    monkeypatch.setattr(sandbox, "install_into_env", fake_install)
+    monkeypatch.setattr(sandbox, "module_importable", lambda *a, **k: False)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    # The invariant that matters: one install attempt per execution, never a
+    # loop within one. Before this check the agent spent its whole
+    # CODER_MAX_ENV_REPAIRS budget — six installs — on every single execution.
+    assert len(installs) == len(runs), f"{len(installs)} installs for {len(runs)} runs: {installs}"
+    assert len(installs) <= agent.max_fix_attempts + 1
+
+    summaries = " ".join(e["error_summary"] for e in exp["fix_history"])
+    assert "still not importable" in summaries, "the message must name the real problem"
+    assert exp["status"] != "completed"
