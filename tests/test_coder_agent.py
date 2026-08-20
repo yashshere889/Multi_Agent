@@ -27,6 +27,7 @@ from research_pipeline.agents.coder.coder_agent import (
     _consecutive_error_streak,
     _default_slurm_review_prompt,
     _estimate_tokens,
+    _identical_failure_streak,
     _parse_assumptions,
     _parse_bool_text,
 )
@@ -3388,3 +3389,50 @@ def test_the_description_is_not_split_into_a_phantom_input():
     )
     assert len(parts) == 3
     assert not any("Integrated neighbourhood" in p for p in parts)
+
+
+# -- the no-progress stop -----------------------------------------------------------------
+
+
+def test_identical_failures_are_counted_ignoring_line_numbers_and_paths():
+    """Same bug, different run: the line number and the temp path move, the failure doesn't."""
+    history = [
+        {
+            "error_source": "run_experiment",
+            "error_summary": "/tmp/a/run.py line 30: boom at 0x7f01",
+        },
+        {
+            "error_source": "run_experiment",
+            "error_summary": "/tmp/b/run.py line 47: boom at 0x9e22",
+        },
+    ]
+    assert _identical_failure_streak(history) == 2
+
+
+def test_different_bugs_at_the_same_stage_are_not_a_streak():
+    """error_source alone is too coarse to stop a run on.
+
+    A model fixing one bug into a different one is making progress, even though
+    both surface as `run_experiment`.
+    """
+    history = [
+        {"error_source": "run_experiment", "error_summary": "ZeroDivisionError: division by zero"},
+        {"error_source": "run_experiment", "error_summary": "IndexError: index out of range"},
+    ]
+    assert _identical_failure_streak(history) == 1
+
+
+def test_the_fix_loop_gives_up_after_three_identical_failures(tmp_path):
+    """Rather than spending the rest of the budget re-deriving the same error."""
+    agent = _agent(tmp_path, FakeChatModel({}))
+    entry = {"error_source": "run_experiment", "error_summary": "ValueError: shapes do not align"}
+
+    state = {
+        "current_outcome": {"error_source": "run_experiment"},
+        "current_attempt": 1,
+        "current_fix_history": [entry, entry, entry],
+    }
+    assert agent._route_after_attempt(state) == "give_up"
+
+    state["current_fix_history"] = [entry, entry]
+    assert agent._route_after_attempt(state) == "regenerate", "two is a repeat, not yet a loop"

@@ -255,6 +255,55 @@ def _consecutive_error_streak(fix_history: list[dict]) -> int:
     return streak
 
 
+_DIGITS_RE = re.compile(r"\b\d+\b")
+_PATH_RE = re.compile(r"(/[\w.\-/]+)+")
+_HEXADDR_RE = re.compile(r"0x[0-9a-fA-F]+")
+
+
+def _failure_signature(entry: dict) -> str:
+    """A normalized identity for "this same failure again".
+
+    Line numbers, absolute paths and object addresses all move between two runs
+    of the same bug, so they are flattened before comparing. What survives is
+    the error source plus the shape of the message — the exception type, the
+    missing symbol, the assertion text.
+    """
+    summary = entry.get("error_summary") or ""
+    summary = _HEXADDR_RE.sub("0xADDR", summary)
+    summary = _PATH_RE.sub(lambda m: m.group(0).rsplit("/", 1)[-1], summary)
+    summary = _DIGITS_RE.sub("N", summary)
+    return f"{entry.get('error_source')}|{' '.join(summary.split())}"
+
+
+def _identical_failure_streak(fix_history: list[dict]) -> int:
+    """How many trailing attempts failed in the *same* way, not merely at the same stage.
+
+    Deliberately stricter than _consecutive_error_streak, which compares
+    error_source alone: three different bugs all surface as `run_experiment`,
+    and a model fixing one bug into the next is making progress even though the
+    source never changes. What this counts is the model landing on the byte-for-
+    byte same failure — which is what a run that cannot recover looks like, and
+    what the fix budget should not be spent finishing.
+    """
+    if not fix_history:
+        return 0
+    current = _failure_signature(fix_history[-1])
+    streak = 0
+    for entry in reversed(fix_history):
+        if _failure_signature(entry) != current:
+            break
+        streak += 1
+    return streak
+
+
+# Stop after this many identical failures in a row. Two is a repeat, which the
+# prompt already escalates on (see _stuck_block); three is a loop. A production
+# summary shows the cost of having no such stop: three attempts, three
+# regenerations, and the same ModuleNotFoundError each time, with the budget
+# spent and nothing learned after the first.
+_NO_PROGRESS_STREAK = 3
+
+
 # How many lines of run.py to show inline before pointing at the file instead
 # — a full generated program can run to hundreds of lines, which would bury
 # the actual question ("submit, or leave it?") under a wall of code a
@@ -652,6 +701,12 @@ class CoderAgent:
         if "result" in state["current_outcome"]:
             return "finalize"
         if state["current_attempt"] == self.max_fix_attempts:
+            return "give_up"
+        # Stop early when the last three attempts failed identically. The budget
+        # exists to give the model room to converge; once it has landed on the
+        # same failure three times it is not converging, and spending the
+        # remainder re-deriving it costs allocation to reach the same place.
+        if _identical_failure_streak(state.get("current_fix_history") or []) >= _NO_PROGRESS_STREAK:
             return "give_up"
         return "regenerate"
 
