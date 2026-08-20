@@ -326,7 +326,7 @@ def test_pipeline_lets_an_agent_failure_propagate(tmp_path, monkeypatch):
 
 
 class AlwaysPassReviewerModel:
-    def invoke(self, messages):
+    def invoke(self, messages, **kwargs):
         if "Score this research paper draft" in messages[1][1]:
             return SimpleNamespace(
                 content=_quality_response({"clarity": 5, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5})
