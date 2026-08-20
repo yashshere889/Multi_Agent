@@ -798,8 +798,9 @@ Three things worth knowing before running it anywhere shared:
 - **On Barkla it has to live inside the SLURM allocation**, alongside vLLM, the
   same way [`run_pipeline.sbatch`](scripts/slurm/run_pipeline.sbatch) co-locates
   the pipeline with the model server — the runner needs `localhost` access to
-  `LLM_BASE_URL`, so a login-node server is no use. Reach it with a tunnel:
-  `ssh -L 8000:<compute-node>:8000 <barkla-host>`.
+  `LLM_BASE_URL`, so a login-node server is no use. Reach it with a tunnel that
+  jumps to the compute node, since the app binds *that node's* loopback:
+  `ssh -J <barkla-host> -L 8000:localhost:<port> <compute-node>`.
   [`run_webapp.sbatch`](scripts/slurm/run_webapp.sbatch) sets this up (vLLM +
   `serve` on one node, `CHECKPOINTER_BACKEND=sqlite` so a pre-empted job stays
   resumable) and prints the exact tunnel command — see
