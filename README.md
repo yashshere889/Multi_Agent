@@ -273,6 +273,133 @@ Optional inputs, all defaulting to the agents' own settings:
 sharing one `chat_model`) via `config["configurable"]` rather than the state,
 which is checkpointed and so must stay serializable.
 
+### Running only part of the pipeline
+
+A run does not have to be the whole fixed chain. Three independent choices
+narrow it, available from the CLI and the web UI alike, and every default
+reproduces the full run exactly:
+
+1. **Where it starts** — search for papers, or bring your own.
+2. **Where it stops** — the full pipeline, or any stage along the way.
+3. **Whether to cross-pollinate** — include or skip the Interdisciplinary
+   Literature stage.
+
+Only a *contiguous* range is expressible, never an arbitrary subset. The chain
+is a data dependency, not a menu: the Coder needs `planner_output`, which only
+the Experiment Planner produces, so "run literature and coder, skip the rest"
+isn't a request the graph can satisfy. The one stage that can drop out of the
+middle is Interdisciplinary Literature, precisely because it passes papers
+through in the shape it received them.
+
+#### Starting from your own papers
+
+```bash
+uv run research-pipeline orchestrate "does retrieval augmentation help small models?" \
+    --papers-file my_papers.json
+```
+
+`my_papers.json` is a JSON array of paper objects. Only `title` is required —
+`authors`, `abstract`, `year`, `doi` and `pdf_url` are used when present, and
+papers with no title are dropped:
+
+```json
+[
+  {
+    "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP",
+    "authors": ["Lewis, P."],
+    "abstract": "...",
+    "year": 2020,
+    "doi": "10.48550/arXiv.2005.11401",
+    "pdf_url": "https://arxiv.org/pdf/2005.11401"
+  }
+]
+```
+
+Duplicates collapse on `doi` (or a normalized title when there's no DOI) — the
+same dedupe rule the Literature Agent's own search results go through, imported
+from `literature/nodes.py` rather than re-implemented, since "are these the same
+paper?" must only ever have one answer here. A seeded list and a searched list
+are therefore indistinguishable downstream: the Interdisciplinary Literature
+Agent, the Hypothesis Agent and the Writer's citation registry all just see
+"papers", never "was this seeded?" (`paper_seed.py`).
+
+The `question` argument is still required and still used: every later stage's
+prompts are framed around it, papers or no papers.
+
+**Web UI:** choose **"I already have papers"** on the start form and paste the
+array into the box that reveals. It's validated before a run is created, so
+invalid JSON or a list with no titled entries is rejected there rather than
+failing several stages later.
+
+#### Stopping early
+
+Useful for checking that the papers or the hypotheses look right before
+spending the time — and the LLM calls — on experiments and a full paper:
+
+```bash
+uv run research-pipeline orchestrate "..." --end-stage hypothesis
+```
+
+Valid values, in pipeline order: `literature`,
+`interdisciplinary_literature`, `hypothesis`, `experiment_planner`, `coder`,
+`writer_reviewer` (the default — everything, including the Writer/Reviewer
+loop).
+
+A run that stops early has no `final_result.final_paper_path` to report. It
+prints which stages completed and writes the bundle of what they produced to
+`outputs/orchestrate_partial_<timestamp>.json`. Every stage still writes its own
+normal output file along the way; that bundle is only the extra needed to resume
+from.
+
+**Web UI:** the **"Run up to"** dropdown on the start form. The progress page
+then shows exactly the stages that will actually run rather than all seven,
+reusing the orchestrator's own routing so the display can't drift out of step
+with the graph.
+
+#### Skipping the cross-field search
+
+`--no-interdisciplinary` on the CLI, or unticking **"Cross-pollinate with
+adjacent fields"** in the UI. With it off, the Literature Agent's papers pass
+straight through and the Hypothesis Agent is called the way README's "Chaining
+agents individually" documents calling it standalone — with
+`interdisciplinary_context` omitted, not with a special orchestrator mode.
+
+#### Continuing a stopped run
+
+A run that stopped cleanly at a custom `--end-stage` can be picked back up as a
+**new** run, seeded with everything the old one produced and entering the graph
+right after the stage it stopped at. Nothing that already finished runs again:
+no re-search, no repeated LLM calls for stages already done.
+
+```bash
+# stop after the experiment plan
+uv run research-pipeline orchestrate "..." --end-stage experiment_planner
+# -> Partial run written to: outputs/orchestrate_partial_20260817T120000Z.json
+
+# later, carry it through to the full paper
+uv run research-pipeline orchestrate "..." \
+    --resume-from-file outputs/orchestrate_partial_20260817T120000Z.json \
+    --end-stage writer_reviewer
+```
+
+`--end-stage` says how much *further* to go from the resume point. The CLI does
+not check that the stage you pick is ahead of where the previous run stopped —
+routing only asks "have I reached `end_stage` yet?" going forward — so pick a
+later one.
+
+**Web UI:** a finished partial run shows a **"Continue this run"** form inline,
+with the end-stage choices already filtered to what's still ahead of where it
+stopped, which is the one place this *is* enforced. Continuing creates a new run
+with a lineage link back; the original run's record is never modified.
+
+This is a different thing from the **Resume** button described under "Watching a
+run in a browser", and the two never appear together. Continue carries a
+*cleanly stopped* run's finished stages into a new run, and needs no
+checkpointer. Resume relaunches a *crashed or cancelled* run onto its own
+LangGraph checkpoints under the same run id, and needs a durable
+`CHECKPOINTER_BACKEND`. A crashed run never reached the point where its stages
+are bundled, so there is nothing for Continue to carry forward.
+
 ### Chaining agents individually (Literature → Interdisciplinary Literature → Hypothesis → Experiment Planner → Coder → Writer ⇄ Reviewer)
 
 Each agent's entry point takes a plain `dict`/`list[dict]` shaped like the
@@ -578,8 +705,10 @@ uv sync --extra webapp
 uv run research-pipeline serve
 ```
 
-Then open <http://127.0.0.1:8000>, enter a research question, and watch. Each
-stage reports what it actually produced — papers found, the adjacent fields
+Then open <http://127.0.0.1:8000>, enter a research question, and watch. The
+start form carries the same three choices as the CLI — search for papers or
+paste your own, how far to run, and whether to cross-pollinate (see "Running
+only part of the pipeline" above). Each stage reports what it actually produced — papers found, the adjacent fields
 explored and the bridge insights they yielded, the three hypotheses with their
 ranking and which one was selected, per-plan feasibility and complexity,
 per-experiment status and fix attempts,
@@ -632,9 +761,12 @@ Three things worth knowing before running it anywhere shared:
   `CHECKPOINTER_BACKEND=memory` is per-process, so a run whose process dies has
   nothing to resume to and restarting starts it over. With `sqlite` or
   `postgres` (see `.env.example`), the UI offers a Resume button on a
-  failed/cancelled run instead. Either way, a run
+  failed/cancelled run instead, relaunching it onto its own checkpoints under
+  the same run id. Either way, a run
   whose process dies is detected and reported as failed rather than left
-  showing as running forever.
+  showing as running forever. Resume is not the same control as **Continue this
+  run**, which carries a *cleanly stopped* partial run's finished stages into a
+  new run and needs no checkpointer — see "Continuing a stopped run" above.
 
 Concurrency is capped at `WEBAPP_MAX_CONCURRENT_RUNS` (default 1): the pipeline
 talks to a single LLM endpoint, so a second simultaneous run competes with the

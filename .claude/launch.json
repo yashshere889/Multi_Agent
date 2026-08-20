@@ -6,6 +6,13 @@
       "runtimeExecutable": "uv",
       "runtimeArgs": ["run", "research-pipeline", "serve", "--port", "8010"],
       "port": 8010
+    },
+    {
+      "comment": "Same server with durable checkpoints, so the Resume button on a failed/cancelled run is reachable — _can_resume() hides it under the default in-memory backend.",
+      "name": "research-pipeline-webapp-durable",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "CHECKPOINTER_BACKEND=sqlite uv run research-pipeline serve --port 8011"],
+      "port": 8011
     }
   ]
 }
