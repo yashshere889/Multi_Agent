@@ -33,6 +33,13 @@ from typing import Any, Optional
 # a final one — so the newest wins, which is also the most complete.
 SUMMARY_GLOB = "coder_agent_summary_*.json"
 
+# Written by ExperimentPlannerAgent._write_output. Re-running one experiment
+# starts from this rather than from the run record: a run that finished the
+# whole pipeline has a final_result shaped by the Writer/Reviewer stage and no
+# planner_output in it, so the file is the only source that covers both a
+# stopped run and a completed one.
+PLAN_GLOB = "experiment_plan_*.json"
+
 # The files a generated experiment leaves in its own directory, in the order
 # they are worth opening. Absent ones are simply not offered: an experiment that
 # was never run has no results.json, and one that didn't need a cluster has no
@@ -103,6 +110,29 @@ def find_summary(run_dir: str | Path) -> Optional[Path]:
         return None
     found = sorted(outputs.glob(SUMMARY_GLOB))
     return found[-1] if found else None
+
+
+def find_planner_output(run_dir: str | Path) -> Optional[dict]:
+    """The newest experiment plan this run produced, parsed, or None.
+
+    None covers "the planner never ran", "it wrote an unreadable file" and "this
+    run stopped earlier" alike — all three mean the same thing to the caller:
+    there is no plan here to re-run an experiment from.
+    """
+    outputs = Path(run_dir) / "outputs"
+    if not outputs.is_dir():
+        return None
+    # An invalid-output debug file is written as experiment_plan_<ts>_invalid.json
+    # and is exactly what must not be re-run; the glob would otherwise sort it
+    # last and win.
+    found = sorted(p for p in outputs.glob(PLAN_GLOB) if not p.stem.endswith("_invalid"))
+    if not found:
+        return None
+    try:
+        parsed = json.loads(found[-1].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError, UnicodeDecodeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _relative_to_run(run_dir: Path, path: Any) -> Optional[str]:

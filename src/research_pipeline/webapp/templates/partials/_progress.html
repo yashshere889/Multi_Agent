@@ -30,8 +30,14 @@
      extra storage, and no scan of the other runs to find it. #}
   {% if run.params and run.params.resumed_from_run_id %}
     <p class="muted">
-      Continued from <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>;
-      the stages it had already finished were carried over rather than run again.
+      {% if run.params.rerun_hypothesis_id %}
+        Re-running <strong>{{ run.params.rerun_hypothesis_id }}</strong> from
+        <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>, using the
+        experiment plan it had already produced. Only that one experiment is generated.
+      {% else %}
+        Continued from <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>;
+        the stages it had already finished were carried over rather than run again.
+      {% endif %}
     </p>
   {% endif %}
 

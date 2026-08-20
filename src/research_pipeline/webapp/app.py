@@ -29,6 +29,7 @@ from fastapi.templating import Jinja2Templates
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE, STAGE_FOR_OUTPUT_KEY, STAGE_SEQUENCE
+from research_pipeline.agents.experiment_planner.schema import SchemaValidationError, narrow_to_hypotheses
 from research_pipeline.orchestrator.state import EndStage
 from research_pipeline.webapp import artifacts, events, experiments, runs, stages
 
@@ -459,6 +460,64 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
             experiments=views,
             summary_rel=summary_rel,
         )
+
+    @app.post("/runs/{run_id}/experiments/{hypothesis_id}/rerun")
+    def rerun_experiment(run_id: str, hypothesis_id: str):
+        """Re-run one experiment, as a new run entering the graph at the Coder.
+
+        The same shape as "continue this run", for the same reasons: a new
+        run_id rather than a rewrite of this one, seeded with what the previous
+        run already produced, with a `resumed_from_run_id` for the lineage. What
+        it seeds is one *narrowed* planner output, so the Coder generates and
+        executes exactly one experiment and nothing upstream runs again — no
+        re-search, no re-synthesis, no re-planning, which is where a full rerun
+        spends almost all of its time and LLM calls.
+
+        The plan comes from the run's own experiment_plan file rather than its
+        record: a run that completed the whole pipeline has a final_result
+        shaped by the Writer/Reviewer stage, with no planner output in it.
+        """
+        record = store.get(run_id)
+
+        planner_output = experiments.find_planner_output(store.run_dir(run_id))
+        if not planner_output:
+            return _back_to_run(
+                run_id,
+                "This run has no experiment plan on disk, so there is nothing to re-run an experiment from.",
+            )
+
+        try:
+            narrowed = narrow_to_hypotheses(planner_output, [hypothesis_id])
+        except SchemaValidationError as exc:
+            return _back_to_run(run_id, str(exc))
+
+        # Same limit and same reasoning as starting or continuing a run: one LLM
+        # endpoint, so a second concurrent run competes with the first.
+        if store.active_count() >= settings.webapp_max_concurrent_runs:
+            return _back_to_run(
+                run_id,
+                f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
+                f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it.",
+            )
+
+        previous_params = record.get("params") or {}
+        params = {
+            "planner_output": narrowed,
+            "resume_from": "experiment_planner",
+            # Nothing downstream of the Coder can run: the Writer needs
+            # hypothesis_output and the full paper pool, which this run was not
+            # seeded with. Stopping here is the honest end of the slice, not a
+            # default someone should override.
+            "end_stage": "coder",
+            "resumed_from_run_id": run_id,
+            "rerun_hypothesis_id": hypothesis_id,
+            "quality_threshold": previous_params.get("quality_threshold"),
+        }
+
+        new_record = store.create(record["question"], params)
+        store.launch(new_record["run_id"])
+        logger.info("Re-running %s from run %s as run %s", hypothesis_id, run_id, new_record["run_id"])
+        return RedirectResponse(f"/runs/{new_record['run_id']}", status_code=303)
 
     @app.get("/runs/{run_id}/files", response_class=HTMLResponse)
     def files_page(request: Request, run_id: str):

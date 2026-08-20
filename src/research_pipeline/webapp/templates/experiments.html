@@ -110,6 +110,13 @@
   {% elif e.code_rel %}
   <p class="muted">Code at <code>{{ e.code_rel }}</code>, which is no longer on disk.</p>
   {% endif %}
+  {# Re-running starts a *new* run entering the graph at the Coder with this one
+     plan (see app.rerun_experiment) — nothing upstream runs again, which is
+     where a full rerun would spend nearly all of its time. #}
+  <form method="post" action="/runs/{{ run.run_id }}/experiments/{{ e.hypothesis_id | urlencode }}/rerun" class="rerun">
+    <button type="submit">Re-run this experiment →</button>
+    <span class="muted">Generates and executes {{ e.hypothesis_id }} again as a new run, from the same plan.</span>
+  </form>
 </section>
 {% else %}
 <section class="card">

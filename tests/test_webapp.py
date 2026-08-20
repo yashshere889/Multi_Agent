@@ -1018,3 +1018,159 @@ def test_experiments_page_for_a_run_that_never_reached_the_coder(client, store):
     body = client.get(f"/runs/{record['run_id']}/experiments").text
 
     assert "No experiments to inspect" in body
+
+
+# -- re-running one experiment ------------------------------------------------
+
+
+def _plan(hypothesis_id):
+    return {
+        "hypothesis_id": hypothesis_id,
+        "feasible": True,
+        "feasibility_notes": "n",
+        "objective": "o",
+        "variables": {"independent": ["x"], "dependent": ["y"]},
+        "design": "d",
+        "data_requirements": {"source": "s", "description": "d", "preprocessing_steps": []},
+        "methods": [{"name": "m", "description": "d", "reused_from_literature": False}],
+        "evaluation": {"metrics": ["F1"], "baseline": "b", "success_criteria": "c"},
+        "implementation_steps": [{"step": 1, "description": "go"}],
+        "estimated_complexity": "low",
+        "risks": [],
+    }
+
+
+def _finished_run_with_a_plan(store, ids=("H1", "H2", "H3"), **params):
+    """A run that got as far as planning and is over. Terminal on purpose: a
+    freshly created run is still 'active' and would trip the concurrency cap
+    before the re-run is even considered."""
+    record = store.create("q", params)
+    _planner_output_file(store, record["run_id"], ids=ids)
+    return store.update(record["run_id"], status=runs.COMPLETED)
+
+
+def _planner_output_file(store, run_id, ids=("H1", "H2", "H3"), name="experiment_plan_20260820T100000Z.json"):
+    run_dir = store.run_dir(run_id)
+    (run_dir / "outputs").mkdir(parents=True, exist_ok=True)
+    (run_dir / "outputs" / name).write_text(
+        json.dumps(
+            {
+                "experiment_plans": [_plan(i) for i in ids],
+                "shared_infrastructure": ["harness"],
+                "priority_order": [
+                    {"hypothesis_id": i, "rank": n, "justification": "j"} for n, i in enumerate(ids, start=1)
+                ],
+                "source_hypothesis_ids": list(ids),
+                "generated_at": "2026-08-20T10:00:00+00:00",
+                "model": "test-model",
+            }
+        )
+    )
+
+
+def test_rerun_starts_a_new_run_seeded_with_just_that_plan(client, store, launched):
+    record = _finished_run_with_a_plan(store, max_results_per_query=4, quality_threshold=5)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/experiments/H2/rerun", follow_redirects=False
+    )
+
+    assert response.status_code == 303
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert new_id in launched
+
+    params = store.get(new_id)["params"]
+    # Only H2's plan travels, and it is still a valid planner output — the Coder
+    # Agent validates what it is handed.
+    assert [p["hypothesis_id"] for p in params["planner_output"]["experiment_plans"]] == ["H2"]
+    assert params["planner_output"]["priority_order"] == [
+        {"hypothesis_id": "H2", "rank": 1, "justification": "j"}
+    ]
+    # Enters at the Coder and stops there: nothing upstream runs again, and
+    # nothing downstream can run without a hypothesis_output it wasn't given.
+    assert params["resume_from"] == "experiment_planner"
+    assert params["end_stage"] == "coder"
+    assert params["resumed_from_run_id"] == record["run_id"]
+    assert params["rerun_hypothesis_id"] == "H2"
+    # and the run being re-run from is untouched
+    assert store.get(record["run_id"])["params"] == {"max_results_per_query": 4, "quality_threshold": 5}
+
+
+def test_the_narrowed_plan_a_rerun_seeds_is_a_valid_planner_output(client, store):
+    """The check that matters: run_coder_agent validates its input, so a plan
+    list filtered without re-ranking priority_order would be refused."""
+    from research_pipeline.agents.experiment_planner.schema import validate_output
+
+    record = _finished_run_with_a_plan(store)
+
+    response = client.post(f"/runs/{record['run_id']}/experiments/H3/rerun", follow_redirects=False)
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+
+    validate_output(store.get(new_id)["params"]["planner_output"])  # should not raise
+
+
+def test_rerun_refuses_a_run_with_no_experiment_plan(client, store):
+    record = store.create("q", {})
+
+    response = client.post(f"/runs/{record['run_id']}/experiments/H1/rerun")
+
+    assert "no experiment plan on disk" in response.text
+
+
+def test_rerun_refuses_a_hypothesis_the_plan_never_covered(client, store):
+    record = _finished_run_with_a_plan(store, ids=("H1",))
+
+    response = client.post(f"/runs/{record['run_id']}/experiments/H9/rerun")
+
+    assert "no experiment plan for hypothesis id" in response.text
+
+
+def test_rerun_ignores_an_invalid_plan_debug_file(client, store):
+    """experiment_plan_<ts>_invalid.json is what the planner writes when its own
+    validation failed — the one plan that must never be re-run, and the one the
+    glob would otherwise sort last and pick."""
+    record = _finished_run_with_a_plan(store, ids=("H1",))
+    (store.run_dir(record["run_id"]) / "outputs" / "experiment_plan_20260820T110000Z_invalid.json").write_text("{}")
+
+    response = client.post(f"/runs/{record['run_id']}/experiments/H1/rerun", follow_redirects=False)
+
+    assert response.status_code == 303
+
+
+def test_rerun_refuses_to_exceed_the_concurrency_cap(client, store, monkeypatch):
+    record = _finished_run_with_a_plan(store)
+    monkeypatch.setattr(runs.RunStore, "active_count", lambda self: 99)
+
+    response = client.post(f"/runs/{record['run_id']}/experiments/H1/rerun")
+
+    assert "already in progress" in response.text
+
+
+def test_experiments_page_offers_a_rerun_per_experiment(client, store):
+    record = store.create("q", {})
+    run_id = record["run_id"]
+    _coder_summary(
+        store,
+        run_id,
+        [
+            {"hypothesis_id": "H1", "status": "completed", "code_path": "", "results": None,
+             "fix_attempts": 0, "fix_history": [], "data_provenance": {}},
+            {"hypothesis_id": "H2", "status": "skipped", "code_path": "", "results": None,
+             "fix_attempts": 0, "fix_history": [], "data_provenance": {}},
+        ],
+    )
+
+    body = client.get(f"/runs/{run_id}/experiments").text
+
+    assert f'action="/runs/{run_id}/experiments/H1/rerun"' in body
+    assert f'action="/runs/{run_id}/experiments/H2/rerun"' in body
+
+
+def test_a_rerun_run_says_what_it_is_re_running(client, store):
+    record = store.create("q", {"resumed_from_run_id": "abc-123", "rerun_hypothesis_id": "H2"})
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert "Re-running" in body
+    assert "H2" in body
+    assert "/runs/abc-123" in body

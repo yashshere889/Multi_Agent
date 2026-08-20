@@ -300,3 +300,6 @@ table.metrics td { padding: .2rem .9rem .2rem 0; border: 0; }
   word-break: break-word;
 }
 
+
+.rerun { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: .9rem 0; }
+.rerun button { white-space: nowrap; }

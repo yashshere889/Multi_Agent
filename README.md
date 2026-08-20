@@ -716,6 +716,28 @@ then the Writer/Reviewer iterations with their quality scores and issue counts.
 The pipeline's own log lines stream underneath, every draft's PDF is openable
 the moment it's written (not just the final one), and a run can be cancelled.
 
+Two pages hang off a run, for after it finishes rather than while it runs:
+
+- **Files** — everything the run wrote, grouped into stage outputs and drafts,
+  generated experiments, downloaded papers, and the run's own record. JSON is
+  re-indented and shown in the page (every file this pipeline writes is dumped
+  compactly enough to be unreadable at width), generated code is shown as-is,
+  PDFs open in the browser's viewer, and anything else downloads. Build residue
+  — `__pycache__`, a stray `.venv` — is skipped, and symlinked directories are
+  not followed.
+- **Experiments** — the per-experiment detail the progress panel has no room
+  for: each fix attempt's `error_source` and the concrete error it failed with,
+  whether regeneration cleared it, and a link to that attempt's code snapshot;
+  the `data_provenance` record of what each input actually resolved to; and,
+  when the Coder withheld a verdict because an input was a synthetic surrogate,
+  a panel saying so, keeping the metrics and reporting what the model itself had
+  claimed. Each experiment also offers **Re-run this experiment**, which starts a
+  new run entering the graph at the Coder with just that one plan — narrowed
+  via `experiment_planner.schema.narrow_to_hypotheses`, so `priority_order` stays
+  a valid permutation and `run_coder_agent` accepts it. Nothing upstream runs
+  again, which is where a full rerun would spend nearly all its time and LLM
+  calls.
+
 Three processes, not one. The server never runs a pipeline itself: starting a
 run spawns `python -m research_pipeline.webapp.runner <run_dir>`, and the
 server thereafter only reads files that subprocess writes. That is what makes a

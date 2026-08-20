@@ -254,3 +254,51 @@ def validate_output(data: dict, expected_hypothesis_ids: Optional[list[str]] = N
 
     if errors:
         raise SchemaValidationError("; ".join(errors))
+
+
+def narrow_to_hypotheses(output: dict, hypothesis_ids: list[str]) -> dict:
+    """A planner output covering only the named hypotheses, still valid.
+
+    Dropping plans is not a filter over one list: `priority_order` must stay a
+    permutation of 1..n over exactly the surviving plan ids (see
+    priority_order_errors), and `source_hypothesis_ids` must agree with them.
+    Filtering `experiment_plans` alone produces a document that
+    `validate_output` rejects and `run_coder_agent` therefore refuses — so the
+    re-rank lives here, beside the rule it exists to preserve, rather than in
+    whichever caller happened to need it first.
+
+    Order is taken from the *original* priority_order, not from the caller's
+    list, so re-running two of three experiments keeps the ranking the planner
+    justified. A surviving plan the priority_order never mentioned (a document
+    written before that field was required) is appended after the ranked ones.
+
+    Raises SchemaValidationError if none of the ids has a plan — the caller
+    asked for something this output cannot supply, and a valid-but-empty
+    document would fail later, further from the cause.
+    """
+    wanted = set(hypothesis_ids)
+    plans = [p for p in output.get("experiment_plans") or [] if isinstance(p, dict) and p.get("hypothesis_id") in wanted]
+    if not plans:
+        raise SchemaValidationError(
+            f"no experiment plan for hypothesis id(s) {sorted(wanted)} in this planner output"
+        )
+
+    kept_ids = [p.get("hypothesis_id") for p in plans]
+    ranked = [e for e in output.get("priority_order") or [] if isinstance(e, dict) and e.get("hypothesis_id") in kept_ids]
+    unranked = [pid for pid in kept_ids if pid not in {e.get("hypothesis_id") for e in ranked}]
+
+    priority_order = [
+        {**entry, "rank": rank}
+        for rank, entry in enumerate(sorted(ranked, key=lambda e: e.get("rank", 0)), start=1)
+    ]
+    priority_order += [
+        {"hypothesis_id": pid, "rank": len(priority_order) + i, "justification": ""}
+        for i, pid in enumerate(unranked, start=1)
+    ]
+
+    return {
+        **output,
+        "experiment_plans": plans,
+        "priority_order": priority_order,
+        "source_hypothesis_ids": kept_ids,
+    }
