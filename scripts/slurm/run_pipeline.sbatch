@@ -112,6 +112,14 @@ export LLM_MODEL="$MODEL"
 # completion. Keep in step with _vllm_serve.sh.
 export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 
+# The Coder Agent's fix-pattern store defaults to CODER_FIX_STORE_BACKEND=sqlite,
+# whose dependency lives behind an optional extra — and a plain `uv sync` does
+# not install it. Job 10279024 died on exactly this, after Literature,
+# Hypothesis and the Planner had all completed: the run reached the Coder and
+# exited on a missing optional dependency, throwing away twenty minutes of
+# upstream work. Syncing it here costs nothing when it is already present.
+uv sync --quiet --extra checkpoint-sqlite
+
 uv run research-pipeline orchestrate "$QUESTION" \
     --download-dir "$WORK_DIR/papers" \
     --output-dir "$WORK_DIR/outputs"

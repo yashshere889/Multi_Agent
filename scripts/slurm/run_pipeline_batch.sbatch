@@ -109,6 +109,14 @@ export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 # anything the static safety check flags, and both job caps still apply.
 # export CODER_AUTO_SUBMIT_SLURM=true
 
+# The Coder Agent's fix-pattern store defaults to CODER_FIX_STORE_BACKEND=sqlite,
+# whose dependency lives behind an optional extra — and a plain `uv sync` does
+# not install it. Job 10279024 died on exactly this, after Literature,
+# Hypothesis and the Planner had all completed: the run reached the Coder and
+# exited on a missing optional dependency, throwing away twenty minutes of
+# upstream work. Syncing it here costs nothing when it is already present.
+uv sync --quiet --extra checkpoint-sqlite
+
 uv run research-pipeline orchestrate-batch \
     --questions-file "$QUESTIONS_FILE" \
     --output-dir "$WORK_DIR/outputs" \
