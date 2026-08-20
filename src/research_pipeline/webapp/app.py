@@ -80,6 +80,46 @@ def _stage_name(output_key: str) -> str:
     return STAGE_OUTPUT_LABELS.get(key, key.removesuffix("_output").replace("_", " ").title())
 
 
+def _hypothesis_choices(record: dict) -> list[dict]:
+    """The ranked hypotheses of a run that stopped at the hypothesis stage.
+
+    This is the one point in the pipeline where continuing is a *decision* and
+    not just a range: the orchestrator would otherwise take whichever hypothesis
+    the ranking put first (run_planner_node), and everything downstream — the
+    plan, the experiment, the paper — is about that one. Showing all three with
+    their ranks, scores and justifications is what makes taking a different one
+    forward an informed choice rather than an override.
+
+    Read from the run record's own `hypothesis_output`, which the partial branch
+    of finalize_node bundles into `final_result`. Empty for any run that stopped
+    anywhere else, which is also how the template knows not to offer the choice.
+    """
+    output = (record.get("final_result") or {}).get("hypothesis_output") or {}
+    ranking = {r.get("hypothesis_id"): r for r in output.get("ranking") or [] if isinstance(r, dict)}
+    selected = output.get("selected_hypothesis_id")
+
+    rows = []
+    for hypothesis in output.get("hypotheses") or []:
+        if not isinstance(hypothesis, dict):
+            continue
+        entry = ranking.get(hypothesis.get("id")) or {}
+        rows.append(
+            {
+                "id": hypothesis.get("id"),
+                "statement": hypothesis.get("statement", ""),
+                "rationale": hypothesis.get("rationale", ""),
+                "rank": entry.get("rank"),
+                "score": entry.get("score"),
+                "justification": entry.get("justification", ""),
+                "ranked_first": hypothesis.get("id") == selected,
+            }
+        )
+    # Ranked order, so the default choice is the first row. An unranked entry
+    # (a hypothesis output read off disk from before ranking existed) sorts last
+    # rather than crashing the comparison.
+    return sorted(rows, key=lambda r: r["rank"] if isinstance(r["rank"], int) else 99)
+
+
 def _continue_options(record: dict) -> tuple[Optional[str], tuple]:
     """What a finished run can be continued into: the stage it stopped after,
     and the end stages still ahead of that point.
@@ -235,6 +275,11 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
             # going there is no settled stopping point to resume from.
             "resume_from": resume_from,
             "continue_choices": continue_choices,
+            # Continuing past the hypothesis stage is a decision, not just a
+            # range — without a choice the planner takes whichever the ranking
+            # put first, and the whole rest of the run is about that one.
+            "hypothesis_choices": _hypothesis_choices(record) if resume_from == stages.HYPOTHESIS else [],
+            "steer_to_end_stage": params.get("steer_to_end_stage"),
             # The run's own params, so a run covering only part of the pipeline
             # is not shown pending stages it will never reach.
             "rows": stages.build_progress(
@@ -272,6 +317,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         # A checkbox is simply absent when unchecked, so this arrives as None
         # rather than as False — the form always asks, so absent means off.
         include_interdisciplinary: Optional[str] = Form(None),
+        steer_hypothesis: Optional[str] = Form(None),
     ):
         question = question.strip()
         if not question:
@@ -290,6 +336,16 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
             "end_stage": end_stage,
             "include_interdisciplinary": include_interdisciplinary is not None,
         }
+
+        # Steering is the stage-range machinery with the destination remembered:
+        # the run stops at the hypothesis stage so the three hypotheses can be
+        # read, and `steer_to_end_stage` is where continuing should then aim, so
+        # the choice the user already made on this form isn't asked for twice.
+        # Requesting it for a run that stops at or before that stage anyway is a
+        # no-op, not an error — the run already ends where the choice is made.
+        if steer_hypothesis is not None and STAGE_SEQUENCE.index(end_stage) > STAGE_SEQUENCE.index(stages.HYPOTHESIS):
+            params["end_stage"] = stages.HYPOTHESIS
+            params["steer_to_end_stage"] = end_stage
 
         # Only written when the user actually chose to supply papers. A `search`
         # run leaves both keys absent, which is what runner.py reads as "not
@@ -329,6 +385,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         run_id: str,
         end_stage: str = Form(DEFAULT_END_STAGE),
         include_interdisciplinary: Optional[str] = Form(None),
+        planned_hypothesis_ids: list[str] = Form(default_factory=list),
     ):
         """Pick a stopped run back up, as a *new* run seeded with what the old
         one already produced.
@@ -385,6 +442,19 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         # carried forward) or was skipped, and neither is this form's to revisit.
         if resume_from == stages.LITERATURE:
             params["include_interdisciplinary"] = include_interdisciplinary is not None
+
+        # Only meaningful when the planner is still ahead. Past it the plans
+        # already exist and are being carried forward, so a choice here would
+        # name hypotheses nothing downstream would consult. Unknown ids are the
+        # planner node's own error to raise (see run_planner_node) — checked
+        # here too so the refusal lands on the form rather than in a run that
+        # starts and immediately dies.
+        if planned_hypothesis_ids and resume_from == stages.HYPOTHESIS:
+            known = {row["id"] for row in _hypothesis_choices(record)}
+            unknown = [hid for hid in planned_hypothesis_ids if hid not in known]
+            if unknown:
+                return _back_to_run(run_id, f"This run generated no hypothesis with id(s): {', '.join(unknown)}.")
+            params["planned_hypothesis_ids"] = planned_hypothesis_ids
 
         final_result = record["final_result"]
         for key in final_result["stages_completed"]:

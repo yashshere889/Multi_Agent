@@ -158,6 +158,59 @@ def test_planner_node_falls_back_to_all_hypotheses_without_a_selection(monkeypat
     assert captured["hypothesis_ids"] is None
 
 
+def test_planner_node_plans_the_hypotheses_the_caller_chose(monkeypatch):
+    """Steering: a caller who has read the three hypotheses overrides the
+    ranking's pick rather than accepting it."""
+    captured = {}
+
+    def fake_run(hypothesis_output, output_dir=None, hypothesis_ids=None):
+        captured.update(hypothesis_output=hypothesis_output, hypothesis_ids=hypothesis_ids)
+        return _planner_output()
+
+    monkeypatch.setattr(nodes, "run_experiment_planner_agent", fake_run)
+    nodes.run_planner_node({"hypothesis_output": _hypothesis_output(), "planned_hypothesis_ids": ["H3"]})
+
+    assert captured["hypothesis_ids"] == ["H3"]
+    # still the whole hypothesis output — only the plan set narrows
+    assert captured["hypothesis_output"] == _hypothesis_output()
+
+
+def test_planner_node_can_be_steered_to_several_hypotheses(monkeypatch):
+    captured = {}
+
+    def fake_run(hypothesis_output, output_dir=None, hypothesis_ids=None):
+        captured.update(hypothesis_ids=hypothesis_ids)
+        return _planner_output()
+
+    monkeypatch.setattr(nodes, "run_experiment_planner_agent", fake_run)
+    nodes.run_planner_node({"hypothesis_output": _hypothesis_output(), "planned_hypothesis_ids": ["H2", "H3"]})
+
+    assert captured["hypothesis_ids"] == ["H2", "H3"]
+
+
+def test_planner_node_rejects_a_hypothesis_id_this_run_never_generated(monkeypatch):
+    """A silent fallback to the ranked pick would produce a paper about a
+    hypothesis nobody chose."""
+    monkeypatch.setattr(nodes, "run_experiment_planner_agent", lambda *a, **k: _planner_output())
+
+    with pytest.raises(ValueError, match="never generated"):
+        nodes.run_planner_node({"hypothesis_output": _hypothesis_output(), "planned_hypothesis_ids": ["H9"]})
+
+
+def test_planner_node_without_a_choice_still_takes_the_ranked_pick(monkeypatch):
+    """The default has to be byte-for-byte what it was before steering existed."""
+    captured = {}
+
+    def fake_run(hypothesis_output, output_dir=None, hypothesis_ids=None):
+        captured.update(hypothesis_ids=hypothesis_ids)
+        return _planner_output()
+
+    monkeypatch.setattr(nodes, "run_experiment_planner_agent", fake_run)
+    nodes.run_planner_node({"hypothesis_output": _hypothesis_output(), "planned_hypothesis_ids": []})
+
+    assert captured["hypothesis_ids"] == ["H1"]
+
+
 def test_coder_node_forwards_planner_output(monkeypatch):
     captured = {}
 

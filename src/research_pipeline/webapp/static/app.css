@@ -303,3 +303,26 @@ table.metrics td { padding: .2rem .9rem .2rem 0; border: 0; }
 
 .rerun { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: .9rem 0; }
 .rerun button { white-space: nowrap; }
+
+/* --- steering the hypothesis choice --------------------------------------- */
+
+.steer { border: 1px solid var(--line); border-radius: 8px; padding: .75rem .9rem; margin: 0 0 .75rem; }
+.steer legend { padding: 0 .35rem; font-size: 12px; text-transform: uppercase;
+                letter-spacing: .04em; color: var(--muted); }
+.steer > p { margin: 0 0 .6rem; }
+
+/* Each choice is a whole hypothesis, not a word, so the label wraps as a block
+   with the checkbox held at the top rather than centred against three lines.
+   Scoped through .continue-form to outrank its own `label.check` rule, which
+   centres a checkbox against a single line of text. */
+.continue-form label.steer-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  margin-bottom: .7rem;
+}
+.continue-form label.steer-choice:last-child { margin-bottom: 0; }
+.continue-form label.steer-choice input { margin-top: .25rem; flex: none; }
+.steer-statement { display: block; margin-top: .25rem; }
+.steer-choice > span { min-width: 0; }
+.steer-why { display: block; margin-top: .15rem; font-size: 13px; }

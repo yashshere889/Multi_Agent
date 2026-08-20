@@ -364,6 +364,31 @@ straight through and the Hypothesis Agent is called the way README's "Chaining
 agents individually" documents calling it standalone — with
 `interdisciplinary_context` omitted, not with a special orchestrator mode.
 
+#### Choosing which hypothesis goes forward
+
+The Hypothesis Agent always generates three and ranks them, and by default the
+orchestrator plans only the one it ranked first (`run_planner_node`). That is a
+reasonable default and it is still a machine's call about which of three
+research directions is worth a paper. Steering hands that call back:
+
+**Web UI:** tick **"Stop after the hypotheses and let me choose which one to
+take forward"** on the start form. The run stops after the Hypothesis Agent,
+the run page lists all three with their ranks, scores and the ranking's own
+justification, and continuing takes whichever you tick — one, or several. The
+end stage you picked on the start form is remembered as the continue form's
+default, so the choice isn't asked for twice. Leaving them all unticked accepts
+the ranking's pick, exactly as if you had never stopped.
+
+**CLI:** `--hypothesis-ids H2` (comma-separated for several), usually alongside
+`--resume-from-file` after reading a run that stopped at `--end-stage
+hypothesis`.
+
+Under both, this is one optional state key, `planned_hypothesis_ids`. Absent —
+the default — means "whichever the ranking put first", which is byte-for-byte
+the behaviour before it existed. An id the run never generated is an error, not
+a fallback to the ranked pick: "plan H9" quietly becoming "plan H1" would
+produce a paper about a hypothesis nobody chose.
+
 #### Continuing a stopped run
 
 A run that stopped cleanly at a custom `--end-stage` can be picked back up as a

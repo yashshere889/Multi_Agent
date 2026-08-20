@@ -1174,3 +1174,145 @@ def test_a_rerun_run_says_what_it_is_re_running(client, store):
     assert "Re-running" in body
     assert "H2" in body
     assert "/runs/abc-123" in body
+
+
+# -- steering which hypothesis goes forward -----------------------------------
+
+
+def _stopped_with_three_hypotheses(store, **params):
+    """A run stopped at the hypothesis stage with a full ranked set, which is
+    what makes continuing it a choice rather than just a range."""
+    hypothesis_output = {
+        "hypotheses": [
+            {"id": "H1", "statement": "Retrieval helps only with sentence-level attribution.", "rationale": "r1"},
+            {"id": "H2", "statement": "Bigger retrieval budgets hurt past saturation.", "rationale": "r2"},
+            {"id": "H3", "statement": "Reranking matters more than recall.", "rationale": "r3"},
+        ],
+        "ranking": [
+            {"hypothesis_id": "H1", "rank": 1, "score": 8.4, "justification": "highest information gain"},
+            {"hypothesis_id": "H2", "rank": 2, "score": 7.1, "justification": "cheap to test"},
+            {"hypothesis_id": "H3", "rank": 3, "score": 6.0, "justification": "narrower"},
+        ],
+        "selected_hypothesis_id": "H1",
+    }
+    final_result = finalize_node(
+        {"literature_output": {"merged_papers": [{"title": "p"}]}, "hypothesis_output": hypothesis_output}
+    )["final_result"]
+    record = store.create("q", {"end_stage": "hypothesis", **params})
+    return store.update(record["run_id"], status=runs.COMPLETED, final_result=final_result)
+
+
+def test_start_form_offers_to_steer(client):
+    assert 'name="steer_hypothesis"' in client.get("/").text
+
+
+def test_steering_stops_the_run_at_the_hypothesis_stage_and_remembers_the_destination(client, store, launched):
+    response = client.post(
+        "/runs",
+        data={"question": "q", "end_stage": "writer_reviewer", "steer_hypothesis": "1"},
+        follow_redirects=False,
+    )
+
+    params = store.get(response.headers["location"].rsplit("/", 1)[-1])["params"]
+    assert params["end_stage"] == "hypothesis"
+    # Where the user actually wanted to end up, so continuing doesn't ask twice.
+    assert params["steer_to_end_stage"] == "writer_reviewer"
+
+
+def test_steering_a_run_that_already_stops_at_or_before_the_choice_is_a_no_op(client, store, launched):
+    """The run already ends where the choice would be made — nothing to remember,
+    and nothing to refuse."""
+    response = client.post(
+        "/runs",
+        data={"question": "q", "end_stage": "literature", "steer_hypothesis": "1"},
+        follow_redirects=False,
+    )
+
+    params = store.get(response.headers["location"].rsplit("/", 1)[-1])["params"]
+    assert params["end_stage"] == "literature"
+    assert "steer_to_end_stage" not in params
+
+
+def test_a_run_stopped_at_hypothesis_shows_every_hypothesis_to_choose_from(client, store):
+    record = _stopped_with_three_hypotheses(store)
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert 'name="planned_hypothesis_ids"' in body
+    assert "Retrieval helps only with sentence-level attribution." in body
+    assert "Bigger retrieval budgets hurt past saturation." in body
+    assert "highest information gain" in body
+    assert "rank 1" in body and "score 8.4" in body
+
+
+def test_the_remembered_destination_is_preselected_on_the_continue_form(client, store):
+    record = _stopped_with_three_hypotheses(store, steer_to_end_stage="coder")
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert '<option value="coder" selected>' in body
+
+
+def test_continuing_with_a_chosen_hypothesis_carries_it_to_the_planner(client, store, launched):
+    record = _stopped_with_three_hypotheses(store)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue",
+        data={"end_stage": "coder", "planned_hypothesis_ids": ["H3"]},
+        follow_redirects=False,
+    )
+
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.get(new_id)["params"]["planned_hypothesis_ids"] == ["H3"]
+
+
+def test_several_hypotheses_can_be_taken_forward_at_once(client, store, launched):
+    record = _stopped_with_three_hypotheses(store)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue",
+        data={"end_stage": "coder", "planned_hypothesis_ids": ["H2", "H3"]},
+        follow_redirects=False,
+    )
+
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.get(new_id)["params"]["planned_hypothesis_ids"] == ["H2", "H3"]
+
+
+def test_choosing_nothing_leaves_the_ranking_s_own_pick_intact(client, store, launched):
+    """Absent, not empty: the orchestrator reads this key with state.get, so an
+    explicit empty list would still have to mean the same thing — not setting it
+    at all is what makes 'unchanged' unambiguous."""
+    record = _stopped_with_three_hypotheses(store)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue", data={"end_stage": "coder"}, follow_redirects=False
+    )
+
+    new_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert "planned_hypothesis_ids" not in store.get(new_id)["params"]
+
+
+def test_continuing_refuses_a_hypothesis_id_the_run_never_generated(client, store):
+    record = _stopped_with_three_hypotheses(store)
+
+    response = client.post(
+        f"/runs/{record['run_id']}/continue",
+        data={"end_stage": "coder", "planned_hypothesis_ids": ["H9"]},
+    )
+
+    assert "no hypothesis with id(s): H9" in response.text
+
+
+def test_a_run_stopped_elsewhere_is_not_offered_a_hypothesis_choice(client, store):
+    """Past the planner the plans already exist and are carried forward, so a
+    choice there would name hypotheses nothing downstream would consult."""
+    record = _stopped_after_hypothesis(store)
+    store.update(
+        record["run_id"],
+        final_result={**record["final_result"], "stages_completed": ["literature_output"]},
+    )
+
+    body = client.get(f"/runs/{record['run_id']}/progress").text
+
+    assert 'name="planned_hypothesis_ids"' not in body

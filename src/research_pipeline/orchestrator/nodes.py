@@ -138,18 +138,40 @@ def run_planner_node(state: PipelineState) -> dict:
     The Hypothesis Agent still generated and returned all 3 — and the Writer and
     Reviewer still see all 3 — this only narrows what gets *executed*.
 
+    `planned_hypothesis_ids` overrides that choice: a caller who has read the
+    three hypotheses can say which one (or which several) to take forward. It is
+    optional and absent by default, so a run that doesn't set it behaves exactly
+    as before. Unknown ids are an error rather than a silent fallback to the
+    ranked pick — "plan H9" quietly becoming "plan H1" would produce a paper
+    about a hypothesis nobody chose.
+
     Falls back to planning everything if `selected_hypothesis_id` is absent,
     which only happens for a hypothesis output produced before ranking existed
     and read back off disk."""
     hypothesis_output = state["hypothesis_output"]
-    selected = hypothesis_output.get("selected_hypothesis_id")
-    if not selected:
-        logger.warning("Hypothesis output carries no selected_hypothesis_id — planning every hypothesis")
+    chosen = state.get("planned_hypothesis_ids")
+
+    if chosen:
+        known = {h.get("id") for h in hypothesis_output.get("hypotheses") or []}
+        unknown = [hid for hid in chosen if hid not in known]
+        if unknown:
+            raise ValueError(
+                f"planned_hypothesis_ids names hypothesis id(s) this run never generated: {unknown}; "
+                f"available: {sorted(i for i in known if i)}"
+            )
+        hypothesis_ids = list(chosen)
+        logger.info("Planning the caller's chosen hypothesis(es): %s", ", ".join(hypothesis_ids))
+    else:
+        selected = hypothesis_output.get("selected_hypothesis_id")
+        if not selected:
+            logger.warning("Hypothesis output carries no selected_hypothesis_id — planning every hypothesis")
+        hypothesis_ids = [selected] if selected else None
+
     return {
         "planner_output": run_experiment_planner_agent(
             hypothesis_output,
             output_dir=state.get("output_dir"),
-            hypothesis_ids=[selected] if selected else None,
+            hypothesis_ids=hypothesis_ids,
         )
     }
 

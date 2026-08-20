@@ -60,10 +60,37 @@
          point — continue_choices is already filtered to those. #}
       {% if not active and continue_choices %}
       <form method="post" action="/runs/{{ run.run_id }}/continue" class="continue-form">
+        {# The one resume point where continuing is a decision rather than a
+           range: with no choice made here the planner takes whichever
+           hypothesis the ranking put first, and every later stage is about that
+           one. Ticking none leaves that default intact. #}
+        {% if hypothesis_choices %}
+        <fieldset class="steer">
+          <legend>Take forward</legend>
+          <p class="muted">
+            The planner will take whichever hypothesis is ticked. Leave them all
+            unticked to accept the ranking's own pick.
+          </p>
+          {% for h in hypothesis_choices %}
+          <label class="check steer-choice" for="steer_{{ h.id }}">
+            <input type="checkbox" id="steer_{{ h.id }}" name="planned_hypothesis_ids" value="{{ h.id }}"
+                   {% if h.ranked_first %}checked{% endif %}>
+            <span>
+              <strong>{{ h.id }}</strong>
+              {% if h.rank %}<span class="chip chip-{{ 'ok' if h.ranked_first else '' }}">rank {{ h.rank }}</span>{% endif %}
+              {% if h.score is not none %}<span class="chip">score {{ h.score }}</span>{% endif %}
+              <span class="steer-statement">{{ h.statement }}</span>
+              {% if h.justification %}<span class="muted steer-why">{{ h.justification }}</span>{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </fieldset>
+        {% endif %}
+
         <label for="continue_end_stage">Continue this run up to</label>
         <select id="continue_end_stage" name="end_stage">
           {% for value, label in continue_choices %}
-          <option value="{{ value }}">{{ label }}</option>
+          <option value="{{ value }}" {% if value == steer_to_end_stage %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
         {% if resume_from == 'literature' %}

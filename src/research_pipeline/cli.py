@@ -318,6 +318,9 @@ def run_orchestrate_cli(args: argparse.Namespace) -> None:
         "end_stage": args.end_stage,
         "include_interdisciplinary": not args.no_interdisciplinary,
     }
+    if args.hypothesis_ids:
+        inputs["planned_hypothesis_ids"] = [h.strip() for h in args.hypothesis_ids.split(",") if h.strip()]
+
     if args.papers_file:
         # The question is still required and still used: every later stage's
         # prompts frame their work around it, papers or no papers.
@@ -618,6 +621,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-interdisciplinary",
         action="store_true",
         help="skip the cross-field Interdisciplinary Literature stage",
+    )
+    orchestrate.add_argument(
+        "--hypothesis-ids",
+        default=None,
+        help=(
+            "comma-separated hypothesis ids for the Experiment Planner to take forward "
+            "(default: whichever the Hypothesis Agent ranked first). Useful with "
+            "--resume-from-file after reading a run that stopped at the hypothesis stage"
+        ),
     )
     orchestrate.add_argument(
         "--papers-file",

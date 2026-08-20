@@ -42,6 +42,12 @@ class PipelineState(TypedDict, total=False):
     # so this is the one key that changes where the graph starts without a
     # matching start_stage value of its own.
     resume_from: EndStage
+    # Which hypothesis (or hypotheses) the Experiment Planner takes forward.
+    # Absent by default, and absent means "whichever the ranking put first" —
+    # exactly the behaviour before this key existed. Set it to steer the run
+    # after reading the three hypotheses the Hypothesis Agent generated, rather
+    # than accepting its ranking. See orchestrator/nodes.run_planner_node.
+    planned_hypothesis_ids: List[str]
     # Required iff start_stage == "own_papers": raw paper dicts to seed the
     # literature stage with, in place of running a search. See paper_seed.py.
     seed_papers: List[dict]

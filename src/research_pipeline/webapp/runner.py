@@ -143,7 +143,14 @@ def run(run_dir: str | Path) -> dict:
     # `resume_from` travels with the stage outputs it implies: a resumed run is
     # the previous run's finished stages seeded into state, plus the entry point
     # that skips past them (see orchestrator/graph.py's _entry_router).
-    for key in ("start_stage", "end_stage", "seed_papers", "resume_from", *PARTIAL_STAGE_KEYS):
+    for key in (
+        "start_stage",
+        "end_stage",
+        "seed_papers",
+        "resume_from",
+        "planned_hypothesis_ids",
+        *PARTIAL_STAGE_KEYS,
+    ):
         if params.get(key):
             inputs[key] = params[key]
     # Presence, not truthiness: False is the meaningful value here.

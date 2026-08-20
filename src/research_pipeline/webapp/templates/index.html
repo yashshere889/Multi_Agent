@@ -64,6 +64,16 @@
       Cross-pollinate with adjacent fields (Interdisciplinary Literature stage)
     </label>
 
+    <label class="check" for="steer_hypothesis">
+      <input type="checkbox" id="steer_hypothesis" name="steer_hypothesis" value="1">
+      Stop after the hypotheses and let me choose which one to take forward
+    </label>
+    <p class="muted">
+      Without this, the Experiment Planner takes whichever hypothesis the ranking put first.
+      With it, the run stops after the Hypothesis Agent, shows you all three with their ranks
+      and scores, and continues to the stage you picked above once you have chosen.
+    </p>
+
     <p class="muted">
       A full run searches for papers, synthesizes hypotheses, plans and executes experiments, then drafts and
       reviews a paper — expect tens of minutes. Stopping earlier is proportionally faster: the run ends after the
