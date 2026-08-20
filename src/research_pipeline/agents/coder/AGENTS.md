@@ -25,6 +25,9 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering. No LLM calls, no settings reads — unit-testable anywhere. |
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
+| `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
+| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
+| `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
 | `prompts.py` | All prompt templates. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |
@@ -119,13 +122,39 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   prompts, same threading pattern as `current_hf_dataset`. The chosen id is also recorded on the
   finished `ExperimentResult` as `starter_used`, for the same traceability reason `fix_history`
   exists.
-- **Env-provisioning failures are not retried through the fix loop** (`coder_agent.py:617-632`).
-  A missing package or unreachable index isn't something regenerating code can fix, so it
-  returns a terminal `code_generated_not_run` result directly.
+- **Env-provisioning failures are not retried through the fix loop.** A missing package or
+  unreachable index isn't something regenerating code can fix, so it returns a terminal
+  `code_generated_not_run` result directly.
+- **An execution failure is classified before it is repaired, and two kinds never reach the
+  model.** `_attempt_once` loops around `sandbox.run_experiment`: a `missing_dependency` is
+  installed and the *unchanged* code re-run, and a `resource_limit` has its own cost knobs halved
+  by `repair.downscale` and is re-run. Neither spends a fix attempt — `CODER_MAX_ENV_REPAIRS`
+  bounds installs separately — because neither was a defect in the generated source. This is the
+  fix for a production run that spent all three fix attempts regenerating code against
+  `ModuleNotFoundError: No module named 'pandas'`.
+- **`diagnose.IMPORT_TO_PACKAGE` and `diagnose.DEAD_IMPORTS` must not be merged.** The first is
+  aliases, where installing the distribution satisfies the import (`sklearn` → `scikit-learn`).
+  The second is successors, where nothing can (`pymc3` → `pymc`): installing there reports success
+  and changes nothing, and the identical ImportError returns on the re-run. That is why dead
+  imports route to regeneration carrying the replacement API, and aliases route to the installer.
+- **Two streak functions, and they are not interchangeable.** `_consecutive_error_streak` compares
+  `error_source` and feeds `_stuck_block`, which escalates the *prompt* at 2. `_identical_failure_streak`
+  compares a normalized `error_summary` too and *stops the plan* at 3. The stricter one is what
+  the stop uses on purpose: three different bugs all surface as `run_experiment`, and a model
+  fixing one bug into the next is making progress even though the source never changes.
+- **The provenance gate returns the string `"unknown"`, never `False`.** `writer_agent.compute_hypothesis_verdict`
+  maps `False` to **"refuted"** and `"unknown"` to "inconclusive", so returning `False` for a run on
+  synthesized data would have the paper publish a refutation of a hypothesis that was never tested.
+  A test asserts this at the Writer end, not just the Coder's field.
+- **A Hugging Face dataset counts as a real input only when the rendered `run.py` names it.** It is
+  offered, not imposed — the model may decline it and say why in `assumptions_made`, which
+  `check_hf_dataset_usage` accepts — and treating an offered-but-declined dataset as evidence is
+  exactly the over-claim the gate exists to prevent.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
-  sync.** Same nine members; the list additionally encodes check *order*, which
+  sync.** Same sixteen members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress. A new failure
-  path needs an entry in both, in the right position.
+  path needs an entry in both, in the right position. `test_error_source_lists_stay_in_sync` now
+  enforces this rather than leaving it to be remembered.
 - **Adding or removing a graph node means updating the recursion-limit constants**
   (`_FIXED_STEPS` / `_STEPS_PER_PLAN` / `_STEPS_PER_FIX_ATTEMPT` in `coder_agent.py`).
   LangGraph's default limit of 25 super-steps is the wrong unit here because both loops are real
