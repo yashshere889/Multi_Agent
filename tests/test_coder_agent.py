@@ -1,6 +1,8 @@
 import dataclasses
 import json
+import subprocess
 import sys
+import venv
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -591,6 +593,71 @@ def test_run_experiment_resolves_relative_python_executable(tmp_path, monkeypatc
         relative_python_executable, relative_run_script, experiment_dir, timeout_seconds=10
     )
     assert ok is True, message
+
+
+def _venv_with_marker_module(root: Path) -> Path:
+    """A real venv holding a module the *base* interpreter cannot import.
+
+    symlinks=True matches what `python -m venv` and `uv venv` actually do on
+    POSIX (venv.create's own default is False, the CLI's is not), and the
+    symlink is the whole point: it is what a .resolve() on the interpreter
+    path follows out of the venv.
+
+    with_pip=False keeps this to ~0.2s, and the marker module is dropped
+    straight into site-packages rather than installed — what's under test is
+    which interpreter's site-packages the subprocess ends up with, not
+    packaging.
+    """
+    venv_dir = root / ".venv"
+    venv.create(venv_dir, with_pip=False, symlinks=True)
+    venv_python = venv_dir / "bin" / "python"
+    site_packages = subprocess.run(
+        [str(venv_python), "-c", "import site; print(site.getsitepackages()[0])"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    (Path(site_packages) / "coder_venv_marker.py").write_text("VALUE = 'in-venv'\n")
+    return venv_python
+
+
+def test_run_experiment_launches_the_venv_interpreter_not_its_symlink_target(tmp_path):
+    # Regression test for Barkla job 10279682: run_experiment used to hand
+    # subprocess python_executable.resolve(), which follows a venv's
+    # bin/python symlink to the base interpreter and runs the code in the
+    # base environment. Every package the env-repair loop installed into the
+    # venv was therefore invisible to the code it was installed for — the
+    # Coder installed numpy six times, verified after each that the venv
+    # interpreter could import it, and still got ModuleNotFoundError from
+    # run.py, burning the whole repair budget and all three fix attempts on
+    # one contradiction.
+    venv_python = _venv_with_marker_module(tmp_path)
+    if not venv_python.is_symlink():
+        pytest.skip("this platform copies the interpreter into the venv instead of symlinking it")
+    script = tmp_path / "run.py"
+    script.write_text("import coder_venv_marker\nprint(coder_venv_marker.VALUE)\n")
+
+    ok, message = sandbox.run_experiment(venv_python, script, tmp_path, timeout_seconds=60)
+
+    assert ok is True, message
+
+
+def test_module_importable_finds_a_venv_module_from_a_relative_path(tmp_path, monkeypatch):
+    # module_importable has to answer for the interpreter that will actually
+    # run the code, which means surviving the same relative-path doubling
+    # run_experiment guards against: with cwd set to the (relative)
+    # experiment directory, a relative interpreter path gets re-resolved
+    # against the subprocess's cwd. It would answer False for a module that
+    # is importable, which reads as "the environment is broken in a way
+    # installing cannot fix".
+    experiment_dir = tmp_path / "experiments" / "H1"
+    experiment_dir.mkdir(parents=True)
+    _venv_with_marker_module(experiment_dir)
+    monkeypatch.chdir(tmp_path)
+    relative_python = Path("experiments") / "H1" / ".venv" / "bin" / "python"
+    relative_experiment_dir = Path("experiments") / "H1"
+
+    assert sandbox.module_importable(relative_python, "coder_venv_marker", relative_experiment_dir)
 
 
 # -- coder_agent.py: orchestration, with a fake chat model and no real network/uv ------

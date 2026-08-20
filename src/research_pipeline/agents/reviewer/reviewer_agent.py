@@ -469,22 +469,51 @@ class ReviewerAgent:
         except LLMJSONError as exc:
             raise ReviewerAgentError(str(exc)) from exc
 
+    @staticmethod
+    def _ungrounded(entries: object, location: str) -> List[dict]:
+        """The entries that are actually problems, in this agent's own shape.
+
+        The model is asked for a per-entry `grounded` verdict and Python decides
+        what it means, rather than the prose in `issue` being read as one — the
+        same split as everywhere else here (see this module's header). A small
+        model routinely returns claims it *examined* rather than only the ones
+        that failed, with the `issue` field then explaining that the claim is
+        fine: "This is accurate and traceable to the ground truth". Counted as
+        hallucinations, those made `overall_pass` unreachable, because it
+        requires the list to be empty — a real run reported 92 of them and
+        could not converge in any number of iterations.
+
+        Inferring the verdict from the text instead was the obvious shortcut and
+        is wrong: "This aligns with the ground truth gap ... However, the phrase
+        'a key challenge' introduces a subjective framing not found in it" reads
+        as a pass by keyword and is a genuine finding.
+
+        A missing `grounded` stays an issue. That keeps every review written
+        before the field existed loading unchanged, and it errs toward reporting
+        a hallucination rather than silently dropping one.
+        """
+        found = []
+        for entry in entries if isinstance(entries, list) else []:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("grounded") is True:
+                continue
+            found.append({"location": location, "claim": entry.get("claim", ""), "issue": entry.get("issue", "")})
+        return found
+
     def _check_hallucinations(self, heading: str, section_text: str, grounding: dict) -> List[dict]:
         prompt = prompts.HALLUCINATION_CHECK_PROMPT.format(
             section_name=heading, grounding_block=json.dumps(grounding, indent=2, default=str), section_text=section_text
         )
         response = self._call_json(prompt)
-        return [{"location": heading, "claim": h.get("claim", ""), "issue": h.get("issue", "")} for h in response.get("hallucinations", [])]
+        return self._ungrounded(response.get("hallucinations"), heading)
 
     def _check_discussion(self, section_text: str, verdicts: Dict[str, dict], expected_ids: List[str]) -> Tuple[List[dict], List[dict]]:
         prompt = prompts.DISCUSSION_REVIEW_PROMPT.format(
             verdicts_block=json.dumps([verdicts[hid] for hid in expected_ids], indent=2), section_text=section_text
         )
         response = self._call_json(prompt)
-        hallucinations = [
-            {"location": "Discussion", "claim": h.get("claim", ""), "issue": h.get("issue", "")}
-            for h in response.get("hallucinations", [])
-        ]
+        hallucinations = self._ungrounded(response.get("hallucinations"), "Discussion")
         framing_issues = [
             {
                 "hypothesis_id": f.get("hypothesis_id", ""),

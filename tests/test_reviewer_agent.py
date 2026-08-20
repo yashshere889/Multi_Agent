@@ -365,6 +365,88 @@ def test_run_uses_llm_flagged_hallucination(tmp_path):
     assert result["hallucinations"][0]["location"] == "Introduction"
 
 
+def _all_supported(tmp_path, hallucination_response):
+    """Runs a review over a good paper where the only LLM finding is whatever
+    `hallucination_response` says, so the verdict turns on that alone."""
+    paper_path, paper_summary = _build_good_paper(tmp_path)
+    coder_output = _coder_output([
+        _experiment("H1", "completed", accuracy=0.9, meets=True),
+        _experiment("H2", "completed", accuracy=0.9, meets=True),
+        _experiment("H3", "completed", accuracy=0.9, meets=True),
+    ])
+    fake_model = FakeChatModel({
+        "Score this research paper draft": _quality_response(),
+        'reviewing the "Introduction"': hallucination_response,
+    })
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+    return agent.run(
+        paper_path, paper_summary, _literature_output(), _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]), coder_output,
+        iteration=1, quality_threshold=4,
+    )
+
+
+def test_a_claim_the_model_marked_grounded_is_not_a_hallucination(tmp_path):
+    """Verbatim from a real Barkla review (job 10281908) that reported 92
+    hallucinations and could not converge: the model returns claims it
+    *examined*, with the issue field explaining they are fine."""
+    response = json.dumps({"hallucinations": [{
+        "claim": "Entropy-based methods have been applied to hallucination detection.",
+        "issue": "This is accurate and traceable to the ground truth, which lists both methods under 'methods' with descriptions that match this sentence.",
+        "grounded": True,
+    }]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert result["hallucinations"] == []
+    assert result["overall_pass"] is True
+
+
+def test_only_the_ungrounded_entries_survive(tmp_path):
+    response = json.dumps({"hallucinations": [
+        {"claim": "supported one", "issue": "actually fine", "grounded": True},
+        {"claim": "made-up statistic of 47%", "issue": "no such number in the ground truth", "grounded": False},
+    ]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert [h["claim"] for h in result["hallucinations"]] == ["made-up statistic of 47%"]
+    assert result["overall_pass"] is False
+
+
+def test_an_entry_without_a_verdict_is_still_treated_as_a_hallucination(tmp_path):
+    """Reviews written before `grounded` existed have to keep loading, and the
+    safe direction is reporting one rather than silently dropping it."""
+    response = json.dumps({"hallucinations": [{"claim": "x", "issue": "not in the ground truth"}]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert len(result["hallucinations"]) == 1
+    assert result["overall_pass"] is False
+
+
+def test_the_verdict_is_read_from_the_field_not_the_prose(tmp_path):
+    """The obvious shortcut — deciding from the issue text — gets this wrong:
+    it opens with "aligns with the ground truth" and is a real finding."""
+    response = json.dumps({"hallucinations": [{
+        "claim": "This is a key challenge for the field.",
+        "issue": "This aligns with the ground truth gap, however 'a key challenge' introduces a subjective framing not found in it.",
+        "grounded": False,
+    }]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert len(result["hallucinations"]) == 1
+
+
+def test_malformed_hallucination_entries_are_ignored(tmp_path):
+    response = json.dumps({"hallucinations": ["not an object", None, 42]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert result["hallucinations"] == []
+
+
 def test_run_rejects_malformed_hypothesis_input(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
     agent = ReviewerAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
