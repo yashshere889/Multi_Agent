@@ -45,6 +45,12 @@ header.site {
 .brand { font-weight: 600; color: var(--ink); text-decoration: none; }
 .pipeline { color: var(--muted); font-size: 13px; }
 
+/* Every link, not just the ones inside a table: the default blue-and-underlined
+   link is unreadable against the dark palette, and .brand / td a had been
+   overriding it one selector at a time. */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
 main { max-width: 62rem; margin: 0 auto; padding: 1.5rem; }
 
 .card {
@@ -136,8 +142,6 @@ button.danger { background: transparent; color: var(--err); border-color: var(--
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .5rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 500; }
-td a { color: var(--accent); text-decoration: none; }
-td a:hover { text-decoration: underline; }
 
 .badge {
   display: inline-block;
