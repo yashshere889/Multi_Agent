@@ -42,6 +42,7 @@ class Settings:
     coder_output_dir: str
     coder_max_fix_attempts: int
     coder_max_env_repairs: int
+    coder_data_dir: str
     coder_enable_hf_dataset_search: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
@@ -210,6 +211,11 @@ def load_settings() -> Settings:
         # model's fault and not the model's problem. Sharing one budget is how a
         # 2026-08-19 run spent all three fix attempts on a missing pandas.
         coder_max_env_repairs=int(os.environ.get("CODER_MAX_ENV_REPAIRS", "6")),
+        # A directory of data files staged by hand — CMS extracts obtained under
+        # a DUA, a licensed cohort, anything the agent cannot fetch for itself.
+        # Inputs matched here resolve as real, which is what lets a run report a
+        # hypothesis verdict at all; see agents/coder/provenance.py.
+        coder_data_dir=os.environ.get("CODER_DATA_DIR", ""),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

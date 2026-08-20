@@ -90,6 +90,13 @@ class ExperimentResult(TypedDict):
     starter_used: (
         str  # starters.STARTERS id this plan's prompts were grounded in, or "" for "general"
     )
+    # Per-input record of what data this experiment actually used: real, or a
+    # labelled surrogate and why. Optional so summaries written before this
+    # existed still load, same rule as same_error_streak. See provenance.py —
+    # when any input is a surrogate, results.meets_success_criteria is the
+    # string "unknown" rather than a bool, which the Writer reads as
+    # "inconclusive" instead of publishing a verdict off synthesized data.
+    data_provenance: dict
 
 
 class CoderAgentOutput(TypedDict):

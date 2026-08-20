@@ -194,6 +194,7 @@ Experiment plan (JSON):
 {shared_infra_block}
 
 {hf_dataset_block}
+{provenance_block}
 {starter_block}
 Environment notes for wherever this will actually run:
 - Network access: {network_status}. {network_note}
@@ -277,6 +278,7 @@ The experiment plan is unchanged (JSON):
 {shared_infra_block}
 
 {hf_dataset_block}
+{provenance_block}
 {starter_block}
 {fix_pattern_block}
 The code sections you produced last time:

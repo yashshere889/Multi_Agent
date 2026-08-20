@@ -689,6 +689,26 @@ _PLACEHOLDER_METRIC_VALUES = {
 }
 
 
+def _nonfinite_within(value: object, _depth: int = 0) -> list[str]:
+    """The NaN/Infinity values nested anywhere inside a metric, as strings.
+
+    Depth-bounded rather than fully recursive: metrics are small structures, and
+    a self-referencing one would otherwise hang the check that is meant to
+    protect the run.
+    """
+    if _depth > 4:
+        return []
+    if isinstance(value, bool):
+        return []
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return [str(value)]
+    if isinstance(value, (list, tuple)):
+        return [bad for item in value for bad in _nonfinite_within(item, _depth + 1)]
+    if isinstance(value, dict):
+        return [bad for item in value.values() for bad in _nonfinite_within(item, _depth + 1)]
+    return []
+
+
 def check_results_plausibility(metrics: dict) -> list[str]:
     """Sanity-checks a completed experiment's own reported metrics before
     read_results_json_for_diagnosis's success is trusted as a real result.
@@ -727,6 +747,21 @@ def check_results_plausibility(metrics: dict) -> list[str]:
                 f"metric '{name}' is {value} — usually a division by zero or a computation "
                 "that never actually ran on real data"
             )
+
+    # A metric is often a container rather than a scalar — a credible interval
+    # is [low, high], a per-group result is a dict — and a NaN inside one is the
+    # same broken computation as a NaN at the top level, just out of reach of
+    # the isinstance check above. A Barkla run reported a posterior mean beside
+    # its own [low, high] interval; had the interval been the part that failed,
+    # nothing here would have noticed.
+    for name, value in metrics.items():
+        if isinstance(value, (list, tuple, dict)):
+            bad = _nonfinite_within(value)
+            if bad:
+                findings.append(
+                    f"metric '{name}' contains {', '.join(bad)} — a value inside it is not a "
+                    "real number, so whatever produced it failed rather than returned"
+                )
 
     if numeric_values and not findings and all(value == 0 for value in numeric_values.values()):
         findings.append(

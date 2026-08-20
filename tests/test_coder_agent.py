@@ -12,6 +12,7 @@ from research_pipeline.agents.coder import (
     fix_pattern_store,
     huggingface_client,
     prompts,
+    provenance,
     repair,
     sandbox,
     schema,
@@ -733,7 +734,14 @@ def test_run_completes_low_complexity_feasible_plan(tmp_path):
     exp = result["experiments"][0]
     assert exp["status"] == "completed"
     assert exp["results"]["metrics"] == {"accuracy": 0.9}
-    assert exp["results"]["meets_success_criteria"] is True
+    # The fixture plan declares data_requirements.source == "synthetic", so the
+    # provenance gate withholds the verdict: the model's own claim is preserved
+    # under model_reported_meets_success_criteria, and the Writer sees "unknown"
+    # (which it maps to "inconclusive") rather than a bool it would publish as
+    # supported or refuted. See provenance.apply_to_results.
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["results"]["model_reported_meets_success_criteria"] is True
+    assert exp["data_provenance"]["all_inputs_real"] is False
     assert (experiments_dir / "H1" / "run.py").exists()
     assert (experiments_dir / "H1" / "results.json").exists()
 
@@ -779,7 +787,14 @@ def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_pa
 
     exp = result["experiments"][0]
     assert exp["status"] == "completed"
-    assert exp["results"]["meets_success_criteria"] is True
+    # The fixture plan declares data_requirements.source == "synthetic", so the
+    # provenance gate withholds the verdict: the model's own claim is preserved
+    # under model_reported_meets_success_criteria, and the Writer sees "unknown"
+    # (which it maps to "inconclusive") rather than a bool it would publish as
+    # supported or refuted. See provenance.apply_to_results.
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["results"]["model_reported_meets_success_criteria"] is True
+    assert exp["data_provenance"]["all_inputs_real"] is False
     assert (experiments_dir / "H2" / "results.json").exists()
     assert not (experiments_dir / "H2" / "run.sbatch").exists()  # ran instead of being deferred
 
@@ -3234,3 +3249,142 @@ def test_a_timed_out_experiment_is_shrunk_before_the_model_is_asked(tmp_path, mo
     assert len(seen) == 2, "one timed-out run, one shrunk re-run"
     assert "draws = 2000" in seen[1] and "chains = 4" in seen[1]
     assert len(fake_model.calls) == 1, "downscaling costs no model call"
+
+
+def test_plausibility_catches_a_nan_nested_inside_a_credible_interval():
+    """A metric is often a container — [low, high] for an interval, a dict per group.
+
+    The scalar checks cannot reach inside one, so a posterior mean could look
+    perfectly healthy beside an interval whose bounds are NaN.
+    """
+    findings = sandbox.check_results_plausibility(
+        {"posterior_mean": -0.108, "credible_interval": [float("nan"), 1.2]}
+    )
+    assert any("credible_interval" in f for f in findings)
+
+
+def test_plausibility_catches_an_infinity_nested_in_a_per_group_dict():
+    findings = sandbox.check_results_plausibility(
+        {"beta": 0.4, "by_region": {"north": 0.2, "south": float("inf")}}
+    )
+    assert any("by_region" in f for f in findings)
+
+
+def test_plausibility_still_accepts_healthy_nested_metrics():
+    findings = sandbox.check_results_plausibility(
+        {"posterior_mean": -0.108, "credible_interval": [-0.31, 0.09], "n": 400}
+    )
+    assert findings == []
+
+
+# -- the provenance gate ------------------------------------------------------------------
+#
+# A generated experiment that invents its inputs still produces metrics and a
+# meets_success_criteria flag, and writer_agent maps False to "refuted" — so
+# without this gate a run on synthesized data gets written up as a refutation of
+# a hypothesis that was never tested.
+
+
+def test_restricted_sources_become_labelled_surrogates():
+    sources = provenance.resolve(
+        ["CMS Medicare Hospital Claims for cardiovascular admissions"], network_available=True
+    )
+    assert sources[0].kind == provenance.KIND_SURROGATE
+    assert "Data Use Agreement" in sources[0].reason
+
+
+def test_a_source_needing_an_api_key_is_a_surrogate_until_the_key_exists(monkeypatch):
+    """Public is not the same as fetchable.
+
+    EPA AQS is open data behind free registration; without the key every request
+    is a 401, which regenerating the code cannot fix. Offering it as fetchable
+    would spend fix attempts on an unfixable failure.
+    """
+    monkeypatch.delenv("AQS_EMAIL", raising=False)
+    monkeypatch.delenv("AQS_KEY", raising=False)
+    sources = provenance.resolve(["EPA Air Quality System PM2.5"], network_available=True)
+
+    assert sources[0].kind == provenance.KIND_SURROGATE
+    assert "AQS_KEY" in sources[0].reason and "signup" in sources[0].reason
+
+
+def test_the_same_source_is_real_once_its_key_is_set(monkeypatch):
+    monkeypatch.setenv("AQS_EMAIL", "someone@example.org")
+    monkeypatch.setenv("AQS_KEY", "test-key")
+    sources = provenance.resolve(["EPA Air Quality System PM2.5"], network_available=True)
+
+    assert sources[0].kind == provenance.KIND_REAL_DOWNLOAD
+    block = provenance.prompt_block(sources)
+    assert "os.environ['AQS_KEY']" in block
+    assert "test-key" not in block, "the value itself must never reach a prompt"
+
+
+def test_a_staged_file_beats_a_restricted_source(tmp_path):
+    staging = tmp_path / "staged"
+    staging.mkdir()
+    (staging / "medicare_claims_2020.csv").write_text("a,b\n1,2\n")
+    sources = provenance.resolve(
+        ["CMS Medicare claims for admissions"], staging_dir=staging, network_available=True
+    )
+    assert sources[0].kind == provenance.KIND_REAL_LOCAL
+
+
+def test_the_verdict_is_withheld_as_unknown_not_false(monkeypatch):
+    """The distinction the Writer actually reads.
+
+    writer_agent maps False to "refuted" and "unknown" to "inconclusive", so
+    returning False on synthetic data would publish a refutation.
+    """
+    stamped = provenance.apply_to_results(
+        {"metrics": {"beta": 0.42}, "meets_success_criteria": True},
+        [provenance.DataSource(name="cms", kind=provenance.KIND_SURROGATE)],
+    )
+    assert stamped["meets_success_criteria"] == "unknown"
+    assert stamped["meets_success_criteria"] is not False
+    assert stamped["model_reported_meets_success_criteria"] is True
+    assert stamped["metrics"] == {"beta": 0.42}, "the numbers are still reported"
+
+
+def test_the_writer_reads_a_withheld_verdict_as_inconclusive():
+    """Asserts the far end of the contract, not just the Coder's field."""
+    from research_pipeline.agents.writer import writer_agent as writer
+
+    stamped = provenance.apply_to_results(
+        {"metrics": {"beta": 0.42}, "meets_success_criteria": True},
+        [provenance.DataSource(name="cms", kind=provenance.KIND_SURROGATE)],
+    )
+    experiment = {"hypothesis_id": "H1", "status": "completed", "results": stamped}
+    verdict, reason = writer.compute_hypothesis_verdict("H1", {"H1": experiment})
+
+    assert verdict == "inconclusive"
+    assert "unknown" in reason
+
+    # And the contrast that makes the choice of "unknown" load-bearing: had the
+    # gate returned False, the same function would publish a refutation.
+    refuting = {**stamped, "meets_success_criteria": False}
+    assert (
+        writer.compute_hypothesis_verdict("H1", {"H1": {**experiment, "results": refuting}})[0]
+        == "refuted"
+    )
+
+
+def test_a_fully_real_input_set_keeps_its_verdict():
+    results = {"metrics": {"beta": 0.42}, "meets_success_criteria": True}
+    stamped = provenance.apply_to_results(
+        results, [provenance.DataSource(name="acs", kind=provenance.KIND_REAL_DOWNLOAD)]
+    )
+    assert stamped is results, "a real-data run is passed through untouched"
+
+
+def test_no_resolvable_inputs_is_not_evidence_of_real_ones():
+    assert provenance.verdict([]) == provenance.VERDICT_SURROGATE
+
+
+def test_the_description_is_not_split_into_a_phantom_input():
+    """data_requirements.description names the *derived* dataset, not an input."""
+    parts = provenance.split_requirements(
+        "EPA AQS for PM2.5; CMS claims for admissions; US Census ACS for deprivation",
+        "Integrated neighbourhood-level panel linking monitors to tracts",
+    )
+    assert len(parts) == 3
+    assert not any("Integrated neighbourhood" in p for p in parts)

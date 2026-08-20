@@ -118,6 +118,7 @@ from research_pipeline.agents.coder import (
     fix_pattern_store,
     huggingface_client,
     prompts,
+    provenance,
     repair,
     sandbox,
     slurm_submit,
@@ -1161,6 +1162,24 @@ class CoderAgent:
                 "error_text": f"results.json's metrics look hollow: {'; '.join(plausibility_findings)}",
             }
 
+        # The experiment ran and produced metrics. Whether those metrics are
+        # allowed to carry a verdict about the hypothesis depends on where their
+        # inputs came from, which is decided here in Python rather than left to
+        # the model: any synthetic input turns meets_success_criteria into the
+        # string "unknown", which the Writer reads as "inconclusive". Returning
+        # False instead would have it publish a *refutation* off generated data.
+        sources = self._provenance_for(
+            plan, network_available, hf_dataset=hf_dataset, run_py=run_py
+        )
+        provenance_document = provenance.write(sources, experiment_dir / "data_provenance.json")
+        results = provenance.apply_to_results(results, sources)
+        if not provenance.all_real(sources):
+            logger.info(
+                "[%s] verdict withheld — %s",
+                hypothesis_id,
+                provenance_document["methodological_validity"],
+            )
+
         return {
             "result": self._result(
                 hypothesis_id,
@@ -1170,6 +1189,7 @@ class CoderAgent:
                 assumptions_made=assumptions_made,
                 results=results,
                 starter_used=starter_id,
+                data_provenance=provenance_document,
             )
         }
 
@@ -1345,6 +1365,7 @@ class CoderAgent:
         results: dict | None = None,
         slurm_job_id: str | None = None,
         starter_used: str = "",
+        data_provenance: dict | None = None,
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -1360,6 +1381,7 @@ class CoderAgent:
             # grounded in, or "" for "general" (no match) — traceability, same
             # instinct as fix_history existing at all.
             "starter_used": starter_used,
+            "data_provenance": data_provenance or {},
         }
 
     # -- LLM calls -----------------------------------------------------------
@@ -1588,6 +1610,49 @@ class CoderAgent:
             return {}
         return dataset or {}
 
+    def _provenance_for(
+        self,
+        plan: dict,
+        network_available: bool,
+        hf_dataset: dict | None = None,
+        run_py: str = "",
+    ) -> list[provenance.DataSource]:
+        """Resolve this plan's data inputs to real-or-surrogate.
+
+        Deterministic and cheap (regex plus, when a staging directory is
+        configured, one directory walk), so it is called wherever it is needed
+        rather than threaded through graph state like the Hugging Face lookup —
+        that one is a real network call with its own cache and retry policy, and
+        this is a pure function of the plan.
+        """
+        requirements = provenance.split_requirements(
+            (plan.get("data_requirements") or {}).get("source") or "",
+            (plan.get("data_requirements") or {}).get("description") or "",
+        )
+        staging = Path(settings.coder_data_dir) if settings.coder_data_dir else None
+        sources = provenance.resolve(
+            requirements, staging_dir=staging, network_available=network_available
+        )
+
+        # A dataset the Hugging Face lookup found is a real input — but only if
+        # the code actually reads it. It is offered, not imposed: the model may
+        # decline it and say why in assumptions_made, and check_hf_dataset_usage
+        # accepts that. Counting an offered-but-declined dataset as evidence
+        # would be exactly the over-claim this gate exists to prevent, so this
+        # requires the rendered run.py to name it.
+        dataset_id = (hf_dataset or {}).get("dataset")
+        if dataset_id and run_py and dataset_id in run_py:
+            sources.insert(
+                0,
+                provenance.DataSource(
+                    name=f"Hugging Face dataset {dataset_id}",
+                    kind=provenance.KIND_REAL_DOWNLOAD,
+                    uri=(hf_dataset or {}).get("rows_url", ""),
+                    reason="found by the Hugging Face lookup and read by the generated code",
+                ),
+            )
+        return sources
+
     @staticmethod
     def _hf_dataset_block(hf_dataset: dict) -> str:
         """Renders a matched dataset for the codegen/fix prompt: what it is, its
@@ -1638,6 +1703,7 @@ class CoderAgent:
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
             starter_block=self._starter_block(starter_id),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
@@ -1676,6 +1742,11 @@ class CoderAgent:
             # the starter block — it stays grounded in the same worked example
             # across every fix attempt instead of drifting.
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            # Same block the codegen prompt was given. A fix attempt that no
+            # longer knows which inputs are surrogates is free to "fix" a
+            # failure by quietly inventing data, which is the outcome the
+            # provenance gate exists to prevent.
+            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
             starter_block=self._starter_block(starter_id),
             # Looked up fresh every fix call, unlike the starter/dataset blocks
             # above — it depends on error_source, which can (and often does)
