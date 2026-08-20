@@ -225,3 +225,30 @@ ol.stages { list-style: none; margin: 1rem 0 0; padding: 0; }
 .log-msg { white-space: pre-wrap; word-break: break-word; }
 .log-warning .log-level, .log-warning .log-msg { color: var(--warn); }
 .log-error .log-level, .log-error .log-msg, .log-critical .log-msg { color: var(--err); }
+
+/* --- run artifact browser ------------------------------------------------ */
+
+.question-echo { margin: -.5rem 0 .75rem; }
+
+table.files td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+table.files td { white-space: nowrap; }
+table.files td:first-child { white-space: normal; word-break: break-all; }
+
+.file-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  word-break: break-all;
+  margin-bottom: .35rem;
+}
+
+/* Generated experiment code and stage JSON are both wide. Scrolling the block
+   rather than the page keeps the run's own navigation reachable. */
+.file-body {
+  margin: 0;
+  max-height: 70vh;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+  tab-size: 4;
+}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ rel }} — {{ run.question[:40] }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <p class="muted">
+    <a href="/runs/{{ run.run_id }}/files">← All files</a> ·
+    <a href="/runs/{{ run.run_id }}">back to run</a>
+  </p>
+  <h1 class="file-path">{{ rel }}</h1>
+  <p class="muted">
+    {{ size | human_size }} ·
+    <a href="/runs/{{ run.run_id }}/files/raw?path={{ rel | urlencode }}">download raw</a>
+  </p>
+  {% if preview.error %}
+    <p class="error">Could not read this file: {{ preview.error }}</p>
+  {% elif preview.truncated %}
+    <p class="muted">Showing the first part of the file only — download the raw file for all of it.</p>
+  {% endif %}
+</section>
+
+{% if not preview.error %}
+<section class="card">
+  <pre class="file-body">{{ preview.text }}</pre>
+</section>
+{% endif %}
+{% endblock %}

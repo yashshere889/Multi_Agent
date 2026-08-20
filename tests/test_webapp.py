@@ -811,3 +811,103 @@ def test_run_json_survives_a_server_restart(store, tmp_path):
 
     assert reopened.get(record["run_id"])["params"]["max_results_per_query"] == 4
     assert json.loads((store.run_dir(record["run_id"]) / "run.json").read_text())["status"] == runs.COMPLETED
+
+
+# -- the run artifact browser -------------------------------------------------
+
+
+def _write_artifacts(store, run_id):
+    run_dir = store.run_dir(run_id)
+    (run_dir / "outputs" / "hypotheses.json").write_text('{"hypotheses":[{"id":"H1"}]}')
+    (run_dir / "outputs" / "v1.pdf").write_bytes(b"%PDF-1.4 fake")
+    (run_dir / "experiments" / "H1").mkdir(parents=True, exist_ok=True)
+    (run_dir / "experiments" / "H1" / "run.py").write_text("print('hi')\n")
+    return run_dir
+
+
+def test_files_page_lists_what_the_run_wrote(client, store):
+    record = store.create("q", {})
+    _write_artifacts(store, record["run_id"])
+
+    body = client.get(f"/runs/{record['run_id']}/files").text
+
+    assert "outputs/hypotheses.json" in body
+    assert "experiments/H1/run.py" in body
+    assert "Stage outputs and drafts" in body
+    assert "Generated experiments" in body
+
+
+def test_run_page_links_to_the_files_page(client, store):
+    record = store.create("q", {})
+
+    assert f'/runs/{record["run_id"]}/files' in client.get(f"/runs/{record['run_id']}").text
+
+
+def test_viewing_a_json_file_pretty_prints_it(client, store):
+    record = store.create("q", {})
+    _write_artifacts(store, record["run_id"])
+
+    body = client.get(
+        f"/runs/{record['run_id']}/files/view", params={"path": "outputs/hypotheses.json"}
+    ).text
+
+    assert '&#34;id&#34;: &#34;H1&#34;' in body  # re-indented, and autoescaped
+
+
+def test_viewing_a_pdf_redirects_to_the_raw_bytes(client, store):
+    record = store.create("q", {})
+    _write_artifacts(store, record["run_id"])
+
+    response = client.get(
+        f"/runs/{record['run_id']}/files/view", params={"path": "outputs/v1.pdf"}, follow_redirects=False
+    )
+
+    assert response.status_code == 303
+    assert "/files/raw?path=outputs%2Fv1.pdf" in response.headers["location"]
+
+
+def test_raw_serves_a_pdf_inline_and_everything_else_as_a_download(client, store):
+    record = store.create("q", {})
+    _write_artifacts(store, record["run_id"])
+    run_id = record["run_id"]
+
+    pdf = client.get(f"/runs/{run_id}/files/raw", params={"path": "outputs/v1.pdf"})
+    code = client.get(f"/runs/{run_id}/files/raw", params={"path": "experiments/H1/run.py"})
+
+    assert pdf.headers["content-type"] == "application/pdf"
+    assert "attachment" not in pdf.headers.get("content-disposition", "")
+    assert run_id[:8] in code.headers["content-disposition"]
+
+
+@pytest.mark.parametrize("route", ["view", "raw"])
+@pytest.mark.parametrize("escape", ["../../../etc/passwd", "/etc/passwd", "outputs/../../secret"])
+def test_a_path_outside_the_run_directory_is_refused(client, store, route, escape):
+    """resolve_inside is the boundary, not the fact that the UI only ever builds
+    links to files it listed: a bookmarked URL or a curl reaches these too."""
+    record = store.create("q", {})
+    _write_artifacts(store, record["run_id"])
+
+    response = client.get(f"/runs/{record['run_id']}/files/{route}", params={"path": escape})
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("route", ["view", "raw"])
+def test_a_path_inside_the_run_that_does_not_exist_is_a_404(client, store, route):
+    record = store.create("q", {})
+
+    response = client.get(f"/runs/{record['run_id']}/files/{route}", params={"path": "outputs/nope.json"})
+
+    assert response.status_code == 404
+
+
+def test_files_page_for_a_run_that_has_only_just_started(client, store):
+    """create() writes run.json and the empty stage directories, so even a run
+    that has produced nothing lists its own record rather than an empty page."""
+    record = store.create("q", {})
+
+    body = client.get(f"/runs/{record['run_id']}/files").text
+
+    assert "Run files" in body
+    assert "run.json" in body
+    assert "Stage outputs and drafts" not in body

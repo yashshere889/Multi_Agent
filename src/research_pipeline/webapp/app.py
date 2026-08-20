@@ -30,7 +30,7 @@ from research_pipeline import checkpointer
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE, STAGE_FOR_OUTPUT_KEY, STAGE_SEQUENCE
 from research_pipeline.orchestrator.state import EndStage
-from research_pipeline.webapp import events, runs, stages
+from research_pipeline.webapp import artifacts, events, runs, stages
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +201,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
     templates.env.filters["duration"] = _duration
     templates.env.filters["short_time"] = _short_time
     templates.env.filters["stage_name"] = _stage_name
+    templates.env.filters["human_size"] = artifacts.human_size
 
     def render(request: Request, name: str, **context) -> HTMLResponse:
         return templates.TemplateResponse(request=request, name=name, context=context)
@@ -443,6 +444,61 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         if not path or not path.exists() or path.suffix.lower() != ".pdf":
             raise runs.RunNotFound(f"no such paper for run {run_id}")
         return FileResponse(path, media_type="application/pdf", filename=f"{run_id[:8]}_{path.name}")
+
+    @app.get("/runs/{run_id}/files", response_class=HTMLResponse)
+    def files_page(request: Request, run_id: str):
+        """Everything this run wrote, grouped. Not a polled fragment: a finished
+        run's file list does not change, and a running one's is worth a manual
+        reload rather than a table that reshuffles under the reader every two
+        seconds."""
+        record = store.get(run_id)
+        found, truncated = artifacts.list_artifacts(store.run_dir(run_id))
+        return render(
+            request,
+            "files.html",
+            run=record,
+            groups=artifacts.group_artifacts(found),
+            total=len(found),
+            truncated=truncated,
+        )
+
+    @app.get("/runs/{run_id}/files/view", response_class=HTMLResponse)
+    def file_view(request: Request, run_id: str, path: str):
+        """One file, rendered in the page. `path` arrives from a link this
+        server built, and is re-checked anyway — resolve_inside is what refuses
+        anything outside the run directory, so nothing upstream of it has to be
+        trusted."""
+        record = store.get(run_id)
+        resolved = store.resolve_inside(run_id, path)
+        if not resolved.is_file():
+            raise runs.RunNotFound(f"no such file in run {run_id}: {path}")
+
+        kind = artifacts.kind_for(resolved)
+        if kind in (artifacts.PDF, artifacts.BINARY):
+            # Nothing useful to render as text; hand it straight to the browser.
+            return RedirectResponse(f"/runs/{run_id}/files/raw?path={quote(path, safe='')}", status_code=303)
+
+        return render(
+            request,
+            "file.html",
+            run=record,
+            rel=path,
+            preview=artifacts.read_preview(resolved),
+            size=resolved.stat().st_size,
+        )
+
+    @app.get("/runs/{run_id}/files/raw")
+    def file_raw(run_id: str, path: str):
+        """The bytes. PDFs render inline in the browser's own viewer; everything
+        else downloads under a name that says which run it came from."""
+        store.get(run_id)
+        resolved = store.resolve_inside(run_id, path)
+        if not resolved.is_file():
+            raise runs.RunNotFound(f"no such file in run {run_id}: {path}")
+
+        if artifacts.kind_for(resolved) == artifacts.PDF:
+            return FileResponse(resolved, media_type="application/pdf")
+        return FileResponse(resolved, filename=f"{run_id[:8]}_{resolved.name}")
 
     @app.get("/api/runs/{run_id}")
     def run_status(run_id: str):
