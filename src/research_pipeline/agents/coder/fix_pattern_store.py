@@ -77,10 +77,22 @@ def _truncate_code(text: str) -> str:
     return text[:MAX_PATTERN_CODE_CHARS] + "\n# ... truncated ..."
 
 
+class MissingStoreDependency(SystemExit):
+    """The configured backend's optional dependency is not installed.
+
+    Its own type so get_store can degrade for exactly this and nothing else. An
+    unknown backend name or an unset postgres URI are configuration mistakes the
+    caller can fix in seconds, and falling back silently would hide them; a
+    missing extra is a packaging gap that should not cost a run already in
+    flight. Subclasses SystemExit so any caller that doesn't know about it keeps
+    the previous behaviour.
+    """
+
+
 def _missing_extra(backend: str, extra: str, exc: ImportError) -> SystemExit:
     """Same shape as checkpointer.py's _missing_extra — name the missing
     module and the exact command that installs it."""
-    return SystemExit(
+    return MissingStoreDependency(
         f"CODER_FIX_STORE_BACKEND={backend} needs its optional dependencies ({exc.name}). Install them with:\n"
         f"    uv sync --extra {extra}"
     )
@@ -152,20 +164,48 @@ def get_store() -> BaseStore:
     if _store is not None:
         return _store
 
-    backend = _backend()
-    if backend == "memory":
-        from langgraph.store.memory import InMemoryStore
+    from langgraph.store.memory import InMemoryStore
 
-        _store = InMemoryStore()
-    elif backend == "sqlite":
-        _store = _sqlite_store()
-    elif backend == "postgres":
-        _store = _postgres_store()
-    else:
-        raise SystemExit(
-            f"Unknown CODER_FIX_STORE_BACKEND={settings.coder_fix_store_backend!r}. "
-            "Expected one of: memory, sqlite, postgres."
+    backend = _backend()
+    try:
+        if backend == "memory":
+            _store = InMemoryStore()
+        elif backend == "sqlite":
+            _store = _sqlite_store()
+        elif backend == "postgres":
+            _store = _postgres_store()
+        else:
+            raise SystemExit(
+                f"Unknown CODER_FIX_STORE_BACKEND={settings.coder_fix_store_backend!r}. "
+                "Expected one of: memory, sqlite, postgres."
+            )
+    except MissingStoreDependency as exc:
+        # This store is an enhancement — it accumulates fix patterns across runs
+        # so a later fix prompt can be shown how a similar failure was solved
+        # before. Losing it makes the fix loop slightly less well-informed. It
+        # does not make a run wrong, and it is emphatically not worth ending one
+        # over: Barkla job 10279024 completed Literature, Hypothesis and the
+        # Planner, reached the Coder, and exited on the missing optional
+        # dependency for this optional feature, discarding twenty minutes of
+        # upstream work that was already on disk.
+        #
+        # The asymmetry with checkpointer.py, which still exits, is deliberate.
+        # CHECKPOINTER_BACKEND defaults to "memory", so reaching its error means
+        # you explicitly asked for durable checkpointing — and silently handing
+        # back an in-memory saver would leave you believing a crashed run could
+        # resume when it cannot. This store defaults to "sqlite", so its error
+        # arrives without anyone having opted into anything.
+        #
+        # Warned at WARNING with the exact remedy, because a store that quietly
+        # stopped persisting is its own kind of silent failure: a user who
+        # configured postgres for cross-run learning should be able to see that
+        # they are not getting it.
+        logger.warning(
+            "Fix-pattern store unavailable, continuing without it — patterns will not "
+            "persist across runs. %s",
+            str(exc).replace("\n", " "),
         )
+        _store = InMemoryStore()
     return _store
 
 

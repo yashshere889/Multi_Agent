@@ -3472,3 +3472,50 @@ def test_venv_root_places_the_venv_off_the_quota_bearing_filesystem(tmp_path, mo
     assert error is None
     assert python_exec == venv_root / "H1" / ".venv" / "bin" / "python"
     assert not (experiment_dir / ".venv").exists(), "the results directory stays free of venv files"
+
+
+def test_a_missing_store_dependency_degrades_instead_of_ending_the_run(monkeypatch, caplog):
+    """The fix-pattern store is an enhancement; losing it must not cost a run.
+
+    Barkla job 10279024 completed Literature, Hypothesis and the Planner, then
+    exited at the Coder because this optional feature's optional dependency was
+    not installed — discarding twenty minutes of upstream work already on disk.
+    """
+    import logging
+
+    from langgraph.store.memory import InMemoryStore
+
+    from research_pipeline.agents.coder import fix_pattern_store
+
+    monkeypatch.setattr(fix_pattern_store, "_backend", lambda: "sqlite")
+    monkeypatch.setattr(
+        fix_pattern_store,
+        "_sqlite_store",
+        lambda: (_ for _ in ()).throw(
+            fix_pattern_store.MissingStoreDependency("needs its optional dependencies (foo)")
+        ),
+    )
+    fix_pattern_store.reset_store()
+
+    with caplog.at_level(logging.WARNING):
+        store = fix_pattern_store.get_store()
+
+    assert isinstance(store, InMemoryStore), "the run continues, without persistence"
+    assert "will not persist" in caplog.text
+    assert "optional dependencies" in caplog.text, "the remedy is named, not swallowed"
+    fix_pattern_store.reset_store()
+
+
+def test_a_mistyped_backend_name_still_fails_loudly(monkeypatch):
+    """Degrading is for a packaging gap, not for a configuration mistake.
+
+    An unknown backend is a typo the caller can fix in seconds; falling back
+    silently would hide it behind a store that quietly never persists.
+    """
+    from research_pipeline.agents.coder import fix_pattern_store
+
+    monkeypatch.setattr(fix_pattern_store, "_backend", lambda: "sqlyte")
+    fix_pattern_store.reset_store()
+    with pytest.raises(SystemExit, match="Unknown CODER_FIX_STORE_BACKEND"):
+        fix_pattern_store.get_store()
+    fix_pattern_store.reset_store()
