@@ -98,6 +98,12 @@ export OPENBLAS_NUM_THREADS="$OMP_NUM_THREADS"
 
 export LLM_BASE_URL="http://localhost:${PORT}/v1"
 export LLM_MODEL="$MODEL"
+# Bound to the server's own --max-model-len rather than left to the code default
+# or whatever .env happens to say. These two numbers must agree: every agent
+# sizes its completion request against this client-side, and a value above what
+# vLLM actually serves buys a 400 on the first long prompt instead of a
+# completion. Keep in step with _vllm_serve.sh.
+export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 
 uv run research-pipeline orchestrate "$QUESTION" \
     --download-dir "$WORK_DIR/papers" \
