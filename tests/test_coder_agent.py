@@ -8,10 +8,13 @@ import pytest
 from langgraph.store.memory import InMemoryStore
 
 from research_pipeline.agents.coder import (
+    diagnose,
     fix_pattern_store,
     huggingface_client,
     prompts,
+    repair,
     sandbox,
+    schema,
     slurm_submit,
 )
 from research_pipeline.agents.coder.coder_agent import (
@@ -2998,3 +3001,236 @@ def test_starter_used_is_empty_string_when_nothing_matches(tmp_path):
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
 
     assert result["experiments"][0]["starter_used"] == ""
+
+
+# -- execution-failure classification and the repairs it routes to -----------------------
+#
+# The failure these exist for is in coder_agent_summary_20260819T172608Z.json:
+# three fix attempts, three regenerations, and `ModuleNotFoundError: No module
+# named 'pandas'` returned verbatim each time. Regenerating the source could not
+# have installed anything, and nothing in the loop knew the difference.
+
+
+def test_error_source_lists_stay_in_sync():
+    """schema.VALID_ERROR_SOURCES and coder_agent._ERROR_STAGE_ORDER must match.
+
+    _cleared_previous_error reads the order list as the definition of "a later
+    stage", so a source present in one and missing from the other silently
+    scores every regeneration as having made no progress — a failure that shows
+    up as a degraded fix loop rather than as an error. AGENTS.md calls this out;
+    this test is what actually enforces it.
+    """
+    from research_pipeline.agents.coder.coder_agent import _ERROR_STAGE_ORDER
+
+    assert set(schema.VALID_ERROR_SOURCES) == set(_ERROR_STAGE_ORDER)
+    assert len(_ERROR_STAGE_ORDER) == len(set(_ERROR_STAGE_ORDER)), "no duplicates"
+
+
+def test_missing_package_is_classified_as_an_environment_problem():
+    d = diagnose.classify_execution_failure(
+        "run.py exited with code 1: Traceback (most recent call last):\n"
+        '  File "/experiments/H1/run.py", line 30, in <module>\n'
+        "    import pandas as pd\n"
+        "ModuleNotFoundError: No module named 'pandas'"
+    )
+    assert d.error_source == "missing_dependency"
+    assert d.route == diagnose.ROUTE_ENV
+    assert d.module == "pandas" and d.package == "pandas"
+    assert d.route != diagnose.ROUTE_REGENERATE, "the code was never the problem"
+
+
+def test_import_alias_resolves_to_its_distribution():
+    d = diagnose.classify_execution_failure("ModuleNotFoundError: No module named 'sklearn'")
+    assert d.package == "scikit-learn"
+
+
+def test_dead_import_goes_to_the_model_and_never_to_the_installer():
+    """Installing `pymc` cannot satisfy `import pymc3`.
+
+    The install succeeds, the code is re-run unchanged, and the identical error
+    returns — an install that reports success while the loop makes no progress.
+    Only new code can fix this, so it must carry the replacement API with it.
+    """
+    d = diagnose.classify_execution_failure("ModuleNotFoundError: No module named 'pymc3'")
+
+    assert d.error_source == "obsolete_dependency"
+    assert d.route == diagnose.ROUTE_REGENERATE
+    assert d.package == "pymc"
+    assert "import pymc as pm" in d.guidance
+
+
+def test_missing_native_library_is_terminal():
+    d = diagnose.classify_execution_failure(
+        "OSError: libcudart.so.12: cannot open shared object file: No such file or directory"
+    )
+    assert d.error_source == "missing_system_library"
+    assert d.route == diagnose.ROUTE_TERMINAL
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "execution timed out after 300s",
+        "run.py exited with code 1: torch.cuda.OutOfMemoryError: CUDA out of memory.",
+        "run.py exited with code 1: MemoryError",
+    ],
+)
+def test_resource_failures_route_to_downscaling(message):
+    d = diagnose.classify_execution_failure(message)
+    assert d.error_source == "resource_limit"
+    assert d.route == diagnose.ROUTE_DOWNSCALE
+
+
+def test_an_ordinary_bug_is_still_a_plain_run_experiment_failure():
+    """The new branches must not swallow the case they sit in front of."""
+    d = diagnose.classify_execution_failure(
+        "run.py exited with code 1: Traceback (most recent call last):\n"
+        "IndexError: index 5 is out of bounds for axis 0 with size 3"
+    )
+    assert d.error_source == "run_experiment"
+    assert d.route == diagnose.ROUTE_REGENERATE
+
+
+def test_downscale_halves_cost_knobs_and_leaves_other_numbers_alone():
+    code = "draws = 4000\nchains = 8\nbatch_size = 256\nYEAR = 2020\nthreshold = 0.05\n"
+    shrunk, changes = repair.downscale(code)
+
+    assert "draws = 2000" in shrunk
+    assert "chains = 4" in shrunk
+    assert "batch_size = 128" in shrunk
+    assert "YEAR = 2020" in shrunk, "a year is not a cost knob"
+    assert "threshold = 0.05" in shrunk
+    assert len(changes) == 3
+
+
+def test_downscale_respects_its_floors():
+    shrunk, changes = repair.downscale("chains = 2\ndraws = 250\n")
+    assert changes == [] and shrunk == "chains = 2\ndraws = 250\n"
+
+
+def test_install_into_env_prefers_uv_and_reports_failure_without_raising(tmp_path, monkeypatch):
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return SimpleNamespace(returncode=1, stdout="", stderr="No matching distribution found")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    ok, detail = sandbox.install_into_env(tmp_path / "bin" / "python", ["nope"])
+
+    assert ok is False
+    assert "No matching distribution" in detail
+    assert calls[0][:3] == ["uv", "pip", "install"]
+
+
+def test_install_for_falls_back_to_the_raw_import_name(tmp_path, monkeypatch):
+    """The alias table has gaps; one failed install is a cheap way to cover them."""
+    attempted = []
+
+    def fake_install(python_executable, packages):
+        attempted.append(list(packages))
+        return (packages != ["scikit-learn"], "detail")
+
+    monkeypatch.setattr(sandbox, "install_into_env", fake_install)
+    d = diagnose.classify_execution_failure("ModuleNotFoundError: No module named 'sklearn'")
+
+    ok, detail = repair.install_for(tmp_path / "python", d)
+
+    assert attempted == [["scikit-learn"], ["sklearn"]]
+    assert ok and "sklearn" in detail
+
+
+def test_a_missing_package_is_installed_and_the_code_is_never_regenerated(tmp_path, monkeypatch):
+    """The regression for coder_agent_summary_20260819T172608Z.json.
+
+    One codegen call, one install, and the second execution runs the *same*
+    file. Any regeneration here would mean the loop still believes a missing
+    package is a defect in the generated source.
+    """
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    executed_sources = []
+    installed = []
+    attempts = {"n": 0}
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        attempts["n"] += 1
+        executed_sources.append(Path(run_script).read_text())
+        if attempts["n"] == 1:
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "    import pandas as pd\n"
+                "ModuleNotFoundError: No module named 'pandas'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    def fake_install(python_executable, packages):
+        installed.append(list(packages))
+        return True, "installed"
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    monkeypatch.setattr(sandbox, "install_into_env", fake_install)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    assert exp["status"] == "completed", exp.get("reason")
+    assert installed == [["pandas"]], "the missing package was installed, once"
+    assert attempts["n"] == 2, "one failed run, one re-run"
+    assert executed_sources[0] == executed_sources[1], "the re-run used the SAME code"
+    assert exp["fix_attempts"] == 0, "an install is not a fix attempt"
+    assert len(fake_model.calls) == 1, "the model was asked for code once and never again"
+
+
+def test_a_missing_package_with_no_network_says_so_instead_of_regenerating(tmp_path, monkeypatch):
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(tmp_path, fake_model, network_check=lambda: False)
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        return False, "ModuleNotFoundError: No module named 'geopandas'"
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    sources = [entry["error_source"] for entry in exp["fix_history"]]
+    assert sources and all(s == "missing_dependency" for s in sources)
+    assert "No network access" in exp["fix_history"][0]["error_summary"]
+
+
+def test_a_timed_out_experiment_is_shrunk_before_the_model_is_asked(tmp_path, monkeypatch):
+    sections = {**GOOD_SECTIONS, "configuration": "draws = 4000\nchains = 8\n"}
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(sections=sections)})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    seen = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        source = Path(run_script).read_text()
+        seen.append(source)
+        if "draws = 4000" in source:
+            return False, "execution timed out after 120s"
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert result["experiments"][0]["status"] == "completed", result["experiments"][0].get("reason")
+    assert len(seen) == 2, "one timed-out run, one shrunk re-run"
+    assert "draws = 2000" in seen[1] and "chains = 4" in seen[1]
+    assert len(fake_model.calls) == 1, "downscaling costs no model call"

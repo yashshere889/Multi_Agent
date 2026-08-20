@@ -28,6 +28,24 @@ VALID_ERROR_SOURCES = {
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
     "run_experiment",
+    # The four below split cases off `run_experiment`, which used to absorb
+    # every runtime failure regardless of kind. Each needs a different repair
+    # and `run_experiment`'s — regenerate the code — is wrong for all four.
+    # See diagnose.classify_execution_failure.
+    #
+    # A package the code correctly imports but nothing installed. Repaired by
+    # installing it and re-running the same code; regenerating cannot install.
+    "missing_dependency",
+    # An import no installable package provides (pymc3, pystan, theano...).
+    # The opposite repair: only new code can fix it, and an install that
+    # "succeeds" changes nothing.
+    "obsolete_dependency",
+    # A native library. pip cannot supply it, so neither repair applies and the
+    # experiment stops with something a human can act on.
+    "missing_system_library",
+    # Out of time or memory. Repaired by shrinking the run's own cost knobs
+    # deterministically — no model call — before asking for a rethink.
+    "resource_limit",
     "results_json",
     # results.json parsed fine but its metrics look hollow (empty, NaN/Infinity,
     # a placeholder string, or every numeric metric exactly 0) — see

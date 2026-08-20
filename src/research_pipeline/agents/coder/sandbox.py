@@ -879,6 +879,47 @@ def ensure_experiment_env(
     return venv_python, None
 
 
+def install_into_env(python_executable: Path, packages: list[str]) -> tuple[bool, str]:
+    """Install packages into an already-provisioned interpreter. Returns (ok, detail).
+
+    ensure_experiment_env provisions once, up front, from what the model
+    declared in requirements.txt. This is the other half: a package the code
+    imports but nobody declared only becomes visible when the run fails on it,
+    and at that point the repair is to install it and run the *same code*
+    again — not to regenerate source that was never wrong. A 2026-08-19 summary
+    shows the cost of not having this: three fix attempts against one
+    `ModuleNotFoundError: No module named 'pandas'`.
+
+    Same uv-preferred/pip-fallback choice as ensure_experiment_env, for the same
+    reason: uv is faster where present, and an Apptainer container set up with
+    plain pip must still work.
+
+    Never raises — the caller needs the detail to decide whether to try a
+    different distribution name or stop, and an exception here would lose the
+    difference between "no such package" and "no network".
+    """
+    wanted = [p for p in dict.fromkeys(packages) if p]
+    if not wanted:
+        return False, "nothing to install"
+
+    use_uv = shutil.which("uv") is not None
+    if use_uv:
+        command = ["uv", "pip", "install", "--python", str(python_executable), *wanted]
+    else:
+        command = [str(python_executable), "-m", "pip", "install", *wanted]
+
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=600)
+    except subprocess.TimeoutExpired:
+        return False, f"installing {wanted} via {'uv' if use_uv else 'pip'} timed out after 600s"
+    except OSError as exc:
+        return False, f"could not run {'uv' if use_uv else 'pip'}: {exc}"
+
+    if proc.returncode == 0:
+        return True, (proc.stdout or "").strip()[-500:]
+    return False, ((proc.stderr or "") + (proc.stdout or "")).strip()[-500:]
+
+
 def run_experiment(
     python_executable: Path, run_script: Path, cwd: Path, timeout_seconds: int
 ) -> tuple[bool, str]:

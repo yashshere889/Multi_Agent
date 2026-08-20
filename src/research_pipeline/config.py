@@ -41,6 +41,7 @@ class Settings:
     coder_experiments_dir: str
     coder_output_dir: str
     coder_max_fix_attempts: int
+    coder_max_env_repairs: int
     coder_enable_hf_dataset_search: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
@@ -202,6 +203,13 @@ def load_settings() -> Settings:
         coder_experiments_dir=os.environ.get("CODER_EXPERIMENTS_DIR", "experiments"),
         coder_output_dir=os.environ.get("CODER_OUTPUT_DIR", "outputs"),
         coder_max_fix_attempts=int(os.environ.get("CODER_MAX_FIX_ATTEMPTS", "3")),
+        # Bounded separately from the fix attempts above, because the two fail
+        # for unrelated reasons and one should not drain the other. A fix
+        # attempt is spent asking the model for different code; an env repair
+        # installs a package and re-runs the code unchanged, which is not the
+        # model's fault and not the model's problem. Sharing one budget is how a
+        # 2026-08-19 run spent all three fix attempts on a missing pandas.
+        coder_max_env_repairs=int(os.environ.get("CODER_MAX_ENV_REPAIRS", "6")),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

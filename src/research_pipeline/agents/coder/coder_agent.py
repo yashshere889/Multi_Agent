@@ -114,9 +114,11 @@ from langgraph.store.base import BaseStore
 from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    diagnose,
     fix_pattern_store,
     huggingface_client,
     prompts,
+    repair,
     sandbox,
     slurm_submit,
     starters,
@@ -153,6 +155,16 @@ _ERROR_STAGE_ORDER = [
     "missing_data_fallback",
     "ignored_available_dataset",
     "self_review",
+    # The execution-failure kinds sit where run_experiment always did: they are
+    # all detected at the same point (a non-zero exit), just told apart by what
+    # the traceback says. Order within the group is arbitrary but must match
+    # schema.VALID_ERROR_SOURCES — _cleared_previous_error reads this list as
+    # the definition of "later stage", so a member missing here silently scores
+    # every regeneration as having made no progress.
+    "missing_dependency",
+    "obsolete_dependency",
+    "missing_system_library",
+    "resource_limit",
     "run_experiment",
     "results_json",
     "implausible_results",
@@ -204,6 +216,12 @@ _CONTEXT_SAFETY_MARGIN = 1024
 # different line. Initial generation keeps the constructor's temperature; only
 # the regeneration paths use this.
 _FIX_TEMPERATURE = 0.0
+
+# How many times one execution may be shrunk before the model is asked to
+# rethink the approach instead. Halving twice is a 4x reduction, which is enough
+# to tell "slightly over budget" from "the wrong shape of computation" — past
+# that, shrinking further degrades the experiment rather than rescuing it.
+_MAX_DOWNSCALES = 2
 
 
 def _estimate_tokens(text: str) -> int:
@@ -1063,11 +1081,68 @@ class CoderAgent:
             timeout_seconds = settings.coder_medium_complexity_timeout_seconds
         else:
             timeout_seconds = settings.coder_low_complexity_timeout_seconds
-        succeeded, message = sandbox.run_experiment(
-            python_executable, experiment_dir / "run.py", experiment_dir, timeout_seconds
-        )
-        if not succeeded:
-            return {"error_source": "run_experiment", "error_text": f"Execution failed: {message}"}
+        # Execution, plus the repairs that don't need the model.
+        #
+        # A failure is classified by *kind* before anything is decided about it
+        # (diagnose.classify_execution_failure). Two kinds are repaired here and
+        # the same code re-run: a package the code correctly imports but nobody
+        # declared, and a run that was simply too big for its budget. Neither is
+        # a defect in the generated source, so neither costs a fix attempt —
+        # regenerating in response to a missing package is what made a
+        # 2026-08-19 run spend its whole budget re-deriving the same
+        # ModuleNotFoundError three times.
+        #
+        # Everything else returns an error_source as before and goes to the fix
+        # loop, which is still the right place for a genuine code defect.
+        env_repairs = 0
+        downscales = 0
+        run_path = experiment_dir / "run.py"
+
+        while True:
+            succeeded, message = sandbox.run_experiment(
+                python_executable, run_path, experiment_dir, timeout_seconds
+            )
+            if succeeded:
+                break
+
+            failure = diagnose.classify_execution_failure(message)
+
+            if failure.route == diagnose.ROUTE_ENV and env_repairs < settings.coder_max_env_repairs:
+                if not network_available:
+                    # Say which package and why it can't be had, rather than
+                    # letting the fix loop rediscover it three times.
+                    return {
+                        "error_source": failure.error_source,
+                        "error_text": (
+                            f"{failure.summary} No network access on this node to install it — "
+                            "add it to the environment the pipeline runs in."
+                        ),
+                    }
+                installed, detail = repair.install_for(python_executable, failure)
+                env_repairs += 1
+                logger.info("[%s] %s", hypothesis_id, detail)
+                if installed:
+                    continue  # re-run the *unchanged* code
+                return {
+                    "error_source": failure.error_source,
+                    "error_text": f"{failure.summary} {detail}",
+                }
+
+            if failure.route == diagnose.ROUTE_DOWNSCALE and downscales < _MAX_DOWNSCALES:
+                shrunk, changes = repair.downscale(run_path.read_text())
+                if changes:
+                    run_path.write_text(shrunk)
+                    downscales += 1
+                    logger.info(
+                        "[%s] %s Reduced deterministically: %s",
+                        hypothesis_id,
+                        failure.summary,
+                        "; ".join(changes),
+                    )
+                    continue  # re-run the smaller version, still no model call
+                # Nothing to shrink: fall through and let the model rethink it.
+
+            return {"error_source": failure.error_source, "error_text": failure.summary}
 
         results, diagnosis = sandbox.read_results_json_for_diagnosis(experiment_dir)
         if results is None:
