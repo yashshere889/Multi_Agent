@@ -48,6 +48,53 @@ def has_gpu() -> bool:
     return shutil.which("nvidia-smi") is not None
 
 
+# Import name -> the distribution that actually provides it, for the cases where
+# they differ. extract_third_party_imports returns *import* names by design, and
+# those get installed verbatim — which is fine for numpy and pandas and fatal for
+# sklearn: the `sklearn` distribution on PyPI is a deprecation shim that fails
+# the install on purpose and tells you to use scikit-learn. Barkla job 10279165
+# died exactly there, on ['numpy', 'pandas', 'sklearn'], with uv printing the
+# answer in its own hint.
+#
+# Applied to the model's declared requirements too, not only to extracted
+# imports: a model writing `sklearn` in requirements.txt produces the identical
+# failure, and every entry here is a name that is never correct to install as-is.
+IMPORT_TO_DISTRIBUTION: dict[str, str] = {
+    "sklearn": "scikit-learn",
+    "skimage": "scikit-image",
+    "cv2": "opencv-python-headless",
+    "PIL": "pillow",
+    "yaml": "pyyaml",
+    "bs4": "beautifulsoup4",
+    "dateutil": "python-dateutil",
+    "Crypto": "pycryptodome",
+    "pkg_resources": "setuptools",
+    "mpl_toolkits": "matplotlib",
+    "OpenSSL": "pyOpenSSL",
+    "serial": "pyserial",
+}
+
+
+def installable_name(requirement: str) -> str:
+    """The name to hand a package installer for a requirement line or import name.
+
+    Preserves any version specifier — only the name part is rewritten — so
+    `sklearn>=1.3` becomes `scikit-learn>=1.3` rather than losing the pin.
+    """
+    stripped = requirement.strip()
+    if not stripped or stripped.startswith("#"):
+        return requirement
+    name = stripped
+    suffix = ""
+    for sep in ("==", ">=", "<=", "~=", "!=", ">", "<", "["):
+        if sep in name:
+            index = name.index(sep)
+            name, suffix = name[:index].strip(), name[index:]
+            break
+    mapped = IMPORT_TO_DISTRIBUTION.get(name)
+    return f"{mapped}{suffix}" if mapped else requirement
+
+
 def _normalize_requirements(requirements: list[str]) -> list[tuple[str, str]]:
     """Strips comments/version specifiers from requirement lines, returning
     (requirement_name, importable_module_name) pairs. Shared by
@@ -832,9 +879,16 @@ def ensure_experiment_env(
     # of the original, or that package would be "detected" as needed but
     # never actually installed. The original requirements.txt on disk is left
     # untouched either way — it documents what the model itself declared.
-    if extra_requirements:
+    # Names are mapped to what a package installer can actually resolve at this
+    # point, not earlier: missing_packages above checks *importability*, which is
+    # keyed on the import name, so rewriting sooner would ask whether
+    # `scikit-learn` is importable and always conclude it is missing.
+    merged = [
+        installable_name(line)
+        for line in dict.fromkeys(requirements + list(extra_requirements or []))
+    ]
+    if merged != list(dict.fromkeys(requirements)) or extra_requirements:
         install_requirements_path = experiment_dir / ".resolved_requirements.txt"
-        merged = list(dict.fromkeys(requirements + list(extra_requirements)))
         install_requirements_path.write_text("\n".join(merged) + "\n")
     else:
         install_requirements_path = requirements_path

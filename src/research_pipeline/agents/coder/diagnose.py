@@ -24,6 +24,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from . import sandbox
+
 # Routes. `repair.route_execution_failure` dispatches on these.
 ROUTE_ENV = "env_repair"
 ROUTE_DOWNSCALE = "downscale"
@@ -34,19 +36,9 @@ ROUTE_TERMINAL = "terminal"
 # differ AND installing that distribution genuinely satisfies that import.
 # sandbox._normalize_requirements already maps the common direction; this is the
 # repair direction, used only when a traceback names a module we don't have.
-IMPORT_TO_PACKAGE: dict[str, str] = {
-    "sklearn": "scikit-learn",
-    "skimage": "scikit-image",
-    "cv2": "opencv-python-headless",
-    "PIL": "pillow",
-    "yaml": "pyyaml",
-    "bs4": "beautifulsoup4",
-    "dateutil": "python-dateutil",
-    "sqlalchemy": "SQLAlchemy",
-    "Crypto": "pycryptodome",
-    "pkg_resources": "setuptools",
-    "mpl_toolkits": "matplotlib",
-}
+# The table itself lives in sandbox.IMPORT_TO_DISTRIBUTION, beside the install
+# path that also needs it — one table, so a name fixed for the repair path is
+# fixed for provisioning too.
 
 # Imports that NO installable distribution provides, mapped to the replacement
 # and the API note the fix prompt should carry.
@@ -105,10 +97,10 @@ def resolve_package(module: str) -> str:
     costs one failed install, which repair.py handles by retrying with the raw
     import name.
     """
-    if module in IMPORT_TO_PACKAGE:
-        return IMPORT_TO_PACKAGE[module]
+    if module in sandbox.IMPORT_TO_DISTRIBUTION:
+        return sandbox.IMPORT_TO_DISTRIBUTION[module]
     root = module.split(".")[0]
-    return IMPORT_TO_PACKAGE.get(root, root)
+    return sandbox.IMPORT_TO_DISTRIBUTION.get(root, root)
 
 
 def dead_import(module: str) -> tuple[str, str] | None:

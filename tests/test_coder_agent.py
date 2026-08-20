@@ -3519,3 +3519,54 @@ def test_a_mistyped_backend_name_still_fails_loudly(monkeypatch):
     with pytest.raises(SystemExit, match="Unknown CODER_FIX_STORE_BACKEND"):
         fix_pattern_store.get_store()
     fix_pattern_store.reset_store()
+
+
+def test_import_names_are_mapped_before_a_package_installer_sees_them():
+    """Barkla job 10279165 died here.
+
+    extract_third_party_imports returns *import* names by design, and those were
+    installed verbatim. That is fine for numpy and pandas and fatal for sklearn:
+    the `sklearn` distribution on PyPI is a deprecation shim that fails the
+    install on purpose. uv printed the answer in its own hint.
+    """
+    assert sandbox.installable_name("sklearn") == "scikit-learn"
+    assert sandbox.installable_name("cv2") == "opencv-python-headless"
+    assert sandbox.installable_name("PIL") == "pillow"
+    assert sandbox.installable_name("numpy") == "numpy", "unmapped names pass through"
+    assert sandbox.installable_name("") == "", "blank lines survive untouched"
+    assert sandbox.installable_name("# a comment") == "# a comment"
+
+
+def test_mapping_a_requirement_keeps_its_version_pin():
+    assert sandbox.installable_name("sklearn>=1.3") == "scikit-learn>=1.3"
+    assert sandbox.installable_name("sklearn==1.3.0") == "scikit-learn==1.3.0"
+
+
+def test_extracted_imports_reach_the_installer_as_distribution_names(tmp_path, monkeypatch):
+    """The end-to-end version: what actually lands in the file uv installs from."""
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("")  # the model declared nothing, as in job 10279165
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    venv_python = tmp_path / ".venv" / "bin" / "python"
+
+    def fake_run(cmd, **kwargs):
+        if "-c" in cmd:
+            return SimpleNamespace(returncode=1, stdout="", stderr="ImportError")
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.touch()
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    _python, error = sandbox.ensure_experiment_env(
+        tmp_path,
+        requirements,
+        network_available=True,
+        extra_requirements=["numpy", "pandas", "sklearn"],
+    )
+
+    assert error is None
+    installed_from = (tmp_path / ".resolved_requirements.txt").read_text().split()
+    assert "scikit-learn" in installed_from
+    assert "sklearn" not in installed_from, "the shim name must never reach the installer"
+    assert "numpy" in installed_from and "pandas" in installed_from
