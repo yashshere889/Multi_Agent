@@ -43,6 +43,7 @@ class Settings:
     coder_max_fix_attempts: int
     coder_max_env_repairs: int
     coder_data_dir: str
+    coder_venv_root: str
     coder_enable_hf_dataset_search: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
@@ -216,6 +217,14 @@ def load_settings() -> Settings:
         # Inputs matched here resolve as real, which is what lets a run report a
         # hypothesis verdict at all; see agents/coder/provenance.py.
         coder_data_dir=os.environ.get("CODER_DATA_DIR", ""),
+        # Where each experiment's throwaway venv is created. Empty means "beside
+        # the results", which is right on a laptop. On Barkla it should point at
+        # localscratch (/tmp/users/$USER): a venv is thousands of small files,
+        # scratch and fastscratch have inode quotas that a run per experiment
+        # eats into, and localscratch has none, is node-local NVMe, and is
+        # cleared automatically. The venv is rebuilt per job either way, so
+        # nothing is lost by keeping it off the shared filesystem.
+        coder_venv_root=os.environ.get("CODER_VENV_ROOT", ""),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

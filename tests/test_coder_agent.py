@@ -3436,3 +3436,39 @@ def test_the_fix_loop_gives_up_after_three_identical_failures(tmp_path):
 
     state["current_fix_history"] = [entry, entry]
     assert agent._route_after_attempt(state) == "regenerate", "two is a repeat, not yet a loop"
+
+
+def test_venv_root_places_the_venv_off_the_quota_bearing_filesystem(tmp_path, monkeypatch):
+    """On Barkla this is localscratch: no inode quota, node-local, disposable.
+
+    A venv is thousands of small files and scratch/fastscratch cap inodes at
+    300k/500k, so one per experiment is a real cost on a shared filesystem that
+    also holds the results worth keeping.
+    """
+    experiment_dir = tmp_path / "results" / "H1"
+    experiment_dir.mkdir(parents=True)
+    requirements = experiment_dir / "requirements.txt"
+    requirements.write_text("some-package\n")
+    venv_root = tmp_path / "localscratch"
+
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    created = []
+
+    def fake_run(cmd, **kwargs):
+        if "-c" in cmd:
+            return SimpleNamespace(returncode=1, stdout="", stderr="ImportError")
+        if "venv" in cmd:
+            created.append(cmd[-1])
+            Path(cmd[-1], "bin").mkdir(parents=True, exist_ok=True)
+            Path(cmd[-1], "bin", "python").touch()
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        experiment_dir, requirements, network_available=True, venv_root=venv_root
+    )
+
+    assert error is None
+    assert python_exec == venv_root / "H1" / ".venv" / "bin" / "python"
+    assert not (experiment_dir / ".venv").exists(), "the results directory stays free of venv files"

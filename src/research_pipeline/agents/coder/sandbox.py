@@ -784,6 +784,7 @@ def ensure_experiment_env(
     requirements_path: Path,
     network_available: bool,
     extra_requirements: list[str] | None = None,
+    venv_root: Path | None = None,
 ) -> tuple[Path | None, str | None]:
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
@@ -794,6 +795,13 @@ def ensure_experiment_env(
     to the stdlib `venv` + `pip` otherwise, so provisioning works regardless
     of which environment launched the pipeline (e.g. an Apptainer container
     that was only ever set up with plain pip).
+
+    `venv_root` places the venv somewhere other than beside the results. On a
+    cluster that matters: a venv is thousands of small files, Barkla's scratch
+    and fastscratch carry inode quotas (300k / 500k files), and localscratch has
+    none and is node-local NVMe besides. The venv is disposable and the results
+    are not, so they need not share a filesystem. Defaults to the experiment
+    directory, which is right on a laptop.
 
     `extra_requirements` is for packages the model never had a reason to put
     in requirements.txt — namely what experiments/_shared/ itself imports
@@ -831,7 +839,10 @@ def ensure_experiment_env(
     else:
         install_requirements_path = requirements_path
 
-    venv_dir = experiment_dir / ".venv"
+    venv_dir = (
+        (venv_root / experiment_dir.name / ".venv") if venv_root else experiment_dir / ".venv"
+    )
+    venv_dir.parent.mkdir(parents=True, exist_ok=True)
     venv_python = venv_dir / "bin" / "python"
     use_uv = shutil.which("uv") is not None
     tool = "uv" if use_uv else "pip"

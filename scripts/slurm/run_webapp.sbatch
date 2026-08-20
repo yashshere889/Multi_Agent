@@ -85,6 +85,13 @@ cd "$PROJECT_DIR"
 
 # Point the pipeline at the co-located server. These override .env, which is
 # read by config.py via load_dotenv() — real environment variables win.
+# Each experiment's throwaway venv is thousands of small files, and Barkla's
+# scratch/fastscratch carry inode quotas (300k / 500k). localscratch has none,
+# is node-local NVMe, and is cleared automatically — and the venv is rebuilt per
+# job anyway, so nothing worth keeping lives there (Barkla §5.1.7).
+export CODER_VENV_ROOT="${CODER_VENV_ROOT:-/tmp/users/$USER/coder-venvs-${SLURM_JOB_ID}}"
+mkdir -p "$CODER_VENV_ROOT"
+
 export LLM_BASE_URL="http://localhost:${PORT}/v1"
 export LLM_MODEL="$MODEL"
 

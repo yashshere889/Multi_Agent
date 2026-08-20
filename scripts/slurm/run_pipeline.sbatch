@@ -85,6 +85,13 @@ cd "$PROJECT_DIR"
 # Barkla §8: an OpenMP-linked library (numpy, scipy, sklearn, Stan) defaults to
 # every core on the node — 96 on an H100 node — and overloads it. The pipeline
 # itself is IO-bound; this ceiling is for the experiment code it runs.
+# Each experiment's throwaway venv is thousands of small files, and Barkla's
+# scratch/fastscratch carry inode quotas (300k / 500k). localscratch has none,
+# is node-local NVMe, and is cleared automatically — and the venv is rebuilt per
+# job anyway, so nothing worth keeping lives there (Barkla §5.1.7).
+export CODER_VENV_ROOT="${CODER_VENV_ROOT:-/tmp/users/$USER/coder-venvs-${SLURM_JOB_ID}}"
+mkdir -p "$CODER_VENV_ROOT"
+
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-24}"
 export MKL_NUM_THREADS="$OMP_NUM_THREADS"
 export OPENBLAS_NUM_THREADS="$OMP_NUM_THREADS"
