@@ -43,7 +43,14 @@ module load apptainer/1.3.6
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
 MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
-TP=1
+# Overridable from the submitting environment, because which value is right
+# depends on the card the job actually lands on rather than on this file: the
+# ~57GiB of weights fit one 80GB H100 or A100 at TP=1, but a 48GB L40S needs
+# both of its cards (TP=2). MAXLEN travels with it — see _vllm_serve.sh — and
+# LLM_CONTEXT_WINDOW below is bound to the same number.
+#
+#   sbatch -p gpu-l40s-low --gres=gpu:2 --export=ALL,TP=2 scripts/slurm/run_pipeline.sbatch "..."
+TP="${TP:-1}"
 PORT=$(( 8000 + SLURM_JOB_ID % 1000 ))
 
 # shellcheck source=_vllm_serve.sh

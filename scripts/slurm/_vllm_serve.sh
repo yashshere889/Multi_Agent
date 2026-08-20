@@ -13,6 +13,9 @@
 #   MODEL      HF repo id to serve (must match LLM_MODEL in .env)
 #   PORT       port to bind on the compute node
 #   TP         --tensor-parallel-size (must equal the GPU count requested)
+#   MAXLEN     --max-model-len; optional, defaults to 131072. The caller must
+#              export LLM_CONTEXT_WINDOW to the same value — the sbatch scripts
+#              derive both from this one variable so they cannot drift.
 #   HF_HOME    HuggingFace cache, on fastscratch (NOT home — 100k inode quota)
 
 vllm_serve_background() {
@@ -67,7 +70,7 @@ vllm_serve_background() {
             --host 0.0.0.0 \
             --port "$PORT" \
             --tensor-parallel-size "$TP" \
-            --max-model-len 131072 \
+            --max-model-len "${MAXLEN:-131072}" \
             --gpu-memory-utilization 0.90 \
             --max-num-seqs 8 \
         &
