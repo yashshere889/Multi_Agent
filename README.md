@@ -347,8 +347,8 @@ Every agent is LLM-powered and they all share one model, built in one place:
 backend — HTTP to any OpenAI-compatible server via `LLM_BASE_URL`/`LLM_MODEL`
 — and every agent shares the same endpoint; there is no per-agent override.
 The pipeline is wired specifically for that endpoint to be vLLM serving
-[NVIDIA Nemotron 3 Nano](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16)
-(`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`), but nothing is vLLM-specific —
+[Qwen3-Coder 30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct)
+(`Qwen/Qwen3-Coder-30B-A3B-Instruct`), but nothing is vLLM-specific —
 any OpenAI-compatible server works by changing `LLM_BASE_URL`/`LLM_MODEL`.
 `LLM_MODEL` must match the id the server advertises: the SLURM script passes
 no `--served-model-name`, so that's the full HF repo id; the model card's own
@@ -363,7 +363,9 @@ example aliases it to `model`, in which case set `LLM_MODEL=model`.
 > and `notebooks/kaggle_nemotron_nano_v2_pipeline.ipynb` still reference it and
 > no longer work; use `run_pipeline.sbatch` (below) instead.
 
-**Reasoning mode.** Nemotron 3 Nano thinks before answering, emitting a
+**Reasoning mode.** The pipeline no longer serves a reasoning model — Qwen3-Coder-Instruct
+answers directly. The machinery below is retained so that pointing `LLM_MODEL` at a
+reasoning model needs no code change. Nemotron 3 Nano thought before answering, emitting a
 `<think>...</think>` trace. `LLM_ENABLE_THINKING` (default `false`) controls
 it, sent as the model's documented `chat_template_kwargs.enable_thinking` on
 every request. It's off because no stage consumes reasoning traces and a full
@@ -386,7 +388,7 @@ bash scripts/slurm/build_vllm_sif.sh
 Then run the whole pipeline — server and all seven agents — as a single job:
 
 ```bash
-# Nemotron 3 Nano 30B A3B (~60GB) — vLLM served
+# Qwen3-Coder 30B-A3B-Instruct (~57GiB) — vLLM served
 sbatch scripts/slurm/run_pipeline.sbatch "your research question"
 ```
 
@@ -401,7 +403,8 @@ BF16 weights are ~60GB, which fits a single 80GB H100 or A100 on their own
 (not a 48GB L40S, and not a V100 at all — 16GB, and Volta has no bfloat16) —
 the second GPU here isn't for fitting the weights, it's so they shard across
 both cards and leave real KV-cache headroom for `--max-model-len`, which
-targets Nemotron 3 Nano's actual 262144-token `max_position_embeddings`
+targets a measured 131072-token window (Barkla job 10274103 reported a
+150,272-token KV cache at TP=1)
 ceiling (see [`_vllm_serve.sh`](scripts/slurm/_vllm_serve.sh)'s comment for
 the reasoning and what to do if that doesn't fit Barkla's real KV budget).
 Drop back to one

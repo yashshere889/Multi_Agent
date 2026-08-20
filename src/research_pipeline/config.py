@@ -102,7 +102,7 @@ def load_settings() -> Settings:
         # llama-server) reached over LLM_BASE_URL.
         llm_base_url=os.environ.get("LLM_BASE_URL", "http://localhost:8080/v1"),
         llm_api_key=os.environ.get("LLM_API_KEY", "not-needed"),
-        llm_model=os.environ.get("LLM_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"),
+        llm_model=os.environ.get("LLM_MODEL", "Qwen/Qwen3-Coder-30B-A3B-Instruct"),
         llm_temperature=float(os.environ.get("LLM_TEMPERATURE", "0.2")),
         llm_top_p=float(os.environ.get("LLM_TOP_P", "0.95")),
         # Every agent parses structured JSON or full paper sections out of the
@@ -121,20 +121,28 @@ def load_settings() -> Settings:
         # prompt (the Coder Agent's fix prompts carry previous code sections,
         # errors, plan JSON and shared-infra context; the Reviewer's grounding
         # blocks carry the whole merged paper pool) plus a fixed max_tokens can
-        # exceed this and get a 400 from the server instead of a completion; see
-        # coder_agent._bounded_max_tokens. This MUST match whatever
-        # --max-model-len the vLLM server was actually started with (see
-        # scripts/slurm/_vllm_serve.sh) — 262144, Nemotron 3 Nano's actual
-        # max_position_embeddings ceiling. The sbatch scripts request 2 H100s
-        # (TP=2) so that fits Barkla's real KV-cache budget with room to
-        # spare; check the server log's "GPU KV cache size: N tokens" line
-        # and lower this to match if it's ever less than 262144.
-        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "262144")),
-        # Nemotron 3 Nano is a reasoning model that emits <think>...</think>
-        # before its answer by default. Off by default here: nothing in this
-        # pipeline reads reasoning traces, and the codebase already prefers
-        # determinism over model deliberation wherever an answer is verifiable.
-        # Traces are stripped defensively regardless (see llm_json.strip_reasoning).
+        # exceed this and get a 400 from the server instead of a completion — see
+        # llm.bounded_max_tokens, which every agent goes through.
+        #
+        # This MUST match whatever --max-model-len the vLLM server was actually
+        # started with (see scripts/slurm/_vllm_serve.sh). 131072 is measured,
+        # not assumed: on Barkla job 10274103, Qwen3-Coder-30B-A3B served at
+        # TP=1 on one 80GB card with --gpu-memory-utilization 0.90 reported
+        # "GPU KV cache size: 150,272 tokens" — above the 131072 requested, so
+        # the window is real rather than silently clipped.
+        #
+        # TP=1 (rather than sharding across both GPUs) leaves the job's second
+        # GPU free for generated experiments to use. Serving at TP=2 would allow
+        # this model's full 262144, at the cost of that card; if you change one,
+        # change both here and in _vllm_serve.sh.
+        llm_context_window=int(os.environ.get("LLM_CONTEXT_WINDOW", "131072")),
+        # Qwen3-Coder-30B-A3B-Instruct is NOT a reasoning model — it emits no
+        # <think> trace and its chat template has no enable_thinking kwarg, so
+        # this stays off and llm._extra_body sends nothing when it is. The
+        # setting is kept rather than deleted because the pipeline should still
+        # be able to serve a reasoning model (Nemotron 3 Nano, which this
+        # replaced) by changing LLM_MODEL alone. Traces are stripped defensively
+        # regardless (see llm_json.strip_reasoning).
         llm_enable_thinking=_env_bool("LLM_ENABLE_THINKING", False),
         llm_reasoning_budget=_env_optional_int("LLM_REASONING_BUDGET"),
         semantic_scholar_api_key=semantic_scholar_api_key,

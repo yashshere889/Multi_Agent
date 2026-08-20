@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 # Run the WHOLE pipeline (vLLM server + all six agents) inside one Barkla job.
 #
 #   cd /mnt/fastscratch/users/$USER/multi-agent-langraph
@@ -27,14 +27,14 @@
 #   gpu-l40s        2x L40S 48GB   3-day limit   <- needs --gres=gpu:2 and TP=2 (48GB < 60GB)
 #   gpu-v100        4x V100 16GB   3-day limit   <- unusable here: no BF16 (SM 7.0), too little VRAM
 #
-# --gres=gpu:2 / TP=2 here isn't because 1 GPU can't fit the 30B model — it
-# fits on one H100 fine. It's so the ~59GB of BF16 weights shard across both
-# cards (~29.5GB each) instead of eating one card almost whole, leaving real
-# room for KV cache — see _vllm_serve.sh's --max-model-len comment for why,
-# and what to do if the KV budget still doesn't cover it. This doubles the
-# job's footprint on a partition shared with everyone else on Barkla; drop
-# back to --gres=gpu:1 / TP=1 in _vllm_serve.sh's caller if that's not worth
-# the extra context headroom for a given run.
+# --gres=gpu:2 with TP=1: the server takes GPU 0 and the second card is left
+# for generated experiments to use. Qwen3-Coder-30B-A3B is ~57GiB of BF16
+# weights, which fits one H100 with a measured 150,272 tokens of KV cache
+# (Barkla job 10274103) — so sharding it across both cards would spend the
+# second GPU to buy context the pipeline does not need, and leave any
+# GPU-needing experiment with nothing to run on. See _vllm_serve.sh for the
+# measurements and for what to change if you do want TP=2.
+#
 # Low-priority (1-day limit, PRE-EMPTIBLE — job is killed and requeued when the
 # owning group submits, so a half-finished run restarts from scratch):
 #   gpu-a100-lowbig 4x A100 80GB
@@ -57,8 +57,8 @@ mkdir -p "$WORK_DIR"
 
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
-MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=2
+MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
+TP=1
 
 # gpu-l40s and gpu-h100 nodes are shared between users, so a fixed port can
 # collide with someone else's server. Derive one from the job id instead.
@@ -82,6 +82,13 @@ cd "$PROJECT_DIR"
 
 # Point the pipeline at the co-located server. These override .env, which is
 # read by config.py via load_dotenv() — real environment variables win.
+# Barkla §8: an OpenMP-linked library (numpy, scipy, sklearn, Stan) defaults to
+# every core on the node — 96 on an H100 node — and overloads it. The pipeline
+# itself is IO-bound; this ceiling is for the experiment code it runs.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-24}"
+export MKL_NUM_THREADS="$OMP_NUM_THREADS"
+export OPENBLAS_NUM_THREADS="$OMP_NUM_THREADS"
+
 export LLM_BASE_URL="http://localhost:${PORT}/v1"
 export LLM_MODEL="$MODEL"
 

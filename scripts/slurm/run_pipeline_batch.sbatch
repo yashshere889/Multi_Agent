@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 # Run the pipeline over MANY research questions as a SLURM job array — the
 # unattended-sweep counterpart to run_pipeline.sbatch's single question.
 #
@@ -32,8 +32,8 @@
 #SBATCH --output=pipeline_batch_%A_%a.log
 
 # See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
-# --gres=gpu:2/TP=2 here is for KV-cache headroom (_vllm_serve.sh targets
-# 262144's --max-model-len, sized for TP=2's budget), not because the 30B
+# --gres=gpu:2 with TP=1 (_vllm_serve.sh targets a 131072 --max-model-len,
+# which fits one card with headroom), leaving GPU 1 for experiments; the 30B
 # model needs 2 GPUs to fit on gpu-h100 — but note this is PER ARRAY TASK: at
 # --array=0-N%C, C concurrent tasks now hold 2*C GPUs instead of C, on a
 # partition shared with everyone else on Barkla. Pick %C with that in mind, or
@@ -58,8 +58,8 @@ mkdir -p "$WORK_DIR"
 
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
-MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=2
+MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
+TP=1
 
 # Derived from the task's own job id: array tasks land on shared nodes and a
 # fixed port would collide with a sibling task.

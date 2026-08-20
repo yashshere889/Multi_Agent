@@ -4,21 +4,25 @@ llama-server, a local box. See scripts/slurm/run_llm_server.sbatch. Every
 agent calls get_chat_model() and gets back a BaseChatModel; no agent
 constructs its own client.
 
-The pipeline targets NVIDIA Nemotron 3 Nano
-(https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16), a
-*reasoning* model: left alone it emits a <think>...</think> trace before its
-answer, which would land in `response.content` and break every agent's JSON
-parse. Two independent guards handle that, because either one alone can be
-defeated by a misconfiguration:
+The pipeline targets Qwen3-Coder 30B-A3B-Instruct
+(https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct), a sparse-MoE
+coding model with ~3B active parameters per token. It replaced NVIDIA Nemotron
+3 Nano, and the two differ in one way that matters here: Qwen3-Coder-Instruct
+is *not* a reasoning model. It emits no <think> trace and its chat template
+has no `enable_thinking` kwarg, so sending one is at best ignored and at worst
+a template error.
 
-1. `chat_template_kwargs.enable_thinking` is sent on every request, so the chat
-   template doesn't open a reasoning turn in the first place.
-2. In llm_json.strip_reasoning: any trace that shows up anyway is stripped
-   before parsing.
+Hence `_extra_body` sends `chat_template_kwargs` only when thinking is actually
+requested, which by default it is not. The setting survives rather than being
+deleted so that pointing LLM_MODEL back at a reasoning model needs no code
+change, and llm_json.strip_reasoning still strips any trace that arrives —
+free insurance, and the guard that saves a run when a server is started
+without the matching reasoning parser.
 
-Guard 2 is what actually saves a run when guard 1 is defeated — e.g. a vLLM
-server started without the `nano_v3` reasoning parser leaves the trace in
-`content` regardless of what was requested.
+Sampling: `temperature` and `top_p` are sent explicitly and win. Qwen3-Coder's
+own generation config additionally sets top_k=20 and repetition_penalty=1.05,
+which this pipeline does not override — both are reasonable for code, and vLLM
+logs that it is applying them at startup.
 """
 
 from __future__ import annotations
@@ -34,10 +38,24 @@ logger = logging.getLogger(__name__)
 
 
 def _extra_body(enable_thinking: bool) -> dict:
-    body: dict = {"chat_template_kwargs": {"enable_thinking": enable_thinking}}
-    # Nemotron's own knob for capping how many tokens it spends deliberating;
-    # meaningless (and omitted) when thinking is off.
-    if enable_thinking and settings.llm_reasoning_budget is not None:
+    """Provider-specific request fields, sent only when they mean something.
+
+    Nothing is sent in the default configuration. `enable_thinking` is a chat
+    template kwarg that exists on reasoning models (Nemotron 3 Nano) and not on
+    the coding model this pipeline now serves; passing `enable_thinking=false`
+    to a template with no such variable is a request field with no reader, and
+    on some servers a template render error rather than a harmless no-op.
+
+    So the kwarg goes out only when thinking is actually being asked for, which
+    keeps the reasoning-model path working unchanged without putting a dead
+    field on every request in the common case.
+    """
+    if not enable_thinking:
+        return {}
+    body: dict = {"chat_template_kwargs": {"enable_thinking": True}}
+    # A reasoning model's own knob for capping how many tokens it spends
+    # deliberating; meaningless (and omitted) when thinking is off.
+    if settings.llm_reasoning_budget is not None:
         body["reasoning_budget"] = settings.llm_reasoning_budget
     return body
 
@@ -90,7 +108,7 @@ def get_chat_model(
 
     Every agent shares one LLM_BASE_URL/LLM_MODEL — there is no per-agent
     override anymore; all seven agents run against the same vLLM-served
-    Nemotron 3 Nano 30B endpoint."""
+    Qwen3-Coder 30B-A3B endpoint."""
     thinking = settings.llm_enable_thinking if enable_thinking is None else enable_thinking
     resolved_temperature = settings.llm_temperature if temperature is None else temperature
     return _openai_chat_model(resolved_temperature, thinking, streaming)

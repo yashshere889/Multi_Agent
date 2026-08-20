@@ -1,5 +1,5 @@
-#!/bin/bash
-# Serve NVIDIA Nemotron 3 Nano behind an OpenAI-compatible endpoint (vLLM) on a
+#!/bin/bash -l
+# Serve Qwen3-Coder 30B-A3B behind an OpenAI-compatible endpoint (vLLM) on a
 # Barkla GPU node, WITHOUT running the pipeline in the same job.
 #
 #   sbatch scripts/slurm/run_llm_server.sbatch
@@ -27,7 +27,10 @@
 
 # See run_pipeline.sbatch for the full partition table and the VRAM reasoning.
 # gpu-h100 (4x H100 80GB) and gpu-l40s (2x L40S 48GB) are open to all users.
-# --gres=gpu:2 / TP=2 here is for KV-cache headroom (see _vllm_serve.sh), not
+# --gres=gpu:2 with TP=1: the server uses GPU 0 and the second card is left
+# free for generated experiments. ~57GiB of weights fit one 80GB card with a
+# measured 150,272 tokens of KV (see _vllm_serve.sh), so sharding would buy
+# context this pipeline does not need at the price of that card. Formerly
 # because the model needs 2 GPUs to fit. This is the right script to test that
 # on first — it's just the server, so a bad --max-model-len fails in minutes
 # instead of burning a run_pipeline.sbatch job.
@@ -39,8 +42,8 @@ module load apptainer/1.3.6
 
 export HF_HOME="/mnt/fastscratch/users/$USER/hf_cache"
 VLLM_SIF="/mnt/fastscratch/users/$USER/containers/vllm.sif"
-MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-TP=2
+MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
+TP=1
 PORT=$(( 8000 + SLURM_JOB_ID % 1000 ))
 
 # shellcheck source=_vllm_serve.sh

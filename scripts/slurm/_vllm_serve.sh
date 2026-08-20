@@ -5,7 +5,8 @@
 # Barkla has no vLLM module (`module avail` only ships nemotron/nano-12b-v2,
 # which is a transformers container, not an OpenAI-compatible server), so we
 # run the official vLLM image under Apptainer. Build it once with
-# scripts/slurm/build_vllm_sif.sh before submitting anything.
+# scripts/slurm/build_vllm_sif.sh before submitting anything, and `module load
+# apptainer/1.3.6` first — apptainer is not on PATH by default (Barkla §17.1.1).
 #
 # Expects these to be set by the caller:
 #   VLLM_SIF   path to the built .sif
@@ -22,41 +23,42 @@ vllm_serve_background() {
     # binds $HOME by default — fastscratch must be bound explicitly or the
     # model cache silently misses and re-downloads into the container's tmpfs.
     #
-    # --max-model-len is set to 262144, not the ~1M-token figure once assumed
-    # here: that number was wrong, not just optimistic — Nemotron 3 Nano's own
-    # config.json caps max_position_embeddings at 262144, and a value above
-    # that fails vLLM's own startup validation outright (a hard architectural
-    # ceiling, not a KV-cache/memory budget question). Confirmed on Barkla:
-    # 08-15 jobs 10231751/10231760/10231770 all died in seconds with
-    # "User-specified max_model_len (1048576) is greater than the derived
-    # max_model_len (max_position_embeddings=262144.0)" before vLLM ever
-    # started listening.
+    # --max-model-len 131072 and TP=1 are both measured, not assumed. On Barkla
+    # job 10274103, Qwen3-Coder-30B-A3B served on a single 80GB card at
+    # --gpu-memory-utilization 0.90 reported:
     #
-    # 262144 is still ~4x smaller than the 1048576 this repo used to request,
-    # so it should sit comfortably within TP=2's KV-cache budget — the reason
-    # TP/--gres are 2, not 1, is unchanged: sharding the ~59GB of BF16 weights
-    # across 2 H100s leaves each card mostly free for KV cache instead of
-    # mostly consumed by weights. That said, the exact per-GPU KV budget on
-    # Barkla is still unverified for this model, so if 262144 somehow doesn't
-    # fit, vLLM refuses to start and exits within seconds rather than hanging,
-    # which wait_for_vllm's `kill -0` check below catches immediately (no
-    # 30-minute wait, no wasted job time). Check the log for vLLM's own "GPU
-    # KV cache size: N tokens" line to see what actually fit, and lower this
-    # to match if it ever errors again. Test via run_llm_server.sbatch (server
-    # only, no pipeline) before trusting a value in a full run_pipeline.sbatch
-    # job. LLM_CONTEXT_WINDOW in .env must match whatever value ends up
-    # working here, since that's what coder_agent._bounded_max_tokens sizes
-    # completions against client-side.
+    #     Model loading took 56.9342 GiB
+    #     GPU KV cache size: 150,272 tokens
+    #
+    # i.e. the KV budget comfortably exceeds the 131072 requested, so the window
+    # is real rather than silently clipped. LLM_CONTEXT_WINDOW in .env must
+    # match this number — that is what every agent sizes completions against
+    # client-side, and a mismatch buys a 400 from the server instead of a
+    # completion.
+    #
+    # Why TP=1 when --gres asks for 2 GPUs: the model fits one card with room to
+    # spare, so sharding it across both would spend the second card to buy
+    # context this pipeline does not need — and leave generated experiments with
+    # no GPU at all. TP=1 leaves GPU 1 free for them. Serving at TP=2 would
+    # allow this model's full 262144 if some future run needs it; change TP in
+    # the caller and LLM_CONTEXT_WINDOW together.
+    #
+    # 0.90 rather than 0.95: at TP=1 the weights alone are ~57GiB of the card's
+    # 80GB, and the tighter margin left too little room for the CUDA graphs
+    # captured after the KV cache is sized.
+    #
+    # No --trust-remote-code: vLLM resolves this model natively as
+    # Qwen3MoeForCausalLM (confirmed in the job log above), so the flag would
+    # buy nothing and enable arbitrary model-repo code execution for free.
     #
     # Deliberately no --served-model-name: vLLM then advertises the model under
     # its full HF id, which is what LLM_MODEL is set to. Alias it and every
     # request 404s.
     #
-    # No --reasoning-parser: LLM_ENABLE_THINKING defaults to false, and the
-    # nano_v3 parser needs a plugin .py from the model card in the job's CWD.
-    # llm_json.strip_reasoning strips any trace that arrives anyway, so a
-    # server started without the parser is safe. Add it back only if you turn
-    # thinking on.
+    # No --reasoning-parser: Qwen3-Coder-Instruct is not a reasoning model and
+    # emits no <think> trace to parse. llm_json.strip_reasoning still strips one
+    # if a future model produces it, so a server started without a parser is
+    # safe either way.
     apptainer exec --nv \
         --bind /mnt/fastscratch,/mnt/scratch \
         --env HF_HOME="$HF_HOME" \
@@ -65,10 +67,9 @@ vllm_serve_background() {
             --host 0.0.0.0 \
             --port "$PORT" \
             --tensor-parallel-size "$TP" \
-            --max-model-len 262144 \
-            --gpu-memory-utilization 0.95 \
+            --max-model-len 131072 \
+            --gpu-memory-utilization 0.90 \
             --max-num-seqs 8 \
-            --trust-remote-code \
         &
     VLLM_PID=$!
 }

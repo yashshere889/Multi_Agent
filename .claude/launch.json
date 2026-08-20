@@ -4,6 +4,12 @@
     {
       "name": "phase2-webapp",
       "url": "http://127.0.0.1:8000"
+    },
+    {
+      "name": "research-pipeline-webapp",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "research-pipeline", "serve", "--port", "8010"],
+      "port": 8010
     }
   ]
 }

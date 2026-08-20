@@ -25,11 +25,17 @@ mkdir -p "$SIF_DIR"
 # Pin a release rather than :latest so a rebuild months from now doesn't
 # silently change vLLM under the pipeline. Bump this deliberately.
 #
-# v0.11.0 predates NemotronHConfig's rms_norm_eps field and fails to load
+# The pin below was originally chosen for Nemotron: v0.11.0 predates
+# NemotronHConfig's rms_norm_eps field and fails to load
 # NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 with
 # "AttributeError: 'NemotronHConfig' object has no attribute 'rms_norm_eps'".
 # v0.12.0 is the version the upstream vLLM recipe for this model pins
 # (https://github.com/vllm-project/recipes/blob/main/NVIDIA/Nemotron-3-Nano-30B-A3B.md).
+#
+# The pipeline now serves Qwen/Qwen3-Coder-30B-A3B-Instruct, which vLLM
+# resolves natively as Qwen3MoeForCausalLM — confirmed on Barkla job 10274103
+# under vLLM 0.12.0. Any version at or above the pin below carries it; there
+# is no separate floor to respect for this model.
 # If a future model bump errors on an unknown architecture again, check that
 # recipe before assuming the model or the flags are wrong.
 apptainer build "$SIF_DIR/vllm.sif" docker://vllm/vllm-openai:v0.12.0

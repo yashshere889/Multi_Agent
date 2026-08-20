@@ -128,14 +128,24 @@ def test_invoke_json_repair_turn_reuses_the_same_per_call_overrides():
     assert model.call_kwargs == [{"max_tokens": 123}, {"max_tokens": 123}]
 
 
-# -- llm.get_chat_model: Nemotron request fields -----------------------------------------
+# -- llm.get_chat_model: provider request fields -----------------------------------------
 
 
-def test_get_chat_model_sends_the_configured_thinking_mode(monkeypatch):
+def test_get_chat_model_sends_no_thinking_kwarg_when_thinking_is_off(monkeypatch):
+    """Nothing is sent in the default configuration.
+
+    This asserted `{"enable_thinking": False}` while the pipeline served
+    Nemotron 3 Nano, where that kwarg exists. Qwen3-Coder-Instruct is not a
+    reasoning model and its chat template has no such variable, so sending the
+    field is a request field with no reader — and on some servers a template
+    render error rather than a harmless no-op. The kwarg now goes out only when
+    thinking is actually asked for, which keeps the reasoning-model path
+    working without putting a dead field on every request.
+    """
     # Pinned rather than read from the ambient .env, so the assertion doesn't
     # flip with whoever's LLM_ENABLE_THINKING is loaded.
     monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_enable_thinking=False))
-    assert llm.get_chat_model().extra_body == {"chat_template_kwargs": {"enable_thinking": False}}
+    assert llm.get_chat_model().extra_body == {}
 
     monkeypatch.setattr(llm, "settings", replace(llm.settings, llm_enable_thinking=True))
     assert llm.get_chat_model().extra_body == {"chat_template_kwargs": {"enable_thinking": True}}

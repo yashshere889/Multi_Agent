@@ -52,7 +52,7 @@ whether you'd rather build your own `.venv` or use a module-provided container):
 |---|---|---|---|
 | [`run_pipeline_hf.sbatch`](../scripts/slurm/run_pipeline_hf.sbatch) | Nemotron Nano **12B** v2, in-process transformers | fits `gpu-l40s` (48GB) and up | none — no container, no server |
 | [`run_pipeline_hf_container.sbatch`](../scripts/slurm/run_pipeline_hf_container.sbatch) | Nemotron Nano **12B** v2, via Barkla's `nemotron` Apptainer module | fits `gpu-l40s` (48GB) and up | module-provided container, no build — use if `mamba_ssm` won't build in your own `.venv` |
-| [`run_pipeline.sbatch`](../scripts/slurm/run_pipeline.sbatch) | Nemotron 3 Nano **30B A3B**, served by vLLM | `gpu-h100`, 2 GPUs (`--gres=gpu:2`, TP=2 — for KV-cache/context headroom, not because the model needs 2 to fit; 1 GPU is enough to run it) | one-time Apptainer build |
+| [`run_pipeline.sbatch`](../scripts/slurm/run_pipeline.sbatch) | Qwen3-Coder **30B A3B**, served by vLLM | `gpu-h100`, 2 GPUs (`--gres=gpu:2`, **TP=1** — the server takes GPU 0, the second card is left free for generated experiments) | one-time Apptainer build |
 
 Start with the 12B/HF path for a quick single run — it's strictly less
 plumbing. For a large batch, throughput matters more; see §5's backend note.
@@ -92,7 +92,7 @@ bash scripts/slurm/build_vllm_sif.sh
 export HF_HOME=/mnt/fastscratch/users/$USER/hf_cache
 apptainer exec --bind /mnt/fastscratch \
     /mnt/fastscratch/users/$USER/containers/vllm.sif \
-    hf download nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+    hf download Qwen/Qwen3-Coder-30B-A3B-Instruct
 ```
 Apptainer only auto-binds `$HOME` — without `--bind /mnt/fastscratch` the
 container can't write to `$HF_HOME`, and `hf download` fails with `[Errno 30]
