@@ -16,7 +16,20 @@ logger = logging.getLogger(__name__)
 
 
 class LLMJSONError(RuntimeError):
-    """Raised when the model doesn't return valid JSON even after a repair retry."""
+    """Raised when the model doesn't return valid JSON even after a repair retry.
+
+    Carries the text that couldn't be parsed, and whether the model was cut off
+    by the completion token cap rather than simply returning malformed JSON.
+    Both exist for callers that can do better than giving up: a JSON array cut
+    off mid-generation is well-formed right up to the cut, so the entries before
+    it are recoverable (salvage_json_list), and `truncated` tells a caller the
+    problem was the *size* of what it asked for, not the model's syntax.
+    """
+
+    def __init__(self, message: str, *, text: str = "", truncated: bool = False) -> None:
+        super().__init__(message)
+        self.text = text
+        self.truncated = truncated
 
 
 JSON_REPAIR_PROMPT = """Your previous response was not valid JSON matching the requested \
@@ -102,6 +115,56 @@ def _loads_lenient(text: str) -> dict:
         return json.loads(_fix_invalid_escapes(text), strict=False)
 
 
+def _was_truncated(response: object) -> bool:
+    """Did the model stop because it hit the completion cap, or because it was done?
+
+    OpenAI-compatible servers (vLLM, which is what llm.py talks to) report this
+    as finish_reason="length"; Anthropic-style clients use
+    stop_reason="max_tokens". Both are checked so this keeps working if
+    get_chat_model is pointed elsewhere, and an unrecognized shape reads as
+    "not truncated", i.e. the repair retry that has always happened.
+    """
+    metadata = getattr(response, "response_metadata", None) or {}
+    if not isinstance(metadata, dict):
+        return False
+    return metadata.get("finish_reason") == "length" or metadata.get("stop_reason") in ("max_tokens", "length")
+
+
+_SALVAGE_DECODER = json.JSONDecoder(strict=False)
+
+
+def salvage_json_list(text: str, key: str) -> list:
+    """The complete objects from text's `"<key>": [...]` array, ignoring
+    whatever follows the last one that parses.
+
+    For a response the model never finished: everything before the cut is
+    well-formed, so the entries that did arrive are real and discarding them
+    along with the parse failure throws away work that is already paid for. On
+    Barkla job 10279682 a Reviewer hallucination check produced ~70 findings
+    and was cut mid-string in the next one; all 70 were lost, and with them the
+    entire pipeline run.
+
+    Never raises — it only ever runs on a response that already failed to
+    parse — and returns [] when the key isn't present or nothing parses.
+    """
+    match = re.search(rf'"{re.escape(key)}"\s*:\s*\[', text)
+    if not match:
+        return []
+    entries: list = []
+    index = match.end()
+    while index < len(text):
+        while index < len(text) and text[index] in " \t\r\n,":
+            index += 1
+        if index >= len(text) or text[index] == "]":
+            break
+        try:
+            entry, index = _SALVAGE_DECODER.raw_decode(text, index)
+        except ValueError:
+            break
+        entries.append(entry)
+    return entries
+
+
 def invoke_json(
     chat_model: BaseChatModel,
     system_prompt: str,
@@ -130,6 +193,20 @@ def invoke_json(
     try:
         return _loads_lenient(text)
     except json.JSONDecodeError as exc:
+        if _was_truncated(response):
+            # A repair turn cannot fix this, so none is attempted. It re-sends
+            # the same prompt under the same max_tokens, so the model produces
+            # the same over-long answer and it is cut in the same place: on
+            # Barkla job 10279682 both attempts died at "Unterminated string
+            # ... (char 74650)", three minutes of generation spent reaching a
+            # byte-identical failure. What has to change is how much was asked
+            # for — or the caller salvaging what did arrive.
+            raise LLMJSONError(
+                f"Model's response was cut off by the completion token cap before it finished "
+                f"the JSON: {exc}. Raw response: {text[:500]!r}",
+                text=text,
+                truncated=True,
+            ) from exc
         logger.warning("Model returned invalid JSON (%s) — retrying once with a repair prompt", exc)
         # The repair turn quotes the *stripped* text, not the raw content: with
         # a reasoning model the raw content can be mostly <think> trace, which
@@ -145,5 +222,7 @@ def invoke_json(
         except json.JSONDecodeError as exc2:
             raise LLMJSONError(
                 f"Model did not return valid JSON, even after a repair attempt: {exc2}. "
-                f"Raw response: {text[:500]!r}"
+                f"Raw response: {text[:500]!r}",
+                text=text,
+                truncated=_was_truncated(response),
             ) from exc2

@@ -1050,6 +1050,13 @@ against the *same* upstream ground truth the writer used, and writes
 `ReviewOutput` schema — `overall_pass`, per-category issue lists, 1-5 quality
 scores, and a consolidated `feedback_for_writer`.
 
+One of those lists, `check_errors`, is about the *review* rather than the
+paper: an LLM check whose response couldn't be parsed (most often a response
+cut off by the completion token cap) is recorded there instead of ending the
+run, with any complete findings the partial response did contain kept. It
+blocks `overall_pass` like any other issue list, since a check that didn't
+finish is not a check that found nothing.
+
 ```bash
 uv run research-pipeline writer-reviewer-loop \
     --literature-file papers/metadata.json \

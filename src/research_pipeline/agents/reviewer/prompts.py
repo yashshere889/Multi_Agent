@@ -41,6 +41,12 @@ Section text as printed in the paper:
 Flag every claim, statistic, method description, or result in the section \
 text that does NOT trace back to something in the ground truth above.
 
+Report at most {max_findings} entries, worst first — if the section has more \
+problems than that, the {max_findings} most serious are the ones worth having. \
+Keep `claim` to the offending sentence and `issue` to one sentence. This is a \
+hard limit, not a style note: a response long enough to exhaust the completion \
+token budget is cut off mid-JSON and cannot be read at all.
+
 Return ONLY a JSON object with this exact shape:
 {{
   "hallucinations": [
@@ -76,6 +82,11 @@ overstates the result (claims support/refutation more strongly than an \
 "inconclusive" outcome warrants, e.g. writing as if an experiment that wasn't \
 run actually succeeded) or understates it (downplays or hedges away a \
 genuinely "supported"/"refuted" result).
+
+Report at most {max_findings} hallucination entries, worst first, keeping \
+`claim` to the offending sentence and `issue` to one sentence. This is a hard \
+limit, not a style note: a response long enough to exhaust the completion token \
+budget is cut off mid-JSON and cannot be read at all.
 
 Return ONLY a JSON object with this exact shape:
 {{

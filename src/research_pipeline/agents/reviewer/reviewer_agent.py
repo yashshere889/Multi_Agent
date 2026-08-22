@@ -103,7 +103,7 @@ from research_pipeline.agents.writer.citations import build_paper_index
 from research_pipeline.agents.writer.writer_agent import compute_hypothesis_verdict, extract_literature_papers
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
-from research_pipeline.llm_json import LLMJSONError, invoke_json
+from research_pipeline.llm_json import LLMJSONError, invoke_json, salvage_json_list
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,15 @@ logger = logging.getLogger(__name__)
 # also needs the framing/honesty check, and Hypotheses/Results/Methods need
 # per-hypothesis grounding assembled specially — see _grounding_for_section.
 _HALLUCINATION_SECTIONS = ("Introduction", "Related Work", "Hypotheses", "Methods", "Results", "Limitations", "Future Work")
+
+# How many findings one hallucination check may report. Nothing forces the
+# model to obey it, but asking for "every ungrounded claim" with no bound is
+# how one Introduction check produced a 377-line, ~75,000-character list that
+# ran past the completion cap and could not be parsed (Barkla job 10279682).
+# A review nobody can act on 25 findings at a time is not more useful for
+# listing 70, and the ones past the cap survive to the next iteration anyway:
+# the section gets revised and re-checked.
+_MAX_HALLUCINATION_FINDINGS = 25
 
 # Same estimate/margin as coder_agent._bounded_max_tokens, duplicated rather
 # than imported — each agent stays self-contained (see CLAUDE.md), and the two
@@ -292,6 +301,7 @@ class ReviewerAgent:
         would add branches without adding traceability worth the complexity."""
         sections = state["sections"]
         hallucinations: List[dict] = []
+        check_errors: List[dict] = []
         for heading in _HALLUCINATION_SECTIONS:
             if heading not in sections or not sections[heading].strip():
                 continue
@@ -304,8 +314,10 @@ class ReviewerAgent:
                 state["verdicts"],
                 state["raw_papers"],
             )
-            hallucinations += self._check_hallucinations(heading, sections[heading], grounding)
-        return {"hallucinations": hallucinations}
+            found, errors = self._check_hallucinations(heading, sections[heading], grounding)
+            hallucinations += found
+            check_errors += errors
+        return {"hallucinations": hallucinations, "check_errors": check_errors}
 
     def _node_check_discussion(self, state: ReviewerState) -> dict:
         """Extends — never replaces — the two lists its predecessors produced:
@@ -315,12 +327,13 @@ class ReviewerAgent:
         if "Discussion" not in sections or not sections["Discussion"].strip():
             return {}
 
-        disc_hallucinations, framing_issues = self._check_discussion(
+        disc_hallucinations, framing_issues, check_errors = self._check_discussion(
             sections["Discussion"], state["verdicts"], state["expected_ids"]
         )
         return {
             "hallucinations": state["hallucinations"] + disc_hallucinations,
             "hypothesis_coverage_issues": state["hypothesis_coverage_issues"] + framing_issues,
+            "check_errors": state["check_errors"] + check_errors,
         }
 
     def _node_score_quality(self, state: ReviewerState) -> dict:
@@ -339,6 +352,10 @@ class ReviewerAgent:
                 and not state["citation_issues"]
                 and not state["results_accuracy_issues"]
                 and not state["hypothesis_coverage_issues"]
+                # A check that could not be parsed is not a check that found
+                # nothing — passing a paper on the strength of one that never
+                # ran is the failure mode salvaging must not introduce.
+                and not state["check_errors"]
                 and all(score >= quality_threshold for score in state["quality_scores"].values())
             )
         }
@@ -350,6 +367,7 @@ class ReviewerAgent:
                 state["citation_issues"],
                 state["results_accuracy_issues"],
                 state["hypothesis_coverage_issues"],
+                state["check_errors"],
                 state["quality_scores"],
                 state["quality_notes"],
                 state["quality_threshold"],
@@ -363,6 +381,7 @@ class ReviewerAgent:
             "citation_issues": state["citation_issues"],
             "results_accuracy_issues": state["results_accuracy_issues"],
             "hypothesis_coverage_issues": state["hypothesis_coverage_issues"],
+            "check_errors": state["check_errors"],
             "quality_scores": state["quality_scores"],
             "overall_pass": state["overall_pass"],
             "feedback_for_writer": state["feedback_for_writer"],
@@ -462,12 +481,62 @@ class ReviewerAgent:
             )
         return min(settings.llm_max_tokens, headroom)
 
-    def _call_json(self, user_prompt: str) -> dict:
+    def _invoke_json(self, user_prompt: str) -> dict:
+        """The bare call: bounds max_tokens for this specific prompt and lets
+        LLMJSONError through. _call_json is this plus the agent's own error
+        type, for the checks that have nothing better to do than fail; the two
+        hallucination checks handle LLMJSONError themselves so they can salvage
+        (see _parse_or_salvage)."""
         max_tokens = self._bounded_max_tokens(user_prompt)
+        return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt, max_tokens=max_tokens)
+
+    def _call_json(self, user_prompt: str) -> dict:
         try:
-            return invoke_json(self.chat_model, prompts.SYSTEM_PROMPT, user_prompt, max_tokens=max_tokens)
+            return self._invoke_json(user_prompt)
         except LLMJSONError as exc:
             raise ReviewerAgentError(str(exc)) from exc
+
+    def _parse_or_salvage(self, user_prompt: str, location: str, keys: Tuple[str, ...]) -> Tuple[dict, List[dict]]:
+        """Returns (response, check_errors): the parsed response, or as much of
+        it as survived a parse failure.
+
+        An unparseable response used to end the run — this agent raised, the
+        node raised, and the whole orchestrator invocation unwound. On Barkla
+        job 10279682 that discarded a 25-minute run at iteration 3, throwing
+        away three drafts and two completed reviews because one of eight LLM
+        calls in that review came back cut off mid-string.
+
+        Two things are done instead. The findings that *did* arrive are kept:
+        a response cut off by the completion cap is well-formed JSON up to the
+        cut, and every complete entry before it is as real as any other
+        (salvage_json_list). And the failure is recorded as a check error
+        rather than swallowed, so a check that did not finish cannot be read
+        as a check that found nothing — `overall_pass` requires check_errors to
+        be empty, exactly as it requires the findings lists to be.
+        """
+        try:
+            return self._invoke_json(user_prompt), []
+        except LLMJSONError as exc:
+            salvaged = {key: salvage_json_list(exc.text, key) for key in keys}
+            recovered = sum(len(entries) for entries in salvaged.values())
+            logger.warning(
+                "Review check for %s returned unparseable JSON (%s truncated by the completion cap); "
+                "salvaged %d complete entry/entries: %s",
+                location,
+                "was" if exc.truncated else "was not",
+                recovered,
+                exc,
+            )
+            return salvaged, [
+                {
+                    "location": location,
+                    "issue": (
+                        f"This check did not complete: the model's response could not be parsed as JSON "
+                        f"({'cut off by the completion token cap' if exc.truncated else 'malformed even after a repair attempt'}). "
+                        f"{recovered} finding(s) recovered from the partial response; anything past that point was not checked."
+                    ),
+                }
+            ]
 
     @staticmethod
     def _ungrounded(entries: object, location: str) -> List[dict]:
@@ -501,18 +570,25 @@ class ReviewerAgent:
             found.append({"location": location, "claim": entry.get("claim", ""), "issue": entry.get("issue", "")})
         return found
 
-    def _check_hallucinations(self, heading: str, section_text: str, grounding: dict) -> List[dict]:
+    def _check_hallucinations(self, heading: str, section_text: str, grounding: dict) -> Tuple[List[dict], List[dict]]:
         prompt = prompts.HALLUCINATION_CHECK_PROMPT.format(
-            section_name=heading, grounding_block=json.dumps(grounding, indent=2, default=str), section_text=section_text
+            section_name=heading,
+            grounding_block=json.dumps(grounding, indent=2, default=str),
+            section_text=section_text,
+            max_findings=_MAX_HALLUCINATION_FINDINGS,
         )
-        response = self._call_json(prompt)
-        return self._ungrounded(response.get("hallucinations"), heading)
+        response, check_errors = self._parse_or_salvage(prompt, heading, ("hallucinations",))
+        return self._ungrounded(response.get("hallucinations"), heading), check_errors
 
-    def _check_discussion(self, section_text: str, verdicts: Dict[str, dict], expected_ids: List[str]) -> Tuple[List[dict], List[dict]]:
+    def _check_discussion(
+        self, section_text: str, verdicts: Dict[str, dict], expected_ids: List[str]
+    ) -> Tuple[List[dict], List[dict], List[dict]]:
         prompt = prompts.DISCUSSION_REVIEW_PROMPT.format(
-            verdicts_block=json.dumps([verdicts[hid] for hid in expected_ids], indent=2), section_text=section_text
+            verdicts_block=json.dumps([verdicts[hid] for hid in expected_ids], indent=2),
+            section_text=section_text,
+            max_findings=_MAX_HALLUCINATION_FINDINGS,
         )
-        response = self._call_json(prompt)
+        response, check_errors = self._parse_or_salvage(prompt, "Discussion", ("hallucinations", "framing_issues"))
         hallucinations = self._ungrounded(response.get("hallucinations"), "Discussion")
         framing_issues = [
             {
@@ -522,7 +598,7 @@ class ReviewerAgent:
             }
             for f in response.get("framing_issues", [])
         ]
-        return hallucinations, framing_issues
+        return hallucinations, framing_issues, check_errors
 
     def _score_quality(
         self, full_text: str, plan_by_id: Dict[str, dict], experiment_by_id: Dict[str, dict], expected_ids: List[str]
@@ -554,12 +630,15 @@ class ReviewerAgent:
         citation_issues: List[dict],
         results_accuracy_issues: List[dict],
         hypothesis_coverage_issues: List[dict],
+        check_errors: List[dict],
         quality_scores: dict,
         quality_notes: dict,
         quality_threshold: int,
     ) -> str:
         low_scores = {k: v for k, v in quality_scores.items() if v < quality_threshold}
-        if not (hallucinations or citation_issues or results_accuracy_issues or hypothesis_coverage_issues or low_scores):
+        if not (
+            hallucinations or citation_issues or results_accuracy_issues or hypothesis_coverage_issues or check_errors or low_scores
+        ):
             return "No issues found — the paper is grounded in the upstream data and meets the quality bar on every dimension."
 
         lines: List[str] = []
@@ -575,6 +654,12 @@ class ReviewerAgent:
         if hypothesis_coverage_issues:
             lines.append("Hypothesis coverage issues:")
             lines += [f'- {h["location"]}: {h["issue"]}' for h in hypothesis_coverage_issues]
+        if check_errors:
+            # Addressed to a human reader, not the Writer: nothing in a revised
+            # draft can fix a response that failed to parse. It is here so a
+            # review that did not fully run never looks like one that did.
+            lines.append("Review checks that did not complete (not something the draft can fix):")
+            lines += [f'- {e["location"]}: {e["issue"]}' for e in check_errors]
         if low_scores:
             lines.append(f"Quality scores below the {quality_threshold}/5 threshold:")
             lines += [f'- {dim}: {score}/5 — {quality_notes.get(dim, "no further detail given")}' for dim, score in low_scores.items()]
