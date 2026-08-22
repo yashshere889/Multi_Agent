@@ -10,6 +10,7 @@ import importlib.util
 import json
 import logging
 import math
+import os
 import py_compile
 import re
 import shutil
@@ -298,10 +299,20 @@ def lenient_compile_check(
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
+# Builtins whose *call* is the problem. Deliberately not in DANGEROUS_PATTERNS:
+# a regex cannot tell `eval(user_input)` from `model.eval()`, and `\beval\s*\(`
+# matches both — the `.` before `eval` is a word boundary. That false positive
+# blocked every PyTorch experiment this pipeline generates, since switching a
+# model to inference mode is spelled `model.eval()`, and it was unfixable by
+# regeneration: the code was already correct, so all three fix attempts were
+# spent being told to remove something that had to stay. See _builtin_call_findings.
+DANGEROUS_BUILTIN_CALLS: dict[str, str] = {
+    "eval": "eval() call",
+    "exec": "exec() call",
+    "__import__": "dynamic __import__() call",
+}
+
 DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\b__import__\s*\(", "dynamic __import__() call"),
     (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
     (r"\bos\.system\s*\(", "os.system() call"),
     (r"\bos\.popen\s*\(", "os.popen() call"),
@@ -318,11 +329,66 @@ DANGEROUS_PATTERNS: list[tuple[str, str]] = [
 ]
 
 
+class _BuiltinCallVisitor(ast.NodeVisitor):
+    """Finds calls to the builtins in DANGEROUS_BUILTIN_CALLS.
+
+    Only a bare name (`eval(...)`) or an explicit `builtins.eval(...)` counts.
+    An attribute call on some object — `model.eval()`, `cursor.exec()` — is a
+    method that happens to share the name and is not the builtin at all.
+    """
+
+    def __init__(self) -> None:
+        self.findings: list[tuple[int, str]] = []
+
+    def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        name = None
+        if isinstance(func, ast.Name):
+            name = func.id
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if func.value.id == "builtins":
+                name = func.attr
+        if name in DANGEROUS_BUILTIN_CALLS:
+            self.findings.append((node.lineno, DANGEROUS_BUILTIN_CALLS[name]))
+        self.generic_visit(node)
+
+
+def _builtin_call_findings(code: str) -> list[str]:
+    """Dangerous builtin calls, with the line each was found on.
+
+    Both callers run this only after a successful compile check, so the parse
+    below all but always succeeds. The regex fallback covers the case where it
+    doesn't — a caller reaching for this function directly on unparsed source.
+    It is the imprecise path on purpose: better a false positive than silently
+    passing an `eval` nobody looked at.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return [
+            description
+            for name, description in DANGEROUS_BUILTIN_CALLS.items()
+            if re.search(rf"\b{re.escape(name)}\s*\(", code)
+        ]
+
+    visitor = _BuiltinCallVisitor()
+    visitor.visit(tree)
+    lines = code.splitlines()
+    findings = []
+    for lineno, description in visitor.findings:
+        # The line itself, because "eval() call" alone gave the fix loop nothing
+        # to act on — it could not tell the model *where*, and a run that hit
+        # this spent every attempt guessing.
+        source = lines[lineno - 1].strip() if 0 < lineno <= len(lines) else ""
+        findings.append(f"{description} on line {lineno}: {source}" if source else description)
+    return findings
+
+
 def static_safety_check(code: str) -> list[str]:
     """Scans generated Python source for patterns that shouldn't appear in an
     experiment script, before it is executed or submitted anywhere. Returns a
     list of human-readable findings; empty means clean."""
-    findings = []
+    findings = _builtin_call_findings(code)
     for pattern, description in DANGEROUS_PATTERNS:
         if re.search(pattern, code):
             findings.append(description)
@@ -979,6 +1045,37 @@ def ensure_experiment_env(
     return venv_python, None
 
 
+def launch_path(python_executable: Path) -> str:
+    """Absolute path to an interpreter, WITHOUT resolving symlinks.
+
+    Both halves matter, and each closes a production failure.
+
+    Absolute: experiments_dir (CODER_EXPERIMENTS_DIR) defaults to a relative
+    "experiments", so a venv interpreter built from experiment_dir is relative
+    too. Every subprocess here runs with cwd=experiment_dir — that same
+    relative directory — so a relative interpreter path gets re-resolved
+    against the subprocess's cwd, doubling the directory
+    (experiments/H1/experiments/H1/.venv/bin/python) and raising
+    FileNotFoundError for an interpreter that does exist.
+
+    Not resolved: a venv's bin/python is a *symlink* to the base interpreter,
+    and PEP 405 keys venv detection off the pyvenv.cfg beside the path used to
+    launch. Follow the symlink and you launch the base interpreter in the base
+    environment, which has none of the venv's packages. On Barkla job 10279682
+    that made every install unobservable to the code it was installed for: the
+    Coder installed numpy six times, confirmed each time that the venv
+    interpreter could import it, and still got `ModuleNotFoundError: No module
+    named 'numpy'` from run.py, which was being launched with the resolved base
+    interpreter. The whole env-repair budget and all three fix attempts went on
+    that one contradiction, and the paper was written with no experiment run.
+
+    os.path.abspath rather than Path.resolve() or Path.absolute(): it
+    normalizes the path lexically (so "." and ".." segments go away) without
+    touching the filesystem, which is exactly the combination wanted here.
+    """
+    return os.path.abspath(python_executable)
+
+
 def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
     """Can *this* interpreter import this module, from the directory run.py runs in?
 
@@ -997,7 +1094,7 @@ def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
         return False
     try:
         proc = subprocess.run(
-            [str(python_executable), "-c", f"import {module.split('.')[0]}"],
+            [launch_path(python_executable), "-c", f"import {module.split('.')[0]}"],
             cwd=str(cwd),
             capture_output=True,
             text=True,
@@ -1056,19 +1153,22 @@ def run_experiment(
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
     diagnosable tail of stdout/stderr (or a timeout note) on failure."""
-    # run_script and python_executable are both resolved to absolute paths
-    # before being handed to the subprocess. experiments_dir
-    # (CODER_EXPERIMENTS_DIR) defaults to a relative "experiments", so a
-    # caller passing experiment_dir / "run.py" (or a venv python under it)
-    # hands us relative paths here too; since cwd below is that same
-    # relative directory, a relative path would get re-resolved against the
-    # subprocess's cwd instead of the launching process's, doubling the
-    # directory (experiments/H1/experiments/H1/run.py) — or, for
-    # python_executable, raising a FileNotFoundError for a venv interpreter
-    # that does exist, just not under that doubled path.
+    # run_script and python_executable are both made absolute before being
+    # handed to the subprocess. experiments_dir (CODER_EXPERIMENTS_DIR)
+    # defaults to a relative "experiments", so a caller passing
+    # experiment_dir / "run.py" (or a venv python under it) hands us relative
+    # paths here too; since cwd below is that same relative directory, a
+    # relative path would get re-resolved against the subprocess's cwd instead
+    # of the launching process's, doubling the directory
+    # (experiments/H1/experiments/H1/run.py).
+    #
+    # The interpreter goes through launch_path rather than .resolve(), which
+    # would follow a venv's bin/python symlink to the base interpreter and run
+    # the code in the base environment — see launch_path's docstring for the
+    # run that cost.
     try:
         proc = subprocess.run(
-            [str(python_executable.resolve()), str(run_script.resolve())],
+            [launch_path(python_executable), str(run_script.resolve())],
             cwd=str(cwd),
             capture_output=True,
             text=True,

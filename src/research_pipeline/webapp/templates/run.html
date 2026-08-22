@@ -5,9 +5,12 @@
 <section class="card">
   <p class="muted"><a href="/">← All runs</a></p>
   <h1 class="question">{{ run.question }}</h1>
-  <p class="muted run-id">{{ run.run_id }}</p>
-  {# Set when an action was refused, e.g. resuming a run that is already going.
-     Autoescaped like everything else, and it disappears on the next reload. #}
+  <p class="muted run-id">{{ run.run_id }} ·
+    <a href="/runs/{{ run.run_id }}/experiments">experiments</a> ·
+    <a href="/runs/{{ run.run_id }}/files">files</a></p>
+  {# Set when an action was refused — resuming a run that is already going, or a
+     rejected "continue this run" submission (see app.run_page). Autoescaped like
+     everything else, and it disappears on the next reload. #}
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 </section>
 

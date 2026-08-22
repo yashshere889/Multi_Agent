@@ -16,3 +16,7 @@ llama_server.log
 
 # Superseded by src/research_pipeline/ — kept on disk for reference, not tracked.
 Lit agent langraph.ipynb
+
+# The Coder Agent's fix-pattern store (CODER_FIX_STORE_SQLITE_PATH), written
+# into the working directory the moment anything runs the Coder locally.
+coder_fix_patterns.db

@@ -41,13 +41,25 @@ Section text as printed in the paper:
 Flag every claim, statistic, method description, or result in the section \
 text that does NOT trace back to something in the ground truth above.
 
+Report at most {max_findings} entries, worst first — if the section has more \
+problems than that, the {max_findings} most serious are the ones worth having. \
+Keep `claim` to the offending sentence and `issue` to one sentence. This is a \
+hard limit, not a style note: a response long enough to exhaust the completion \
+token budget is cut off mid-JSON and cannot be read at all.
+
 Return ONLY a JSON object with this exact shape:
 {{
   "hallucinations": [
-    {{"claim": "the specific claim/sentence from the section text", "issue": "concretely what's wrong / not grounded, referencing what the ground truth actually says instead"}}
+    {{"claim": "the specific claim/sentence from the section text", "issue": "concretely what's wrong / not grounded, referencing what the ground truth actually says instead", "grounded": false}}
   ]
 }}
 If nothing is ungrounded, return {{"hallucinations": []}}.
+
+`grounded` is required on every entry and is the verdict that counts. Set it to \
+false when the claim really is unsupported. If you looked at a claim and it IS \
+supported by the ground truth, either leave it out entirely or set `grounded` to \
+true — do not report a supported claim with an `issue` that explains why it is \
+actually fine. Only entries with `grounded: false` are treated as problems.
 """
 
 DISCUSSION_REVIEW_PROMPT = """You are reviewing the "Discussion" section of a \
@@ -71,11 +83,22 @@ overstates the result (claims support/refutation more strongly than an \
 run actually succeeded) or understates it (downplays or hedges away a \
 genuinely "supported"/"refuted" result).
 
+Report at most {max_findings} hallucination entries, worst first, keeping \
+`claim` to the offending sentence and `issue` to one sentence. This is a hard \
+limit, not a style note: a response long enough to exhaust the completion token \
+budget is cut off mid-JSON and cannot be read at all.
+
 Return ONLY a JSON object with this exact shape:
 {{
-  "hallucinations": [{{"claim": "...", "issue": "..."}}],
+  "hallucinations": [{{"claim": "...", "issue": "...", "grounded": false}}],
   "framing_issues": [{{"hypothesis_id": "...", "issue": "concretely how the text overstates or understates the given verdict, quoting the relevant phrase"}}]
 }}
+
+`grounded` is required on every hallucination entry and is the verdict that \
+counts. Set it to false when the claim really is unsupported. A claim you \
+checked and found supported should be left out, or marked `grounded: true` — \
+never reported with an `issue` explaining that it is actually fine. Only \
+entries with `grounded: false` are treated as problems.
 """
 
 QUALITY_SCORE_PROMPT = """Score this research paper draft on 5 dimensions, \

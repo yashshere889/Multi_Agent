@@ -5,7 +5,11 @@ from types import SimpleNamespace
 import pytest
 
 from research_pipeline.agents.reviewer import checks
-from research_pipeline.agents.reviewer.reviewer_agent import ReviewerAgent, ReviewerAgentError
+from research_pipeline.agents.reviewer.reviewer_agent import (
+    _MAX_HALLUCINATION_FINDINGS,
+    ReviewerAgent,
+    ReviewerAgentError,
+)
 from research_pipeline.agents.reviewer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.writer.citations import build_paper_index
 from research_pipeline.agents.writer.pdf_builder import build_pdf
@@ -213,8 +217,16 @@ class FakeChatModel:
         prompt_text = messages[-1][1]
         for keyword, response in self._response_by_keyword.items():
             if keyword in prompt_text:
-                return SimpleNamespace(content=response)
-        return SimpleNamespace(content=self._default)
+                return self._as_message(response)
+        return self._as_message(self._default)
+
+    @staticmethod
+    def _as_message(response):
+        # A canned (content, metadata) pair stands in for a response the server
+        # annotated — finish_reason="length" is how an OpenAI-compatible server
+        # says it cut the model off at max_tokens.
+        content, metadata = response if isinstance(response, tuple) else (response, {})
+        return SimpleNamespace(content=content, response_metadata=metadata)
 
 
 def _quality_response(scores=None) -> str:
@@ -365,8 +377,203 @@ def test_run_uses_llm_flagged_hallucination(tmp_path):
     assert result["hallucinations"][0]["location"] == "Introduction"
 
 
+def _all_supported(tmp_path, hallucination_response):
+    """Runs a review over a good paper where the only LLM finding is whatever
+    `hallucination_response` says, so the verdict turns on that alone."""
+    paper_path, paper_summary = _build_good_paper(tmp_path)
+    coder_output = _coder_output([
+        _experiment("H1", "completed", accuracy=0.9, meets=True),
+        _experiment("H2", "completed", accuracy=0.9, meets=True),
+        _experiment("H3", "completed", accuracy=0.9, meets=True),
+    ])
+    fake_model = FakeChatModel({
+        "Score this research paper draft": _quality_response(),
+        'reviewing the "Introduction"': hallucination_response,
+    })
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+    return agent.run(
+        paper_path, paper_summary, _literature_output(), _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]), coder_output,
+        iteration=1, quality_threshold=4,
+    )
+
+
+def test_a_claim_the_model_marked_grounded_is_not_a_hallucination(tmp_path):
+    """Verbatim from a real Barkla review (job 10281908) that reported 92
+    hallucinations and could not converge: the model returns claims it
+    *examined*, with the issue field explaining they are fine."""
+    response = json.dumps({"hallucinations": [{
+        "claim": "Entropy-based methods have been applied to hallucination detection.",
+        "issue": "This is accurate and traceable to the ground truth, which lists both methods under 'methods' with descriptions that match this sentence.",
+        "grounded": True,
+    }]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert result["hallucinations"] == []
+    assert result["overall_pass"] is True
+
+
+def test_only_the_ungrounded_entries_survive(tmp_path):
+    response = json.dumps({"hallucinations": [
+        {"claim": "supported one", "issue": "actually fine", "grounded": True},
+        {"claim": "made-up statistic of 47%", "issue": "no such number in the ground truth", "grounded": False},
+    ]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert [h["claim"] for h in result["hallucinations"]] == ["made-up statistic of 47%"]
+    assert result["overall_pass"] is False
+
+
+def test_an_entry_without_a_verdict_is_still_treated_as_a_hallucination(tmp_path):
+    """Reviews written before `grounded` existed have to keep loading, and the
+    safe direction is reporting one rather than silently dropping it."""
+    response = json.dumps({"hallucinations": [{"claim": "x", "issue": "not in the ground truth"}]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert len(result["hallucinations"]) == 1
+    assert result["overall_pass"] is False
+
+
+def test_the_verdict_is_read_from_the_field_not_the_prose(tmp_path):
+    """The obvious shortcut — deciding from the issue text — gets this wrong:
+    it opens with "aligns with the ground truth" and is a real finding."""
+    response = json.dumps({"hallucinations": [{
+        "claim": "This is a key challenge for the field.",
+        "issue": "This aligns with the ground truth gap, however 'a key challenge' introduces a subjective framing not found in it.",
+        "grounded": False,
+    }]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert len(result["hallucinations"]) == 1
+
+
+def test_malformed_hallucination_entries_are_ignored(tmp_path):
+    response = json.dumps({"hallucinations": ["not an object", None, 42]})
+
+    result = _all_supported(tmp_path, response)
+
+    assert result["hallucinations"] == []
+
+
 def test_run_rejects_malformed_hypothesis_input(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
     agent = ReviewerAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
     with pytest.raises(ReviewerAgentError, match="Hypothesis Agent's output schema"):
         agent.run(paper_path, paper_summary, _literature_output(), {"hypotheses": "not a list"}, _planner_output([]), _coder_output([]))
+
+
+# -- an LLM check whose response can't be parsed ------------------------------------------
+
+
+_INTRO_CHECK = 'reviewing the "Introduction" section'
+
+
+def _calls_mentioning(fake_model, phrase: str) -> int:
+    """How many invocations carried `phrase` in any of their messages.
+
+    Any message rather than the last one: invoke_json appends the repair turn
+    to the same list object it was handed, so a recorded call and its retry are
+    the same (grown) list, and only the earlier messages still identify which
+    check it was.
+    """
+    return len([messages for messages in fake_model.calls if any(phrase in content for _, content in messages)])
+
+
+def _good_paper_run_args(tmp_path):
+    paper_path, paper_summary = _build_good_paper(tmp_path)
+    coder_output = _coder_output(
+        [
+            _experiment("H1", "completed", accuracy=0.9, meets=True),
+            _experiment("H2", "completed", accuracy=0.9, meets=True),
+            _experiment("H3", "completed", accuracy=0.9, meets=True),
+        ]
+    )
+    return (
+        paper_path,
+        paper_summary,
+        _literature_output(),
+        _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]),
+        coder_output,
+    )
+
+
+def test_run_salvages_a_truncated_hallucination_check_rather_than_ending_the_run(tmp_path):
+    """Regression test for Barkla job 10279682: the Introduction hallucination
+    check returned ~70 findings and was cut off mid-string in the next one.
+    ReviewerAgentError propagated out of the node, out of the orchestrator, and
+    out of the CLI, ending a 25-minute run at iteration 3 — three drafts and
+    two completed reviews thrown away over one unparseable response."""
+    truncated = (
+        '{\n  "hallucinations": [\n'
+        '    {"claim": "first", "issue": "ungrounded", "grounded": false},\n'
+        '    {"claim": "second", "issue": "also ungrounded", "grounded": false},\n'
+        '    {"claim": "third", "issue": "cut off mid-str'
+    )
+    fake_model = FakeChatModel(
+        {"Score this research paper draft": _quality_response(), _INTRO_CHECK: (truncated, {"finish_reason": "length"})}
+    )
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(*_good_paper_run_args(tmp_path), iteration=1, quality_threshold=4)
+
+    # The findings that did arrive are findings.
+    assert [h["claim"] for h in result["hallucinations"]] == ["first", "second"]
+    # The check that didn't finish is reported, and blocks the pass on a paper
+    # that is otherwise clean — a check that didn't run isn't one that found nothing.
+    assert [e["location"] for e in result["check_errors"]] == ["Introduction"]
+    assert "did not complete" in result["check_errors"][0]["issue"]
+    assert result["overall_pass"] is False
+    assert "Review checks that did not complete" in result["feedback_for_writer"]
+    # One call, not two: a repair turn would be cut at the same place.
+    assert _calls_mentioning(fake_model, _INTRO_CHECK) == 1
+
+
+def test_run_records_a_check_error_when_even_the_repair_turn_is_unparseable(tmp_path):
+    # Not truncated, so the repair turn happens as it always has; the review is
+    # still assembled rather than the run ending, with nothing to salvage.
+    fake_model = FakeChatModel(
+        {
+            "Score this research paper draft": _quality_response(),
+            _INTRO_CHECK: "not json, and no array to salvage (INTRO_MARKER)",
+            # The repair turn quotes the previous response back, so the marker
+            # is how the fake recognizes the retry — the section heading itself
+            # doesn't appear in the repair prompt.
+            "INTRO_MARKER": "still not json",
+        }
+    )
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(*_good_paper_run_args(tmp_path), iteration=1, quality_threshold=4)
+
+    assert result["hallucinations"] == []
+    assert [e["location"] for e in result["check_errors"]] == ["Introduction"]
+    assert result["overall_pass"] is False
+    assert _calls_mentioning(fake_model, _INTRO_CHECK) == 2
+    validate_output(result)  # check_errors is part of the contract, not an extra key
+
+
+def test_hallucination_check_asks_for_a_bounded_number_of_findings(tmp_path):
+    # The unbounded "flag every ungrounded claim" ask is what produced a
+    # 377-line response no completion cap could hold.
+    fake_model = FakeChatModel({"Score this research paper draft": _quality_response()})
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    agent.run(*_good_paper_run_args(tmp_path), iteration=1, quality_threshold=4)
+
+    intro_prompt = next(content for messages in fake_model.calls for _, content in messages if _INTRO_CHECK in content)
+    assert f"at most {_MAX_HALLUCINATION_FINDINGS} entries" in intro_prompt
+
+
+def test_a_clean_review_reports_no_check_errors(tmp_path):
+    fake_model = FakeChatModel({"Score this research paper draft": _quality_response()})
+    agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run(*_good_paper_run_args(tmp_path), iteration=1, quality_threshold=4)
+
+    assert result["check_errors"] == []
+    assert result["overall_pass"] is True
