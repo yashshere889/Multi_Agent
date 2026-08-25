@@ -444,18 +444,30 @@ CRITIC_FINDING_CODES: tuple[str, ...] = (
     "personal_information",
 )
 
-# Findings that end the candidate outright. Each is a defect no amount of
-# strength elsewhere compensates for: contaminated or personal data must not be
-# used at all, and a dataset that isn't what it says it is cannot be the
-# evidence base for a result.
+# Findings that end the candidate outright. Contaminated or personal data must
+# not be used at all, whatever else is true of it.
 CRITIC_HARD_FAILS: frozenset[str] = frozenset(
     {
         "evaluation_contamination",
         "personal_information",
-        "description_mismatch",
     }
 )
 
+# `description_mismatch` is a hard fail only when the measured inspection found
+# something that backs it. Barkla job 10334394 is why: the critic vetoed
+# Ammok/apple_stock_price at 0.95 on the evidence "the sampled rows show prices
+# in the range of 0.1-0.12 ... Apple's stock has historically traded in the
+# hundreds of dollars range". Those are split-adjusted prices — AAPL floated at
+# $22 in December 1980 and has since split 2:1, 2:1, 2:1, 7:1 and 4:1, a factor
+# of 224, so $0.10 is exactly right — and the objection cited no card, only a
+# misremembered fact about the world. Meanwhile the inspection had measured 0%
+# malformed, 0% empty and repetition 0.01.
+#
+# The code's own definition is "the rows contradict what the CARD claims", which
+# is a comparison between two things in front of the model. When nothing
+# measured agrees that the data is off, an unverifiable recollection should cost
+# the candidate something without overriding six measured dimensions on its own.
+#
 # `unusable_schema` is a hard fail only when Python's own verification agrees —
 # that is, when `schema_fit` was banded `incompatible`. The rubric already
 # measured schema fit by checking the model's column mapping against the real
@@ -471,10 +483,34 @@ CRITIC_HARD_FAILS: frozenset[str] = frozenset(
 # already-scored fact and the run went back to synthesized data.
 CONDITIONAL_HARD_FAILS: dict[str, str] = {"unusable_schema": "incompatible"}
 
+
+def inspection_corroborates_a_mismatch(report: InspectionReport) -> bool:
+    """Whether anything measured backs a claim that the data isn't what it says.
+
+    A genuine description mismatch almost always leaves a measurable trace: rows
+    missing declared columns, empty records, a script no requested language
+    uses, benchmark text where none was promised, or nothing sampleable at all.
+    A dataset that measured clean on every one of those has no corroboration for
+    "this data is wrong".
+    """
+    return bool(
+        report.rows_sampled == 0
+        or report.malformed_rate > 0.05
+        or report.empty_rate > 0.05
+        or report.unexpected_language
+        or report.contamination_hits
+    )
+
+
 # Soft findings, subtracted from the score. Fixed values, because a penalty the
 # model got to size would be the invented score coming back in through a
 # different door.
 CRITIC_PENALTIES: dict[str, float] = {
+    # An uncorroborated description_mismatch — see CONDITIONAL_HARD_FAILS above.
+    # Sized so a strong candidate survives an unsupported objection (0.95 -> 0.80,
+    # still accepted) while a marginal one does not (0.80 -> 0.65, rejected).
+    # The claim counts for something; it is not decisive on its own.
+    "description_mismatch": 0.15,
     "mostly_irrelevant": 0.20,
     "substantial_duplication": 0.10,
     "mostly_empty_or_broken": 0.15,
@@ -659,9 +695,10 @@ def apply_critic(
     Two codes are conditional. `synthetic_only` vetoes when the spec's `avoid`
     names it (which `REQUIRED_AVOID` guarantees by default) and is otherwise a
     penalty, since a plan that explicitly wants synthetic data exists.
-    `unusable_schema` vetoes only when `schema_fit` was banded `incompatible` —
-    see CONDITIONAL_HARD_FAILS for why the critic does not get to overturn a
-    band Python already verified.
+    `unusable_schema` vetoes only when `schema_fit` was banded `incompatible`,
+    and `description_mismatch` only when the measured inspection found something
+    that backs it — see CONDITIONAL_HARD_FAILS for why the critic does not get
+    to overturn what Python already verified.
     """
     scored.findings = findings
     penalty = 0.0
@@ -675,6 +712,8 @@ def apply_critic(
         required_band = CONDITIONAL_HARD_FAILS.get(finding.code)
         if required_band is not None:
             hard = scored.components.schema_fit == required_band
+        if finding.code == "description_mismatch":
+            hard = inspection_corroborates_a_mismatch(scored.report)
         if hard:
             reasons.append(f"{finding.code}: {finding.evidence}")
         else:

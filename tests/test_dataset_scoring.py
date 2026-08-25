@@ -655,9 +655,40 @@ def test_unusable_schema_still_vetoes_when_python_agrees():
     assert scored.decision == "reject"
 
 
-def test_description_mismatch_still_vetoes_unconditionally():
-    # Python cannot verify a card-vs-rows contradiction, so this one stays an
-    # unconditional hard fail.
+def test_an_uncorroborated_description_mismatch_penalises_rather_than_vetoes():
+    """Barkla job 10334394: the critic vetoed Ammok/apple_stock_price at 0.95 on
+    "prices of 0.1-0.12 ... Apple's stock has historically traded in the
+    hundreds". Those are split-adjusted prices — AAPL floated at $22 in Dec 1980
+    and has since split by a cumulative factor of 224 — and the objection cited
+    no card, only a misremembered fact about the world. The inspection had
+    measured 0% malformed, 0% empty, repetition 0.01. An unverifiable
+    recollection must not override six measured dimensions on its own."""
+    scored = _scored(
+        components=dataset_scoring.ScoreComponents(
+            task_relevance="exact",
+            content_relevance="exact",
+            quality=1.0,
+            provenance="partial",
+            schema_fit="expected",
+            license_fit="permitted",
+        ),
+        report=_report(),  # clean: nothing measured backs the claim
+    )
+    assert scored.score == pytest.approx(0.95)
+
+    dataset_scoring.apply_critic(
+        scored,
+        [dataset_scoring.CriticFinding("description_mismatch", "these prices look too low")],
+        SPEC,
+    )
+    dataset_scoring.decide(scored, 0.75)
+
+    assert scored.score == pytest.approx(0.80)  # 0.95 - 0.15
+    assert scored.decision == "accept"
+
+
+def test_a_corroborated_description_mismatch_still_vetoes():
+    # Malformed rows are exactly the trace a genuine mismatch leaves.
     scored = _scored(
         components=dataset_scoring.ScoreComponents(
             task_relevance="exact",
@@ -666,16 +697,56 @@ def test_description_mismatch_still_vetoes_unconditionally():
             provenance="documented",
             schema_fit="expected",
             license_fit="permitted",
-        )
+        ),
+        report=_report(malformed_rate=0.4),
     )
     dataset_scoring.apply_critic(
         scored,
         [
             dataset_scoring.CriticFinding(
-                "description_mismatch", "card claims 1M rows, sample has 40"
+                "description_mismatch", "card promises pairs, rows have one field"
             )
         ],
         SPEC,
     )
 
     assert scored.decision == "reject"
+
+
+def test_a_marginal_candidate_does_not_survive_the_penalty():
+    # The penalty is not decisive on its own, but it is not free either.
+    scored = _scored(
+        components=dataset_scoring.ScoreComponents(
+            task_relevance="related",
+            content_relevance="exact",
+            quality=1.0,
+            provenance="documented",
+            schema_fit="expected",
+            license_fit="permitted",
+        ),
+        report=_report(),
+    )
+    dataset_scoring.apply_critic(
+        scored,
+        [dataset_scoring.CriticFinding("description_mismatch", "unsupported hunch")],
+        SPEC,
+    )
+    dataset_scoring.decide(scored, 0.75)
+
+    assert scored.decision == "reject"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "corroborated"),
+    [
+        ({}, False),
+        ({"malformed_rate": 0.4}, True),
+        ({"empty_rate": 0.3}, True),
+        ({"unexpected_language": True}, True),
+        ({"contamination_hits": 3}, True),
+        ({"rows_sampled": 0}, True),
+        ({"duplicate_rate": 0.9}, False),  # duplication is its own finding
+    ],
+)
+def test_what_counts_as_corroboration(overrides, corroborated):
+    assert dataset_scoring.inspection_corroborates_a_mismatch(_report(**overrides)) is corroborated

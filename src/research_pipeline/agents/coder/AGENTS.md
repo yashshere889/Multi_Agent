@@ -159,9 +159,15 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `incompatible`. The rubric measures schema fit by checking the model's column mapping against the
   real schema, and `partial` deliberately means "usable but imperfect" — letting an adversarial pass
   convert that into a veto, on the same evidence, is the invented-verdict problem one level up from
-  the invented score. `description_mismatch` stays unconditional because Python cannot verify a
-  card-vs-rows contradiction. Before adding a hard fail, ask whether a scored dimension already
-  covers it; if it does, make it conditional on that dimension's own band.
+  the invented score. `description_mismatch` is conditional too, on
+  `inspection_corroborates_a_mismatch`: a genuine mismatch leaves a measurable trace (malformed rows,
+  empties, an unexpected script, benchmark text), and on a dataset that measured clean the claim is
+  an unverifiable recollection — one vetoed a 0.95 candidate on split-adjusted 1980 stock prices the
+  model believed were "too low". Uncorroborated it is a 0.15 penalty: enough that a marginal
+  candidate fails, not enough to overturn six measured dimensions. Only `evaluation_contamination`
+  and `personal_information` veto unconditionally, because using that data at all is the harm.
+  Before adding a hard fail, ask what measured signal would corroborate it; if one exists, make the
+  veto conditional on it.
 - **Run-level dataset budgets are instance attributes, not state.** `_datasets_accepted` and
   `_dataset_bytes_downloaded` are reset per `run()` alongside `_slurm_jobs_submitted` and mirrored
   into state for tracing, for exactly the same reason: each plan must see the true up-to-date total

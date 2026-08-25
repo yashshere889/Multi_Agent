@@ -535,8 +535,14 @@ them. A field the spec named that this dataset spells differently, or supplies \
 implicitly (a single-ticker price series has no symbol column because every row \
 is the same symbol), is a scored imperfection, not a reason to reject. Raise a \
 finding only for something the scoring could not see.
-- Every finding needs evidence from the card or the sampled rows. A finding you \
-cannot evidence is a suspicion, and suspicions do not belong here — omit it.
+- Every finding needs evidence from the card or the sampled rows, and nothing \
+else. Do NOT reject a dataset on what you believe about its subject: an \
+apparently implausible value is usually a convention you are not seeing (prices \
+split-adjusted to a fraction of a cent, temperatures in Kelvin, dates as epoch \
+seconds), and you cannot check your recollection from here. `description_mismatch` \
+in particular means the rows contradict THE CARD — quote both halves, or do not \
+raise it. A finding you cannot evidence from the material in front of you is a \
+suspicion, and suspicions do not belong here — omit it.
 - Return an empty `findings` list if you genuinely cannot substantiate any \
 problem. That is a valid and useful answer; inventing a finding to seem \
 thorough rejects a usable dataset.
