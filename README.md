@@ -560,6 +560,24 @@ Two smaller reliability settings sit alongside it:
   highest-scoring papers rather than ever returning an empty pool — so the
   failure direction is always a wider pool, never a failed run. See
   [relevance.py](src/research_pipeline/agents/literature/relevance.py).
+- **Citation-graph expansion.** `ENABLE_CITATION_EXPANSION` (default `true`)
+  walks out from the highest-scoring papers a search found and pulls in what
+  they cite, via Semantic Scholar's `/references` endpoint. Keyword search only
+  finds papers whose *wording* matches, so it structurally misses the
+  foundational work a field cites without restating its title — a bibliography
+  is a hand-curated answer to precisely that. Candidates are ranked by
+  co-citation, counted in Python: a paper several independent seeds cite is
+  near-certain to be central, one cited by a single seed is often that seed's
+  own tangent. Nothing asks a model which candidates look important. Expansion
+  runs *after* the screen (seeding from an unscreened pool compounds — one
+  off-topic hit drags in a bibliography's worth of its references) and screens
+  its own candidates before merging, so the invariant that everything in the
+  pool has been screened still holds. Bounded by `CITATION_EXPANSION_SEEDS`
+  (default 5) and `CITATION_EXPANSION_MAX_PAPERS` (default 15); needs
+  `SEMANTIC_SCHOLAR_API_KEY` and adds nothing without one. `eval-run` reports
+  `gold_found_via_citations` — gold papers the queries alone never reached —
+  which is the number that justifies the extra requests or doesn't. See
+  [expansion.py](src/research_pipeline/agents/literature/expansion.py).
 - **Paper-search caching.** `ENABLE_PAPER_SEARCH_CACHE` (default `true`) caches
   the arXiv / Semantic Scholar / CORE search nodes and the interdisciplinary
   per-field search on their inputs, for `PAPER_SEARCH_CACHE_TTL_SECONDS`

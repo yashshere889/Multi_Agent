@@ -141,6 +141,10 @@ def pool_metrics(returned: Sequence[dict]) -> dict:
 
     return {
         "pool_size": total,
+        # Papers the citation graph contributed rather than a query. Paired with
+        # gold_found_via_citations below, this is what says whether expansion
+        # earns its extra API calls.
+        "from_citations": sum(1 for p in returned if p.get("discovered_via")),
         # A paper with no abstract carries almost no signal for the Hypothesis
         # Agent or the Writer, but still occupies a citable slot — so a run that
         # quietly fills up with them is worse than its pool size suggests.
@@ -161,10 +165,19 @@ def literature_metrics(gold: Sequence[dict], literature_output: dict) -> dict:
     returned = literature_output.get("merged_papers") or literature_output.get("papers") or []
     matched = match_gold(gold, returned)
 
+    # What the queries alone would have found. The difference is the number that
+    # justifies expansion or doesn't: a gold paper reachable only by walking a
+    # bibliography is precisely the foundational work keyword search structurally
+    # misses, and if that count is zero the extra requests are buying nothing.
+    from_queries = [p for p in returned if not p.get("discovered_via")]
+    gold_without_expansion = len(match_gold(gold, from_queries)["found"])
+
     return {
         "recall": recall(gold, returned),
+        "recall_without_expansion": recall(gold, from_queries),
         "gold_total": len(gold),
         "gold_found": len(matched["found"]),
+        "gold_found_via_citations": len(matched["found"]) - gold_without_expansion,
         "missed_titles": [p.get("title") for p in matched["missed"]],
         # Written by the relevance screen; 0 when it was disabled or never ran.
         "screened_out": literature_output.get("papers_filtered_out") or 0,
@@ -253,6 +266,8 @@ def aggregate(per_question: Iterable[dict]) -> dict:
         "mean_abstract_coverage": mean("abstract_coverage"),
         "mean_relevance_score": mean("mean_relevance_score"),
         "total_gold_found": sum(r.get("gold_found", 0) for r in rows),
+        "total_gold_via_citations": sum(r.get("gold_found_via_citations", 0) for r in rows),
+        "total_from_citations": sum(r.get("from_citations", 0) for r in rows),
         "total_gold": sum(r.get("gold_total", 0) for r in rows),
         "total_screened_out": sum(r.get("screened_out", 0) for r in rows),
         "total_duplicate_groups": sum(r.get("duplicate_groups", 0) for r in rows),

@@ -12,6 +12,7 @@ from langgraph.types import CachePolicy, RetryPolicy
 
 from research_pipeline.agents.literature.nodes import (
     download_papers_node,
+    expand_citations_node,
     generate_queries,
     merge_and_dedupe_node,
     save_metadata_node,
@@ -56,6 +57,10 @@ def build_literature_graph():
     # same scores out, nothing written) and its own failure path only widens the
     # pool, so a retry can cost nothing worse than a second scoring pass.
     graph.add_node("score_relevance", score_relevance_node, retry_policy=_RETRY)
+    # Retried like the other network/LLM nodes. Idempotent in the way that
+    # matters: it derives its seeds from state it does not modify, and a repeat
+    # run re-fetches the same hops rather than compounding on its own output.
+    graph.add_node("expand_citations", expand_citations_node, retry_policy=_RETRY)
     # No retry on download_papers on purpose: it is already thread-pooled with
     # per-file partial-success tolerance, so re-running the node on one failed
     # download would re-fetch every paper that already succeeded.
@@ -77,7 +82,11 @@ def build_literature_graph():
     # Filter before downloading, not after: a paper that won't survive the
     # screen shouldn't cost a PDF fetch either.
     graph.add_edge("merge_and_dedupe", "score_relevance")
-    graph.add_edge("score_relevance", "download_papers")
+    # Expansion runs after the screen so every hop starts from a paper known to
+    # be on topic — seeding from an unscreened pool compounds, with one
+    # off-topic hit dragging in a bibliography's worth of its references.
+    graph.add_edge("score_relevance", "expand_citations")
+    graph.add_edge("expand_citations", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
     graph.add_edge("save_metadata", END)
 

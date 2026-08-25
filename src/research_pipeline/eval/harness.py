@@ -30,6 +30,14 @@ Both overrides live in `_eval_mode` and neither changes what is being measured:
   `pdf_url` already records whether a PDF was available, and downloading tens of
   papers per question would dominate the runtime of the loop this exists to make
   fast.
+
+Citation expansion deliberately still runs — it is part of retrieval, and
+measuring recall without it would measure the wrong pipeline. One fidelity note:
+with the screen off, expansion has no relevance scores to pick seeds by and
+falls back to citation count, which is *weaker* seeding than production uses. So
+`gold_found_via_citations` here is a lower bound on what expansion contributes
+in a real run, which is the safe direction for a number used to justify keeping
+it on.
 """
 
 from __future__ import annotations

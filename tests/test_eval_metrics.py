@@ -195,3 +195,66 @@ def test_aggregate_skips_nones_rather_than_counting_them_as_zero():
 
 def test_aggregate_of_nothing_is_empty():
     assert aggregate([]) == {}
+
+
+# -- citation expansion ------------------------------------------------------
+#
+# The eval's job for expansion is to answer whether it earns its extra API
+# calls, which means separating what the queries found from what the graph did.
+
+
+def _query_hit(title, arxiv_id):
+    return {"title": title, "arxiv_id": arxiv_id, "source": "arxiv"}
+
+
+def _graph_hit(title, arxiv_id):
+    return {"title": title, "arxiv_id": arxiv_id, "source": "semantic_scholar",
+            "discovered_via": "references", "cited_by_seeds": 3}
+
+
+def test_gold_found_via_citations_counts_only_what_the_queries_missed():
+    pool = [
+        _query_hit("Attention Is All You Need", "1706.03762"),
+        _graph_hit("Deep Residual Learning for Image Recognition", "1512.03385"),
+    ]
+    result = literature_metrics(_gold(), {"merged_papers": pool})
+
+    assert result["gold_found"] == 2
+    assert result["gold_found_via_citations"] == 1
+    assert result["recall"] == pytest.approx(2 / 3)
+    # What the queries alone would have scored.
+    assert result["recall_without_expansion"] == pytest.approx(1 / 3)
+
+
+def test_a_gold_paper_found_both_ways_is_not_credited_to_expansion():
+    """Expansion re-finding something a query already had is not extra recall."""
+    pool = [
+        _query_hit("Attention Is All You Need", "1706.03762"),
+        _graph_hit("Attention Is All You Need", "1706.03762"),
+    ]
+    assert literature_metrics(_gold(), {"merged_papers": pool})["gold_found_via_citations"] == 0
+
+
+def test_expansion_metrics_are_zero_when_expansion_is_off():
+    pool = [_query_hit("Attention Is All You Need", "1706.03762")]
+    result = literature_metrics(_gold(), {"merged_papers": pool})
+
+    assert result["from_citations"] == 0
+    assert result["gold_found_via_citations"] == 0
+    assert result["recall"] == result["recall_without_expansion"]
+
+
+def test_pool_metrics_counts_papers_the_graph_contributed():
+    pool = [_query_hit("A Paper", "1"), _graph_hit("Another Paper", "2")]
+    assert pool_metrics(pool)["from_citations"] == 1
+
+
+def test_aggregate_totals_the_expansion_contribution():
+    rows = [
+        {"from_citations": 5, "gold_found_via_citations": 2},
+        {"from_citations": 3, "gold_found_via_citations": 0},
+    ]
+    result = aggregate(rows)
+
+    assert result["total_from_citations"] == 8
+    assert result["total_gold_via_citations"] == 2

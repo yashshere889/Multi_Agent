@@ -74,6 +74,13 @@ def format_run(scored: dict) -> str:
             f"gold found {agg.get('total_gold_found', 0)}/{agg.get('total_gold', 0)}  "
             f"mean pool {_num(agg.get('mean_pool_size'), 1)}"
         )
+        if agg.get("total_from_citations"):
+            # The line that justifies citation expansion or doesn't: papers the
+            # queries alone would never have reached.
+            out.append(
+                f"  citation expansion added {agg['total_from_citations']} paper(s), "
+                f"{agg.get('total_gold_via_citations', 0)} of them gold papers the queries missed"
+            )
         if agg.get("total_duplicate_groups"):
             # Non-zero means the pipeline's single doi-or-title dedupe key let
             # the same work through twice — worth chasing, not cosmetic.

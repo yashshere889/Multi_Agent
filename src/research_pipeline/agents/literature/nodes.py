@@ -12,7 +12,14 @@ from typing import List
 
 import requests
 
-from research_pipeline.agents.literature.clients import USER_AGENT, search_arxiv, search_core, search_semantic_scholar
+from research_pipeline.agents.literature import expansion
+from research_pipeline.agents.literature.clients import (
+    USER_AGENT,
+    fetch_related,
+    search_arxiv,
+    search_core,
+    search_semantic_scholar,
+)
 from research_pipeline.agents.literature.relevance import DIRECT_RELEVANCE_CRITERION, apply_threshold, score_papers
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
@@ -83,13 +90,24 @@ def _normalize_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]", "", title.lower())
 
 
+def dedupe_key(paper: Paper) -> str:
+    """The one answer to "are these the same paper?" in this pipeline.
+
+    A DOI when there is one, the normalized title otherwise. Public because the
+    Interdisciplinary Agent and the citation expansion both have to agree with
+    this node about what a duplicate is — a second copy of this rule is exactly
+    the kind of thing that drifts.
+    """
+    return paper.get("doi") or _normalize_title(paper.get("title") or "")
+
+
 def merge_and_dedupe_node(state: LiteratureState) -> dict:
     all_papers = state["arxiv_papers"] + state["semantic_scholar_papers"] + state["core_papers"]
     merged: dict[str, Paper] = {}
     for paper in all_papers:
         if not paper.get("title"):
             continue
-        key = paper.get("doi") or _normalize_title(paper["title"])
+        key = dedupe_key(paper)
         if key in merged:
             if not merged[key].get("pdf_url") and paper.get("pdf_url"):
                 merged[key] = paper
@@ -117,25 +135,9 @@ def score_relevance_node(state: LiteratureState) -> dict:
     if not settings.enable_relevance_filter or not papers:
         return {}
 
-    try:
-        chat_model = get_chat_model(temperature=0.0)
-    except Exception as exc:
-        logger.warning("Could not build a chat model for relevance scoring (%s) — keeping all %d paper(s)", exc, len(papers))
+    kept, dropped = _screen(papers, state["research_question"], keep_min=settings.relevance_keep_min)
+    if kept is None:
         return {}
-
-    scores = score_papers(
-        chat_model,
-        state["research_question"],
-        papers,
-        criterion=DIRECT_RELEVANCE_CRITERION,
-        batch_max_chars=settings.relevance_batch_max_chars,
-    )
-    kept, dropped = apply_threshold(
-        papers,
-        scores,
-        min_score=settings.relevance_min_score,
-        keep_min=settings.relevance_keep_min,
-    )
 
     logger.info(
         "Relevance filter kept %d/%d paper(s) at a threshold of %d",
@@ -144,6 +146,85 @@ def score_relevance_node(state: LiteratureState) -> dict:
     for paper in dropped:
         logger.debug("Dropped as irrelevant (score %s): %s", paper.get("relevance_score"), paper.get("title"))
     return {"merged_papers": kept, "papers_filtered_out": len(dropped)}
+
+
+def _screen(papers: List[Paper], question: str, *, keep_min: int):
+    """Scores and thresholds a list of papers, or returns (None, None) if the
+    screen could not run at all.
+
+    Shared by the two call sites — the search results and the citation
+    expansion's candidates — so there is one place where "screened" is defined.
+    A None result means keep everything: an unreachable or unconfigured LLM must
+    widen the pool, never narrow it.
+    """
+    try:
+        chat_model = get_chat_model(temperature=0.0)
+    except Exception as exc:
+        logger.warning(
+            "Could not build a chat model for relevance scoring (%s) — keeping all %d paper(s)", exc, len(papers)
+        )
+        return None, None
+
+    scores = score_papers(
+        chat_model,
+        question,
+        papers,
+        criterion=DIRECT_RELEVANCE_CRITERION,
+        batch_max_chars=settings.relevance_batch_max_chars,
+    )
+    return apply_threshold(papers, scores, min_score=settings.relevance_min_score, keep_min=keep_min)
+
+
+def expand_citations_node(state: LiteratureState) -> dict:
+    """Adds papers reached by walking the citation graph out from the best of
+    what the queries found.
+
+    Runs after the screen so every hop starts from a paper known to be on topic,
+    and screens its own candidates before merging them, so the invariant that
+    everything in `merged_papers` has been screened still holds. That second
+    screen passes keep_min=0: unlike the search results, an empty expansion is a
+    perfectly good outcome — the pool it would have been added to is already
+    there — so there is nothing to rescue and rescuing would only readmit the
+    weakest candidates.
+
+    Every failure degrades to adding nothing: no API key, an unresolvable seed,
+    a rate limit, an unreachable LLM. Expansion improves a pool that is already
+    usable without it.
+    """
+    if not settings.enable_citation_expansion:
+        return {}
+    papers = state["merged_papers"]
+    if not papers:
+        return {}
+
+    candidates = expansion.expand(
+        papers,
+        dedupe_key,
+        fetch_related,
+        directions=settings.citation_expansion_directions,
+        max_seeds=settings.citation_expansion_seeds,
+        per_seed=settings.citation_expansion_per_seed,
+        max_new_papers=settings.citation_expansion_max_papers,
+    )
+    if not candidates:
+        return {}
+
+    if settings.enable_relevance_filter:
+        kept, dropped = _screen(candidates, state["research_question"], keep_min=0)
+        if kept is None:
+            kept, dropped = candidates, []
+    else:
+        kept, dropped = candidates, []
+
+    logger.info(
+        "Citation expansion added %d paper(s) to a pool of %d (%d screened out)",
+        len(kept), len(papers), len(dropped),
+    )
+    return {
+        "merged_papers": list(papers) + list(kept),
+        "papers_from_citations": len(kept),
+        "papers_filtered_out": (state.get("papers_filtered_out") or 0) + len(dropped),
+    }
 
 
 def _paper_uid(paper: Paper) -> str:
@@ -219,6 +300,7 @@ def save_metadata_node(state: LiteratureState) -> dict:
         # it there's no way to tell a search that found little from a filter
         # that discarded most of what it found.
         "papers_filtered_out": state.get("papers_filtered_out", 0),
+        "papers_from_citations": state.get("papers_from_citations", 0),
         "papers": state["merged_papers"],
     }
     metadata_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))

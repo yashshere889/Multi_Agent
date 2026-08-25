@@ -113,9 +113,8 @@ from research_pipeline.agents.literature.relevance import (
 
 # The Literature Agent's own dedupe key, imported rather than re-implemented so
 # "are these the same paper?" can only ever be answered one way in this
-# pipeline. It's private to that module, but copying it here would be exactly
-# the kind of duplicate that drifts.
-from research_pipeline.agents.literature.nodes import _normalize_title
+# pipeline. Copying it here would be exactly the kind of duplicate that drifts.
+from research_pipeline.agents.literature.nodes import dedupe_key as _dedupe_key
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
@@ -139,10 +138,6 @@ def _paper_id(paper: dict, index: int) -> str:
     ids in `core_paper_ids`/`supporting_paper_ids` line up with the ids the
     Hypothesis Agent will derive from the very same merged list."""
     return str(paper.get("arxiv_id") or paper.get("paper_id") or paper.get("doi") or f"paper_{index}")
-
-
-def _dedupe_key(paper: dict) -> str:
-    return paper.get("doi") or _normalize_title(paper.get("title") or "")
 
 
 def _digest(papers: List[dict], start_index: int = 0, limit: int = DIGEST_MAX_PAPERS) -> str:

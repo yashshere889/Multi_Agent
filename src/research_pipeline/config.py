@@ -37,6 +37,11 @@ class Settings:
     relevance_min_score: int
     relevance_keep_min: int
     relevance_batch_max_chars: int
+    enable_citation_expansion: bool
+    citation_expansion_seeds: int
+    citation_expansion_per_seed: int
+    citation_expansion_max_papers: int
+    citation_expansion_directions: tuple[str, ...]
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
     interdisciplinary_relevance_min_score: int
@@ -217,6 +222,30 @@ def load_settings() -> Settings:
         # Same character-count-as-token-budget proxy as HYPOTHESIS_BATCH_MAX_CHARS,
         # and the same default, so one screening call covers a good few papers.
         relevance_batch_max_chars=int(os.environ.get("RELEVANCE_BATCH_MAX_CHARS", "12000")),
+        # Citation-graph expansion (agents/literature/expansion.py): after the
+        # screen, walk out from the best papers found and pull in what they
+        # cite. Keyword search structurally misses the foundational work a field
+        # cites without restating its title, and a bibliography is a
+        # hand-curated answer to exactly that. Needs SEMANTIC_SCHOLAR_API_KEY;
+        # degrades to adding nothing without one.
+        enable_citation_expansion=_env_bool("ENABLE_CITATION_EXPANSION", True),
+        # Bounds the cost: seeds x directions requests per run, each rate
+        # limited. Five seeds is enough for co-citation to mean something —
+        # a paper cited by three of five independent seeds is a strong signal —
+        # without turning one search into a crawl.
+        citation_expansion_seeds=int(os.environ.get("CITATION_EXPANSION_SEEDS", "5")),
+        citation_expansion_per_seed=int(os.environ.get("CITATION_EXPANSION_PER_SEED", "50")),
+        # How many expanded papers may actually join the pool, after ranking by
+        # co-citation. The cap is what keeps expansion a supplement to the
+        # search rather than a replacement for it.
+        citation_expansion_max_papers=int(os.environ.get("CITATION_EXPANSION_MAX_PAPERS", "15")),
+        # "references" walks backward to what a paper cites — bounded, curated,
+        # and where the foundational work is. "citations" walks forward to what
+        # cites it, which finds newer follow-ups but is unbounded on a famous
+        # paper and much noisier, so it is opt-in rather than the default.
+        citation_expansion_directions=tuple(
+            d.strip() for d in os.environ.get("CITATION_EXPANSION_DIRECTIONS", "references").split(",") if d.strip()
+        ),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
         # costs one arXiv + one Semantic Scholar + one CORE search per generated

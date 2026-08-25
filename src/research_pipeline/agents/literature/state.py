@@ -35,6 +35,12 @@ class Paper(TypedDict, total=False):
     # call failed and the pool was passed through unfiltered.
     relevance_score: Optional[int]
 
+    # Set only on papers the citation-graph expansion found: which edge reached
+    # them ("references"/"citations"), and how many independent seed papers
+    # cited them, which is what ranked them into the pool.
+    discovered_via: str
+    cited_by_seeds: int
+
 
 class LiteratureState(TypedDict, total=False):
     research_question: str
@@ -48,5 +54,8 @@ class LiteratureState(TypedDict, total=False):
     # saved metadata so a small pool can be attributed to the filter or to the
     # search. 0 when the filter is disabled or never ran.
     papers_filtered_out: int
+    # How many papers the citation-graph expansion contributed, carried into the
+    # saved metadata. 0 when expansion is disabled or found nothing.
+    papers_from_citations: int
     download_dir: str
     metadata_path: str
