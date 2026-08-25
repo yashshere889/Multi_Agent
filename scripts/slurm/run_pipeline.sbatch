@@ -118,7 +118,22 @@ export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 # Hypothesis and the Planner had all completed: the run reached the Coder and
 # exited on a missing optional dependency, throwing away twenty minutes of
 # upstream work. Syncing it here costs nothing when it is already present.
-uv sync --quiet --extra checkpoint-sqlite
+# datasets-download is the Coder's dataset acquisition (huggingface_hub +
+# pyarrow): the accepted dataset is fetched once here, in the pipeline's own
+# environment, and flattened to a data.jsonl the experiment reads with the
+# standard library. Without it the Coder degrades to handing generated code the
+# Dataset Viewer REST URL — which a compute node with no outbound route cannot
+# fetch, so the experiment falls back to synthesized data and the run cannot
+# report a verdict. Same class of failure as the sqlite extra above.
+uv sync --quiet --extra checkpoint-sqlite --extra datasets-download
+
+# Downloaded datasets are keyed by (repo id, revision) and shared by every plan
+# and every run, so this belongs on fastscratch alongside hf_cache — not on
+# localscratch, which is node-local and cleared when the job ends. Unlike the
+# venvs above there is no inode concern: a normalized dataset is one data.jsonl,
+# not thousands of small files.
+export CODER_DATASET_CACHE_DIR="${CODER_DATASET_CACHE_DIR:-/mnt/fastscratch/users/$USER/hf_datasets}"
+mkdir -p "$CODER_DATASET_CACHE_DIR"
 
 uv run research-pipeline orchestrate "$QUESTION" \
     --download-dir "$WORK_DIR/papers" \
