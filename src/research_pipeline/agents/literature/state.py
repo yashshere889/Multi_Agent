@@ -18,6 +18,18 @@ class Paper(TypedDict, total=False):
     url: Optional[str]
     local_path: Optional[str]
 
+    # Bibliometric / provenance signal. Every search client fills these in with
+    # whatever its own API actually knows and leaves the rest at None/[], so
+    # the shape is uniform across sources even though the coverage isn't:
+    # citation counts and `tldr` are Semantic Scholar-only, while
+    # `fields_of_study` is populated from arXiv's categories and CORE's
+    # fieldOfStudy too. Nothing downstream may assume a value is present.
+    citation_count: Optional[int]
+    influential_citation_count: Optional[int]
+    venue: Optional[str]
+    fields_of_study: List[str]
+    tldr: Optional[str]
+
 
 class LiteratureState(TypedDict, total=False):
     research_question: str

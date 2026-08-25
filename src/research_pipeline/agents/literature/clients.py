@@ -21,7 +21,18 @@ logger = logging.getLogger(__name__)
 USER_AGENT = "research-pipeline-literature-agent/0.1 (+https://github.com/)"
 
 SEMANTIC_SCHOLAR_SEARCH_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
-SEMANTIC_SCHOLAR_FIELDS = "title,abstract,authors,year,externalIds,openAccessPdf,url"
+# citationCount/influentialCitationCount/venue/fieldsOfStudy/tldr cost nothing
+# extra — they're additional `fields` on a request we already make — and each
+# earns its place downstream: the counts and venue are a deterministic quality
+# prior for ranking, fieldsOfStudy lets the Interdisciplinary Agent *check* a
+# cross-field paper's discipline instead of trusting the query that found it,
+# and tldr is a far denser digest than a truncated abstract for the papers that
+# have one. Unknown field names make S2 reject the whole request, so anything
+# added here must be a real field on the paper object.
+SEMANTIC_SCHOLAR_FIELDS = (
+    "title,abstract,authors,year,externalIds,openAccessPdf,url,"
+    "citationCount,influentialCitationCount,venue,fieldsOfStudy,tldr"
+)
 
 CORE_SEARCH_URL = "https://api.core.ac.uk/v3/search/works/"
 
@@ -83,6 +94,17 @@ def search_arxiv(queries: List[str], max_results: int) -> List[Paper]:
                     "pdf_url": result.pdf_url,
                     "doi": result.doi,
                     "url": result.entry_id,
+                    # arXiv publishes no citation data and no tldr, so those
+                    # stay None here — the keys exist only to keep one shape
+                    # across sources. Its subject categories (cs.LG, q-bio.NC,
+                    # …) are a genuine field-of-study signal though, and are the
+                    # one place a cross-field paper's discipline can be checked
+                    # against something other than the query that found it.
+                    "citation_count": None,
+                    "influential_citation_count": None,
+                    "venue": (result.journal_ref or None) if result.journal_ref else None,
+                    "fields_of_study": list(result.categories or []),
+                    "tldr": None,
                 })
         except (arxiv.ArxivError, requests.RequestException) as exc:
             # A single query hitting arXiv's rate limit shouldn't take down the
@@ -123,6 +145,11 @@ def search_semantic_scholar(queries: List[str], max_results: int) -> List[Paper]
                 continue
             seen_ids.add(paper_id)
             open_access = paper.get("openAccessPdf") or {}
+            # Every one of these is nullable in an S2 response — a paper with no
+            # abstract, no venue, or no tldr is common — so each is normalized
+            # to None/[] rather than propagated as whatever null-ish thing the
+            # API returned.
+            tldr = paper.get("tldr") or {}
             papers.append({
                 "source": "semantic_scholar",
                 "paper_id": paper_id,
@@ -133,6 +160,11 @@ def search_semantic_scholar(queries: List[str], max_results: int) -> List[Paper]
                 "pdf_url": open_access.get("url"),
                 "doi": (paper.get("externalIds") or {}).get("DOI"),
                 "url": paper.get("url"),
+                "citation_count": paper.get("citationCount"),
+                "influential_citation_count": paper.get("influentialCitationCount"),
+                "venue": paper.get("venue") or None,
+                "fields_of_study": [f for f in (paper.get("fieldsOfStudy") or []) if f],
+                "tldr": (tldr.get("text") or "").strip() or None,
             })
         time.sleep(0.2)
     logger.info("Semantic Scholar: found %d unique papers", len(papers))
@@ -163,6 +195,9 @@ def search_core(queries: List[str], max_results: int) -> List[Paper]:
             if core_id is None or core_id in seen_ids:
                 continue
             seen_ids.add(core_id)
+            # CORE reports a single fieldOfStudy string rather than a list;
+            # wrapped here so the key holds a list on every source.
+            field_of_study = (work.get("fieldOfStudy") or "").strip()
             papers.append({
                 "source": "core",
                 "paper_id": str(core_id),
@@ -173,6 +208,11 @@ def search_core(queries: List[str], max_results: int) -> List[Paper]:
                 "pdf_url": work.get("downloadUrl"),
                 "doi": work.get("doi"),
                 "url": f"https://core.ac.uk/works/{core_id}",
+                "citation_count": None,
+                "influential_citation_count": None,
+                "venue": (work.get("publisher") or "").strip() or None,
+                "fields_of_study": [field_of_study] if field_of_study else [],
+                "tldr": None,
             })
         # CORE's free tier is far tighter than Semantic Scholar's (~10 req/10s
         # historically), so this self-throttles harder than the 0.2s used there.
