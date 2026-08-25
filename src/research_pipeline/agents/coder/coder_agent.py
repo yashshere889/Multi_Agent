@@ -238,6 +238,13 @@ _BYTES_PER_GB = 1024**3
 # search; asking for fewer is what starved the pool (see _shortlist_datasets).
 _DATASET_HITS_PER_QUERY = 10
 
+# How far past the inspection budget the prefilter ranks, so viewer failures can
+# be walked past rather than silently costing an inspection slot. Four times is
+# enough to absorb the 3-in-5 failure rate a real run hit while still bounding
+# the work: describing a candidate is a handful of HTTP calls, and the loop
+# stops as soon as the budget is filled.
+_DATASET_PREFILTER_WINDOW = 4
+
 
 def _dataset_bands(hf_dataset: dict) -> dict[str, str]:
     """The per-dimension bands from a scored dataset's state dict, for the
@@ -1881,12 +1888,21 @@ class CoderAgent:
             logger.info("No Hugging Face candidates for %s", plan.get("hypothesis_id"))
             return []
 
-        ranked = dataset_scoring.prefilter(
-            list(pooled.values()), spec, settings.coder_dataset_max_inspections
-        )
+        # Ranked well past the inspection budget, because the budget bounds how
+        # many candidates get *inspected*, not how many get *attempted*. A
+        # ranked candidate is dropped whenever the Dataset Viewer cannot serve
+        # it — it 500s, it reports viewer:false, it lists no splits — and those
+        # failures are common enough to starve the appraisal outright: Barkla
+        # job 10334376 pooled 27 candidates, passed the top 5 to describe, lost
+        # 3 of them to the viewer, and inspected 2 — while the dataset that
+        # actually fitted the plan sat at rank 6 and was never looked at.
+        window = settings.coder_dataset_max_inspections * _DATASET_PREFILTER_WINDOW
+        ranked = dataset_scoring.prefilter(list(pooled.values()), spec, window)
 
         described: list[dict] = []
         for candidate in ranked:
+            if len(described) >= settings.coder_dataset_max_inspections:
+                break
             dataset_id = str(candidate.get("id") or "")
             try:
                 details = self.dataset_describe(dataset_id)
@@ -1894,6 +1910,7 @@ class CoderAgent:
                 logger.warning("Could not describe %s: %s", dataset_id, exc)
                 continue
             if not details:
+                logger.info("The Dataset Viewer cannot serve %s; trying the next", dataset_id)
                 continue
             details["prefilter_score"] = candidate.get("prefilter_score", 0.0)
             described.append(details)

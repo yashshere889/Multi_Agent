@@ -2722,6 +2722,48 @@ def test_no_candidates_generates_exactly_as_before(tmp_path):
     assert "dataset_evidence" not in model.calls_by_kind
 
 
+def test_viewer_failures_are_walked_past_rather_than_costing_a_slot(tmp_path, monkeypatch):
+    """Barkla job 10334376 pooled 27 candidates, passed the top 5 to describe,
+    lost 3 to the Dataset Viewer, and inspected 2 — while the dataset that
+    actually fitted the plan sat at rank 6 and was never looked at. The budget
+    bounds how many candidates get *inspected*, not how many get attempted."""
+    _patch_settings(monkeypatch, coder_dataset_max_inspections=3)
+    hits = tuple({**HF_HIT, "id": f"acme/d{index}"} for index in range(12))
+    stack, calls = _dataset_stack(hits=hits)
+
+    # The first three the prefilter reaches are unservable, exactly as a viewer
+    # 500 / viewer:false / no-splits looks from here.
+    unservable = {"acme/d0", "acme/d1", "acme/d2"}
+
+    def describe(dataset_id):
+        calls["describe"].append(dataset_id)
+        return {} if dataset_id in unservable else {**HF_CANDIDATE, "dataset_id": dataset_id}
+
+    stack["dataset_describe_fn"] = describe
+    model = _dataset_model()
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # Six attempted (three dead, three live) rather than three attempted and one
+    # surviving — the budget is filled, not merely offered.
+    assert len(calls["describe"]) == 6
+    assert model.calls_by_kind["dataset_evidence"] == 3
+
+
+def test_the_prefilter_window_is_still_bounded(tmp_path, monkeypatch):
+    # Walking past failures must not turn into walking the whole pool.
+    _patch_settings(monkeypatch, coder_dataset_max_inspections=2)
+    hits = tuple({**HF_HIT, "id": f"acme/d{index}"} for index in range(40))
+    stack, calls = _dataset_stack(hits=hits)
+    stack["dataset_describe_fn"] = lambda dataset_id: calls["describe"].append(dataset_id) or {}
+
+    _agent(
+        tmp_path, _dataset_model(codegen=[_codegen_response()]), network_check=lambda: True, **stack
+    ).run(_planner_output([_plan("H1")]))
+
+    # Nothing is servable, so it exhausts the window and stops — not the pool.
+    assert len(calls["describe"]) == 2 * 4
+
+
 def test_an_unservable_candidate_is_dropped(tmp_path):
     stack, calls = _dataset_stack(candidate={})
     model = _dataset_model(codegen=[_codegen_response()])
