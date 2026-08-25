@@ -384,3 +384,170 @@ Return the files using EXACTLY this delimited format:
     + "\n\n"
     + SHARED_INFRA_FORMAT_RULES
 )
+
+
+# ---------------------------------------------------------------------------
+# Dataset selection.
+#
+# Three calls, in the order the graph makes them: state the requirement, gather
+# evidence against it, then try to reject the leader. All three ask for short
+# structured fields, so they go through _call_json, not _call_sections.
+#
+# None of them asks for a score. dataset_scoring.py owns that arithmetic
+# entirely, from labels drawn from fixed band tables — see its module docstring
+# for why. A `score` key in any of these responses is dropped on parse.
+# ---------------------------------------------------------------------------
+
+DATASET_SPEC_PROMPT = """State what data this experiment actually needs, before \
+any dataset is searched for.
+
+Experiment plan (JSON):
+{plan_block}
+
+Answer with ONLY a JSON object in exactly this shape:
+{{
+  "task": "<the modelling/analysis task in a few words, e.g. 'train/evaluate a coding model'>",
+  "domain": "<the subject area, e.g. 'software engineering'>",
+  "languages": ["<natural or programming languages the data must be in>"],
+  "data_types": ["<the fields an example must contain, e.g. 'instruction', 'code', 'explanation'>"],
+  "desired_examples": <integer: how many examples this experiment would ideally have>,
+  "minimum_quality": <number 0-1: how clean the data has to be for the result to mean anything>,
+  "license_requirements": ["<one or more of: permissive, share-alike, noncommercial-ok, any>"],
+  "avoid": ["<properties that would disqualify a dataset, e.g. 'synthetic-only', 'duplicates', 'unrelated programming languages', 'evaluation-test leakage'>"]
+}}
+
+Rules:
+- `data_types` is the most important field. Name the *fields an individual \
+example must have* for this plan's method to run at all — not a description of \
+the topic. If the plan fine-tunes on instructions, that is \
+["instruction", "code"], not ["software"].
+- `desired_examples` should reflect the plan's own scale, not an aspiration. A \
+pilot comparing two prompting strategies needs hundreds; a fine-tuning run needs \
+tens of thousands.
+- Use "any" in `license_requirements` only if the plan genuinely does not care.
+- Be specific in `avoid`. Generic entries help nothing; entries naming what \
+would actually invalidate *this* experiment do.
+"""
+
+DATASET_EVIDENCE_PROMPT = """Determine whether this dataset satisfies the \
+following requirements. For every requirement, provide evidence from the \
+dataset card or the inspected rows. If evidence is unavailable, mark it UNKNOWN \
+rather than assuming it is true.
+
+Requirement spec (JSON):
+{spec_block}
+
+Dataset: {dataset_id}
+Declared columns: {columns_block}
+Rows actually inspected ({rows_sampled} sampled): {sample_block}
+
+Measured statistics over those rows (computed, not claimed):
+{inspection_block}
+
+Dataset card (truncated):
+{card_block}
+
+Answer with ONLY a JSON object in exactly this shape:
+{{
+  "requirements": {{
+    "<requirement name>": {{
+      "status": "pass" | "fail" | "unknown",
+      "evidence": "<what in the card or the sampled rows establishes this>"
+    }}
+  }},
+  "task_relevance": "exact" | "related" | "weak" | "unrelated",
+  "task_relevance_evidence": "<why, citing the card or the rows>",
+  "content_relevance": "exact" | "related" | "weak" | "unrelated",
+  "content_relevance_evidence": "<why, citing the sampled rows specifically>",
+  "column_mapping": {{"<required data_type>": "<the actual column name that carries it, or null>"}}
+}}
+
+Rules:
+- Include one entry in `requirements` for each of the spec's `data_types`, one \
+for the language requirement, one for the size requirement, and one for each \
+entry in the spec's `avoid` list.
+- "unknown" is the correct answer far more often than it feels like. A card that \
+does not mention something has not established it. Do not infer a property from \
+the dataset's *name*.
+- `column_mapping` keys must be the spec's `data_types` verbatim, and values must \
+be column names copied exactly from "Declared columns" above. Use null when no \
+column carries that type — a name that isn't in the list is discarded anyway.
+- Judge `content_relevance` from the sampled rows, not the card. The card says \
+what the uploader intended; the rows are what the experiment will run on.
+- Do NOT return a score. The score is computed from these labels, not supplied.
+"""
+
+DATASET_CRITIC_PROMPT = """Assume this dataset is bad. Your job is to find \
+reasons it should NOT be downloaded and used for this experiment.
+
+This dataset currently leads the ranking, which means the case *for* it has \
+already been made. Do not restate it. Look for the specific ways a plausible \
+looking dataset turns out to be unusable.
+
+Requirement spec (JSON):
+{spec_block}
+
+Dataset: {dataset_id}
+Declared columns: {columns_block}
+Rows actually inspected ({rows_sampled} sampled): {sample_block}
+
+Measured statistics over those rows (computed, not claimed):
+{inspection_block}
+
+Dataset card (truncated):
+{card_block}
+
+Work through this checklist. For each item, decide whether it is a real problem \
+*for this experiment*, and report only the ones that are:
+
+  description_mismatch      the actual data does not match what the card describes
+  mostly_irrelevant         a large share of examples are not relevant to the spec
+  unusable_schema           the schema cannot supply what the spec's data_types need
+  substantial_duplication   there is significant duplication
+  mostly_empty_or_broken    a large share of examples are empty, truncated or malformed
+  synthetic_only            the data is model-generated rather than collected
+  undocumented_provenance   where the data came from is not documented
+  unknown_license           the license is absent, unclear, or incompatible
+  suspiciously_tiny         the dataset is far too small for what the plan needs
+  unrelated_material        it contains substantial material unrelated to the spec
+  evaluation_contamination  it contains evaluation/benchmark/test data this plan would be scored against
+  personal_information      it contains personal or sensitive information
+
+Answer with ONLY a JSON object in exactly this shape:
+{{
+  "findings": [
+    {{"code": "<one code from the list above, verbatim>", "evidence": "<what in the card or rows shows this>"}}
+  ]
+}}
+
+Rules:
+- Use the codes above exactly. Any other code is discarded, so an objection \
+phrased in your own words has no effect at all.
+- Every finding needs evidence from the card or the sampled rows. A finding you \
+cannot evidence is a suspicion, and suspicions do not belong here — omit it.
+- Return an empty `findings` list if you genuinely cannot substantiate any \
+problem. That is a valid and useful answer; inventing a finding to seem \
+thorough rejects a usable dataset.
+- Do NOT return a score or an overall verdict. Findings only.
+"""
+
+# Appended after the concrete dataset facts by CoderAgent._hf_dataset_block on
+# the download path. Kept out of .format() reach for the same reason
+# HF_DATASET_USAGE_NOTE is — literal JSON braces.
+HF_LOCAL_DATASET_USAGE_NOTE = """Each line of that file is one JSON object, so \
+reading it needs nothing but the standard library:
+  rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+Do NOT add the `datasets` package, do not use `pandas.read_parquet`, and do not \
+fetch anything over the network for this data — it is already on disk, and the \
+machine this runs on may have no outbound route at all.
+
+Use this dataset ONLY if it genuinely fits the plan's data_requirements. If it \
+doesn't, ignore it completely, generate/synthesize the data the plan describes, \
+and say in assumptions_made that you did and why.
+
+Either way, load_data() MUST still work when the file isn't there (a different \
+run host, a cleared cache, a moved directory): wrap the read in try/except, log \
+the failure, and fall back to a small synthesized stand-in dataset in the same \
+shape, recording that fallback in assumptions_made and the README. Code that \
+assumes a local data file will simply be there is not acceptable.
+"""

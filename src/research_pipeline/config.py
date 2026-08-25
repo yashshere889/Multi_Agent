@@ -45,6 +45,18 @@ class Settings:
     coder_data_dir: str
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
+    coder_dataset_download: bool
+    coder_dataset_max_candidates: int
+    coder_dataset_max_inspections: int
+    coder_dataset_max_appraisals: int
+    coder_dataset_max_critic_reviews: int
+    coder_dataset_rows_inspected: int
+    coder_dataset_min_score: float
+    coder_dataset_max_download_gb: float
+    coder_dataset_run_download_budget_gb: float
+    coder_dataset_max_accepted_per_run: int
+    coder_dataset_max_local_rows: int
+    coder_dataset_cache_dir: str
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
     coder_fix_store_sqlite_path: str
@@ -233,6 +245,54 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        # On by default, and the reason the search is worth doing at all on a
+        # cluster: the accepted dataset is fetched once, here, and normalized to
+        # a data.jsonl the experiment reads with the standard library. A Barkla
+        # compute node with no outbound route can then still run the experiment.
+        # Turning it off falls back to handing generated code the Dataset Viewer
+        # REST URL, which is what this pipeline did before downloading existed.
+        coder_dataset_download=_env_bool("CODER_DATASET_DOWNLOAD", True),
+        # How wide the search goes before anything is ranked. Hub hits are cheap
+        # (one request per query); everything after this point is not.
+        coder_dataset_max_candidates=int(os.environ.get("CODER_DATASET_MAX_CANDIDATES", "20")),
+        # How many survive the deterministic prefilter to get their rows sampled
+        # and measured (each costs several viewer requests).
+        coder_dataset_max_inspections=int(os.environ.get("CODER_DATASET_MAX_INSPECTIONS", "5")),
+        # How many get the LLM evidence call. The tightest of the three budgets
+        # on purpose: this is the only per-candidate cost measured in model
+        # round-trips, and it runs once per plan.
+        coder_dataset_max_appraisals=int(os.environ.get("CODER_DATASET_MAX_APPRAISALS", "3")),
+        # How far the critic's veto may fall through to the next-ranked
+        # candidate before the plan gives up on having a dataset at all.
+        coder_dataset_max_critic_reviews=int(
+            os.environ.get("CODER_DATASET_MAX_CRITIC_REVIEWS", "2")
+        ),
+        # Rows sampled per candidate, paged from the viewer 100 at a time. The
+        # sample every measured statistic is computed over — too small and the
+        # duplicate/empty rates are noise.
+        coder_dataset_rows_inspected=int(os.environ.get("CODER_DATASET_ROWS_INSPECTED", "200")),
+        # The bar a scored candidate must clear to be used. Nothing clearing it
+        # means the experiment generates with no dataset offered, exactly as it
+        # does when the search finds nothing.
+        coder_dataset_min_score=float(os.environ.get("CODER_DATASET_MIN_SCORE", "0.75")),
+        # Download budgets, checked against the viewer's /size *before* anything
+        # is fetched. Per dataset, and cumulative across one run() call.
+        coder_dataset_max_download_gb=float(os.environ.get("CODER_DATASET_MAX_DOWNLOAD_GB", "5")),
+        coder_dataset_run_download_budget_gb=float(
+            os.environ.get("CODER_DATASET_RUN_DOWNLOAD_BUDGET_GB", "20")
+        ),
+        coder_dataset_max_accepted_per_run=int(
+            os.environ.get("CODER_DATASET_MAX_ACCEPTED_PER_RUN", "5")
+        ),
+        # Rows written into the normalized data.jsonl. Caps what a huge dataset
+        # costs on shared disk, and keeps an experiment's load_data() from
+        # reading a multi-GB file under a timeout.
+        coder_dataset_max_local_rows=int(os.environ.get("CODER_DATASET_MAX_LOCAL_ROWS", "50000")),
+        # Where downloaded datasets are cached, keyed by (repo id, revision) so
+        # every plan and every run shares one copy. Empty means a "hf_datasets"
+        # directory under CODER_DATA_DIR, or beside the experiments when that is
+        # unset too.
+        coder_dataset_cache_dir=os.environ.get("CODER_DATASET_CACHE_DIR", ""),
         # On by default, and — unlike CHECKPOINTER_BACKEND — defaulting to
         # "sqlite" rather than "memory": a checkpointer's in-memory default is
         # fine because most runs are one-shot processes anyway, but this

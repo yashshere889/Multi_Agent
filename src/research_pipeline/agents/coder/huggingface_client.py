@@ -30,12 +30,16 @@ generates exactly as it did before, mirroring
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
-import re
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import requests
 
+from research_pipeline.agents.coder.dataset_spec import tokenize
 from research_pipeline.config import settings
 
 logger = logging.getLogger(__name__)
@@ -66,47 +70,24 @@ MAX_CELL_CHARS = 200
 # on it is the most representative sample; the rest are fallbacks in order.
 PREFERRED_SPLITS = ("train", "training", "validation", "test")
 
-# Dropped when turning a prose data_requirements description into a search query.
-# The Hub's `search` parameter matches dataset names/ids, so a full sentence
-# matches nothing at all — see _keyword_queries.
-_QUERY_STOPWORDS = {
-    "a",
-    "about",
-    "all",
-    "and",
-    "any",
-    "are",
-    "collected",
-    "collect",
-    "data",
-    "dataset",
-    "datasets",
-    "each",
-    "for",
-    "from",
-    "into",
-    "least",
-    "new",
-    "per",
-    "real",
-    "sample",
-    "samples",
-    "set",
-    "should",
-    "small",
-    "some",
-    "such",
-    "the",
-    "their",
-    "them",
-    "then",
-    "this",
-    "those",
-    "using",
-    "which",
-    "with",
-    "within",
-}
+# Extra endpoints used by the appraisal path. The viewer's /rows is what the
+# inspection sample is paged from; /size is what the download budget is checked
+# against *before* anything is fetched; the Hub's raw README is the dataset card
+# the evidence prompt quotes from.
+DATASET_VIEWER_SIZE_URL = f"{DATASET_VIEWER_BASE_URL}/size"
+HUB_DATASET_INFO_URL = "https://huggingface.co/api/datasets"
+HUB_RAW_URL = "https://huggingface.co/datasets"
+
+# One /rows page. The viewer caps `length` at 100, so a 200-row inspection is
+# two calls.
+ROWS_PAGE_SIZE = 100
+# A dataset card can be a small book. Truncated before it goes into a prompt
+# that also has to carry sampled rows and the plan.
+MAX_CARD_CHARS = 6000
+# Data files pulled when a dataset is downloaded. Restricted so a repo that also
+# ships model checkpoints, images or archives doesn't drag them onto shared
+# scratch alongside the rows we actually asked for.
+DOWNLOAD_ALLOW_PATTERNS = ("*.parquet", "*.csv", "*.tsv", "*.json", "*.jsonl", "README.md")
 
 
 def _headers() -> dict[str, str]:
@@ -147,7 +128,12 @@ def search_datasets(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]
     "id"), most relevant first, or [] on any failure."""
     if not query.strip():
         return []
-    payload = _get_json(HUB_DATASETS_SEARCH_URL, {"search": query, "limit": limit})
+    # full=true adds tags, downloads, likes and cardData (license, task
+    # categories, citation) to each hit. The old lookup asked for none of it and
+    # used only "id"; the prefilter in dataset_scoring ranks on exactly these
+    # fields, so fetching them here saves one /api/datasets/<id> call per
+    # candidate.
+    payload = _get_json(HUB_DATASETS_SEARCH_URL, {"search": query, "limit": limit, "full": "true"})
     if not isinstance(payload, list):
         return []
     return [hit for hit in payload if isinstance(hit, dict)]
@@ -156,21 +142,14 @@ def search_datasets(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]
 def _keyword_queries(description: str) -> list[str]:
     """Turns a plan's prose data description into Hub search queries.
 
-    The Hub's `search` parameter matches dataset names and ids, not free text, so
-    "a survey of 500 undergraduate students measuring sleep quality" finds
-    nothing while "survey undergraduate sleep" finds several. Two queries are
-    produced, narrow-then-broad, and the caller stops at the first that yields a
-    viewer-valid dataset — a deliberate trade: a slightly off-topic real dataset
-    the model is told it may ignore is still more useful than no dataset, and one
-    extra HTTP call is cheap next to a codegen round-trip.
+    The narrow-then-broad fallback used before the appraisal pipeline existed,
+    kept because `find_dataset_for_experiment` still uses it. New callers build
+    their queries from a DatasetSpec's structured fields instead — see
+    `dataset_spec.search_queries`. The tokenizer is shared with that module
+    rather than duplicated, so "which words are worth searching for?" has one
+    answer here.
     """
-    # Bare numbers ("500 students", "2024") are dropped along with stopwords:
-    # they never help match a dataset *name*, and they crowd out the words that do.
-    words = [
-        word
-        for word in re.findall(r"[a-z0-9]+", description.lower())
-        if len(word) > 2 and not word.isdigit() and word not in _QUERY_STOPWORDS
-    ]
+    words = tokenize(description)
     queries = []
     for count in (4, 2):
         candidate = " ".join(words[:count])
@@ -302,3 +281,330 @@ def find_dataset_for_experiment(query: str) -> dict | None:
             "Hugging Face dataset lookup for %r failed unexpectedly: %s", query[:120], exc
         )
         return None
+
+
+# ---------------------------------------------------------------------------
+# The appraisal path: metadata, size, card and paged rows.
+#
+# Everything below keeps the module's founding contract — never raises, every
+# failure degrades to None/[]/{} — because it all feeds an enhancement to a
+# prompt, and the Coder is going to generate code either way.
+# ---------------------------------------------------------------------------
+
+
+def dataset_info(dataset_id: str) -> dict:
+    """The Hub record: license, tags, cardData, downloads, likes, and `sha` —
+    the commit the download is pinned to. `{}` on any failure."""
+    if not dataset_id.strip():
+        return {}
+    payload = _get_json(f"{HUB_DATASET_INFO_URL}/{dataset_id}", {})
+    return payload if isinstance(payload, dict) else {}
+
+
+def dataset_size(dataset_id: str) -> dict:
+    """`{"num_rows", "num_bytes"}` for the whole dataset, or `{}`.
+
+    Read *before* any download so the GB budget is enforced against the real
+    size rather than discovered halfway through fetching it.
+    """
+    payload = _get_json(DATASET_VIEWER_SIZE_URL, {"dataset": dataset_id})
+    if not isinstance(payload, dict):
+        return {}
+    size = payload.get("size")
+    dataset = size.get("dataset") if isinstance(size, dict) else None
+    if not isinstance(dataset, dict):
+        return {}
+    return {
+        "num_rows": int(dataset.get("num_rows") or 0),
+        "num_bytes": int(
+            dataset.get("num_bytes_original_files")
+            or dataset.get("num_bytes_parquet_files")
+            or dataset.get("num_bytes_memory")
+            or 0
+        ),
+    }
+
+
+def dataset_card(dataset_id: str) -> str:
+    """The raw README the dataset publishes, truncated. "" when there isn't one.
+
+    Fetched as text rather than JSON, so it doesn't go through `_get_json`.
+    """
+    if not dataset_id.strip():
+        return ""
+    url = f"{HUB_RAW_URL}/{dataset_id}/raw/main/README.md"
+    try:
+        response = requests.get(url, headers=_headers(), timeout=TIMEOUT_SECONDS)
+    except requests.RequestException as exc:
+        logger.warning("Hugging Face card fetch for %s failed: %s", dataset_id, exc)
+        return ""
+    if response.status_code != 200:
+        return ""
+    return response.text[:MAX_CARD_CHARS]
+
+
+def fetch_rows(dataset_id: str, config: str, split: str, limit: int, offset: int = 0) -> list[dict]:
+    """Up to `limit` rows from the viewer, paged at ROWS_PAGE_SIZE.
+
+    This is the inspection sample — the rows `dataset_inspect` measures. Returns
+    however many it managed to read, including [] — a short read is a smaller
+    sample, not an error, and the report records `rows_sampled` either way.
+    """
+    rows: list[dict] = []
+    while len(rows) < limit:
+        page = min(ROWS_PAGE_SIZE, limit - len(rows))
+        payload = _get_json(
+            DATASET_VIEWER_ROWS_URL,
+            {
+                "dataset": dataset_id,
+                "config": config,
+                "split": split,
+                "offset": offset + len(rows),
+                "length": page,
+            },
+        )
+        if not isinstance(payload, dict):
+            break
+        entries = payload.get("rows")
+        if not isinstance(entries, list) or not entries:
+            break
+        for entry in entries:
+            row = entry.get("row") if isinstance(entry, dict) else None
+            if isinstance(row, dict):
+                rows.append(row)
+        # A short page means the split ran out; asking again just re-reads the
+        # tail.
+        if len(entries) < page:
+            break
+    return rows
+
+
+def describe_candidate(dataset_id: str) -> dict:
+    """Everything cheap and non-LLM about one candidate, in one call site.
+
+    `{}` when the viewer can't serve it — which is still the first thing checked,
+    because a dataset the viewer won't preview is one whose rows can't be
+    inspected, and an uninspectable candidate can't be scored on anything but
+    its card.
+    """
+    if not _is_viewer_valid(dataset_id):
+        return {}
+    picked = _pick_split(dataset_id)
+    if picked is None:
+        return {}
+    config, split = picked
+    described = _first_rows(dataset_id, config, split)
+    if described is None:
+        return {}
+    columns, sample_rows = described
+    info = dataset_info(dataset_id)
+    size = dataset_size(dataset_id)
+
+    raw_card = info.get("cardData")
+    card_data = raw_card if isinstance(raw_card, dict) else {}
+    license_id = card_data.get("license")
+    if isinstance(license_id, list):
+        license_id = license_id[0] if license_id else ""
+
+    return {
+        "dataset_id": dataset_id,
+        "config": config,
+        "split": split,
+        "columns": columns,
+        "sample_rows": sample_rows,
+        "info": info,
+        "cardData": card_data,
+        "tags": info.get("tags") or [],
+        "downloads": info.get("downloads") or 0,
+        "likes": info.get("likes") or 0,
+        "revision": str(info.get("sha") or ""),
+        "license": str(license_id or ""),
+        "num_rows": size.get("num_rows", 0),
+        "num_bytes": size.get("num_bytes", 0),
+    }
+
+
+def rows_url_for(dataset_id: str, config: str, split: str, length: int = 100) -> str:
+    """The exact REST URL generated code is pointed at on the no-download path.
+
+    safe="" so the namespace slash in "owner/name" is percent-encoded: these are
+    query-parameter *values*, and a bare slash there is what makes a hand-built
+    dataset-viewer URL 404.
+    """
+    return (
+        f"{DATASET_VIEWER_ROWS_URL}"
+        f"?dataset={quote(dataset_id, safe='')}"
+        f"&config={quote(config or 'default', safe='')}"
+        f"&split={quote(split or 'train', safe='')}"
+        f"&offset=0&length={length}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Download and normalization.
+#
+# huggingface_hub and pyarrow are imported *inside* these functions and sit
+# behind the `datasets-download` extra, same arrangement as the checkpointer's
+# sqlite/postgres backends: a plain `uv sync` must stay unaffected, and a
+# pipeline without them degrades to the REST-URL prompt block that was the only
+# behaviour before downloading existed.
+# ---------------------------------------------------------------------------
+
+
+def download_dataset(dataset_id: str, revision: str, dest_dir: Path) -> Path | None:
+    """Fetch a dataset's data files at a pinned revision. None on any failure.
+
+    The destination is a *shared* cache keyed by (repo id, revision) by the
+    caller, never a per-experiment directory: several plans in one run — and
+    several runs on one machine — routinely want the same dataset, and copying
+    it per experiment is what would actually justify the shared-scratch concern
+    that kept this pipeline REST-only.
+    """
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError:
+        logger.warning(
+            "huggingface_hub is not installed (uv sync --extra datasets-download); "
+            "falling back to the Dataset Viewer REST path for %s",
+            dataset_id,
+        )
+        return None
+
+    try:
+        dest_dir.parent.mkdir(parents=True, exist_ok=True)
+        path = snapshot_download(
+            repo_id=dataset_id,
+            repo_type="dataset",
+            revision=revision or None,
+            local_dir=str(dest_dir),
+            allow_patterns=list(DOWNLOAD_ALLOW_PATTERNS),
+            token=settings.huggingface_api_token or None,
+        )
+        return Path(path)
+    except Exception as exc:  # noqa: BLE001 — see the module docstring: never raise
+        logger.warning("Hugging Face download of %s failed: %s", dataset_id, exc)
+        return None
+
+
+def _read_parquet_rows(path: Path, remaining: int) -> list[dict]:
+    try:
+        import pyarrow.parquet as pq
+    except ImportError:
+        logger.warning("pyarrow is not installed; cannot normalize %s", path.name)
+        return []
+    try:
+        table = pq.read_table(path)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not read %s: %s", path.name, exc)
+        return []
+    return table.slice(0, remaining).to_pylist()
+
+
+def _read_csv_rows(path: Path, remaining: int, delimiter: str) -> list[dict]:
+    rows: list[dict] = []
+    try:
+        with path.open("r", encoding="utf-8", errors="replace", newline="") as handle:
+            for row in csv.DictReader(handle, delimiter=delimiter):
+                rows.append(dict(row))
+                if len(rows) >= remaining:
+                    break
+    except OSError as exc:
+        logger.warning("Could not read %s: %s", path.name, exc)
+    return rows
+
+
+def _read_json_rows(path: Path, remaining: int) -> list[dict]:
+    """Handles both JSON Lines and a single JSON array/object, which is the
+    split the Hub's `.json` files actually fall into."""
+    rows: list[dict] = []
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        logger.warning("Could not read %s: %s", path.name, exc)
+        return rows
+
+    stripped = text.lstrip()
+    if stripped.startswith("["):
+        try:
+            payload = json.loads(stripped)
+        except ValueError:
+            return rows
+        if isinstance(payload, list):
+            return [row for row in payload[:remaining] if isinstance(row, dict)]
+        return rows
+
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+        if len(rows) >= remaining:
+            break
+    return rows
+
+
+# Extension -> reader, in the order files are preferred. Parquet first because
+# it is what the Hub converts everything to and is the most reliably typed.
+_NORMALIZE_ORDER = (".parquet", ".jsonl", ".json", ".csv", ".tsv")
+
+
+def normalize_to_jsonl(source_dir: Path, dest_path: Path, max_rows: int) -> dict:
+    """Flatten downloaded data files into one JSON Lines file the generated
+    experiment can read with nothing but the standard library.
+
+    This is the point of downloading at all. The pipeline pays the parquet/CSV
+    cost once, here, in the pipeline's own environment; the experiment's
+    throwaway venv gets a `data.jsonl` and needs no pyarrow, no pandas engine
+    and no network — which is what makes a Barkla compute node with no outbound
+    route able to run the experiment at all.
+
+    Returns `{"rows_written", "columns", "source_files"}`, or `{}` if nothing
+    could be read.
+    """
+    files: list[Path] = []
+    for suffix in _NORMALIZE_ORDER:
+        files.extend(sorted(path for path in source_dir.rglob(f"*{suffix}") if path.is_file()))
+    if not files:
+        logger.warning("No readable data files under %s", source_dir)
+        return {}
+
+    rows: list[dict] = []
+    used: list[str] = []
+    for path in files:
+        if len(rows) >= max_rows:
+            break
+        remaining = max_rows - len(rows)
+        suffix = path.suffix.lower()
+        if suffix == ".parquet":
+            batch = _read_parquet_rows(path, remaining)
+        elif suffix in (".csv", ".tsv"):
+            batch = _read_csv_rows(path, remaining, "\t" if suffix == ".tsv" else ",")
+        else:
+            batch = _read_json_rows(path, remaining)
+        if batch:
+            rows.extend(batch)
+            used.append(str(path.relative_to(source_dir)))
+
+    if not rows:
+        return {}
+
+    columns: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in columns:
+                columns.append(key)
+
+    try:
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        with dest_path.open("w", encoding="utf-8") as handle:
+            for row in rows:
+                handle.write(json.dumps(row, default=str, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        logger.warning("Could not write %s: %s", dest_path, exc)
+        return {}
+
+    return {"rows_written": len(rows), "columns": columns, "source_files": used}

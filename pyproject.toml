@@ -40,6 +40,19 @@ webapp = [
     "python-multipart>=0.0.9",
 ]
 
+# Only needed for CODER_DATASET_DOWNLOAD=true (the default), which fetches the
+# dataset the Coder's appraisal accepted and flattens it to a data.jsonl the
+# generated experiment reads with the standard library. Optional for the same
+# reason as the extras above: without it the Coder degrades to handing generated
+# code the Dataset Viewer REST URL, which is what it did before downloading
+# existed. pyarrow is here because the Hub serves parquet; it is imported in the
+# *pipeline* process only, never into an experiment's throwaway venv.
+#   uv sync --extra datasets-download
+datasets-download = [
+    "huggingface-hub>=0.25",
+    "pyarrow>=17.0",
+]
+
 # Needed for CHECKPOINTER_BACKEND=sqlite, which makes a run's LangGraph
 # checkpoints survive the process that wrote them, and for the Coder Agent's
 # CODER_FIX_STORE_BACKEND=sqlite (the default for that setting — see

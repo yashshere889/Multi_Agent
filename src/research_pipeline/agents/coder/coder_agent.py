@@ -107,13 +107,15 @@ import uuid
 from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.store.base import BaseStore
 from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    dataset_inspect,
+    dataset_scoring,
+    dataset_spec,
     diagnose,
     fix_pattern_store,
     huggingface_client,
@@ -178,7 +180,7 @@ _ERROR_STAGE_ORDER = [
 # the fix budget is. Derived per run from those two numbers rather than guessed —
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
-_STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
+_STEPS_PER_PLAN = 9  # process_current_plan, the five dataset-selection nodes, generate_experiment_code, the first attempt, finalize/give_up
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 
 
@@ -223,6 +225,36 @@ _FIX_TEMPERATURE = 0.0
 # to tell "slightly over budget" from "the wrong shape of computation" — past
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
+
+# Rows shown to the evidence/critic prompts. The full inspection sample is 200+
+# rows, which no prompt can carry alongside a plan and a card — the measured
+# statistics over all of them go in instead, and these are the concrete examples
+# the model reasons about.
+_DATASET_PROMPT_SAMPLE_ROWS = 8
+
+_BYTES_PER_GB = 1024**3
+
+
+def _dataset_bands(hf_dataset: dict) -> dict[str, str]:
+    """The per-dimension bands from a scored dataset's state dict, for the
+    prompt's one-line score summary. Empty when the dict predates scoring."""
+    components = hf_dataset.get("components")
+    if not isinstance(components, dict):
+        return {}
+    return {
+        name: str(components.get(name))
+        for name in ("task_relevance", "content_relevance", "schema_fit", "license_fit")
+        if components.get(name)
+    }
+
+
+def _directory_bytes(path: Path) -> int:
+    """Total size of everything under `path`, or 0 if it can't be read. Used to
+    charge the run's download budget from what actually landed on disk."""
+    try:
+        return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+    except OSError:
+        return 0
 
 
 def _estimate_tokens(text: str) -> int:
@@ -431,6 +463,12 @@ class CoderAgent:
         gpu_check: Callable[[], bool] | None = None,
         max_fix_attempts: int | None = None,
         huggingface_lookup_fn: Callable[[str], dict | None] | None = None,
+        dataset_search_fn: Callable[[str, int], list[dict]] | None = None,
+        dataset_describe_fn: Callable[[str], dict] | None = None,
+        dataset_rows_fn: Callable[[str, str, str, int], list[dict]] | None = None,
+        dataset_card_fn: Callable[[str], str] | None = None,
+        dataset_download_fn: Callable[[str, str, Path], Path | None] | None = None,
+        dataset_normalize_fn: Callable[[Path, Path, int], dict] | None = None,
         fix_store: BaseStore | None = None,
         interactive_slurm_review: bool | None = None,
         slurm_review_prompt: Callable[[dict], str] | None = None,
@@ -454,6 +492,19 @@ class CoderAgent:
         self.huggingface_lookup = (
             huggingface_lookup_fn or huggingface_client.find_dataset_for_experiment
         )
+        # The dataset-appraisal path's network seams, injected individually for
+        # the same reason. Each is one function so a test can fail exactly one
+        # step (a search that returns nothing, a card that 404s, a download that
+        # can't run because huggingface_hub isn't installed) and assert the
+        # pipeline still generates an experiment — which is the property that
+        # matters most about all of this, since every one of these is an
+        # enhancement to a prompt and none of them is a precondition.
+        self.dataset_search = dataset_search_fn or huggingface_client.search_datasets
+        self.dataset_describe = dataset_describe_fn or huggingface_client.describe_candidate
+        self.dataset_rows = dataset_rows_fn or huggingface_client.fetch_rows
+        self.dataset_card = dataset_card_fn or huggingface_client.dataset_card
+        self.dataset_download = dataset_download_fn or huggingface_client.download_dataset
+        self.dataset_normalize = dataset_normalize_fn or huggingface_client.normalize_to_jsonl
         self.max_fix_attempts = (
             settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
         )
@@ -474,6 +525,13 @@ class CoderAgent:
         # future webapp) injects its own callable instead.
         self.slurm_review_prompt = slurm_review_prompt or _default_slurm_review_prompt
         self._slurm_jobs_submitted = 0
+        # Run-level dataset budgets. Instance attributes rather than state for
+        # exactly the reason _slurm_jobs_submitted is: each plan must see the
+        # true up-to-date total before deciding whether it may download, and
+        # only the sequential plan loop makes that well-defined. Mirrored into
+        # state after each acquisition so a trace shows the running total.
+        self._datasets_accepted = 0
+        self._dataset_bytes_downloaded = 0
 
     def run(self, planner_output: dict) -> dict:
         """Runs the agent's graph end to end. Same signature, same returned dict,
@@ -494,6 +552,9 @@ class CoderAgent:
         # state.py) because the plan loop is strictly sequential: only one plan
         # is ever in flight, so there is no concurrent writer to reconcile.
         self._slurm_jobs_submitted = 0
+        # Same lifetime, same reasoning — see the constructor.
+        self._datasets_accepted = 0
+        self._dataset_bytes_downloaded = 0
 
         graph = build_coder_graph(self)
         config = {
@@ -612,22 +673,74 @@ class CoderAgent:
             "current_attempt": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
+            "current_dataset_spec": {},
+            "current_dataset_candidates": [],
+            "current_dataset_scores": [],
+            "current_dataset_rejections": [],
             "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
-    def _node_search_hf_dataset(self, state: CoderState) -> dict:
-        """Looks up one real Hugging Face dataset for this plan's data
-        requirements, before any code is generated.
+    def _node_specify_data_requirements(self, state: CoderState) -> dict:
+        """State what this plan actually needs from a dataset, before anything
+        is searched for.
 
-        Its own node rather than a line inside the generation call, for the same
-        reason every other step here is a node: the lookup is a real decision
-        point with an observable outcome (matched / didn't), and a run where
-        experiments quietly stopped using real data should be diagnosable from
-        the trace rather than from log archaeology."""
+        First of the five dataset-selection nodes, and the gate for all of them:
+        an empty spec here (no network, the feature switched off) is what every
+        later node no-ops on, so the whole sequence costs nothing when it is not
+        wanted."""
         return {
-            "current_hf_dataset": self._find_hf_dataset(
+            "current_dataset_spec": self._specify_data_requirements(
                 state["current_plan"], state["network_available"]
             )
+        }
+
+    def _node_shortlist_datasets(self, state: CoderState) -> dict:
+        """Search the Hub, then rank on metadata alone. No model involved: this
+        node exists to decide who is *worth* a model call, and spending one to
+        make that decision would defeat the point."""
+        return {
+            "current_dataset_candidates": self._shortlist_datasets(
+                state.get("current_dataset_spec") or {}, state["current_plan"]
+            )
+        }
+
+    def _node_appraise_datasets(self, state: CoderState) -> dict:
+        """Sample real rows from each shortlisted candidate, measure them, ask
+        the model for evidence, and score the result in Python."""
+        return {
+            "current_dataset_scores": self._appraise_datasets(
+                state.get("current_dataset_spec") or {},
+                state.get("current_dataset_candidates") or [],
+            )
+        }
+
+    def _node_critique_leading_dataset(self, state: CoderState) -> dict:
+        """Try to reject the leader before accepting it.
+
+        The accepted candidate (if any) lands in `current_hf_dataset`; every
+        candidate that was reviewed and rejected is kept in
+        `current_dataset_rejections` so the reason is in the trace and in the
+        record, rather than a dataset silently not being used."""
+        accepted, rejections = self._critique_leading_dataset(
+            state.get("current_dataset_spec") or {},
+            state.get("current_dataset_scores") or [],
+        )
+        return {"current_hf_dataset": accepted, "current_dataset_rejections": rejections}
+
+    def _node_acquire_dataset(self, state: CoderState) -> dict:
+        """Download the accepted dataset under the run's budgets, normalize it
+        to a local JSONL, and write the provenance record.
+
+        The only node here with a side effect on disk, and the only one that
+        touches the run-level budget counters — which is why it is last and why
+        it is separate from the decision that preceded it."""
+        acquired = self._acquire_dataset(
+            state.get("current_hf_dataset") or {},
+            Path(state["current_experiment_dir"]) if state.get("current_experiment_dir") else None,
+        )
+        return {
+            "current_hf_dataset": acquired,
+            "datasets_accepted": self._datasets_accepted,
         }
 
     def _node_generate_experiment_code(self, state: CoderState) -> dict:
@@ -1667,29 +1780,479 @@ class CoderAgent:
             "patching around it again.\n\n"
         )
 
-    def _find_hf_dataset(self, plan: dict, network_available: bool) -> dict:
-        """One real dataset for this plan, or {} — never an exception.
+    # ----------------------------------------------------------------------
+    # Dataset selection.
+    #
+    # Five helpers, one per node, in the order the graph calls them. Every one
+    # of them degrades to "no dataset" rather than raising: the Coder is about
+    # to generate code either way, and a dataset search must never be the reason
+    # an experiment doesn't get written. That contract is why none of these
+    # nodes carries a RetryPolicy — a failure here is absorbed in-node, so there
+    # is nothing for the graph to retry.
+    # ----------------------------------------------------------------------
 
-        Skipped without a request when the network probe already failed or
-        CODER_ENABLE_HF_DATASET_SEARCH is off. The lookup client already degrades
-        every failure to None, so the try/except here is only for an injected
-        lookup function that raises: this is an enhancement to a prompt, and a
-        broken dataset search must never be the reason an experiment doesn't get
-        generated at all.
+    def _dataset_search_enabled(self, network_available: bool) -> bool:
+        return bool(network_available and settings.coder_enable_hf_dataset_search)
+
+    def _specify_data_requirements(self, plan: dict, network_available: bool) -> dict:
+        """The plan's data requirement as a structured spec, as a plain dict.
+
+        The model drafts it and `dataset_spec.validate_spec` coerces every field;
+        if the call fails or returns junk, `fallback_spec` derives one from the
+        plan deterministically. So this returns a usable spec in every case
+        except the feature being switched off, and nothing downstream has to
+        handle "the model didn't answer" separately from "the model answered
+        badly".
         """
-        if not network_available or not settings.coder_enable_hf_dataset_search:
+        if not self._dataset_search_enabled(network_available):
             return {}
-        description = (plan.get("data_requirements") or {}).get("description") or plan["objective"]
+        prompt = prompts.DATASET_SPEC_PROMPT.format(plan_block=_compact_json(plan))
+        payload: object = None
         try:
-            dataset = self.huggingface_lookup(str(description))
-        except Exception as exc:  # noqa: BLE001 — see the docstring
+            payload = self._call_json(prompt)
+        except Exception as exc:  # noqa: BLE001 — see this section's header
             logger.warning(
-                "Hugging Face dataset lookup raised for %s; generating without it: %s",
-                plan["hypothesis_id"],
+                "Dataset requirement spec for %s failed (%s); deriving one from the plan instead",
+                plan.get("hypothesis_id"),
                 exc,
             )
+        spec = dataset_spec.validate_spec(payload, plan)
+        logger.info(
+            "Dataset spec for %s: task=%r data_types=%s desired_examples=%d",
+            plan.get("hypothesis_id"),
+            spec.task,
+            list(spec.data_types),
+            spec.desired_examples,
+        )
+        return spec.to_dict()
+
+    def _shortlist_datasets(self, spec_dict: dict, plan: dict) -> list[dict]:
+        """Candidates worth appraising, best-first.
+
+        Pools the hits from every query the spec produces rather than stopping
+        at the first query that returns something — ranking happens over the
+        pool, so a later query's better match is not lost to an earlier query's
+        merely-adequate one. The deterministic prefilter then cuts the pool to
+        `CODER_DATASET_MAX_INSPECTIONS`, and only those survivors pay for the
+        viewer round-trips that `describe_candidate` makes.
+        """
+        if not spec_dict:
+            return []
+        spec = dataset_spec.from_dict(spec_dict)
+
+        queries = dataset_spec.search_queries(spec, plan)
+        # An equal share of the pool per query, rather than a first-come cap:
+        # one broad query returning a full page would otherwise fill the pool on
+        # its own and the later, differently-angled queries would contribute
+        # nothing — which is the whole reason several are issued.
+        per_query = max(3, settings.coder_dataset_max_candidates // max(len(queries), 1))
+
+        pooled: dict[str, dict] = {}
+        for query in queries:
+            try:
+                hits = self.dataset_search(query, per_query)
+            except Exception as exc:  # noqa: BLE001 — see this section's header
+                logger.warning("Hub search for %r failed: %s", query, exc)
+                continue
+            for hit in hits or []:
+                dataset_id = str((hit or {}).get("id") or "")
+                if dataset_id and dataset_id not in pooled:
+                    pooled[dataset_id] = hit
+
+        if not pooled:
+            logger.info("No Hugging Face candidates for %s", plan.get("hypothesis_id"))
+            return []
+
+        ranked = dataset_scoring.prefilter(
+            list(pooled.values()), spec, settings.coder_dataset_max_inspections
+        )
+
+        described: list[dict] = []
+        for candidate in ranked:
+            dataset_id = str(candidate.get("id") or "")
+            try:
+                details = self.dataset_describe(dataset_id)
+            except Exception as exc:  # noqa: BLE001 — see this section's header
+                logger.warning("Could not describe %s: %s", dataset_id, exc)
+                continue
+            if not details:
+                continue
+            details["prefilter_score"] = candidate.get("prefilter_score", 0.0)
+            described.append(details)
+
+        logger.info(
+            "Shortlisted %d of %d Hugging Face candidates for %s",
+            len(described),
+            len(pooled),
+            plan.get("hypothesis_id"),
+        )
+        return described
+
+    def _appraise_datasets(self, spec_dict: dict, candidates: list[dict]) -> list[dict]:
+        """Score each shortlisted candidate, best-first, as plain state dicts.
+
+        The per-candidate loop lives inside this node rather than becoming a
+        graph cycle, the same call the fix loop's internal env-repair loop
+        makes: the iterations are independent and bounded by a setting, so a
+        cycle would add super-steps and a recursion-limit term without making
+        anything more observable than the scores this returns.
+        """
+        if not spec_dict or not candidates:
+            return []
+        spec = dataset_spec.from_dict(spec_dict)
+
+        scored: list[dataset_scoring.ScoredDataset] = []
+        for candidate in candidates[: settings.coder_dataset_max_appraisals]:
+            appraised = self._appraise_one(spec, candidate)
+            if appraised is not None:
+                scored.append(appraised)
+
+        scored.sort(key=lambda entry: entry.score, reverse=True)
+        for entry in scored:
+            logger.info(
+                "Dataset candidate %s scored %.2f (%s)",
+                entry.dataset_id,
+                entry.score,
+                ", ".join(f"{k}={v}" for k, v in entry.components.labels().items()),
+            )
+        return [dataset_scoring.to_state(entry) for entry in scored]
+
+    def _appraise_one(
+        self, spec: dataset_spec.DatasetSpec, candidate: dict
+    ) -> dataset_scoring.ScoredDataset | None:
+        """One candidate: sample rows, measure them, gather evidence, score.
+
+        Four of the six dimensions never reach the model — license, quality,
+        provenance and (after verification) schema fit are all computed here.
+        The model is asked only for the two relevance labels and for a mapping
+        it does not get the final word on. See dataset_scoring's docstring.
+        """
+        dataset_id = str(candidate.get("dataset_id") or "")
+        if not dataset_id:
+            return None
+
+        config = str(candidate.get("config") or "default")
+        split = str(candidate.get("split") or "train")
+        columns = [column for column in candidate.get("columns") or [] if isinstance(column, dict)]
+        column_names = [str(column.get("name")) for column in columns if column.get("name")]
+
+        try:
+            rows = self.dataset_rows(
+                dataset_id, config, split, settings.coder_dataset_rows_inspected
+            )
+        except Exception as exc:  # noqa: BLE001 — see this section's header
+            logger.warning("Could not sample rows from %s: %s", dataset_id, exc)
+            rows = []
+        # The three first-rows already fetched by describe_candidate are a
+        # smaller sample, not no sample — better to score on them than to drop a
+        # candidate because the paged read failed.
+        rows = rows or [row for row in candidate.get("sample_rows") or [] if isinstance(row, dict)]
+
+        report = dataset_inspect.inspect_rows(
+            rows,
+            columns,
+            languages=spec.languages,
+            desired_examples=spec.desired_examples,
+            num_rows_total=int(candidate.get("num_rows") or 0),
+        )
+
+        try:
+            card = self.dataset_card(dataset_id)
+        except Exception as exc:  # noqa: BLE001 — see this section's header
+            logger.warning("Could not read the card for %s: %s", dataset_id, exc)
+            card = ""
+
+        appraisal = dataset_scoring.coerce_appraisal(
+            self._dataset_llm_call(
+                prompts.DATASET_EVIDENCE_PROMPT,
+                spec,
+                dataset_id,
+                column_names,
+                rows,
+                report,
+                card,
+            )
+        )
+
+        license_id = str(candidate.get("license") or "")
+        license_band = dataset_scoring.license_label(license_id, spec)
+        provenance_band = dataset_scoring.provenance_label(candidate.get("info"))
+        schema_band, mapping = dataset_scoring.schema_fit_label(
+            appraisal["column_mapping"], spec, column_names
+        )
+        quality = dataset_scoring.quality_score(report)
+
+        components = dataset_scoring.ScoreComponents(
+            task_relevance=appraisal["task_relevance"],
+            content_relevance=appraisal["content_relevance"],
+            quality=quality,
+            provenance=provenance_band,
+            schema_fit=schema_band,
+            license_fit=license_band,
+            evidence={
+                "task_relevance": appraisal["task_relevance_evidence"],
+                "content_relevance": appraisal["content_relevance_evidence"],
+                "quality": dataset_scoring.quality_evidence(report),
+                "provenance": dataset_scoring.provenance_evidence(
+                    candidate.get("info"), provenance_band
+                ),
+                "schema_fit": dataset_scoring.schema_evidence(mapping, spec, schema_band),
+                "license_fit": dataset_scoring.license_evidence(license_id, license_band),
+            },
+        )
+
+        scored = dataset_scoring.ScoredDataset(
+            dataset_id=dataset_id,
+            components=components,
+            report=report,
+            revision=str(candidate.get("revision") or ""),
+            config=config,
+            split=split,
+            license=license_id,
+            size_bytes=int(candidate.get("num_bytes") or 0),
+            rows=int(candidate.get("num_rows") or report.num_rows_total),
+            columns=columns,
+            sample_rows=[row for row in rows[:3] if isinstance(row, dict)],
+            column_mapping=mapping,
+            requirements=appraisal["requirements"],
+            rows_url=huggingface_client.rows_url_for(dataset_id, config, split),
+        )
+        return dataset_scoring.rescore(scored)
+
+    def _dataset_llm_call(
+        self,
+        template: str,
+        spec: dataset_spec.DatasetSpec,
+        dataset_id: str,
+        column_names: list[str],
+        rows: list[dict],
+        report: dataset_inspect.InspectionReport,
+        card: str,
+    ) -> dict:
+        """The evidence and critic prompts share every input, so they share the
+        rendering too. Returns {} on any failure — which `coerce_appraisal` and
+        `coerce_findings` both read as "nothing was established", the same
+        answer an explicit UNKNOWN gives."""
+        prompt = template.format(
+            spec_block=_compact_json(spec.to_dict()),
+            dataset_id=dataset_id,
+            columns_block=", ".join(column_names) or "(unknown)",
+            rows_sampled=report.rows_sampled,
+            sample_block=_compact_json(rows[:_DATASET_PROMPT_SAMPLE_ROWS]),
+            inspection_block=_compact_json(report.to_dict()),
+            card_block=card or "(no dataset card published)",
+        )
+        try:
+            return self._call_json(prompt)
+        except Exception as exc:  # noqa: BLE001 — see this section's header
+            logger.warning("Dataset appraisal call for %s failed: %s", dataset_id, exc)
             return {}
-        return dataset or {}
+
+    def _critique_leading_dataset(
+        self, spec_dict: dict, scores: list[dict]
+    ) -> tuple[dict, list[dict]]:
+        """Accept the best candidate that survives an adversarial review.
+
+        Candidates are walked best-first. One that already fails on its score,
+        license or schema is rejected without spending a critic call on it —
+        there is nothing an adversarial pass could find that would change the
+        answer. The rest are critiqued until one is accepted or
+        `CODER_DATASET_MAX_CRITIC_REVIEWS` is spent; a veto falls through to the
+        next candidate rather than ending the search, which is the whole reason
+        several candidates are appraised instead of one.
+        """
+        if not spec_dict or not scores:
+            return {}, []
+        spec = dataset_spec.from_dict(spec_dict)
+        minimum = settings.coder_dataset_min_score
+
+        rejections: list[dict] = []
+        reviews = 0
+        for payload in scores:
+            scored = dataset_scoring.from_state(payload)
+            dataset_scoring.decide(scored, minimum)
+            if scored.decision == "reject":
+                logger.info(
+                    "Dataset %s rejected before review: %s",
+                    scored.dataset_id,
+                    "; ".join(scored.reasons_for_rejection),
+                )
+                rejections.append(dataset_scoring.to_state(scored))
+                continue
+
+            if reviews >= settings.coder_dataset_max_critic_reviews:
+                logger.info(
+                    "Critic budget spent; %s was not reviewed and is not used", scored.dataset_id
+                )
+                break
+            reviews += 1
+
+            findings = dataset_scoring.coerce_findings(
+                self._dataset_llm_call(
+                    prompts.DATASET_CRITIC_PROMPT,
+                    spec,
+                    scored.dataset_id,
+                    [str(column.get("name")) for column in scored.columns if column.get("name")],
+                    scored.sample_rows,
+                    scored.report,
+                    self._dataset_card_quietly(scored.dataset_id),
+                )
+            )
+            dataset_scoring.apply_critic(scored, findings, spec)
+            dataset_scoring.decide(scored, minimum)
+
+            if scored.decision == "accept":
+                logger.info(
+                    "Dataset %s accepted at %.2f after review", scored.dataset_id, scored.score
+                )
+                return dataset_scoring.to_state(scored), rejections
+
+            logger.info(
+                "Dataset %s vetoed by review: %s",
+                scored.dataset_id,
+                "; ".join(scored.reasons_for_rejection),
+            )
+            rejections.append(dataset_scoring.to_state(scored))
+
+        return {}, rejections
+
+    def _dataset_card_quietly(self, dataset_id: str) -> str:
+        try:
+            return self.dataset_card(dataset_id)
+        except Exception:  # noqa: BLE001 — see this section's header
+            return ""
+
+    def _dataset_cache_dir(self) -> Path:
+        """Where downloaded datasets live. Shared across every plan and every
+        run on this machine and keyed by (repo id, revision) below, so N
+        experiments wanting the same dataset cost one copy — the per-experiment
+        copies are exactly what would have justified keeping this pipeline
+        download-free on shared scratch."""
+        if settings.coder_dataset_cache_dir:
+            return Path(settings.coder_dataset_cache_dir)
+        if settings.coder_data_dir:
+            return Path(settings.coder_data_dir) / "hf_datasets"
+        return self.experiments_dir / "_hf_datasets"
+
+    def _download_budget_reason(self, size_bytes: int) -> str:
+        """Why this dataset may not be downloaded, or "" if it may.
+
+        A dataset whose size the viewer wouldn't report is allowed through: /size
+        fails often enough that blocking on it would disable downloading
+        broadly, and the row cap plus the post-download measurement below keep
+        the run budget honest anyway.
+        """
+        if not settings.coder_dataset_download:
+            return "CODER_DATASET_DOWNLOAD is off"
+        if self._datasets_accepted >= settings.coder_dataset_max_accepted_per_run:
+            return (
+                f"this run has already downloaded {self._datasets_accepted} datasets "
+                f"(CODER_DATASET_MAX_ACCEPTED_PER_RUN)"
+            )
+        per_dataset = settings.coder_dataset_max_download_gb * _BYTES_PER_GB
+        if size_bytes and size_bytes > per_dataset:
+            return (
+                f"{size_bytes / _BYTES_PER_GB:.1f} GB exceeds the "
+                f"{settings.coder_dataset_max_download_gb:.1f} GB per-dataset budget"
+            )
+        run_budget = settings.coder_dataset_run_download_budget_gb * _BYTES_PER_GB
+        if self._dataset_bytes_downloaded + size_bytes > run_budget:
+            return (
+                f"downloading it would pass this run's "
+                f"{settings.coder_dataset_run_download_budget_gb:.1f} GB total budget"
+            )
+        return ""
+
+    def _acquire_dataset(self, accepted: dict, experiment_dir: Path | None) -> dict:
+        """Fetch the accepted dataset and write its provenance record.
+
+        On success `local_path` names a `data.jsonl` the generated experiment
+        reads with the standard library and no network at all. On any failure —
+        over budget, huggingface_hub absent, the download or the normalization
+        failing — the dataset is still offered, via the Dataset Viewer REST URL
+        that was the only path before downloading existed. That fallback is the
+        reason none of this needs to be reliable to be useful.
+        """
+        if not accepted:
+            return {}
+        scored = dataset_scoring.from_state(accepted)
+        scored.downloaded_at = dataset_scoring.now_iso()
+
+        reason = self._download_budget_reason(scored.size_bytes)
+        if reason:
+            logger.info("Not downloading %s: %s", scored.dataset_id, reason)
+        else:
+            self._download_and_normalize(scored)
+
+        if experiment_dir is not None:
+            self._write_dataset_record(scored, experiment_dir)
+        return dataset_scoring.to_state(scored)
+
+    def _download_and_normalize(self, scored: dataset_scoring.ScoredDataset) -> None:
+        """Download at a pinned revision, flatten to JSONL, charge the budget.
+
+        The revision is pinned so the provenance record names a commit rather
+        than "whatever main was that day" — a dataset that changes under a
+        finished experiment is a result nobody can reproduce.
+        """
+        cache_key = f"{scored.dataset_id.replace('/', '__')}@{scored.revision or 'main'}"
+        source_dir = self._dataset_cache_dir() / cache_key
+        local_file = source_dir / "data.jsonl"
+
+        if local_file.exists():
+            logger.info("Reusing cached %s", local_file)
+            scored.local_path = str(local_file)
+            return
+
+        try:
+            downloaded = self.dataset_download(scored.dataset_id, scored.revision, source_dir)
+        except Exception as exc:  # noqa: BLE001 — see this section's header
+            logger.warning("Download of %s failed: %s", scored.dataset_id, exc)
+            return
+        if downloaded is None:
+            return
+
+        try:
+            normalized = self.dataset_normalize(
+                Path(downloaded), local_file, settings.coder_dataset_max_local_rows
+            )
+        except Exception as exc:  # noqa: BLE001 — see this section's header
+            logger.warning("Normalizing %s failed: %s", scored.dataset_id, exc)
+            return
+        if not normalized:
+            return
+
+        scored.local_path = str(local_file)
+        scored.rows = int(normalized.get("rows_written") or scored.rows)
+        self._datasets_accepted += 1
+        # Charged from what actually landed on disk, not from what /size
+        # predicted: the pre-check can be fooled by a missing or wrong size, and
+        # the run budget is the one that has to hold across a whole sweep.
+        self._dataset_bytes_downloaded += _directory_bytes(source_dir)
+        logger.info(
+            "Downloaded %s@%s -> %s (%d rows, %.2f GB used this run)",
+            scored.dataset_id,
+            scored.revision or "main",
+            local_file,
+            scored.rows,
+            self._dataset_bytes_downloaded / _BYTES_PER_GB,
+        )
+
+    @staticmethod
+    def _write_dataset_record(scored: dataset_scoring.ScoredDataset, experiment_dir: Path) -> None:
+        """The audit trail: why this dataset, scored how, from which commit.
+
+        Sits beside data_provenance.json for the same reason that file exists —
+        a number in a paper should be traceable to the data it came from, and
+        "the Coder picked something" is not traceability.
+        """
+        try:
+            experiment_dir.mkdir(parents=True, exist_ok=True)
+            (experiment_dir / "dataset_provenance.json").write_text(
+                json.dumps(scored.as_record(), indent=2), encoding="utf-8"
+            )
+        except OSError as exc:
+            logger.warning("Could not write dataset_provenance.json: %s", exc)
 
     def _provenance_for(
         self,
@@ -1721,53 +2284,96 @@ class CoderAgent:
         # accepts that. Counting an offered-but-declined dataset as evidence
         # would be exactly the over-claim this gate exists to prevent, so this
         # requires the rendered run.py to name it.
-        dataset_id = (hf_dataset or {}).get("dataset")
-        if dataset_id and run_py and dataset_id in run_py:
+        dataset_id = str((hf_dataset or {}).get("dataset_id") or "")
+        local_path = str((hf_dataset or {}).get("local_path") or "")
+        # Two ways the code can name the dataset, and both count: the repo id
+        # (the REST path, where the id is in the URL) or the local file the
+        # download normalized it into. The local file is checked by its bare
+        # name as well as its full path, since generated code routinely builds
+        # the path from a constant rather than pasting it.
+        named = bool(run_py) and (
+            (bool(dataset_id) and dataset_id in run_py)
+            or (bool(local_path) and (local_path in run_py or Path(local_path).name in run_py))
+        )
+        if dataset_id and named:
             sources.insert(
                 0,
                 provenance.DataSource(
                     name=f"Hugging Face dataset {dataset_id}",
-                    kind=provenance.KIND_REAL_DOWNLOAD,
-                    uri=(hf_dataset or {}).get("rows_url", ""),
-                    reason="found by the Hugging Face lookup and read by the generated code",
+                    # A downloaded, revision-pinned file on disk is real_local:
+                    # it is present, it is fixed, and re-running the experiment
+                    # reads the same bytes. Without a download it stays
+                    # real_download — still real, but fetched at run time.
+                    kind=(
+                        provenance.KIND_REAL_LOCAL if local_path else provenance.KIND_REAL_DOWNLOAD
+                    ),
+                    uri=str((hf_dataset or {}).get("rows_url") or ""),
+                    local_path=local_path,
+                    reason=(
+                        "selected by the dataset appraisal (score "
+                        f"{(hf_dataset or {}).get('score', 0.0)}) and read by the generated code"
+                    ),
                 ),
             )
         return sources
 
     @staticmethod
     def _hf_dataset_block(hf_dataset: dict) -> str:
-        """Renders a matched dataset for the codegen/fix prompt: what it is, its
-        real column names and a few real rows, and the exact REST URL to read it
-        from. Empty string when nothing matched, so a prompt with no dataset
-        reads exactly as it did before this lookup existed."""
+        """Renders the accepted dataset for the codegen/fix prompt.
+
+        Two variants, and which one is used is a fact about what happened rather
+        than a setting: if the dataset was downloaded and normalized there is a
+        local `data.jsonl` to point at, and if it wasn't there is the Dataset
+        Viewer REST URL that was the only option before downloading existed.
+        Empty string when nothing was accepted, so a prompt with no dataset
+        reads exactly as it did before any of this existed.
+
+        The score and the evidence behind it are included deliberately. The
+        model is allowed to decline the dataset (and `check_hf_dataset_usage`
+        accepts a declared decline), so it should see how strong the match
+        actually is rather than being handed an unqualified "use this".
+        """
         dataset_id = hf_dataset.get("dataset_id")
         if not dataset_id:
             return ""
+
         columns = ", ".join(
             f"{column.get('name')} ({column.get('type', 'unknown')})"
             for column in hf_dataset.get("columns") or []
         )
         config = str(hf_dataset.get("config") or "default")
         split = str(hf_dataset.get("split") or "train")
-        # safe="" so the namespace slash in "owner/name" is percent-encoded:
-        # these are query-parameter *values*, and a bare slash there is what makes
-        # a hand-built dataset-viewer URL 404.
-        rows_url = (
-            f"{huggingface_client.DATASET_VIEWER_ROWS_URL}"
-            f"?dataset={quote(str(dataset_id), safe='')}"
-            f"&config={quote(config, safe='')}&split={quote(split, safe='')}"
-            "&offset=0&length=100"
-        )
-        return (
-            "A real, public dataset matching this experiment's data requirements was found and "
-            "verified as servable by the Hugging Face Dataset Viewer:\n"
+        local_path = str(hf_dataset.get("local_path") or "")
+
+        header = (
+            "A real, public dataset was selected for this experiment's data requirements. It "
+            "was scored against a fixed rubric after its rows were inspected, not just matched "
+            "by name:\n"
             f"  dataset: {dataset_id}\n"
+            f"  revision: {hf_dataset.get('revision') or '(unpinned)'}\n"
             f"  config: {config}\n"
             f"  split: {split}\n"
+            f"  score: {hf_dataset.get('score', 0.0)} "
+            f"({', '.join(f'{k}={v}' for k, v in _dataset_bands(hf_dataset).items())})\n"
             f"  columns: {columns or '(unknown)'}\n"
             f"  first rows: {_compact_json(hf_dataset.get('sample_rows') or [])}\n\n"
-            "Read it over HTTP with `requests` (already available — do NOT add the `datasets` "
-            "package, and do not download the dataset):\n"
+        )
+
+        if local_path:
+            return (
+                header
+                + "It has already been downloaded and flattened to JSON Lines on this machine. "
+                "Read it from this exact path:\n"
+                f"  {local_path}\n\n" + prompts.HF_LOCAL_DATASET_USAGE_NOTE
+            )
+
+        rows_url = hf_dataset.get("rows_url") or huggingface_client.rows_url_for(
+            str(dataset_id), config, split
+        )
+        return (
+            header
+            + "It was not downloaded, so read it over HTTP with `requests` (already available — "
+            "do NOT add the `datasets` package, and do not download the dataset):\n"
             f"  {rows_url}\n\n" + prompts.HF_DATASET_USAGE_NOTE
         )
 

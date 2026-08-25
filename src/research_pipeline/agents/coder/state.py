@@ -28,6 +28,10 @@ Two things are deliberately *not* here:
   through state would have bought traceability of a branch at the cost of
   re-implementing the one branch in this agent that must not change.
 
+- **The run-level counters as the *authority* for their caps.** This covers
+  `slurm_jobs_submitted` and `datasets_accepted` alike; the SLURM one is spelled
+  out below and the dataset download budget works identically.
+
 - **The SLURM per-run submission counter as the *authority* for the cap.**
   `slurm_jobs_submitted` is mirrored into state after every attempt so a
   checkpoint shows the true count at each step, but the gate in
@@ -77,17 +81,39 @@ class CoderState(TypedDict, total=False):
     # Mirrored from CoderAgent._slurm_jobs_submitted after each attempt, so the
     # gated counter is visible in a checkpoint/trace. Not the gate itself.
     slurm_jobs_submitted: int
+    # Same arrangement for the run-level dataset budget: mirrored from
+    # CoderAgent._datasets_accepted after each acquisition, never the gate.
+    datasets_accepted: int
 
     # Per-plan working set, reset by process_current_plan each time the outer
     # loop advances.
     current_plan: dict
     current_experiment_dir: str  # str for the same serialization reason as shared_dir
-    # What the Hugging Face dataset lookup found for this plan (dataset_id,
-    # config, split, columns, sample_rows), or {} when nothing matched, the
-    # network probe failed, or CODER_ENABLE_HF_DATASET_SEARCH is off. Looked up
-    # once per plan and threaded into both the codegen and the fix prompt, so a
-    # fix attempt doesn't re-search for the same answer. Plain JSON-able dict,
-    # like everything else here — it's checkpointed.
+    # The dataset-selection working set, in the order the five nodes produce it.
+    # All plain JSON, like everything else here — it's checkpointed.
+    #
+    # `current_dataset_spec` is dataset_spec.DatasetSpec.to_dict(): what this
+    # plan needs, stated before anything is searched for. Empty when the network
+    # probe failed or CODER_ENABLE_HF_DATASET_SEARCH is off, which is the single
+    # gate every later dataset node no-ops on.
+    current_dataset_spec: dict
+    # Shortlisted candidates with their viewer-confirmed schema and Hub
+    # metadata, best-first by the deterministic prefilter.
+    current_dataset_candidates: list[dict]
+    # Every appraised candidate as dataset_scoring.to_state(), best-first by
+    # computed score. Kept whole rather than reduced to a winner so the trace
+    # shows what was rejected in favour of what.
+    current_dataset_scores: list[dict]
+    # Candidates the critic vetoed or that failed the threshold, with their
+    # reasons_for_rejection. Same reasoning: "no dataset was used" and "four
+    # datasets were considered and all four were contaminated" are very
+    # different runs and should not look identical in a checkpoint.
+    current_dataset_rejections: list[dict]
+    # The accepted candidate, or {} when nothing cleared the bar. Carries
+    # local_path once acquire_dataset has downloaded and normalized it — which
+    # is what decides whether the codegen prompt points at a local file or at
+    # the Dataset Viewer REST URL. Threaded into both the codegen and the fix
+    # prompt, so a three-attempt fix loop doesn't re-select.
     current_hf_dataset: dict
     # The id of the starters.STARTERS entry chosen for this plan by
     # starters.select_starter (a pure function of the plan's own text — no LLM

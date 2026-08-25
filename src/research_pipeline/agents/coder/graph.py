@@ -61,8 +61,9 @@ if TYPE_CHECKING:  # avoids a circular import — coder_agent imports this modul
 # level would re-execute generated code or re-provision a venv — this module's
 # whole point is that the loop is sequential and each step's effects are real
 # (and CLAUDE.md is explicit that env-provisioning failures are not retried).
-# `probe_environment` and `search_hf_dataset` are best-effort probes that
-# already degrade gracefully, so a retry buys nothing.
+# `probe_environment` and the five dataset-selection nodes are best-effort:
+# every one of them absorbs its own failures in-node and degrades to "no
+# dataset", so there is nothing left for a graph-level retry to catch.
 _RETRY = RetryPolicy(max_attempts=2)
 
 
@@ -73,12 +74,12 @@ def route_plan_loop(state: CoderState) -> str:
 
 
 def route_after_process(state: CoderState) -> str:
-    """Feasible plans go on to the dataset lookup and then their first
+    """Feasible plans go on to dataset selection and then their first
     generation; infeasible ones were already recorded as "skipped" (and the
     cursor advanced) by process_current_plan, so they re-enter the outer loop
     directly without a single LLM call or HTTP call."""
     if state["current_plan"]["feasible"]:
-        return "search_hf_dataset"
+        return "specify_data_requirements"
     return route_plan_loop(state)
 
 
@@ -94,7 +95,11 @@ def build_coder_graph(agent: CoderAgent):
     )
     graph.add_node("start_plan_loop", agent._node_start_plan_loop)
     graph.add_node("process_current_plan", agent._node_process_current_plan)
-    graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
+    graph.add_node("specify_data_requirements", agent._node_specify_data_requirements)
+    graph.add_node("shortlist_datasets", agent._node_shortlist_datasets)
+    graph.add_node("appraise_datasets", agent._node_appraise_datasets)
+    graph.add_node("critique_leading_dataset", agent._node_critique_leading_dataset)
+    graph.add_node("acquire_dataset", agent._node_acquire_dataset)
     graph.add_node(
         "generate_experiment_code",
         agent._node_generate_experiment_code,
@@ -127,15 +132,30 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_conditional_edges(
         "process_current_plan",
         route_after_process,
-        {"search_hf_dataset": "search_hf_dataset", **_plan_loop_targets},
+        {"specify_data_requirements": "specify_data_requirements", **_plan_loop_targets},
     )
 
-    # The dataset lookup is its own step, ahead of the first generation, because
-    # what it finds goes *into* the codegen prompt — and because "did this
-    # experiment get offered real data?" should be visible in a trace rather than
-    # buried inside the generation call. It never branches: a miss is an empty
-    # dict and generation proceeds unchanged.
-    graph.add_edge("search_hf_dataset", "generate_experiment_code")
+    # Dataset selection: five steps, ahead of the first generation, because what
+    # they settle on goes *into* the codegen prompt — and because each is a real
+    # decision with an observable outcome that belongs in a trace rather than
+    # buried inside the generation call. They are separate nodes rather than one
+    # because they answer separate questions, and a run whose experiments quietly
+    # stopped getting real data should be diagnosable to the step that stopped:
+    #
+    #   specify_data_requirements  (LLM)   what does this plan actually need?
+    #   shortlist_datasets         (HTTP)  who is worth appraising?
+    #   appraise_datasets          (LLM)   what does the evidence say, and what
+    #                                      does Python score it at?
+    #   critique_leading_dataset   (LLM)   can the leader be rejected?
+    #   acquire_dataset            (disk)  download, normalize, record
+    #
+    # None of them branches: every failure is a smaller answer (an empty spec, no
+    # candidates, nothing accepted, no local copy), and generation proceeds.
+    graph.add_edge("specify_data_requirements", "shortlist_datasets")
+    graph.add_edge("shortlist_datasets", "appraise_datasets")
+    graph.add_edge("appraise_datasets", "critique_leading_dataset")
+    graph.add_edge("critique_leading_dataset", "acquire_dataset")
+    graph.add_edge("acquire_dataset", "generate_experiment_code")
     graph.add_edge("generate_experiment_code", "attempt")
 
     # The fix loop. `attempt` is the only node that runs generated code; every

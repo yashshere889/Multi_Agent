@@ -5,9 +5,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import requests
 from langgraph.store.memory import InMemoryStore
 
 from research_pipeline.agents.coder import (
+    dataset_scoring,
     diagnose,
     fix_pattern_store,
     huggingface_client,
@@ -1129,6 +1131,9 @@ class ScriptedChatModel:
         "The code you generated for hypothesis": "fix",
         "Review the experiment code below": "self_review",
         "Shared infrastructure items": "shared_infra",
+        "State what data this experiment actually needs": "dataset_spec",
+        "Determine whether this dataset satisfies": "dataset_evidence",
+        "Assume this dataset is bad": "dataset_critic",
     }
 
     def __init__(self, **responses_by_kind: list[str]):
@@ -1166,6 +1171,13 @@ RAISING_SECTIONS = {
 }
 
 
+def _codegen_calls(model):
+    """Only the calls that asked for experiment code. Dataset selection makes
+    its own model calls before generation, so a bare len(model.calls) no longer
+    answers "how many times was the model asked for code?"."""
+    return [call for call in model.calls if "Fill in the experiment template" in call[-1][1]]
+
+
 def _agent(tmp_path, model, **kwargs):
     # network/GPU default to absent (no test may touch either), but both are
     # overridable so the Hugging Face lookup tests below can turn the network on.
@@ -1177,6 +1189,16 @@ def _agent(tmp_path, model, **kwargs):
     # two agents to share recorded fix patterns passes its own fix_store=
     # explicitly, overriding this default.
     kwargs.setdefault("fix_store", InMemoryStore())
+    # Every dataset seam defaults to inert here, not just in the tests that care.
+    # `network_check` alone is not enough of a guard: a test that turns the
+    # network on to exercise something unrelated would otherwise reach the real
+    # Hugging Face API through whichever of these it left at its default.
+    kwargs.setdefault("dataset_search_fn", lambda query, limit: [])
+    kwargs.setdefault("dataset_describe_fn", lambda dataset_id: {})
+    kwargs.setdefault("dataset_rows_fn", lambda dataset_id, config, split, limit: [])
+    kwargs.setdefault("dataset_card_fn", lambda dataset_id: "")
+    kwargs.setdefault("dataset_download_fn", lambda dataset_id, revision, dest: None)
+    kwargs.setdefault("dataset_normalize_fn", lambda source, dest, max_rows: {})
     return CoderAgent(
         chat_model=model,
         experiments_dir=tmp_path / "experiments",
@@ -2226,24 +2248,184 @@ def test_low_and_medium_timeouts_default_to_the_previously_hardcoded_values():
     assert real_settings.coder_medium_complexity_timeout_seconds == 300
 
 
-# -- coder_agent.py: the Hugging Face dataset lookup -------------------------------------
-# No test here touches the network: the lookup is a single injected function
-# (huggingface_lookup_fn), exactly like network_check/gpu_check.
+# -- coder_agent.py: dataset selection ---------------------------------------------------
+# No test here touches the network. The appraisal path's six network calls are
+# six injected functions (dataset_search_fn, dataset_describe_fn,
+# dataset_rows_fn, dataset_card_fn, dataset_download_fn, dataset_normalize_fn),
+# exactly like network_check/gpu_check, and `_agent` defaults every one of them
+# to inert so a test can't reach the Hub by forgetting one.
 
 
-HF_DATASET_MATCH = {
+HF_HIT = {
+    "id": "acme/sleep-survey",
+    "downloads": 50_000,
+    "likes": 42,
+    "tags": ["task_categories:tabular-regression", "arxiv:2401.00001"],
+    "cardData": {"license": "apache-2.0", "size_categories": ["1K<n<10K"], "citation": "@misc{}"},
+}
+
+# What describe_candidate returns: the viewer-confirmed schema plus the Hub
+# record the deterministic dimensions are read off.
+HF_CANDIDATE = {
     "dataset_id": "acme/sleep-survey",
     "config": "default",
     "split": "train",
     "columns": [{"name": "hours_slept", "type": "float32"}, {"name": "score", "type": "int64"}],
     "sample_rows": [{"hours_slept": 7.5, "score": 88}],
+    "info": {
+        "id": "acme/sleep-survey",
+        "sha": "abc123def",
+        "cardData": HF_HIT["cardData"],
+        "tags": HF_HIT["tags"],
+        "downloads": 50_000,
+    },
+    "cardData": HF_HIT["cardData"],
+    "tags": HF_HIT["tags"],
+    "downloads": 50_000,
+    "likes": 42,
+    "revision": "abc123def",
+    "license": "apache-2.0",
+    "num_rows": 5_000,
+    "num_bytes": 2_048,
 }
 
-# A load_data() that actually uses HF_DATASET_MATCH's dataset id (matching
-# check_hf_dataset_usage) rather than GOOD_SECTIONS' `return None` — the tests
-# below script a model that took the offered dataset, not one that silently
-# ignored it (a separate scenario covered by test_coder_agent's
-# ignored_available_dataset tests).
+# The state dict shape the prompt block and check_hf_dataset_usage consume,
+# which is what `HF_DATASET_MATCH` was before scoring existed. Kept minimal on
+# purpose — these two consumers read only the handful of keys named here.
+HF_DATASET_MATCH = {
+    "dataset_id": "acme/sleep-survey",
+    "config": "default",
+    "split": "train",
+    "columns": HF_CANDIDATE["columns"],
+    "sample_rows": HF_CANDIDATE["sample_rows"],
+}
+
+
+def _rows(count=40):
+    """A clean sample: distinct rows, every declared column filled. Scores at
+    the top of the quality band, so a test that wants a *rejection* has to
+    introduce the defect it is testing rather than getting one for free."""
+    return [{"hours_slept": 5.0 + index * 0.1, "score": 50 + index} for index in range(count)]
+
+
+def _spec_response(**overrides):
+    payload = {
+        "task": "predict sleep quality",
+        "domain": "sleep research",
+        "languages": ["en"],
+        "data_types": ["hours_slept", "score"],
+        "desired_examples": 1000,
+        "minimum_quality": 0.7,
+        "license_requirements": ["permissive"],
+        "avoid": ["synthetic-only"],
+    }
+    payload.update(overrides)
+    return json.dumps(payload)
+
+
+def _evidence_response(**overrides):
+    payload = {
+        "requirements": {
+            "contains_hours_slept": {"status": "pass", "evidence": "Sampled rows carry it."}
+        },
+        "task_relevance": "exact",
+        "task_relevance_evidence": "The card describes sleep-quality measurements.",
+        "content_relevance": "exact",
+        "content_relevance_evidence": "Sampled rows are hours and scores.",
+        "column_mapping": {"hours_slept": "hours_slept", "score": "score"},
+    }
+    payload.update(overrides)
+    return json.dumps(payload)
+
+
+def _critic_response(*findings):
+    return json.dumps({"findings": list(findings)})
+
+
+def _dataset_stack(
+    hits=(HF_HIT,),
+    candidate=HF_CANDIDATE,
+    rows=None,
+    card="# Sleep survey\nCollected from a sleep lab.",
+    downloads=True,
+):
+    """Fakes for all six dataset seams, plus the record of what each was asked.
+
+    `downloads=False` models huggingface_hub not being installed — the download
+    function returning None, which is exactly what the real one does in that
+    case.
+    """
+    calls: dict[str, list] = {"search": [], "describe": [], "rows": [], "card": [], "download": []}
+
+    def search(query, limit):
+        calls["search"].append(query)
+        return list(hits)
+
+    def describe(dataset_id):
+        calls["describe"].append(dataset_id)
+        return dict(candidate) if candidate else {}
+
+    def fetch_rows(dataset_id, config, split, limit):
+        calls["rows"].append((dataset_id, config, split, limit))
+        return list(rows if rows is not None else _rows())
+
+    def get_card(dataset_id):
+        calls["card"].append(dataset_id)
+        return card
+
+    def download(dataset_id, revision, dest):
+        calls["download"].append((dataset_id, revision, str(dest)))
+        if not downloads:
+            return None
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "train.jsonl").write_text('{"hours_slept": 7.5, "score": 88}\n', encoding="utf-8")
+        return dest
+
+    def normalize(source, dest, max_rows):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text('{"hours_slept": 7.5, "score": 88}\n', encoding="utf-8")
+        return {"rows_written": 1, "columns": ["hours_slept", "score"], "source_files": ["t.jsonl"]}
+
+    kwargs = {
+        "dataset_search_fn": search,
+        "dataset_describe_fn": describe,
+        "dataset_rows_fn": fetch_rows,
+        "dataset_card_fn": get_card,
+        "dataset_download_fn": download,
+        "dataset_normalize_fn": normalize,
+    }
+    return kwargs, calls
+
+
+def _dataset_model(codegen_sections=None, **overrides):
+    """A ScriptedChatModel wired for the whole dataset path plus one codegen."""
+    responses = {
+        "dataset_spec": [_spec_response()],
+        "dataset_evidence": [_evidence_response()],
+        "dataset_critic": [_critic_response()],
+        "codegen": [_codegen_response(codegen_sections or GOOD_SECTIONS_WITH_LOCAL_DATASET)],
+    }
+    responses.update(overrides)
+    return RecordingScriptedChatModel(**responses)
+
+
+# A load_data() that reads the downloaded, normalized local file — the default
+# path now that CODER_DATASET_DOWNLOAD is on. Guarded, as check_data_fallback
+# requires.
+GOOD_SECTIONS_WITH_LOCAL_DATASET = {
+    **GOOD_SECTIONS,
+    "load_data_function": (
+        "def load_data():\n"
+        "    try:\n"
+        "        with open(DATA_PATH, encoding='utf-8') as handle:\n"
+        "            return [json.loads(line) for line in handle if line.strip()]\n"
+        "    except Exception:\n"
+        "        return [{'hours_slept': 7.5, 'score': 88}]\n"
+    ),
+    "configuration": "DATA_PATH = 'data.jsonl'\n",
+}
+
+# The REST variant, for the no-download path.
 GOOD_SECTIONS_WITH_HF_DATASET = {
     **GOOD_SECTIONS,
     "load_data_function": (
@@ -2262,57 +2444,218 @@ GOOD_SECTIONS_WITH_HF_DATASET = {
 }
 
 
-def _recording_lookup(result):
-    """A fake huggingface_lookup_fn that records the queries it was asked."""
-    queries: list[str] = []
-
-    def lookup(query):
-        queries.append(query)
-        return result
-
-    return lookup, queries
-
-
-def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
-    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+def test_accepted_dataset_is_downloaded_and_offered_as_a_local_file(tmp_path):
+    model = _dataset_model()
+    stack, calls = _dataset_stack()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1")])
     )
 
-    # Queried with the plan's own data description, not the objective.
-    assert queries == ["d"]
+    assert result["experiments"][0]["status"] == "completed"
+    # Searched from the spec's structured fields, not the first four words of prose.
+    assert any("sleep" in query for query in calls["search"])
+    assert calls["download"] and calls["download"][0][1] == "abc123def"  # pinned revision
+
     prompt = model.prompts_by_kind["codegen"][0]
     assert "acme/sleep-survey" in prompt
+    assert "revision: abc123def" in prompt
+    assert "data.jsonl" in prompt
     assert "hours_slept (float32)" in prompt  # real column names and dtypes
-    assert '"hours_slept":7.5' in prompt  # real sample rows
-    # The exact REST endpoint, url-encoded, so no `datasets` package is needed.
-    assert "datasets-server.huggingface.co/rows?dataset=acme%2Fsleep-survey" in prompt
-    # And the instruction that keeps Phase C's check satisfiable.
+    # The local path, not the REST URL — and no instruction to fetch anything.
+    assert "datasets-server.huggingface.co/rows" not in prompt
     assert "fall back to a small synthesized stand-in dataset" in prompt
 
 
-def test_no_dataset_block_when_nothing_matched(tmp_path):
-    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
-    lookup, queries = _recording_lookup(None)
-    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+def test_the_dataset_record_is_written_beside_the_experiment(tmp_path):
+    stack, _ = _dataset_stack()
+    _agent(tmp_path, _dataset_model(), network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1")])
     )
 
-    assert queries == ["d"]
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert record["dataset"] == "acme/sleep-survey"
+    assert record["revision"] == "abc123def"
+    assert record["decision"] == "accept"
+    assert record["license"] == "apache-2.0"
+    assert record["downloaded_at"]
+    # Every dimension, its band, and the evidence behind it — enough to
+    # re-derive the score without re-running anything.
+    assert set(record["evidence"]) == set(dataset_scoring.WEIGHTS)
+    assert record["bands"]["license_fit"] == "permitted"
+    assert record["evidence_notes"]["task_relevance"]
+    assert record["inspection"]["rows_sampled"] == 40
+    assert record["weights"] == dataset_scoring.WEIGHTS
+
+
+def test_the_model_cannot_invent_the_score(tmp_path):
+    # The load-bearing test for the whole rubric. The evidence response claims a
+    # 0.99 score on a dataset it simultaneously labels unrelated on every
+    # dimension it is allowed to label. Python's arithmetic must win.
+    model = _dataset_model(
+        dataset_evidence=[
+            _evidence_response(
+                score=0.99,
+                task_relevance="unrelated",
+                content_relevance="unrelated",
+                column_mapping={},
+            )
+        ],
+        codegen=[_codegen_response()],
+    )
+    stack, calls = _dataset_stack()
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # Scored far below the 0.75 threshold, so nothing was accepted, nothing was
+    # downloaded, and the prompt reads as it does with no dataset at all.
+    assert calls["download"] == []
+    assert "acme/sleep-survey" not in model.prompts_by_kind["codegen"][0]
+    # And the critic was never asked: a candidate already failing on score has
+    # nothing an adversarial pass could change.
+    assert "dataset_critic" not in model.calls_by_kind
+
+
+def test_an_incompatible_license_is_decided_in_python_not_by_the_model(tmp_path):
+    # The evidence response insists everything is fine; the Hub says cc-by-nc.
+    # license_fit is never asked of the model, so the claim is irrelevant.
+    candidate = {**HF_CANDIDATE, "license": "cc-by-nc-4.0"}
+    stack, calls = _dataset_stack(
+        hits=({**HF_HIT, "cardData": {**HF_HIT["cardData"], "license": "cc-by-nc-4.0"}},),
+        candidate=candidate,
+    )
+    model = _dataset_model(codegen=[_codegen_response()])
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # Dropped by the prefilter before it could cost an appraisal call at all.
+    assert calls["describe"] == []
+    assert calls["download"] == []
+    assert "acme/sleep-survey" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_a_critic_veto_falls_through_to_the_next_candidate(tmp_path):
+    first = {**HF_CANDIDATE, "dataset_id": "acme/leaky", "revision": "r1"}
+    second = {**HF_CANDIDATE, "dataset_id": "acme/clean", "revision": "r2"}
+    described = iter([first, second])
+
+    stack, calls = _dataset_stack(
+        hits=({**HF_HIT, "id": "acme/leaky"}, {**HF_HIT, "id": "acme/clean"})
+    )
+    stack["dataset_describe_fn"] = lambda dataset_id: next(described, {})
+
+    model = _dataset_model(
+        dataset_evidence=[_evidence_response(), _evidence_response()],
+        dataset_critic=[
+            _critic_response(
+                {"code": "evaluation_contamination", "evidence": "Rows quote the held-out split."}
+            ),
+            _critic_response(),
+        ],
+        codegen=[_codegen_response(GOOD_SECTIONS_WITH_LOCAL_DATASET)],
+    )
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # The vetoed candidate was never downloaded; the next one was.
+    assert [call[0] for call in calls["download"]] == ["acme/clean"]
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert record["dataset"] == "acme/clean"
+
+
+def test_every_candidate_vetoed_means_no_dataset_is_offered(tmp_path):
+    model = _dataset_model(
+        dataset_critic=[
+            _critic_response({"code": "personal_information", "evidence": "Rows carry emails."})
+        ],
+        codegen=[_codegen_response()],
+    )
+    stack, calls = _dataset_stack()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
     assert result["experiments"][0]["status"] == "completed"
-    # The prompt reads exactly as it did before this lookup existed.
-    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+    assert calls["download"] == []
+    assert "acme/sleep-survey" not in model.prompts_by_kind["codegen"][0]
 
 
-def test_a_raising_lookup_never_blocks_code_generation(tmp_path):
-    # The lookup is an enhancement to a prompt, never a dependency: an injected
-    # function that raises must not cost the experiment its code.
-    def boom(query):
+def test_a_dataset_over_the_size_budget_falls_back_to_the_rest_url(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_dataset_max_download_gb=0.000001)
+    stack, calls = _dataset_stack()
+    model = _dataset_model(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["download"] == []  # checked against /size *before* fetching
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "datasets-server.huggingface.co/rows?dataset=acme%2Fsleep-survey" in prompt
+
+
+def test_the_per_run_download_cap_stops_later_plans(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_dataset_max_accepted_per_run=1)
+    stack, calls = _dataset_stack()
+    # The REST spelling names the dataset for both plans — the second one has no
+    # local copy to point at, since the cap is what this test is about.
+    model = _dataset_model(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1"), _plan("H2")])
+    )
+
+    # Both plans selected a dataset; only the first was allowed to download it.
+    assert len(calls["download"]) == 1
+    second = json.loads(
+        (tmp_path / "experiments" / "H2" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert second["decision"] == "accept"
+    assert second["local_path"] == ""
+
+
+def test_the_appraisal_budget_bounds_the_llm_calls(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_dataset_max_appraisals=2, coder_dataset_max_inspections=4)
+    hits = tuple({**HF_HIT, "id": f"acme/d{index}"} for index in range(4))
+    stack, calls = _dataset_stack(hits=hits)
+
+    def describe(dataset_id):
+        calls["describe"].append(dataset_id)
+        return {**HF_CANDIDATE, "dataset_id": dataset_id}
+
+    stack["dataset_describe_fn"] = describe
+
+    model = _dataset_model()
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # Four shortlisted and described (cheap), but only two appraised (a model
+    # call each), and one critic call for the leader.
+    assert len(calls["describe"]) == 4
+    assert model.calls_by_kind["dataset_evidence"] == 2
+    assert model.calls_by_kind["dataset_critic"] == 1
+
+
+def test_a_failed_spec_call_degrades_to_a_plan_derived_spec(tmp_path):
+    # The spec call returns junk. The search still runs, against a spec derived
+    # from the plan — a coarser requirement, not no requirement.
+    model = _dataset_model(dataset_spec=["not json at all"])
+    stack, calls = _dataset_stack()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["search"]  # searched anyway, against the derived spec
+    assert model.calls_by_kind["dataset_evidence"] == 1  # and appraised what it found
+
+
+def test_a_raising_search_never_blocks_code_generation(tmp_path):
+    def boom(query, limit):
         raise RuntimeError("hub is down")
 
-    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
-    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=boom).run(
+    stack, _ = _dataset_stack()
+    stack["dataset_search_fn"] = boom
+    model = _dataset_model(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1")])
     )
 
@@ -2320,80 +2663,192 @@ def test_a_raising_lookup_never_blocks_code_generation(tmp_path):
     assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
 
 
-def test_lookup_is_skipped_without_network(tmp_path):
-    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    _agent(tmp_path, model, huggingface_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
-
-    assert queries == []  # never attempted — the runtime probe said no network
-
-
-def test_lookup_is_skipped_when_the_setting_is_off(tmp_path, monkeypatch):
-    _patch_settings(monkeypatch, coder_enable_hf_dataset_search=False)
-    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+def test_a_failed_evidence_call_scores_the_candidate_down_rather_than_crashing(tmp_path):
+    model = _dataset_model(dataset_evidence=["}{ not json"], codegen=[_codegen_response()])
+    stack, calls = _dataset_stack()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1")])
     )
 
-    assert queries == []
+    assert result["experiments"][0]["status"] == "completed"
+    # Both model-supplied labels fell to their pessimistic band, so the score
+    # can't clear the threshold and nothing was downloaded.
+    assert calls["download"] == []
+
+
+def test_no_candidates_generates_exactly_as_before(tmp_path):
+    stack, _ = _dataset_stack(hits=())
+    model = _dataset_model(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+    # Nothing to appraise means no model calls were spent on appraising.
+    assert "dataset_evidence" not in model.calls_by_kind
+
+
+def test_an_unservable_candidate_is_dropped(tmp_path):
+    stack, calls = _dataset_stack(candidate={})
+    model = _dataset_model(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["describe"] == ["acme/sleep-survey"]
+    assert "dataset_evidence" not in model.calls_by_kind
+
+
+def test_download_is_skipped_when_the_setting_is_off(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_dataset_download=False)
+    stack, calls = _dataset_stack()
+    model = _dataset_model(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["download"] == []
+    assert "datasets-server.huggingface.co/rows" in model.prompts_by_kind["codegen"][0]
+
+
+def test_a_missing_huggingface_hub_degrades_to_the_rest_url(tmp_path):
+    # downloads=False is what the real download_dataset returns when
+    # huggingface_hub isn't installed.
+    stack, calls = _dataset_stack(downloads=False)
+    model = _dataset_model(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["download"]  # attempted
+    assert "datasets-server.huggingface.co/rows" in model.prompts_by_kind["codegen"][0]
+
+
+def test_selection_is_skipped_without_network(tmp_path):
+    stack, calls = _dataset_stack()
+    model = _dataset_model(codegen=[_codegen_response()])
+    _agent(tmp_path, model, **stack).run(_planner_output([_plan("H1")]))
+
+    assert calls["search"] == []  # never attempted — the runtime probe said no network
+    assert "dataset_spec" not in model.calls_by_kind
+
+
+def test_selection_is_skipped_when_the_setting_is_off(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_enable_hf_dataset_search=False)
+    stack, calls = _dataset_stack()
+    model = _dataset_model(codegen=[_codegen_response()])
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    assert calls["search"] == []
     assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
 
 
-def test_infeasible_plan_never_reaches_the_lookup(tmp_path):
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    _agent(
-        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
-    ).run(_planner_output([_plan("H1", feasible=False)]))
-
-    assert queries == []  # skipped before the lookup node, like the LLM call
-
-
-def test_the_fix_prompt_reuses_the_dataset_found_once_for_the_plan(tmp_path):
-    # The dataset is usually exactly what a data-loading failure needs to be
-    # fixed *with* — and looking it up once per plan (not once per attempt) keeps
-    # a three-attempt fix loop from spending three more searches on it.
-    model = RecordingScriptedChatModel(
-        codegen=[_codegen_response(RAISING_SECTIONS)],
-        fix=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)],
+def test_infeasible_plan_never_reaches_selection(tmp_path):
+    stack, calls = _dataset_stack()
+    _agent(tmp_path, FakeChatModel({}), network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1", feasible=False)])
     )
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+
+    assert calls["search"] == []  # skipped before the first dataset node, like the LLM call
+
+
+def test_the_fix_prompt_reuses_the_dataset_selected_once_for_the_plan(tmp_path):
+    # The dataset is usually exactly what a data-loading failure needs to be
+    # fixed *with* — and selecting it once per plan (not once per attempt) keeps
+    # a three-attempt fix loop from re-running the whole appraisal.
+    model = _dataset_model(
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(GOOD_SECTIONS_WITH_LOCAL_DATASET)],
+    )
+    stack, calls = _dataset_stack()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1", complexity="low")])
     )
 
     assert result["experiments"][0]["status"] == "completed"
-    assert len(queries) == 1
+    assert model.calls_by_kind["dataset_evidence"] == 1
+    assert len(calls["download"]) == 1
     assert "acme/sleep-survey" in model.prompts_by_kind["fix"][0]
 
 
-def test_each_plan_gets_its_own_lookup(tmp_path):
-    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
-    lookup, queries = _recording_lookup(HF_DATASET_MATCH)
-    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+def test_each_plan_gets_its_own_selection(tmp_path):
+    stack, calls = _dataset_stack()
+    model = _dataset_model()
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(
         _planner_output([_plan("H1"), _plan("H2")])
     )
 
-    assert len(queries) == 2
+    assert model.calls_by_kind["dataset_spec"] == 2
+    # The second plan reuses the cached download rather than re-fetching it —
+    # the cache is keyed by (repo id, revision) and shared across plans.
+    assert len(calls["download"]) == 1
+
+
+def test_a_used_local_dataset_earns_a_real_data_verdict(tmp_path):
+    # The regression this whole path exists for: _provenance_for used to read
+    # hf_dataset["dataset"], a key the client has never returned, so a real
+    # dataset genuinely read by generated code was never counted as a real
+    # input and the verdict was withheld as "unknown".
+    stack, _ = _dataset_stack()
+    # A plan that declares a real source: _plan()'s default is "synthetic",
+    # which would make the mixed verdict correct for a reason unrelated to the
+    # bug this covers.
+    plan = {
+        **_plan("H1", complexity="low"),
+        "data_requirements": {
+            "source": "Hugging Face",
+            "description": "sleep survey rows",
+            "preprocessing_steps": [],
+        },
+    }
+    result = _agent(tmp_path, _dataset_model(), network_check=lambda: True, **stack).run(
+        _planner_output([plan])
+    )
+
+    experiment = result["experiments"][0]
+    assert experiment["data_provenance"]["all_inputs_real"] is True
+    assert experiment["results"]["meets_success_criteria"] != "unknown"
+    inputs = experiment["data_provenance"]["inputs"]
+    assert inputs[0]["kind"] == "real_local"
+    assert inputs[0]["local_path"].endswith("data.jsonl")
+    assert inputs[0]["name"] == "Hugging Face dataset acme/sleep-survey"
+
+
+def test_an_offered_dataset_the_code_ignores_is_still_not_real(tmp_path):
+    # The converse, and the reason the check above is worth having: an offered
+    # dataset the generated code never names must not be counted as evidence.
+    stack, _ = _dataset_stack()
+    result = _agent(
+        tmp_path,
+        _dataset_model(codegen=[_codegen_response(assumptions=["acme/sleep-survey lacks labels"])]),
+        network_check=lambda: True,
+        **stack,
+    ).run(_planner_output([_plan("H1", complexity="low")]))
+
+    experiment = result["experiments"][0]
+    assert experiment["data_provenance"]["all_inputs_real"] is False
+    assert experiment["results"]["meets_success_criteria"] == "unknown"
 
 
 def test_run_reports_a_silently_ignored_offered_dataset(tmp_path):
-    # The offered dataset is real ("acme/sleep-survey"), but load_data() (via
-    # the default GOOD_SECTIONS fixture) neither reads it nor declines it in
+    # The offered dataset is real, but load_data() (via the default
+    # GOOD_SECTIONS fixture) neither reads it nor declines it in
     # assumptions_made — the exact silent-third-option check_hf_dataset_usage
     # exists to catch.
-    model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
-    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    stack, _ = _dataset_stack()
     experiments_dir = tmp_path / "experiments"
-    agent = CoderAgent(
-        chat_model=model,
-        experiments_dir=experiments_dir,
-        output_dir=tmp_path / "outputs",
+    result = _agent(
+        tmp_path,
+        # The same dataset-ignoring code every time, so the fix budget runs out
+        # and the run has to report the offer was never engaged with.
+        _dataset_model(codegen=[_codegen_response()], fix=[_codegen_response()]),
         network_check=lambda: True,
-        gpu_check=lambda: False,
-        huggingface_lookup_fn=lookup,
-    )
-    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+        **stack,
+    ).run(_planner_output([_plan("H1", complexity="low")]))
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
@@ -2403,26 +2858,22 @@ def test_run_reports_a_silently_ignored_offered_dataset(tmp_path):
 
 
 def test_run_accepts_an_explicitly_declined_offered_dataset(tmp_path):
-    # HF_DATASET_USAGE_NOTE explicitly sanctions ignoring the offered dataset
-    # when it doesn't fit, provided the model says so in assumptions_made —
-    # that documented escape hatch must not be flagged as hollow.
-    model = FakeChatModel(
-        {
-            '"hypothesis_id":"H1"': _codegen_response(
-                assumptions=["acme/sleep-survey doesn't include the label column this task needs"]
-            )
-        }
-    )
-    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
-    agent = CoderAgent(
-        chat_model=model,
-        experiments_dir=tmp_path / "experiments",
-        output_dir=tmp_path / "outputs",
+    # The usage note explicitly sanctions ignoring the offered dataset when it
+    # doesn't fit, provided the model says so in assumptions_made — that
+    # documented escape hatch must not be flagged as hollow.
+    stack, _ = _dataset_stack()
+    result = _agent(
+        tmp_path,
+        _dataset_model(
+            codegen=[
+                _codegen_response(
+                    assumptions=["acme/sleep-survey doesn't include the label column this needs"]
+                )
+            ]
+        ),
         network_check=lambda: True,
-        gpu_check=lambda: False,
-        huggingface_lookup_fn=lookup,
-    )
-    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+        **stack,
+    ).run(_planner_output([_plan("H1", complexity="low")]))
 
     assert result["experiments"][0]["status"] == "completed"
 
@@ -2454,6 +2905,33 @@ def test_check_hf_dataset_usage_passes_a_reference_in_configuration():
     config = "DATASET_ID = 'acme/sleep-survey'\n"
     source = "def load_data():\n    return _fetch(DATASET_ID)\n"
     assert sandbox.check_hf_dataset_usage(config, source, [], HF_DATASET_MATCH) == []
+
+
+def test_check_hf_dataset_usage_passes_a_local_file_by_full_path():
+    # On the download path the repo id never appears in the code at all —
+    # insisting on it there would fail correct code.
+    offered = {**HF_DATASET_MATCH, "local_path": "/scratch/hf/acme__sleep-survey/data.jsonl"}
+    source = (
+        "def load_data():\n"
+        "    with open('/scratch/hf/acme__sleep-survey/data.jsonl') as handle:\n"
+        "        return [json.loads(line) for line in handle]\n"
+    )
+    assert sandbox.check_hf_dataset_usage("", source, [], offered) == []
+
+
+def test_check_hf_dataset_usage_passes_a_local_file_by_bare_name():
+    offered = {**HF_DATASET_MATCH, "local_path": "/scratch/hf/acme__sleep-survey/data.jsonl"}
+    config = "DATA_PATH = Path(__file__).parent / 'data.jsonl'\n"
+    source = "def load_data():\n    return _read(DATA_PATH)\n"
+    assert sandbox.check_hf_dataset_usage(config, source, [], offered) == []
+
+
+def test_check_hf_dataset_usage_still_flags_a_downloaded_dataset_nothing_reads():
+    offered = {**HF_DATASET_MATCH, "local_path": "/scratch/hf/acme__sleep-survey/data.jsonl"}
+    findings = sandbox.check_hf_dataset_usage(
+        "", "def load_data():\n    return None\n", [], offered
+    )
+    assert len(findings) == 1
 
 
 def test_check_hf_dataset_usage_passes_when_declined_in_assumptions():
@@ -3166,9 +3644,7 @@ def test_a_missing_package_is_installed_and_the_code_is_never_regenerated(tmp_pa
     package is a defect in the generated source.
     """
     fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
-    agent = _agent(
-        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
-    )
+    agent = _agent(tmp_path, fake_model, network_check=lambda: True)
 
     executed_sources = []
     installed = []
@@ -3206,7 +3682,7 @@ def test_a_missing_package_is_installed_and_the_code_is_never_regenerated(tmp_pa
     assert attempts["n"] == 2, "one failed run, one re-run"
     assert executed_sources[0] == executed_sources[1], "the re-run used the SAME code"
     assert exp["fix_attempts"] == 0, "an install is not a fix attempt"
-    assert len(fake_model.calls) == 1, "the model was asked for code once and never again"
+    assert len(_codegen_calls(fake_model)) == 1, "the model was asked for code once and never again"
 
 
 def test_a_missing_package_with_no_network_says_so_instead_of_regenerating(tmp_path, monkeypatch):
@@ -3229,9 +3705,7 @@ def test_a_missing_package_with_no_network_says_so_instead_of_regenerating(tmp_p
 def test_a_timed_out_experiment_is_shrunk_before_the_model_is_asked(tmp_path, monkeypatch):
     sections = {**GOOD_SECTIONS, "configuration": "draws = 4000\nchains = 8\n"}
     fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(sections=sections)})
-    agent = _agent(
-        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
-    )
+    agent = _agent(tmp_path, fake_model, network_check=lambda: True)
 
     seen = []
 
@@ -3252,7 +3726,7 @@ def test_a_timed_out_experiment_is_shrunk_before_the_model_is_asked(tmp_path, mo
     assert result["experiments"][0]["status"] == "completed", result["experiments"][0].get("reason")
     assert len(seen) == 2, "one timed-out run, one shrunk re-run"
     assert "draws = 2000" in seen[1] and "chains = 4" in seen[1]
-    assert len(fake_model.calls) == 1, "downscaling costs no model call"
+    assert len(_codegen_calls(fake_model)) == 1, "downscaling costs no model call"
 
 
 def test_plausibility_catches_a_nan_nested_inside_a_credible_interval():
@@ -3585,9 +4059,7 @@ def test_an_install_that_does_not_make_the_import_work_is_not_retried(tmp_path, 
     code budget on source that was never wrong.
     """
     fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
-    agent = _agent(
-        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
-    )
+    agent = _agent(tmp_path, fake_model, network_check=lambda: True)
 
     installs = []
     runs = []
@@ -3616,3 +4088,197 @@ def test_an_install_that_does_not_make_the_import_work_is_not_retried(tmp_path, 
     summaries = " ".join(e["error_summary"] for e in exp["fix_history"])
     assert "still not importable" in summaries, "the message must name the real problem"
     assert exp["status"] != "completed"
+
+
+# -- huggingface_client.py: the appraisal endpoints --------------------------------------
+
+
+def test_search_datasets_asks_for_the_full_record(monkeypatch):
+    # The prefilter ranks on tags/downloads/cardData, so the search has to ask
+    # for them — the old lookup used only "id" and threw the rest away.
+    seen: list = []
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse([{"id": "a/b"}])}, recorder=seen)
+
+    assert huggingface_client.search_datasets("sleep") == [{"id": "a/b"}]
+    assert seen[0][1]["full"] == "true"
+
+
+def test_dataset_info_returns_the_hub_record(monkeypatch):
+    payload = {"id": "a/b", "sha": "deadbeef", "cardData": {"license": "mit"}, "downloads": 7}
+    _fake_hf(monkeypatch, {"api/datasets/a/b": _FakeResponse(payload)})
+
+    assert huggingface_client.dataset_info("a/b")["sha"] == "deadbeef"
+
+
+def test_dataset_info_degrades_to_an_empty_dict(monkeypatch):
+    _fake_hf(monkeypatch, {"api/datasets": _FakeResponse(None, status_code=503)})
+
+    assert huggingface_client.dataset_info("a/b") == {}
+
+
+def test_dataset_size_reads_the_budget_numbers(monkeypatch):
+    payload = {"size": {"dataset": {"num_rows": 5000, "num_bytes_original_files": 1234}}}
+    _fake_hf(monkeypatch, {"/size": _FakeResponse(payload)})
+
+    assert huggingface_client.dataset_size("a/b") == {"num_rows": 5000, "num_bytes": 1234}
+
+
+def test_dataset_size_falls_back_through_the_byte_fields(monkeypatch):
+    payload = {"size": {"dataset": {"num_rows": 10, "num_bytes_parquet_files": 99}}}
+    _fake_hf(monkeypatch, {"/size": _FakeResponse(payload)})
+
+    assert huggingface_client.dataset_size("a/b")["num_bytes"] == 99
+
+
+def test_dataset_size_degrades_on_an_unexpected_shape(monkeypatch):
+    _fake_hf(monkeypatch, {"/size": _FakeResponse({"size": "surprise"})})
+
+    assert huggingface_client.dataset_size("a/b") == {}
+
+
+def test_dataset_card_is_truncated(monkeypatch):
+    long_card = SimpleNamespace(status_code=200, text="x" * 20_000)
+    monkeypatch.setattr(huggingface_client.requests, "get", lambda *a, **k: long_card)
+
+    card = huggingface_client.dataset_card("a/b")
+    assert len(card) == huggingface_client.MAX_CARD_CHARS
+
+
+def test_a_missing_card_is_an_empty_string(monkeypatch):
+    monkeypatch.setattr(
+        huggingface_client.requests,
+        "get",
+        lambda *a, **k: SimpleNamespace(status_code=404, text="not found"),
+    )
+
+    assert huggingface_client.dataset_card("a/b") == ""
+
+
+def test_fetch_rows_pages_until_the_limit(monkeypatch):
+    seen: list = []
+    page = {"rows": [{"row": {"a": index}} for index in range(100)]}
+    _fake_hf(monkeypatch, {"/rows": _FakeResponse(page)}, recorder=seen)
+
+    rows = huggingface_client.fetch_rows("a/b", "default", "train", 200)
+
+    assert len(rows) == 200
+    assert [call[1]["offset"] for call in seen] == [0, 100]
+
+
+def test_fetch_rows_stops_early_on_a_short_page(monkeypatch):
+    # A short page means the split ran out; asking again just re-reads the tail.
+    page = {"rows": [{"row": {"a": index}} for index in range(7)]}
+    _fake_hf(monkeypatch, {"/rows": _FakeResponse(page)})
+
+    assert len(huggingface_client.fetch_rows("a/b", "default", "train", 200)) == 7
+
+
+def test_fetch_rows_degrades_to_an_empty_sample(monkeypatch):
+    _fake_hf(monkeypatch, {"/rows": requests.RequestException("no route")})
+
+    assert huggingface_client.fetch_rows("a/b", "default", "train", 50) == []
+
+
+def test_describe_candidate_gathers_schema_and_metadata(monkeypatch):
+    _fake_hf(
+        monkeypatch,
+        {
+            "/is-valid": _FakeResponse({"viewer": True}),
+            "/splits": _FakeResponse({"splits": [{"config": "default", "split": "train"}]}),
+            "/first-rows": _FakeResponse(
+                {
+                    "features": [{"name": "text", "type": {"dtype": "string"}}],
+                    "rows": [{"row": {"text": "hello"}}],
+                }
+            ),
+            "/size": _FakeResponse({"size": {"dataset": {"num_rows": 5, "num_bytes": 64}}}),
+            "api/datasets/a/b": _FakeResponse(
+                {"id": "a/b", "sha": "cafe", "cardData": {"license": "mit"}, "tags": ["t"]}
+            ),
+        },
+    )
+
+    described = huggingface_client.describe_candidate("a/b")
+
+    assert described["revision"] == "cafe"
+    assert described["license"] == "mit"
+    assert described["num_rows"] == 5
+    assert described["columns"] == [{"name": "text", "type": "string"}]
+
+
+def test_describe_candidate_gives_up_on_an_unservable_dataset(monkeypatch):
+    _fake_hf(monkeypatch, {"/is-valid": _FakeResponse({"viewer": False, "preview": False})})
+
+    assert huggingface_client.describe_candidate("a/b") == {}
+
+
+def test_a_list_valued_license_takes_its_first_entry(monkeypatch):
+    # cardData.license is a list about as often as it is a string.
+    _fake_hf(
+        monkeypatch,
+        {
+            "/is-valid": _FakeResponse({"viewer": True}),
+            "/splits": _FakeResponse({"splits": [{"config": "default", "split": "train"}]}),
+            "/first-rows": _FakeResponse(
+                {"features": [{"name": "t", "type": "string"}], "rows": []}
+            ),
+            "/size": _FakeResponse({}),
+            "api/datasets/a/b": _FakeResponse({"id": "a/b", "cardData": {"license": ["mit"]}}),
+        },
+    )
+
+    assert huggingface_client.describe_candidate("a/b")["license"] == "mit"
+
+
+def test_rows_url_percent_encodes_the_namespace_slash():
+    url = huggingface_client.rows_url_for("acme/sleep-survey", "default", "train")
+
+    assert "dataset=acme%2Fsleep-survey" in url
+    assert "&config=default&split=train" in url
+
+
+def test_download_degrades_when_huggingface_hub_is_absent(monkeypatch, tmp_path):
+    # The real failure on a plain `uv sync`: the extra isn't installed.
+    monkeypatch.setitem(sys.modules, "huggingface_hub", None)
+
+    assert huggingface_client.download_dataset("a/b", "rev", tmp_path / "dest") is None
+
+
+def test_normalize_reads_jsonl_and_csv_into_one_file(tmp_path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "train.jsonl").write_text('{"a": 1}\n{"a": 2}\n', encoding="utf-8")
+    (source / "extra.csv").write_text("a\n3\n", encoding="utf-8")
+    dest = tmp_path / "data.jsonl"
+
+    summary = huggingface_client.normalize_to_jsonl(source, dest, max_rows=10)
+
+    assert summary["rows_written"] == 3
+    assert summary["columns"] == ["a"]
+    assert dest.read_text(encoding="utf-8").count("\n") == 3
+
+
+def test_normalize_reads_a_json_array_as_well_as_json_lines(tmp_path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "data.json").write_text('[{"a": 1}, {"a": 2}]', encoding="utf-8")
+    dest = tmp_path / "out.jsonl"
+
+    assert huggingface_client.normalize_to_jsonl(source, dest, max_rows=10)["rows_written"] == 2
+
+
+def test_normalize_honours_the_row_cap(tmp_path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "train.jsonl").write_text("".join(f'{{"a": {i}}}\n' for i in range(50)), "utf-8")
+    dest = tmp_path / "out.jsonl"
+
+    assert huggingface_client.normalize_to_jsonl(source, dest, max_rows=5)["rows_written"] == 5
+
+
+def test_normalize_with_nothing_readable_returns_empty(tmp_path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "README.md").write_text("just a card", encoding="utf-8")
+
+    assert huggingface_client.normalize_to_jsonl(source, tmp_path / "out.jsonl", 10) == {}

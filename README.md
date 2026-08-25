@@ -762,23 +762,61 @@ the pipeline owner, not assumed).
 
 #### Real data instead of invented data
 
-Before generating each experiment, the agent looks up one real dataset matching
-the plan's `data_requirements` — Hub search for candidates, then the
-[Hugging Face Dataset Viewer](https://huggingface.co/docs/dataset-viewer/index)
-to confirm the candidate is actually servable and to read its real column names
-and first rows. The match (id, config, split, schema, sample rows) plus the exact
-`/rows` REST URL goes into the codegen prompt, so `load_data()` can pull real
-records with `requests` — no `datasets` package in the experiment's throwaway
-venv, and no dataset cache on shared scratch. The model is told to ignore the
-dataset if it doesn't genuinely fit the plan, and to say so in
-`assumptions_made`.
+Before generating each experiment, the agent selects a real dataset for the
+plan — five graph nodes, in this order:
 
-This is an enhancement to a prompt, never a dependency: it's only attempted when
-the runtime network probe succeeds, and every failure (no network, rate limit, a
-dataset the viewer can't serve) degrades silently to generating exactly as
-before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it off for fully offline or
-reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
-limits.
+| Node | Kind | What it settles |
+|---|---|---|
+| `specify_data_requirements` | LLM | What this plan actually needs: task, domain, languages, `data_types`, `desired_examples`, `minimum_quality`, `license_requirements`, `avoid`. Coerced and clamped by `dataset_spec.validate_spec`; derived from the plan by `fallback_spec` if the call fails. |
+| `shortlist_datasets` | HTTP | Hub search over every query the spec produces, pooled, then ranked on metadata alone (name overlap, license, popularity, size) and cut to the top few. No model call — this decides who is *worth* one. |
+| `appraise_datasets` | LLM | Per candidate: 200 real rows paged from the [Dataset Viewer](https://huggingface.co/docs/dataset-viewer/index), measured by `dataset_inspect`, then one evidence call, then a score computed in Python. |
+| `critique_leading_dataset` | LLM | "Assume this dataset is bad. Find reasons it should not be downloaded." A hard-fail finding vetoes and falls through to the next candidate. |
+| `acquire_dataset` | disk | Download at the pinned revision under the run's GB budgets, flatten to `data.jsonl`, write `dataset_provenance.json`. |
+
+**The model produces labels and evidence; Python produces the number.**
+
+```
+dataset_score = 0.35 * task_relevance + 0.20 * content_relevance + 0.15 * quality
+              + 0.10 * provenance    + 0.10 * schema_fit        + 0.10 * license_fit
+```
+
+Each dimension is a fixed band table (`task_relevance`: exact 1.0 / related 0.6 /
+weak 0.3 / unrelated 0.0; `license_fit`: permitted 1.0 / unknown 0.3 /
+incompatible 0.0; `schema_fit`: expected 1.0 / partial 0.5 / incompatible 0.0),
+and who supplies each label is graded by how much judgment it needs. **License,
+quality and provenance are never asked of the model** — they are an allowlist
+match on the Hub's own metadata, arithmetic over the measured row statistics, and
+the presence of a citation/source-datasets/arXiv link. **Schema fit is hybrid**:
+the model maps each required data type to a column name, and Python checks those
+names exist in the schema the viewer reported before banding the coverage. Only
+the two relevance labels are the model's, and both require evidence — the prompt
+says to mark UNKNOWN rather than assume, and any unrecognised answer falls to the
+pessimistic band. A `score` field in a model response is dropped on parse.
+
+The critic answers a fixed checklist (`evaluation_contamination`,
+`personal_information`, `description_mismatch`, `unusable_schema`,
+`synthetic_only`, `substantial_duplication`, …) so its objections can be routed:
+the first four veto outright, the rest apply fixed penalties. A finding phrased
+in its own words is discarded.
+
+The accepted dataset is downloaded once into a cache keyed by `(repo id,
+revision)` — shared across every plan and run, never copied per experiment — and
+flattened to a `data.jsonl` the experiment reads with the standard library. That
+is what lets a compute node with no outbound route run the experiment at all, and
+it still puts no `datasets` package in the throwaway venv. `dataset_provenance.json`
+records the pinned revision, the per-dimension bands and their evidence, the
+measured inspection statistics, and — when a candidate was rejected — why.
+
+This is an enhancement to a prompt, never a dependency. Every one of the five
+nodes absorbs its own failures and degrades to "no dataset": no network, no
+candidates, a failed spec call, nothing clearing `CODER_DATASET_MIN_SCORE`, every
+candidate vetoed, `huggingface_hub` not installed, or the download over budget —
+each one generates exactly as it would with no dataset at all, and a download
+that can't happen falls back to the `/rows` REST URL. The model is still told to
+ignore the dataset if it doesn't genuinely fit the plan, and to say so in
+`assumptions_made`. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns the whole thing
+off; `CODER_DATASET_DOWNLOAD=false` keeps selection but not downloading;
+`HUGGINGFACE_API_TOKEN` is optional and only raises rate limits.
 
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags

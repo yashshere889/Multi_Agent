@@ -618,9 +618,9 @@ def check_hf_dataset_usage(
     assumptions_made: list[str],
     hf_dataset: dict,
 ) -> list[str]:
-    """When coder_agent._find_hf_dataset matched a real, pre-verified dataset
-    and offered it to the model (see _hf_dataset_block), checks that
-    load_data() shows some sign of actually using it. Returns human-readable
+    """When the dataset appraisal accepted a real, scored dataset and offered
+    it to the model (see _hf_dataset_block), checks that load_data() shows some
+    sign of actually using it. Returns human-readable
     findings; empty means clean, including whenever no dataset was offered at
     all (`hf_dataset` has no `dataset_id`).
 
@@ -635,19 +635,25 @@ def check_hf_dataset_usage(
     data) with no trace the offer was ever engaged with, which is exactly
     what a model that echoes past the offer without reading it produces.
 
-    Checked as a plain substring of the dataset id (raw, and percent-encoded
-    the same way `_hf_dataset_block`'s rows_url encodes it) rather than an
-    AST walk for a specific HTTP call shape, since the id is the one fixed
-    trace consistent with how the prompt hands the dataset over — the model
-    can build the actual read call in more shapes than are worth enumerating.
+    Checked as a plain substring rather than an AST walk for a specific call
+    shape, since these strings are the one fixed trace consistent with how the
+    prompt hands the dataset over — the model can build the actual read in more
+    shapes than are worth enumerating. Four spellings count, because there are
+    two ways the dataset can be offered: the repo id raw or percent-encoded
+    (the REST path, where the id is in the URL), and the local JSONL's full path
+    or bare filename (the download path, where the id never appears in the code
+    at all — insisting on it there would fail correct code).
     """
     dataset_id = hf_dataset.get("dataset_id")
     if not dataset_id:
         return []
     dataset_id = str(dataset_id)
-    quoted_id = quote(dataset_id, safe="")
+    local_path = str(hf_dataset.get("local_path") or "")
     code = f"{configuration_source}\n{load_data_source}"
-    if dataset_id in code or quoted_id in code:
+    spellings = [dataset_id, quote(dataset_id, safe="")]
+    if local_path:
+        spellings.extend([local_path, Path(local_path).name])
+    if any(spelling and spelling in code for spelling in spellings):
         return []
     if any(dataset_id in note for note in assumptions_made):
         return []

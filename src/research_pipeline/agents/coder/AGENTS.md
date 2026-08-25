@@ -23,7 +23,10 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
 | `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering. No LLM calls, no settings reads — unit-testable anywhere. |
-| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
+| `huggingface_client.py` | Hub search/info/card + Dataset Viewer REST (`is-valid`, `splits`, `first-rows`, `rows`, `size`), plus the download and JSONL normalization. Every failure degrades to `None`/`{}`/`[]`; never raises. |
+| `dataset_spec.py` | What an experiment needs from a dataset, before anything is searched for: the spec's schema, `validate_spec` (coerce/clamp/enum-check a model draft), `fallback_spec` (derive one from the plan) and `search_queries`. Pure. |
+| `dataset_inspect.py` | Measured statistics over a sampled slice: duplication, emptiness, malformed records, templated repetition, script mix, benchmark contamination, PII. Pure — no network, no model. |
+| `dataset_scoring.py` | The rubric: weights, band tables, the deterministic dimensions (license/quality/provenance), the critic vocabulary, and `score()`. The **only** thing here that produces a dataset score. Pure. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
 | `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
@@ -37,10 +40,14 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 ## Conventions
 
 - **Constructor injection, not monkeypatching.** `chat_model`, `experiments_dir`, `output_dir`,
-  `network_check`, `gpu_check`, `max_fix_attempts`, `huggingface_lookup_fn` are all constructor
-  args. Tests pass `network_check=lambda: False, gpu_check=lambda: False` rather than patching
-  `sandbox.has_network_access`/`has_gpu`, and a fake `huggingface_lookup_fn` rather than faking
-  four HTTP endpoints. Keep any new environment dependency injectable the same way.
+  `network_check`, `gpu_check`, `max_fix_attempts`, `huggingface_lookup_fn`, and the six dataset
+  seams (`dataset_search_fn`, `dataset_describe_fn`, `dataset_rows_fn`, `dataset_card_fn`,
+  `dataset_download_fn`, `dataset_normalize_fn`) are all constructor args. Tests pass
+  `network_check=lambda: False, gpu_check=lambda: False` rather than patching
+  `sandbox.has_network_access`/`has_gpu`, and fakes for the dataset seams rather than faking a
+  dozen HTTP endpoints. `_agent()` defaults every one of them to inert, so a test that turns the
+  network on for an unrelated reason cannot reach the real Hub through one it forgot. Keep any new
+  environment dependency injectable the same way — and add it to that default.
 - **Code-bearing model responses use `llm_sections.py`, not `llm_json.py`.** `_call_sections`
   (delimited `===BEGIN <field>===` blocks, nothing escaped) is for anything returning source:
   the experiment codegen/fix calls and shared-infrastructure generation. `_call_json` is left
@@ -107,14 +114,62 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   that counts against the fix budget. One unparseable model response must not kill a multi-plan
   run — see commit `558d0d5` and its two regression tests. (That error source was called
   `invalid_json` until generated code moved off the JSON transport.)
-- **The dataset lookup happens in its own node, before generation.** `process_current_plan` sets
-  up the plan; `search_hf_dataset` looks a dataset up once per plan and parks it in
-  `current_hf_dataset`; `generate_experiment_code` writes the first candidate. The result is
-  threaded into both the codegen *and* the fix prompt from state, so a three-attempt fix loop
-  doesn't re-search. Don't fold the lookup back into the generation call — a run whose
-  experiments silently stopped getting real data should be visible in the trace.
-- **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
-  real network call with its own cache/retry policy), `starters.select_starter` is a
+- **Dataset selection is five nodes, before generation, and each answers a different question.**
+  `specify_data_requirements` (LLM: what does this plan need?) -> `shortlist_datasets` (HTTP:
+  who is worth appraising?) -> `appraise_datasets` (LLM + Python: what does the evidence say and
+  what does it score?) -> `critique_leading_dataset` (LLM: can the leader be rejected?) ->
+  `acquire_dataset` (disk: download, normalize, record). They are separate because a run whose
+  experiments quietly stopped getting real data should be diagnosable *to the step that stopped* —
+  "no candidates" and "every candidate was contaminated" are very different runs. The accepted
+  dataset is parked in `current_hf_dataset` and threaded into both the codegen *and* the fix prompt
+  from state, so a three-attempt fix loop doesn't re-select. Don't fold any of them back into the
+  generation call, and don't merge them into one node.
+- **None of the five carries a `RetryPolicy`, and that is not an oversight.** Each absorbs its own
+  failures in-node and degrades to "no dataset", so there is nothing left for a graph-level retry
+  to catch — and a retry that *did* fire would re-spend a model call to reach the same fallback.
+  The two internal loops (per-candidate appraisal, the critic's fall-through to the next candidate)
+  stay inside their node rather than becoming graph cycles: the iterations are independent and
+  bounded by a setting, so a cycle would add super-steps and a recursion-limit term without making
+  anything more observable than the scores the node already returns.
+- **Hub search queries must be one or two words.** `dataset_spec.MAX_QUERY_WORDS` is 2 because the
+  Hub's `search` parameter matches dataset *names*, and against the live API a two-word query
+  returns a full page while four words returns nothing at all — measured: `"python code"` -> 20 hits,
+  `"instruction code python"` -> 2, `"python instruction code pairs"` -> 0. The first version of
+  this pipeline built five-word queries from the spec and pooled **2** candidates where the fixed
+  version pools 79. Several short queries pooled beats one precise query that matches nothing, which
+  is also why `_shortlist_datasets` gives each query an equal share of the pool instead of a
+  first-come cap: one broad query would otherwise fill the pool alone and the differently-angled
+  queries would contribute nothing.
+- **The model produces labels and evidence; `dataset_scoring.score()` produces the number.** This is
+  the load-bearing rule of the whole appraisal, and the same split the Hypothesis Agent's ranking
+  makes one level up. `coerce_appraisal` returns a dict with **no score key and no way to add one**,
+  so it does not matter whether the model obeyed the prompt's instruction not to return one. License
+  (`license_label`, an allowlist match on Hub metadata), quality (`quality_score`, arithmetic over
+  `dataset_inspect`'s measured rates) and provenance (`provenance_label`) are never asked of the
+  model at all; schema fit is the model's column mapping *verified* against the schema the viewer
+  reported, with mappings onto invented column names dropped silently. Only the two relevance labels
+  are the model's, and an unrecognised answer falls to the pessimistic band, never the generous one.
+  If you add a dimension, add its band table — do not add a free scalar.
+- **The critic's findings come from a fixed vocabulary so they can be routed.** `CRITIC_FINDING_CODES`
+  is closed; a code outside it is discarded on parse. Membership of `CRITIC_HARD_FAILS` is what makes
+  an objection a veto rather than a penalty, and `CRITIC_PENALTIES` sizes the rest — the model never
+  sizes its own penalty, which would be the invented score coming back through a different door.
+- **Run-level dataset budgets are instance attributes, not state.** `_datasets_accepted` and
+  `_dataset_bytes_downloaded` are reset per `run()` alongside `_slurm_jobs_submitted` and mirrored
+  into state for tracing, for exactly the same reason: each plan must see the true up-to-date total
+  before deciding whether it may download, which only the sequential plan loop makes well-defined.
+  The run budget is charged from bytes that actually landed on disk, not from the viewer's predicted
+  `/size` — the pre-check can be fooled by missing or wrong size metadata, and the run budget is the
+  one that has to hold across a whole sweep.
+- **`huggingface_hub` and `pyarrow` are imported inside functions, behind the `datasets-download`
+  extra.** Same arrangement as the checkpointer's sqlite/postgres backends: a plain `uv sync` must
+  stay unaffected, and their absence degrades to the Dataset Viewer REST URL rather than failing.
+  They are imported in the *pipeline* process only — putting either into an experiment's throwaway
+  venv is the cost this whole module exists to avoid. Both are nonetheless in the mypy hook's
+  `additional_dependencies`, or it types the download path as `Any` and passes code `uv run mypy`
+  rejects.
+- **Starter selection is a pure function, not a node.** Unlike the dataset selection above (real
+  network calls, real model calls, and a side effect on disk), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside
   `process_current_plan` and stored as `current_starter_id` — no dedicated graph node, no
   recursion-limit bump. `""` means "general" (nothing matched, no worked example shown); a real
@@ -149,7 +204,15 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 - **A Hugging Face dataset counts as a real input only when the rendered `run.py` names it.** It is
   offered, not imposed — the model may decline it and say why in `assumptions_made`, which
   `check_hf_dataset_usage` accepts — and treating an offered-but-declined dataset as evidence is
-  exactly the over-claim the gate exists to prevent.
+  exactly the over-claim the gate exists to prevent. "Names it" has four spellings, because there
+  are two ways it can be offered: the repo id raw or percent-encoded (the REST path, where the id
+  is in the URL), and the normalized JSONL's full path or bare filename (the download path, where
+  the repo id never appears in the code at all — insisting on it there would fail correct code).
+  A *downloaded* dataset resolves as `real_local` with `local_path` set, not `real_download`: it is
+  on disk, pinned to a revision, and a re-run reads the same bytes. This is also the fix for a long
+  standing dead branch — `_provenance_for` read `hf_dataset["dataset"]`, a key the client has never
+  returned, so a real dataset genuinely read by generated code was never counted and the verdict was
+  withheld as `"unknown"` regardless.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
   sync.** Same sixteen members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress. A new failure
@@ -178,9 +241,17 @@ cluster, or the network.
   mutate rather than rebuild. `_codegen_response()` builds the *delimited* response format via
   `llm_sections.render_sections`, and is the seam nearly every agent test goes through, so the
   transport is defined in one place; `_unparseable_sections_response()` is its failure-path twin.
-- `HF_DATASET_MATCH` + `_recording_lookup()` — a fake `huggingface_lookup_fn` and the queries it
-  was asked. `_fake_hf()` routes `huggingface_client`'s `requests.get` by URL substring for the
-  client's own unit tests. No test touches the real network.
+- `_dataset_stack()` — fakes for all six dataset seams plus the record of what each was asked;
+  `_dataset_model()` scripts the three dataset prompt kinds and a codegen in one go. `HF_CANDIDATE`
+  is what `describe_candidate` returns, `HF_DATASET_MATCH` the smaller shape the prompt block and
+  `check_hf_dataset_usage` read. `_fake_hf()` routes `huggingface_client`'s `requests.get` by URL
+  substring for the client's own unit tests. No test touches the real network.
+- `tests/test_dataset_scoring.py`, `tests/test_dataset_inspect.py`, `tests/test_dataset_spec.py` —
+  pure unit tests for the three pure modules, no fakes at all. The load-bearing one is
+  `test_a_confident_claim_on_an_unrelated_dataset_still_scores_near_zero`: an appraisal response
+  claiming `"score": 0.99` on an all-`unrelated` dataset must still score ~0. If you change a weight
+  or a band, `test_a_hand_computed_example` and the parametrized per-band test are what will tell
+  you what else moved.
 - `_patch_settings` and the `auto_submit` fixture — the fixture flips
   `CODER_AUTO_SUBMIT_SLURM` on and stubs `slurm_submit.count_running_jobs`/`submit_job`, and
   yields the list of what would have been submitted. Never let a test reach real `sbatch`.
