@@ -311,6 +311,67 @@ def fallback_spec(plan: dict) -> DatasetSpec:
     )
 
 
+# Stripped from a phrase before it is turned into a Hub query. Two kinds, and
+# both are here for the same reason: they are words a *plan* is full of and a
+# *dataset name* never contains.
+#
+#   - experiment vocabulary: train, evaluate, model, benchmark, accuracy
+#   - prose connectives that survive QUERY_STOPWORDS: while, both, major
+#
+# Positional heuristics were tried first and are too fragile to rely on. Taking
+# a phrase's leading pair grabs its verbs ("train and evaluate ..." ->
+# `train evaluate`, 1 hit); taking its trailing pair works until one filler word
+# sits at the end, and "train/evaluate stock price forecasting models" shifted
+# the window off `stock price` (10 hits) onto `forecasting models` (0). Stripping
+# these first leaves the topical nouns wherever they happen to sit, which is
+# what actually matches a dataset name. Measured on the three specs three live
+# runs produced: 8 -> 27, 28 -> 36 and 44 -> 70 candidates pooled.
+QUERY_FILLER = frozenset(
+    {
+        "train",
+        "training",
+        "evaluate",
+        "evaluation",
+        "evaluating",
+        "model",
+        "models",
+        "modelling",
+        "modeling",
+        "method",
+        "methods",
+        "approach",
+        "approaches",
+        "compare",
+        "comparison",
+        "comparative",
+        "benchmark",
+        "experiment",
+        "experimental",
+        "improve",
+        "improving",
+        "accuracy",
+        "performance",
+        "task",
+        "tasks",
+        "study",
+        "analysis",
+        "provides",
+        "sufficient",
+        "while",
+        "enabling",
+        "robust",
+        "both",
+        "over",
+        "period",
+        "major",
+        "various",
+        "different",
+        "distinct",
+        "combining",
+        "hybrid",
+    }
+)
+
 # Words per Hub query. Measured, not guessed: the Hub's `search` parameter
 # matches dataset *names*, and against the live API a two-word query returns a
 # full page of hits while three words returns a handful and four returns
@@ -324,37 +385,37 @@ def _head(words: list[str], count: int) -> list[str]:
     return words[:count]
 
 
+def _topical(text: str) -> list[str]:
+    """A phrase's topical words: tokenized, then stripped of QUERY_FILLER."""
+    return [word for word in tokenize(text) if word not in QUERY_FILLER]
+
+
 def search_queries(spec: DatasetSpec, plan: dict, limit: int = 7) -> list[str]:
     """Hub search queries for this spec — several short ones, most specific first.
 
     Built from the spec's structured fields rather than the first four words of
-    the plan's prose, which is what the old `_keyword_queries` did. Queries are
-    capped at `MAX_QUERY_WORDS` because anything longer matches no dataset name
-    (see the constant), and the caller runs *all* of them and pools the hits
-    rather than stopping at the first that returns something.
+    the plan's prose, which is what the old `_keyword_queries` did. Two rules,
+    both measured against the live Hub rather than reasoned about:
 
-    Two kinds of angle, because neither alone is enough — measured against the
-    live Hub on two real specs:
+    - **Cap at `MAX_QUERY_WORDS`.** The `search` parameter matches dataset
+      *names*, so two words return a full page and four return nothing
+      ("python code" -> 20 hits, "python instruction code pairs" -> 0).
+    - **Strip `QUERY_FILLER` first, then take adjacent pairs.** A plan is full of
+      words no dataset is named after, and they sit wherever they sit — see that
+      constant for why position-based selection was tried and abandoned.
 
-    - **Leading pairs** from each field. Good when the field's first words are
-      the topic: `python instruction` (10 hits), `daily stock` (10).
-    - **Trailing adjacent bigrams**. Necessary because a task phrase opens with
-      verbs and ends with its object: a stock-forecasting plan's task begins
-      "train and evaluate ..." (`train evaluate` -> 1 hit) and ends
-      "... stock price forecasting", where `stock price` returns a full page and
-      is what surfaces the actual daily-OHLC datasets.
-
-    A query that matches nothing costs one request and no candidates, so casting
-    several angles is cheap next to appraising the wrong dataset — or, as an
-    earlier revision of this function managed, appraising an English
-    date-parsing corpus for a stock-forecasting experiment.
+    All the queries are run and their hits pooled (see
+    `CoderAgent._shortlist_datasets`), so a query that matches nothing costs one
+    request and no candidates. Casting several angles is cheap next to
+    appraising the wrong dataset — or, as an earlier revision managed,
+    appraising an AIME maths corpus for a stock-forecasting experiment because
+    `train evaluate` was the only query that returned anything.
     """
-    types = [word for data_type in spec.data_types for word in _head(tokenize(data_type), 1)]
-    langs = [word for language in spec.languages for word in _head(tokenize(language), 1)]
-    task = tokenize(spec.task)
-    domain = tokenize(spec.domain)
     requirements = plan.get("data_requirements") or {}
-    described = tokenize(str(requirements.get("description") or plan.get("objective") or ""))
+    task = _topical(spec.task)
+    domain = _topical(spec.domain)
+    described = _topical(str(requirements.get("description") or plan.get("objective") or ""))
+    types = [word for data_type in spec.data_types for word in _head(tokenize(data_type), 1)]
 
     queries: list[str] = []
 
@@ -367,26 +428,20 @@ def search_queries(spec: DatasetSpec, plan: dict, limit: int = 7) -> list[str]:
         if candidate and candidate not in queries:
             queries.append(candidate)
 
-    def pair(words: list[str]) -> None:
-        if words:
-            add(*_head(words, 2))
-
-    def trailing_pairs(words: list[str], count: int = 2) -> None:
-        """The last `count` adjacent bigrams — where the object of a phrase is."""
-        for index in range(max(0, len(words) - count - 1), max(0, len(words) - 1)):
+    def adjacent(words: list[str], count: int) -> None:
+        """The first `count` adjacent pairs — the topic, now that filler is gone."""
+        for index in range(min(len(words) - 1, count)):
             add(words[index], words[index + 1])
 
-    if langs and types:
-        add(langs[0], types[0])
-    pair(types)
-    pair(described)
-    pair(domain)
-    pair(task)
-    trailing_pairs(task)
-    trailing_pairs(described, 1)
+    adjacent(task, 3)
+    adjacent(domain, 2)
+    adjacent(described, 3)
+    # Column-ish data_types ("datetime", "closing_price") rarely match a dataset
+    # name, so they come after the topical phrases rather than leading.
+    add(*_head(types, 2))
     # Single words last: broad, but a page of loosely-related candidates the
     # prefilter can rank beats an empty pool.
-    for word in (*types, *langs, *domain, *task, *described):
+    for word in (*task, *domain, *described, *types):
         add(word)
 
     return queries[:limit]

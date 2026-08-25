@@ -171,3 +171,50 @@ def test_from_dict_tolerates_a_checkpoint_missing_keys():
     assert spec.task == "just this"
     assert spec.data_types == ("text",)
     assert spec.license_requirements == ("permissive",)
+
+
+def test_experiment_vocabulary_is_stripped_before_pairing():
+    """Barkla job 10334327 pooled ONE candidate — an AIME maths corpus — because
+    `train evaluate` was the only query that returned anything. A plan is full
+    of words no dataset is named after, and they sit wherever they sit: leading
+    pairs grab the verbs, and one filler word at the end ("... stock price
+    forecasting models") shifts a trailing window off the topic."""
+    spec = dataset_spec.validate_spec(
+        {
+            "task": "train/evaluate stock price forecasting models",
+            "domain": "financial time series",
+            "data_types": ["datetime", "adjusted_close_price"],
+        },
+        PLAN,
+    )
+    queries = dataset_spec.search_queries(spec, PLAN)
+
+    assert "stock price" in queries
+    assert queries[0] == "stock price"  # the topic leads
+    assert not any("train" in query or "evaluate" in query for query in queries)
+    assert not any("models" in query for query in queries)
+
+
+def test_column_shaped_data_types_do_not_lead_the_search():
+    # "datetime adjusted" matches no dataset name; the topical phrases do.
+    spec = dataset_spec.validate_spec(
+        {
+            "task": "forecast equity prices",
+            "domain": "finance",
+            "data_types": ["datetime", "adjusted_close_price"],
+        },
+        PLAN,
+    )
+    queries = dataset_spec.search_queries(spec, PLAN)
+
+    assert queries[0] != "datetime adjusted"
+
+
+def test_a_topical_phrase_survives_filler_stripping():
+    # The stripping must not eat the words that carry the subject.
+    assert dataset_spec._topical("train and evaluate LSTM models for stock price forecasting") == [
+        "lstm",
+        "stock",
+        "price",
+        "forecasting",
+    ]
