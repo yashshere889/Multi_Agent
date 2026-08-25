@@ -324,21 +324,30 @@ def _head(words: list[str], count: int) -> list[str]:
     return words[:count]
 
 
-def search_queries(spec: DatasetSpec, plan: dict, limit: int = 5) -> list[str]:
+def search_queries(spec: DatasetSpec, plan: dict, limit: int = 7) -> list[str]:
     """Hub search queries for this spec — several short ones, most specific first.
 
     Built from the spec's structured fields rather than the first four words of
-    the plan's prose, which is what the old `_keyword_queries` did. Two changes
-    from that: queries are capped at `MAX_QUERY_WORDS` because anything longer
-    matches no dataset name (see the constant), and the caller runs *all* of
-    them and pools the hits rather than stopping at the first that returns
-    something — scoring happens over the pool, so an extra HTTP call is cheap
-    next to appraising a candidate only one angle would have found.
+    the plan's prose, which is what the old `_keyword_queries` did. Queries are
+    capped at `MAX_QUERY_WORDS` because anything longer matches no dataset name
+    (see the constant), and the caller runs *all* of them and pools the hits
+    rather than stopping at the first that returns something.
 
-    The angles, in the order they are tried: language+modality, two modalities,
-    the plan's own description (the path that still matches when a plan names
-    its dataset outright, e.g. "the SQuAD v2 questions"), the domain, the task,
-    and finally single salient words as the broad fallback.
+    Two kinds of angle, because neither alone is enough — measured against the
+    live Hub on two real specs:
+
+    - **Leading pairs** from each field. Good when the field's first words are
+      the topic: `python instruction` (10 hits), `daily stock` (10).
+    - **Trailing adjacent bigrams**. Necessary because a task phrase opens with
+      verbs and ends with its object: a stock-forecasting plan's task begins
+      "train and evaluate ..." (`train evaluate` -> 1 hit) and ends
+      "... stock price forecasting", where `stock price` returns a full page and
+      is what surfaces the actual daily-OHLC datasets.
+
+    A query that matches nothing costs one request and no candidates, so casting
+    several angles is cheap next to appraising the wrong dataset — or, as an
+    earlier revision of this function managed, appraising an English
+    date-parsing corpus for a stock-forecasting experiment.
     """
     types = [word for data_type in spec.data_types for word in _head(tokenize(data_type), 1)]
     langs = [word for language in spec.languages for word in _head(tokenize(language), 1)]
@@ -362,12 +371,19 @@ def search_queries(spec: DatasetSpec, plan: dict, limit: int = 5) -> list[str]:
         if words:
             add(*_head(words, 2))
 
+    def trailing_pairs(words: list[str], count: int = 2) -> None:
+        """The last `count` adjacent bigrams — where the object of a phrase is."""
+        for index in range(max(0, len(words) - count - 1), max(0, len(words) - 1)):
+            add(words[index], words[index + 1])
+
     if langs and types:
         add(langs[0], types[0])
     pair(types)
     pair(described)
     pair(domain)
     pair(task)
+    trailing_pairs(task)
+    trailing_pairs(described, 1)
     # Single words last: broad, but a page of loosely-related candidates the
     # prefilter can rank beats an empty pool.
     for word in (*types, *langs, *domain, *task, *described):

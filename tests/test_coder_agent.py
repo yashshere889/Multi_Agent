@@ -2634,6 +2634,39 @@ def test_the_appraisal_budget_bounds_the_llm_calls(tmp_path, monkeypatch):
     assert model.calls_by_kind["dataset_critic"] == 1
 
 
+def test_every_query_contributes_its_full_page_to_the_pool(tmp_path, monkeypatch):
+    """Barkla job 10334321: the pool cap was divided by the query count, so five
+    queries took 4 hits each and pooled **6** candidates where the same queries
+    at a full page pool 47. The run then appraised the least-bad of six
+    irrelevant datasets and accepted none. Every query now contributes its whole
+    page, interleaved round-robin up to the cap."""
+    _patch_settings(monkeypatch, coder_dataset_max_candidates=40, coder_dataset_max_inspections=40)
+
+    # Each query returns a distinct full page, so a starved take shows up
+    # directly as a smaller pool.
+    def search(query, limit):
+        token = query.replace(" ", "-")
+        return [{**HF_HIT, "id": f"{token}/d{index}"} for index in range(limit)]
+
+    stack, calls = _dataset_stack()
+    stack["dataset_search_fn"] = search
+
+    def describe(dataset_id):
+        calls["describe"].append(dataset_id)
+        return {**HF_CANDIDATE, "dataset_id": dataset_id}
+
+    stack["dataset_describe_fn"] = describe
+    model = _dataset_model()
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # The cap is reached, not a fraction of it — under the old division this
+    # would have been 40 // (number of queries).
+    assert len(calls["describe"]) == 40
+    # And every query is represented, rather than the first one filling the pool.
+    contributing = {name.split("/")[0] for name in calls["describe"]}
+    assert len(contributing) > 1
+
+
 def test_a_failed_spec_call_degrades_to_a_plan_derived_spec(tmp_path):
     # The spec call returns junk. The search still runs, against a spec derived
     # from the plan — a coarser requirement, not no requirement.

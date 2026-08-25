@@ -234,6 +234,10 @@ _DATASET_PROMPT_SAMPLE_ROWS = 8
 
 _BYTES_PER_GB = 1024**3
 
+# Hits requested per Hub search query. The Hub's own page size for a relevance
+# search; asking for fewer is what starved the pool (see _shortlist_datasets).
+_DATASET_HITS_PER_QUERY = 10
+
 
 def _dataset_bands(hf_dataset: dict) -> dict[str, str]:
     """The per-dimension bands from a scored dataset's state dict, for the
@@ -1841,23 +1845,37 @@ class CoderAgent:
         spec = dataset_spec.from_dict(spec_dict)
 
         queries = dataset_spec.search_queries(spec, plan)
-        # An equal share of the pool per query, rather than a first-come cap:
-        # one broad query returning a full page would otherwise fill the pool on
-        # its own and the later, differently-angled queries would contribute
-        # nothing — which is the whole reason several are issued.
-        per_query = max(3, settings.coder_dataset_max_candidates // max(len(queries), 1))
 
-        pooled: dict[str, dict] = {}
+        # Each query is asked for a full page, and the pages are then
+        # interleaved round-robin into the pool. Dividing the pool cap by the
+        # query count instead — which this did first — starves every query at
+        # once: a live run (Barkla job 10334321) split a 20-candidate cap five
+        # ways, took 4 hits per query, and pooled **6** candidates where the
+        # same queries at a full page pool 47. Round-robin keeps the equal
+        # representation that division was reaching for, without the starvation:
+        # no single broad query fills the pool, and no query is capped below
+        # what it found.
+        pages: list[list[dict]] = []
         for query in queries:
             try:
-                hits = self.dataset_search(query, per_query)
+                hits = self.dataset_search(query, _DATASET_HITS_PER_QUERY)
             except Exception as exc:  # noqa: BLE001 — see this section's header
                 logger.warning("Hub search for %r failed: %s", query, exc)
                 continue
-            for hit in hits or []:
-                dataset_id = str((hit or {}).get("id") or "")
+            pages.append([hit for hit in hits or [] if isinstance(hit, dict)])
+
+        pooled: dict[str, dict] = {}
+        for rank in range(_DATASET_HITS_PER_QUERY):
+            if len(pooled) >= settings.coder_dataset_max_candidates:
+                break
+            for page in pages:
+                if rank >= len(page):
+                    continue
+                dataset_id = str(page[rank].get("id") or "")
                 if dataset_id and dataset_id not in pooled:
-                    pooled[dataset_id] = hit
+                    pooled[dataset_id] = page[rank]
+                if len(pooled) >= settings.coder_dataset_max_candidates:
+                    break
 
         if not pooled:
             logger.info("No Hugging Face candidates for %s", plan.get("hypothesis_id"))

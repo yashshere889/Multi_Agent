@@ -253,8 +253,11 @@ def load_settings() -> Settings:
         # REST URL, which is what this pipeline did before downloading existed.
         coder_dataset_download=_env_bool("CODER_DATASET_DOWNLOAD", True),
         # How wide the search goes before anything is ranked. Hub hits are cheap
-        # (one request per query); everything after this point is not.
-        coder_dataset_max_candidates=int(os.environ.get("CODER_DATASET_MAX_CANDIDATES", "20")),
+        # (one request per query) and the prefilter that ranks them is pure
+        # Python, so this is deliberately generous — the pool is what the
+        # prefilter has to work with, and a thin pool is how a run ends up
+        # appraising the least-bad of six irrelevant datasets.
+        coder_dataset_max_candidates=int(os.environ.get("CODER_DATASET_MAX_CANDIDATES", "40")),
         # How many survive the deterministic prefilter to get their rows sampled
         # and measured (each costs several viewer requests).
         coder_dataset_max_inspections=int(os.environ.get("CODER_DATASET_MAX_INSPECTIONS", "5")),
