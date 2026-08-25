@@ -154,6 +154,14 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   is closed; a code outside it is discarded on parse. Membership of `CRITIC_HARD_FAILS` is what makes
   an objection a veto rather than a penalty, and `CRITIC_PENALTIES` sizes the rest — the model never
   sizes its own penalty, which would be the invented score coming back through a different door.
+- **The critic may not veto a band Python already scored.** `unusable_schema` is in
+  `CONDITIONAL_HARD_FAILS`, not `CRITIC_HARD_FAILS`: it only lands when `schema_fit` was banded
+  `incompatible`. The rubric measures schema fit by checking the model's column mapping against the
+  real schema, and `partial` deliberately means "usable but imperfect" — letting an adversarial pass
+  convert that into a veto, on the same evidence, is the invented-verdict problem one level up from
+  the invented score. `description_mismatch` stays unconditional because Python cannot verify a
+  card-vs-rows contradiction. Before adding a hard fail, ask whether a scored dimension already
+  covers it; if it does, make it conditional on that dimension's own band.
 - **Run-level dataset budgets are instance attributes, not state.** `_datasets_accepted` and
   `_dataset_bytes_downloaded` are reset per `run()` alongside `_slurm_jobs_submitted` and mirrored
   into state for tracing, for exactly the same reason: each plan must see the true up-to-date total

@@ -606,3 +606,76 @@ def test_the_record_carries_everything_needed_to_re_derive_the_score():
     assert sum(
         dataset_scoring.WEIGHTS[name] * value for name, value in record["evidence"].items()
     ) == pytest.approx(record["score"])
+
+
+def test_unusable_schema_cannot_veto_a_band_python_scored_as_partial():
+    """Barkla job 10334335: Ammok/apple_stock_price scored 0.90 — task and
+    content both exact — with schema_fit=partial, because the spec asked for
+    `stock_symbol` and a single-ticker Apple series has no symbol column (every
+    row is the same symbol). The critic hard-failed on that already-scored fact
+    and the experiment went back to synthesized data. The rubric measured schema
+    fit against the real schema; the critic does not get to overturn it."""
+    scored = _scored(
+        components=dataset_scoring.ScoreComponents(
+            task_relevance="exact",
+            content_relevance="exact",
+            quality=1.0,
+            provenance="partial",
+            schema_fit="partial",
+            license_fit="permitted",
+        )
+    )
+    dataset_scoring.apply_critic(
+        scored,
+        [dataset_scoring.CriticFinding("unusable_schema", "no stock_symbol column")],
+        SPEC,
+    )
+    dataset_scoring.decide(scored, 0.75)
+
+    assert scored.decision == "accept"
+
+
+def test_unusable_schema_still_vetoes_when_python_agrees():
+    scored = _scored(
+        components=dataset_scoring.ScoreComponents(
+            task_relevance="exact",
+            content_relevance="exact",
+            quality=1.0,
+            provenance="documented",
+            schema_fit="incompatible",
+            license_fit="permitted",
+        )
+    )
+    dataset_scoring.apply_critic(
+        scored,
+        [dataset_scoring.CriticFinding("unusable_schema", "no usable columns at all")],
+        SPEC,
+    )
+
+    assert scored.decision == "reject"
+
+
+def test_description_mismatch_still_vetoes_unconditionally():
+    # Python cannot verify a card-vs-rows contradiction, so this one stays an
+    # unconditional hard fail.
+    scored = _scored(
+        components=dataset_scoring.ScoreComponents(
+            task_relevance="exact",
+            content_relevance="exact",
+            quality=1.0,
+            provenance="documented",
+            schema_fit="expected",
+            license_fit="permitted",
+        )
+    )
+    dataset_scoring.apply_critic(
+        scored,
+        [
+            dataset_scoring.CriticFinding(
+                "description_mismatch", "card claims 1M rows, sample has 40"
+            )
+        ],
+        SPEC,
+    )
+
+    assert scored.decision == "reject"

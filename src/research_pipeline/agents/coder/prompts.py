@@ -500,9 +500,15 @@ Dataset card (truncated):
 Work through this checklist. For each item, decide whether it is a real problem \
 *for this experiment*, and report only the ones that are:
 
-  description_mismatch      the actual data does not match what the card describes
+  description_mismatch      the sampled rows contradict what the CARD claims about
+                            itself (a dataset misrepresenting its own contents) —
+                            NOT a mismatch with the requirement spec, which is
+                            already scored separately
   mostly_irrelevant         a large share of examples are not relevant to the spec
-  unusable_schema           the schema cannot supply what the spec's data_types need
+  unusable_schema           the data cannot serve the task at all, whatever the
+                            column names are — not merely that a requested field
+                            is absent or spelled differently, which is already
+                            scored
   substantial_duplication   there is significant duplication
   mostly_empty_or_broken    a large share of examples are empty, truncated or malformed
   synthetic_only            the data is model-generated rather than collected
@@ -523,6 +529,12 @@ Answer with ONLY a JSON object in exactly this shape:
 Rules:
 - Use the codes above exactly. Any other code is discarded, so an objection \
 phrased in your own words has no effect at all.
+- Relevance, schema fit, licensing, provenance and data quality have ALREADY \
+been measured and scored for this dataset, and it passed. Do not re-litigate \
+them. A field the spec named that this dataset spells differently, or supplies \
+implicitly (a single-ticker price series has no symbol column because every row \
+is the same symbol), is a scored imperfection, not a reason to reject. Raise a \
+finding only for something the scoring could not see.
 - Every finding needs evidence from the card or the sampled rows. A finding you \
 cannot evidence is a suspicion, and suspicions do not belong here — omit it.
 - Return an empty `findings` list if you genuinely cannot substantiate any \

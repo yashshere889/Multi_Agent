@@ -446,16 +446,30 @@ CRITIC_FINDING_CODES: tuple[str, ...] = (
 
 # Findings that end the candidate outright. Each is a defect no amount of
 # strength elsewhere compensates for: contaminated or personal data must not be
-# used at all, and a dataset that isn't what it says it is, or whose schema the
-# experiment can't consume, cannot be the evidence base for a result.
+# used at all, and a dataset that isn't what it says it is cannot be the
+# evidence base for a result.
 CRITIC_HARD_FAILS: frozenset[str] = frozenset(
     {
         "evaluation_contamination",
         "personal_information",
         "description_mismatch",
-        "unusable_schema",
     }
 )
+
+# `unusable_schema` is a hard fail only when Python's own verification agrees —
+# that is, when `schema_fit` was banded `incompatible`. The rubric already
+# measured schema fit by checking the model's column mapping against the real
+# schema, and `partial` deliberately means "usable but imperfect". Letting the
+# critic veto a `partial` lets it overturn a dimension that was already scored,
+# on the same evidence, which is the invented-verdict problem this whole module
+# exists to prevent — one level up from the invented score.
+#
+# Barkla job 10334335 is why this is conditional: Ammok/apple_stock_price scored
+# 0.90 (task and content both exact) with schema_fit=partial, because the spec
+# asked for `stock_symbol` and a single-ticker Apple series has no symbol column
+# — every row is the same symbol. The critic hard-failed it on exactly that
+# already-scored fact and the run went back to synthesized data.
+CONDITIONAL_HARD_FAILS: dict[str, str] = {"unusable_schema": "incompatible"}
 
 # Soft findings, subtracted from the score. Fixed values, because a penalty the
 # model got to size would be the invented score coming back in through a
@@ -641,9 +655,13 @@ def apply_critic(
     A hard-fail code vetoes outright, whatever the score was — the point of
     running an adversarial pass at all is that some objections are not tradeable
     against a strong task match. Soft codes subtract their fixed penalty.
-    `synthetic_only` is conditional: it vetoes when the spec's `avoid` names it
-    (which `REQUIRED_AVOID` guarantees it does by default) and is otherwise a
+
+    Two codes are conditional. `synthetic_only` vetoes when the spec's `avoid`
+    names it (which `REQUIRED_AVOID` guarantees by default) and is otherwise a
     penalty, since a plan that explicitly wants synthetic data exists.
+    `unusable_schema` vetoes only when `schema_fit` was banded `incompatible` —
+    see CONDITIONAL_HARD_FAILS for why the critic does not get to overturn a
+    band Python already verified.
     """
     scored.findings = findings
     penalty = 0.0
@@ -653,6 +671,10 @@ def apply_critic(
         hard = finding.code in CRITIC_HARD_FAILS or (
             finding.code == "synthetic_only" and spec.avoids("synthetic-only")
         )
+        # A conditional veto only lands when Python's own band agrees with it.
+        required_band = CONDITIONAL_HARD_FAILS.get(finding.code)
+        if required_band is not None:
+            hard = scored.components.schema_fit == required_band
         if hard:
             reasons.append(f"{finding.code}: {finding.evidence}")
         else:
