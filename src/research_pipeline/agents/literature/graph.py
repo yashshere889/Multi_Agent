@@ -12,9 +12,11 @@ from langgraph.types import CachePolicy, RetryPolicy
 
 from research_pipeline.agents.literature.nodes import (
     download_papers_node,
+    expand_citations_node,
     generate_queries,
     merge_and_dedupe_node,
     save_metadata_node,
+    score_relevance_node,
     search_arxiv_node,
     search_core_node,
     search_semantic_scholar_node,
@@ -51,6 +53,14 @@ def build_literature_graph():
     graph.add_node("search_semantic_scholar", search_semantic_scholar_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("search_core", search_core_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("merge_and_dedupe", merge_and_dedupe_node)
+    # Retried like the other LLM-calling nodes: it is idempotent (same pool in,
+    # same scores out, nothing written) and its own failure path only widens the
+    # pool, so a retry can cost nothing worse than a second scoring pass.
+    graph.add_node("score_relevance", score_relevance_node, retry_policy=_RETRY)
+    # Retried like the other network/LLM nodes. Idempotent in the way that
+    # matters: it derives its seeds from state it does not modify, and a repeat
+    # run re-fetches the same hops rather than compounding on its own output.
+    graph.add_node("expand_citations", expand_citations_node, retry_policy=_RETRY)
     # No retry on download_papers on purpose: it is already thread-pooled with
     # per-file partial-success tolerance, so re-running the node on one failed
     # download would re-fetch every paper that already succeeded.
@@ -69,7 +79,14 @@ def build_literature_graph():
     graph.add_edge("search_semantic_scholar", "merge_and_dedupe")
     graph.add_edge("search_core", "merge_and_dedupe")
 
-    graph.add_edge("merge_and_dedupe", "download_papers")
+    # Filter before downloading, not after: a paper that won't survive the
+    # screen shouldn't cost a PDF fetch either.
+    graph.add_edge("merge_and_dedupe", "score_relevance")
+    # Expansion runs after the screen so every hop starts from a paper known to
+    # be on topic — seeding from an unscreened pool compounds, with one
+    # off-topic hit dragging in a bibliography's worth of its references.
+    graph.add_edge("score_relevance", "expand_citations")
+    graph.add_edge("expand_citations", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
     graph.add_edge("save_metadata", END)
 

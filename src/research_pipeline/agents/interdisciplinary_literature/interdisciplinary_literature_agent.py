@@ -43,13 +43,21 @@ be inspected or reused without re-running the agent. On a schema validation
 failure, the raw (invalid) output is still written — suffixed `_invalid` — for
 debugging, and InterdisciplinaryLiteratureAgentError is raised.
 
-Two things are deliberately *not* left to the model. Deduplication of the
+Three things are deliberately *not* left to the model. Deduplication of the
 cross-field results (against each other and against the in-domain papers) is
 done in Python on the Literature Agent's own doi/normalized-title key, not by
 asking the model which papers are the same. And `supporting_paper_ids` on every
 bridge insight is filtered against the ids actually present in the merged pool,
 so an id the model invented is dropped and logged rather than handed downstream
-— the same rule the Writer Agent applies to citations.
+— the same rule the Writer Agent applies to citations. And which cross-field
+papers survive the transferability screen is a threshold applied in Python
+(agents/literature/relevance.py, shared with the Literature Agent's own screen):
+the model returns one 0-5 score per paper and never sees the threshold, let
+alone decides what to keep.
+
+The in-domain papers are deliberately *not* re-screened — they arrive already
+screened against the same research question, and re-filtering another agent's
+validated output would make this agent silently lossy on its own input.
 
 Entry points
 ------------
@@ -92,11 +100,21 @@ from research_pipeline.agents.interdisciplinary_literature.schema import SchemaV
 from research_pipeline.agents.interdisciplinary_literature.state import InterdisciplinaryState
 from research_pipeline.agents.literature.clients import search_arxiv, search_core, search_semantic_scholar
 
+# Reused rather than re-implemented, exactly like _normalize_title below: "is
+# this paper worth keeping?" gets one answer in this pipeline. Only the rubric
+# differs here — cross-field papers are screened on whether their method could
+# transfer, not on topical overlap, since being topically distant is the whole
+# point of finding them.
+from research_pipeline.agents.literature.relevance import (
+    TRANSFER_RELEVANCE_CRITERION,
+    apply_threshold,
+    score_papers,
+)
+
 # The Literature Agent's own dedupe key, imported rather than re-implemented so
 # "are these the same paper?" can only ever be answered one way in this
-# pipeline. It's private to that module, but copying it here would be exactly
-# the kind of duplicate that drifts.
-from research_pipeline.agents.literature.nodes import _normalize_title
+# pipeline. Copying it here would be exactly the kind of duplicate that drifts.
+from research_pipeline.agents.literature.nodes import dedupe_key as _dedupe_key
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
@@ -120,10 +138,6 @@ def _paper_id(paper: dict, index: int) -> str:
     ids in `core_paper_ids`/`supporting_paper_ids` line up with the ids the
     Hypothesis Agent will derive from the very same merged list."""
     return str(paper.get("arxiv_id") or paper.get("paper_id") or paper.get("doi") or f"paper_{index}")
-
-
-def _dedupe_key(paper: dict) -> str:
-    return paper.get("doi") or _normalize_title(paper.get("title") or "")
 
 
 def _digest(papers: List[dict], start_index: int = 0, limit: int = DIGEST_MAX_PAPERS) -> str:
@@ -260,6 +274,74 @@ class InterdisciplinaryLiteratureAgent:
             len(core_papers), len(cross_field), len(merged),
         )
         return {"merged_papers": merged, "cross_field_papers": cross_field}
+
+    def _node_score_cross_field(self, state: InterdisciplinaryState) -> dict:
+        """Screens the cross-field papers before they reach bridge synthesis or
+        the merged pool.
+
+        Until this node existed, every paper an adjacent-field query returned
+        entered `papers` — and therefore became citable by the Writer — on the
+        strength of a query the model generated from a rationale two hops from
+        the research question. A query for an adjacent field's terminology
+        routinely returns work with no bearing on the core problem at all.
+
+        The in-domain papers are deliberately *not* re-screened here: they
+        arrived from the Literature Agent, which has already screened them
+        against the same research question, and re-filtering another agent's
+        validated output would make this agent silently lossy on its input.
+
+        `merged_papers` is rebuilt rather than filtered, because `_paper_id`
+        derives an id from a paper's *position* in that pool — dropping a
+        cross-field paper without renumbering would leave every id after it
+        pointing at the wrong paper.
+        """
+        cross_field = state["cross_field_papers"]
+        if not settings.enable_relevance_filter or not cross_field:
+            return {}
+
+        scores = score_papers(
+            self.chat_model,
+            self._scoring_objective(state),
+            cross_field,
+            criterion=TRANSFER_RELEVANCE_CRITERION,
+            batch_max_chars=settings.relevance_batch_max_chars,
+        )
+        kept, dropped = apply_threshold(
+            cross_field,
+            scores,
+            min_score=settings.interdisciplinary_relevance_min_score,
+            # No rescue floor here, unlike the Literature Agent's screen: "no
+            # adjacent field yielded anything transferable" is an answer this
+            # agent already handles (_node_synthesize_bridges returns no
+            # insights, and the merged pool falls back to the in-domain papers),
+            # so forcing through the least-bad untransferable paper would defeat
+            # the screen rather than protect the run.
+            keep_min=0,
+        )
+
+        logger.info(
+            "Transferability filter kept %d/%d cross-field paper(s) at a threshold of %d",
+            len(kept), len(cross_field), settings.interdisciplinary_relevance_min_score,
+        )
+        for paper in dropped:
+            logger.debug(
+                "Dropped as untransferable (score %s): %s", paper.get("relevance_score"), paper.get("title")
+            )
+        return {"cross_field_papers": kept, "merged_papers": list(state["core_papers"]) + kept}
+
+    def _scoring_objective(self, state: InterdisciplinaryState) -> str:
+        """What the cross-field papers are screened against.
+
+        `research_question` is optional on this agent's entry point, and with
+        none supplied the in-domain titles are the only statement of the problem
+        available — a far better objective than skipping the screen entirely,
+        which would put the whole unfiltered cross-field pool back in play.
+        """
+        question = state.get("research_question")
+        if question:
+            return question
+        titles = [p.get("title") for p in state["core_papers"][:10] if p.get("title")]
+        return "The problem addressed by this body of work:\n- " + "\n- ".join(titles)
 
     def _node_synthesize_bridges(self, state: InterdisciplinaryState) -> dict:
         cross_field = state["cross_field_papers"]

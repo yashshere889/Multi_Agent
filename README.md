@@ -545,6 +545,39 @@ Two smaller reliability settings sit alongside it:
   excluded on purpose: the Coder's `attempt`/`snapshot_and_regenerate` fix loop
   (retrying would re-execute generated code or re-provision an environment) and
   `download_papers` (already partial-success tolerant).
+- **Relevance screening.** `ENABLE_RELEVANCE_FILTER` (default `true`) scores
+  every merged paper 0-5 against the research question and drops those below
+  `RELEVANCE_MIN_SCORE` (default 3), before any of them is downloaded, reasoned
+  over, or cited — a keyword search returns near-misses whatever the question,
+  and every paper left in the pool is one the Writer is entitled to cite. The
+  Interdisciplinary Literature Agent applies the same screen to its cross-field
+  results on a *transferability* rubric instead, at its own looser
+  `INTERDISCIPLINARY_RELEVANCE_MIN_SCORE` (default 2), since being topically
+  distant is exactly what makes a cross-field paper worth having. The model
+  scores; the threshold is applied in Python and never shown to it. Both screens
+  degrade to keeping everything when the model is unreachable or its answer is
+  unusable, and the in-domain screen keeps the `RELEVANCE_KEEP_MIN` (default 5)
+  highest-scoring papers rather than ever returning an empty pool — so the
+  failure direction is always a wider pool, never a failed run. See
+  [relevance.py](src/research_pipeline/agents/literature/relevance.py).
+- **Citation-graph expansion.** `ENABLE_CITATION_EXPANSION` (default `true`)
+  walks out from the highest-scoring papers a search found and pulls in what
+  they cite, via Semantic Scholar's `/references` endpoint. Keyword search only
+  finds papers whose *wording* matches, so it structurally misses the
+  foundational work a field cites without restating its title — a bibliography
+  is a hand-curated answer to precisely that. Candidates are ranked by
+  co-citation, counted in Python: a paper several independent seeds cite is
+  near-certain to be central, one cited by a single seed is often that seed's
+  own tangent. Nothing asks a model which candidates look important. Expansion
+  runs *after* the screen (seeding from an unscreened pool compounds — one
+  off-topic hit drags in a bibliography's worth of its references) and screens
+  its own candidates before merging, so the invariant that everything in the
+  pool has been screened still holds. Bounded by `CITATION_EXPANSION_SEEDS`
+  (default 5) and `CITATION_EXPANSION_MAX_PAPERS` (default 15); needs
+  `SEMANTIC_SCHOLAR_API_KEY` and adds nothing without one. `eval-run` reports
+  `gold_found_via_citations` — gold papers the queries alone never reached —
+  which is the number that justifies the extra requests or doesn't. See
+  [expansion.py](src/research_pipeline/agents/literature/expansion.py).
 - **Paper-search caching.** `ENABLE_PAPER_SEARCH_CACHE` (default `true`) caches
   the arXiv / Semantic Scholar / CORE search nodes and the interdisciplinary
   per-field search on their inputs, for `PAPER_SEARCH_CACHE_TTL_SECONDS`
@@ -701,7 +734,8 @@ uv run research-pipeline interdisciplinary-literature --from-file papers/metadat
 This asks the model which adjacent fields could inform the same problem (up to
 `INTERDISCIPLINARY_MAX_FIELDS`, default 3), searches each of them on arXiv +
 Semantic Scholar + CORE with that field's own generated queries, merges and dedupes
-what it finds against the in-domain papers, synthesizes bridge insights tying
+what it finds against the in-domain papers, screens those cross-field results on
+how usefully their methods could transfer to the core problem, synthesizes bridge insights tying
 the cross-field work back to the core problem, and writes
 `outputs/interdisciplinary_<UTC timestamp>.json` — see
 [interdisciplinary_literature_agent.py](src/research_pipeline/agents/interdisciplinary_literature/interdisciplinary_literature_agent.py)'s
@@ -934,6 +968,45 @@ Worth knowing before running it unattended:
 ```bash
 uv run pytest
 ```
+
+## Evaluating the search agents
+
+`pytest` proves the code does what it says; it can't tell you whether the search
+is any *good*. That's what `research_pipeline/eval/` is for — it makes "did that
+change help?" answerable about the Literature and Interdisciplinary Literature
+agents, which are otherwise judged by reading a few titles and forming an
+impression.
+
+Ground truth comes from real survey bibliographies fetched through Semantic
+Scholar, never from a model:
+
+```bash
+uv run research-pipeline eval-bootstrap --survey "arXiv:2312.10997" --question "how does retrieval augmentation affect factual accuracy?" --min-year 2015
+```
+
+```bash
+uv run research-pipeline eval-run --gold evals/gold --name baseline --judge
+```
+
+A run searches each question **once**, with the in-pipeline relevance screen
+disabled, and saves the whole raw pool — then replays the screen over it at
+every threshold. Searching is the slow, rate-limited, non-deterministic part, so
+running it twice to A/B one variable would double the cost and add a second
+sample of API flakiness to the very comparison meant to isolate that variable.
+Re-scoring a saved run (`eval-score`) touches no network at all, so a new metric
+or a new threshold costs nothing.
+
+The headline output is a sweep showing what each `RELEVANCE_MIN_SCORE` keeps,
+what it costs in recall, and how many papers an independent judge would have
+kept that the threshold discards. Recall is a *relative* signal — a survey
+bibliography holds far more papers than one run returns, so even a perfect
+search scores well below 1.0; what matters is whether a change moves it.
+
+Metrics are deterministic and LLM-free by default. The one judgment that no gold
+set can supply — precision over papers a bibliography never enumerated — is
+quarantined behind `--judge` in `eval/judge.py`, and deliberately does **not**
+reuse the relevance screen's rubric: grading the screen with its own answer key
+would measure nothing. See [evals/README.md](evals/README.md).
 
 ## Notes on this version vs. the original notebook
 
