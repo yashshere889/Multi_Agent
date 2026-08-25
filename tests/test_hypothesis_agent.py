@@ -330,6 +330,45 @@ def test_call_json_recovers_via_repair_prompt(tmp_path):
     assert fake_model.calls[1][-1][0] == "human"  # repair prompt was sent
 
 
+def test_a_doubled_rationale_key_no_longer_loses_the_whole_run(tmp_path):
+    """Barkla job 10334292: the model wrote `rationationale` on two of three
+    hypotheses. The rationales were complete and correct; only the key was
+    doubled. Schema validation rejected the assembled output three stages later
+    and the question was lost, along with its literature search and cross-field
+    search. The key is now repaired deterministically before anything
+    downstream sees it — no extra model call."""
+    mangled = json.dumps({
+        "hypotheses": [
+            {
+                "id": f"H{i}",
+                "statement": f"statement {i}",
+                # H1 got it right; H2 and H3 did not — exactly what the run produced.
+                ("rationale" if i == 1 else "rationationale"): f"grounded rationale {i}",
+                "related_gaps": ["no long-context eval"],
+                "related_methods": ["RAG"],
+                "suggested_variables": {"independent": ["context length"], "dependent": ["accuracy"]},
+            }
+            for i in (1, 2, 3)
+        ]
+    })
+    fake_model = FakeChatModel([
+        _batch_response(), _synthesis_response(), mangled, _ranking_response(),
+    ])
+    agent = HypothesisAgent(chat_model=fake_model, output_dir=tmp_path)
+
+    result = agent.run([{"title": "Paper One", "abstract": "about RAG", "arxiv_id": "1"}])
+
+    assert len(result["hypotheses"]) == 3
+    assert [h["rationale"] for h in result["hypotheses"]] == [
+        "grounded rationale 1", "grounded rationale 2", "grounded rationale 3"
+    ]
+    assert not any("rationationale" in h for h in result["hypotheses"])
+    # Four calls: two batch/synthesis, one generation, one ranking. The repair
+    # cost no extra round-trip.
+    assert len(fake_model.calls) == 4
+    assert not list(tmp_path.glob("hypotheses_*_invalid.json"))
+
+
 def test_run_raises_and_dumps_debug_file_on_schema_failure(tmp_path):
     bad_hypotheses = json.dumps({"hypotheses": []})  # violates "exactly 3"
     fake_model = FakeChatModel([_batch_response(), _synthesis_response(), bad_hypotheses])

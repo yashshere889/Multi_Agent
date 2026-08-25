@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline import llm
+from research_pipeline import llm, llm_json
 from research_pipeline.llm_json import LLMJSONError, invoke_json, strip_fences, strip_reasoning
 
 
@@ -172,3 +172,78 @@ def test_get_chat_model_applies_configured_sampling_and_token_budget():
 
 def test_get_chat_model_uses_the_configured_model_id():
     assert llm.get_chat_model().model_name == llm.settings.llm_model
+
+
+# -- repair_keys -------------------------------------------------------------
+
+HYPOTHESIS_KEYS = [
+    "id",
+    "statement",
+    "rationale",
+    "related_gaps",
+    "related_methods",
+    "suggested_variables",
+]
+
+
+def test_a_doubled_syllable_is_repaired():
+    """The Barkla job 10334292 regression: the model wrote `rationationale`
+    ("ration" + "ationale") on two of three hypotheses. The rationales were
+    complete; only the key was mangled, and the whole question was lost."""
+    repaired = llm_json.repair_keys(
+        {"id": "H2", "statement": "s", "rationationale": "the real rationale text"},
+        HYPOTHESIS_KEYS,
+    )
+
+    assert repaired["rationale"] == "the real rationale text"
+    assert "rationationale" not in repaired
+
+
+def test_a_wholly_doubled_key_is_repaired():
+    repaired = llm_json.repair_keys({"statementstatement": "s"}, HYPOTHESIS_KEYS)
+
+    assert repaired == {"statement": "s"}
+
+
+def test_an_ordinary_typo_is_repaired():
+    assert llm_json.repair_keys({"statment": "s"}, HYPOTHESIS_KEYS) == {"statement": "s"}
+    assert llm_json.repair_keys({"ratonale": "r"}, HYPOTHESIS_KEYS) == {"rationale": "r"}
+
+
+def test_an_unrelated_extra_field_is_left_alone():
+    # Not forced onto whichever expected name it happens to be nearest.
+    payload = {"id": "H1", "notes": "n", "justification": "j"}
+
+    assert llm_json.repair_keys(payload, HYPOTHESIS_KEYS) == payload
+
+
+def test_a_complete_payload_is_returned_unchanged():
+    payload = {key: "v" for key in HYPOTHESIS_KEYS}
+
+    assert llm_json.repair_keys(payload, HYPOTHESIS_KEYS) == payload
+
+
+def test_the_input_is_not_mutated():
+    payload = {"id": "H1", "rationationale": "r"}
+    llm_json.repair_keys(payload, HYPOTHESIS_KEYS)
+
+    assert "rationationale" in payload, "repair_keys must return a copy"
+
+
+def test_an_ambiguous_rename_is_declined():
+    # Two unexpected keys equally near one missing name is a response malformed
+    # in a way renaming cannot settle — validation should say so, not this.
+    repaired = llm_json.repair_keys({"statment": "a", "statemnt": "b"}, HYPOTHESIS_KEYS)
+
+    assert "statement" not in repaired
+
+
+def test_a_present_field_is_never_overwritten():
+    # `rationale` is already there, so the doubled key is not a repair target.
+    payload = {"rationale": "the good one", "rationationale": "the mangled one"}
+
+    assert llm_json.repair_keys(payload, HYPOTHESIS_KEYS)["rationale"] == "the good one"
+
+
+def test_a_non_dict_payload_passes_through():
+    assert llm_json.repair_keys("not a dict", HYPOTHESIS_KEYS) == "not a dict"

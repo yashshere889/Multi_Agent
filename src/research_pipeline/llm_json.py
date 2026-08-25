@@ -6,6 +6,7 @@ needed the exact same retry logic the hypothesis agent already had.
 
 from __future__ import annotations
 
+import difflib
 import json
 import logging
 import re
@@ -147,3 +148,86 @@ def invoke_json(
                 f"Model did not return valid JSON, even after a repair attempt: {exc2}. "
                 f"Raw response: {text[:500]!r}"
             ) from exc2
+
+
+# How close a misspelled key must be to an expected one before it is renamed.
+# 0.85 admits ordinary single-character slips ("statment", "ratonale", both
+# ~0.94) and rejects unrelated field names ("justification" vs "statement" is
+# 0.46). It deliberately does NOT admit the doubling degeneration below, which
+# scores far lower — that one gets its own exact rule rather than a looser
+# threshold, because loosening this far enough to catch it would start renaming
+# genuinely different fields onto each other.
+_KEY_MATCH_CUTOFF = 0.85
+
+
+def _collapse_doubled_substring(text: str) -> set[str]:
+    """Every string obtainable from `text` by deleting one immediately-repeated
+    run of 2+ characters.
+
+    This targets a specific small-model degeneration: the model emits a key with
+    an internal syllable repeated — `rationationale` for `rationale`
+    ("ration" + "ationale", where "ation" appears twice), or
+    `statementstatement` for `statement`. Both are one deletion away from the
+    right key, and neither is close enough for a fuzzy ratio to catch without
+    setting the threshold so low that unrelated fields start matching.
+
+    Returns a set because a long key can have more than one candidate collapse;
+    the caller only acts when exactly one of them is an expected name.
+    """
+    candidates: set[str] = set()
+    length = len(text)
+    for run in range(length // 2, 1, -1):
+        for start in range(length - 2 * run + 1):
+            if text[start : start + run] == text[start + run : start + 2 * run]:
+                candidates.add(text[:start] + text[start + run :])
+    return candidates
+
+
+def repair_keys(payload: dict, expected: list[str]) -> dict:
+    """Rename near-miss keys in `payload` onto the `expected` names they meant.
+
+    A shallow copy is returned; the input is untouched. Only ever renames an
+    **unexpected** key onto an **expected key that is missing**, and only when
+    exactly one candidate matches — so a payload that already has all its fields
+    is returned unchanged, and a genuinely unrecognised extra field is left
+    alone rather than being forced onto whichever expected name it is nearest.
+
+    Why this exists rather than a repair retry: a production run on Barkla
+    (job 10334292) lost a whole question — literature, cross-field search and
+    hypothesis generation, three minutes of GPU — because the model wrote
+    `rationationale` instead of `rationale` on two of three hypotheses. The
+    rationales themselves were complete and correct. Asking the model again
+    costs a round-trip to fix a defect that is decidable here, and it may well
+    reproduce the same degeneration; this is the same "deterministic repair over
+    another model call" trade the JSON escape fixes above already make.
+
+    The expected names are the caller's to supply: which keys a response should
+    have is domain knowledge belonging to the agent that asked for them, the
+    same split llm_sections.py documents for section names.
+    """
+    if not isinstance(payload, dict):
+        return payload
+
+    missing = [name for name in expected if name not in payload]
+    if not missing:
+        return payload
+
+    unexpected = [key for key in payload if key not in expected]
+    if not unexpected:
+        return payload
+
+    repaired = dict(payload)
+    for name in missing:
+        matches = [key for key in unexpected if name in _collapse_doubled_substring(key)]
+        if not matches:
+            matches = difflib.get_close_matches(name, unexpected, n=2, cutoff=_KEY_MATCH_CUTOFF)
+        # Exactly one, or it is a guess: two unexpected keys equally near one
+        # expected name means the response is malformed in a way renaming cannot
+        # settle, and validation should say so rather than this picking.
+        if len(matches) != 1:
+            continue
+        source = matches[0]
+        repaired[name] = repaired.pop(source)
+        unexpected.remove(source)
+        logger.warning("Repaired malformed response key %r -> %r", source, name)
+    return repaired

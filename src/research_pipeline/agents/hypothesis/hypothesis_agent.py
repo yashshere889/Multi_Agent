@@ -96,11 +96,15 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 from research_pipeline.agents.hypothesis import prompts
 from research_pipeline.agents.hypothesis.papers import NormalizedPaper, chunk_papers, normalize_papers, paper_to_text
-from research_pipeline.agents.hypothesis.schema import SchemaValidationError, validate_output
+from research_pipeline.agents.hypothesis.schema import (
+    HYPOTHESIS_FIELD_NAMES,
+    SchemaValidationError,
+    validate_output,
+)
 from research_pipeline.agents.hypothesis.state import HypothesisState
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
-from research_pipeline.llm_json import LLMJSONError, invoke_json
+from research_pipeline.llm_json import LLMJSONError, invoke_json, repair_keys
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +205,19 @@ class HypothesisAgent:
             state.get("research_question"),
             state.get("interdisciplinary_context"),
         )
-        return {"hypotheses": hypotheses_result.get("hypotheses", [])}
+        # Repair mangled field names before anything downstream sees them. A
+        # Barkla run (job 10334292) lost the whole question because the model
+        # wrote `rationationale` on two of three hypotheses — the rationales
+        # were complete, only the keys were doubled — and schema validation
+        # rejected the assembled output three stages later. Deterministic
+        # rename, no extra model call; anything it cannot decide is left for
+        # validate_output to reject as before.
+        return {
+            "hypotheses": [
+                repair_keys(hypothesis, HYPOTHESIS_FIELD_NAMES) if isinstance(hypothesis, dict) else hypothesis
+                for hypothesis in hypotheses_result.get("hypotheses", [])
+            ]
+        }
 
     def _node_rank_hypotheses(self, state: HypothesisState) -> dict:
         """Scores the 3 hypotheses against each other and names the winner.

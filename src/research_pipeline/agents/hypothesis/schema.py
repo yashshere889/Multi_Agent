@@ -67,6 +67,25 @@ def _check_fields(obj: dict, fields: list[tuple[str, type]], path: str, errors: 
             errors.append(f"{path}.{key} should be {expected_type.__name__}, got {type(obj[key]).__name__}")
 
 
+# The fields every hypothesis must carry, and their types. A single list
+# because two things read it: this module's validator, and
+# hypothesis_agent's repair_keys call, which renames a mangled key
+# (`rationationale`) back onto the name meant. If those two ever disagreed, the
+# repair would fix keys the validator does not want and miss ones it does.
+HYPOTHESIS_FIELDS: list[tuple[str, type]] = [
+    ("id", str),
+    ("statement", str),
+    ("rationale", str),
+    ("related_gaps", list),
+    ("related_methods", list),
+]
+# suggested_variables is checked separately (it is an object with its own two
+# fields), but the repair still needs to know the name is expected.
+HYPOTHESIS_FIELD_NAMES: list[str] = [name for name, _ in HYPOTHESIS_FIELDS] + [
+    "suggested_variables"
+]
+
+
 def validate_output(data: dict) -> None:
     """Raises SchemaValidationError (with every problem found, not just the first) if
     `data` doesn't match HypothesisAgentOutput."""
@@ -113,18 +132,7 @@ def validate_output(data: dict) -> None:
             errors.append(f"output.hypotheses[{i}] should be an object")
             continue
         path = f"output.hypotheses[{i}]"
-        _check_fields(
-            hyp,
-            [
-                ("id", str),
-                ("statement", str),
-                ("rationale", str),
-                ("related_gaps", list),
-                ("related_methods", list),
-            ],
-            path,
-            errors,
-        )
+        _check_fields(hyp, HYPOTHESIS_FIELDS, path, errors)
         variables = hyp.get("suggested_variables")
         if not isinstance(variables, dict):
             errors.append(f"{path}.suggested_variables is missing or not an object")
