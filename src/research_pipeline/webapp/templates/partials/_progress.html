@@ -53,7 +53,7 @@
       {% if row.status == 'done' %}
       <div class="stage-body">
         {% if row.key == 'literature' %}
-          <p>{{ s.papers_found }} unique paper(s), {{ s.papers_downloaded }} downloaded.</p>
+          <p>{{ s.papers_found }} unique paper(s), {{ s.papers_downloaded }} downloaded.{% if s.papers_filtered_out %} {{ s.papers_filtered_out }} screened out as irrelevant.{% endif %}</p>
           {% if s.queries %}<p class="muted">Queries: {{ s.queries | join(' · ') }}</p>{% endif %}
           {% if s.titles %}<ul>{% for t in s.titles %}<li class="muted">{{ t }}</li>{% endfor %}</ul>{% endif %}
 

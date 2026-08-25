@@ -33,8 +33,13 @@ class Settings:
     checkpointer_postgres_uri: str
     enable_paper_search_cache: bool
     paper_search_cache_ttl_seconds: int
+    enable_relevance_filter: bool
+    relevance_min_score: int
+    relevance_keep_min: int
+    relevance_batch_max_chars: int
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
+    interdisciplinary_relevance_min_score: int
     hypothesis_output_dir: str
     hypothesis_batch_max_chars: int
     experiment_planner_output_dir: str
@@ -192,6 +197,26 @@ def load_settings() -> Settings:
         paper_search_cache_ttl_seconds=int(
             os.environ.get("PAPER_SEARCH_CACHE_TTL_SECONDS", "3600")
         ),
+        # Screens the merged paper pool for relevance before anything downstream
+        # can cite it (see agents/literature/relevance.py). On by default: a
+        # keyword search returns near-misses whatever the question, and every
+        # paper left in the pool is one the Writer is entitled to cite. It costs
+        # a handful of extra LLM calls per run and degrades to "keep everything"
+        # whenever the model is unreachable or its answer is unusable, so the
+        # failure direction is a bigger pool, never an empty one. Turn it off to
+        # reproduce the pre-filter behaviour exactly.
+        enable_relevance_filter=_env_bool("ENABLE_RELEVANCE_FILTER", True),
+        # The 0-5 rubric in relevance.py is the contract for this number; 3 is
+        # "useful background: shares a core method, subproblem, or evaluation",
+        # i.e. the lowest score at which a paper is still worth citing.
+        relevance_min_score=int(os.environ.get("RELEVANCE_MIN_SCORE", "3")),
+        # Floor for the "everything scored below the threshold" case, where the
+        # filter keeps this many of the highest-scoring papers instead of
+        # handing the next agent an empty list it treats as a hard error.
+        relevance_keep_min=int(os.environ.get("RELEVANCE_KEEP_MIN", "5")),
+        # Same character-count-as-token-budget proxy as HYPOTHESIS_BATCH_MAX_CHARS,
+        # and the same default, so one screening call covers a good few papers.
+        relevance_batch_max_chars=int(os.environ.get("RELEVANCE_BATCH_MAX_CHARS", "12000")),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
         # How many adjacent fields the agent is allowed to explore. Each field
         # costs one arXiv + one Semantic Scholar + one CORE search per generated
@@ -199,6 +224,15 @@ def load_settings() -> Settings:
         # the per-query result count reuses MAX_RESULTS_PER_QUERY rather than
         # adding a second, near-identical knob.
         interdisciplinary_max_fields=int(os.environ.get("INTERDISCIPLINARY_MAX_FIELDS", "3")),
+        # Cross-field papers are screened on transferability rather than topical
+        # relevance (relevance.TRANSFER_RELEVANCE_CRITERION), and that rubric is
+        # inherently looser — a 3 there is "a plausible transfer the paper does
+        # not itself make". Hence its own, lower threshold rather than reusing
+        # RELEVANCE_MIN_SCORE: the point of this agent is to surface distant
+        # work, so screening it as strictly as in-domain work would defeat it.
+        interdisciplinary_relevance_min_score=int(
+            os.environ.get("INTERDISCIPLINARY_RELEVANCE_MIN_SCORE", "2")
+        ),
         hypothesis_output_dir=os.environ.get("HYPOTHESIS_OUTPUT_DIR", "outputs"),
         hypothesis_batch_max_chars=int(os.environ.get("HYPOTHESIS_BATCH_MAX_CHARS", "12000")),
         experiment_planner_output_dir=os.environ.get("EXPERIMENT_PLANNER_OUTPUT_DIR", "outputs"),

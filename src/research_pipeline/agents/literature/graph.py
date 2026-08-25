@@ -15,6 +15,7 @@ from research_pipeline.agents.literature.nodes import (
     generate_queries,
     merge_and_dedupe_node,
     save_metadata_node,
+    score_relevance_node,
     search_arxiv_node,
     search_core_node,
     search_semantic_scholar_node,
@@ -51,6 +52,10 @@ def build_literature_graph():
     graph.add_node("search_semantic_scholar", search_semantic_scholar_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("search_core", search_core_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("merge_and_dedupe", merge_and_dedupe_node)
+    # Retried like the other LLM-calling nodes: it is idempotent (same pool in,
+    # same scores out, nothing written) and its own failure path only widens the
+    # pool, so a retry can cost nothing worse than a second scoring pass.
+    graph.add_node("score_relevance", score_relevance_node, retry_policy=_RETRY)
     # No retry on download_papers on purpose: it is already thread-pooled with
     # per-file partial-success tolerance, so re-running the node on one failed
     # download would re-fetch every paper that already succeeded.
@@ -69,7 +74,10 @@ def build_literature_graph():
     graph.add_edge("search_semantic_scholar", "merge_and_dedupe")
     graph.add_edge("search_core", "merge_and_dedupe")
 
-    graph.add_edge("merge_and_dedupe", "download_papers")
+    # Filter before downloading, not after: a paper that won't survive the
+    # screen shouldn't cost a PDF fetch either.
+    graph.add_edge("merge_and_dedupe", "score_relevance")
+    graph.add_edge("score_relevance", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
     graph.add_edge("save_metadata", END)
 

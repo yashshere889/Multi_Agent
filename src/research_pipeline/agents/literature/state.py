@@ -30,6 +30,11 @@ class Paper(TypedDict, total=False):
     fields_of_study: List[str]
     tldr: Optional[str]
 
+    # Written by the relevance-scoring node (see relevance.py); absent on any
+    # paper that was never scored, e.g. when the filter is disabled or its LLM
+    # call failed and the pool was passed through unfiltered.
+    relevance_score: Optional[int]
+
 
 class LiteratureState(TypedDict, total=False):
     research_question: str
@@ -39,5 +44,9 @@ class LiteratureState(TypedDict, total=False):
     semantic_scholar_papers: List[Paper]
     core_papers: List[Paper]
     merged_papers: List[Paper]
+    # How many papers score_relevance_node discarded, carried through to the
+    # saved metadata so a small pool can be attributed to the filter or to the
+    # search. 0 when the filter is disabled or never ran.
+    papers_filtered_out: int
     download_dir: str
     metadata_path: str

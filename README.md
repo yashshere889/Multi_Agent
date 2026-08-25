@@ -545,6 +545,21 @@ Two smaller reliability settings sit alongside it:
   excluded on purpose: the Coder's `attempt`/`snapshot_and_regenerate` fix loop
   (retrying would re-execute generated code or re-provision an environment) and
   `download_papers` (already partial-success tolerant).
+- **Relevance screening.** `ENABLE_RELEVANCE_FILTER` (default `true`) scores
+  every merged paper 0-5 against the research question and drops those below
+  `RELEVANCE_MIN_SCORE` (default 3), before any of them is downloaded, reasoned
+  over, or cited — a keyword search returns near-misses whatever the question,
+  and every paper left in the pool is one the Writer is entitled to cite. The
+  Interdisciplinary Literature Agent applies the same screen to its cross-field
+  results on a *transferability* rubric instead, at its own looser
+  `INTERDISCIPLINARY_RELEVANCE_MIN_SCORE` (default 2), since being topically
+  distant is exactly what makes a cross-field paper worth having. The model
+  scores; the threshold is applied in Python and never shown to it. Both screens
+  degrade to keeping everything when the model is unreachable or its answer is
+  unusable, and the in-domain screen keeps the `RELEVANCE_KEEP_MIN` (default 5)
+  highest-scoring papers rather than ever returning an empty pool — so the
+  failure direction is always a wider pool, never a failed run. See
+  [relevance.py](src/research_pipeline/agents/literature/relevance.py).
 - **Paper-search caching.** `ENABLE_PAPER_SEARCH_CACHE` (default `true`) caches
   the arXiv / Semantic Scholar / CORE search nodes and the interdisciplinary
   per-field search on their inputs, for `PAPER_SEARCH_CACHE_TTL_SECONDS`
@@ -701,7 +716,8 @@ uv run research-pipeline interdisciplinary-literature --from-file papers/metadat
 This asks the model which adjacent fields could inform the same problem (up to
 `INTERDISCIPLINARY_MAX_FIELDS`, default 3), searches each of them on arXiv +
 Semantic Scholar + CORE with that field's own generated queries, merges and dedupes
-what it finds against the in-domain papers, synthesizes bridge insights tying
+what it finds against the in-domain papers, screens those cross-field results on
+how usefully their methods could transfer to the core problem, synthesizes bridge insights tying
 the cross-field work back to the core problem, and writes
 `outputs/interdisciplinary_<UTC timestamp>.json` — see
 [interdisciplinary_literature_agent.py](src/research_pipeline/agents/interdisciplinary_literature/interdisciplinary_literature_agent.py)'s

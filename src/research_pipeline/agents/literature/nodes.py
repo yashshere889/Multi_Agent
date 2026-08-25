@@ -13,6 +13,7 @@ from typing import List
 import requests
 
 from research_pipeline.agents.literature.clients import USER_AGENT, search_arxiv, search_core, search_semantic_scholar
+from research_pipeline.agents.literature.relevance import DIRECT_RELEVANCE_CRITERION, apply_threshold, score_papers
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
@@ -99,6 +100,52 @@ def merge_and_dedupe_node(state: LiteratureState) -> dict:
     return {"merged_papers": merged_list}
 
 
+def score_relevance_node(state: LiteratureState) -> dict:
+    """Screens the merged pool against the research question before anything
+    downstream can see it.
+
+    Sits ahead of download_papers deliberately: a paper that isn't going to
+    survive the filter shouldn't cost a PDF fetch either. The scoring itself is
+    the model's; which papers that keeps is decided in relevance.apply_threshold
+    from a threshold the model never sees.
+
+    Degrades to a pass-through in all three ways this can go wrong — the filter
+    disabled, the LLM unreachable, or an unusable response — because a pool that
+    is too broad is a quality problem while an empty one is a failed run.
+    """
+    papers = state["merged_papers"]
+    if not settings.enable_relevance_filter or not papers:
+        return {}
+
+    try:
+        chat_model = get_chat_model(temperature=0.0)
+    except Exception as exc:
+        logger.warning("Could not build a chat model for relevance scoring (%s) — keeping all %d paper(s)", exc, len(papers))
+        return {}
+
+    scores = score_papers(
+        chat_model,
+        state["research_question"],
+        papers,
+        criterion=DIRECT_RELEVANCE_CRITERION,
+        batch_max_chars=settings.relevance_batch_max_chars,
+    )
+    kept, dropped = apply_threshold(
+        papers,
+        scores,
+        min_score=settings.relevance_min_score,
+        keep_min=settings.relevance_keep_min,
+    )
+
+    logger.info(
+        "Relevance filter kept %d/%d paper(s) at a threshold of %d",
+        len(kept), len(papers), settings.relevance_min_score,
+    )
+    for paper in dropped:
+        logger.debug("Dropped as irrelevant (score %s): %s", paper.get("relevance_score"), paper.get("title"))
+    return {"merged_papers": kept, "papers_filtered_out": len(dropped)}
+
+
 def _paper_uid(paper: Paper) -> str:
     """A short, stable-ish identifier used to keep filenames from colliding
     when two papers share a (truncated) title slug."""
@@ -168,6 +215,10 @@ def save_metadata_node(state: LiteratureState) -> dict:
         "research_question": state["research_question"],
         "search_queries": state["search_queries"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        # Recorded so a thin paper pool is explicable after the fact — without
+        # it there's no way to tell a search that found little from a filter
+        # that discarded most of what it found.
+        "papers_filtered_out": state.get("papers_filtered_out", 0),
         "papers": state["merged_papers"],
     }
     metadata_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
