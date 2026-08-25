@@ -115,7 +115,16 @@ export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 # Hypothesis and the Planner had all completed: the run reached the Coder and
 # exited on a missing optional dependency, throwing away twenty minutes of
 # upstream work. Syncing it here costs nothing when it is already present.
-uv sync --quiet --extra checkpoint-sqlite
+# datasets-download is the Coder's dataset acquisition — see the same line in
+# run_pipeline.sbatch for why a run without it cannot report a verdict on a
+# compute node with no outbound route.
+uv sync --quiet --extra checkpoint-sqlite --extra datasets-download
+
+# Shared by every plan, every question and every array task — keyed by
+# (repo id, revision), so a sweep downloads a given dataset once, not once per
+# question. Must be on fastscratch, not localscratch, for that sharing to work.
+export CODER_DATASET_CACHE_DIR="${CODER_DATASET_CACHE_DIR:-/mnt/fastscratch/users/$USER/hf_datasets}"
+mkdir -p "$CODER_DATASET_CACHE_DIR"
 
 uv run research-pipeline orchestrate-batch \
     --questions-file "$QUESTIONS_FILE" \
