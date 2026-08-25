@@ -16,3 +16,7 @@ llama_server.log
 
 # Superseded by src/research_pipeline/ — kept on disk for reference, not tracked.
 Lit agent langraph.ipynb
+
+# Eval outputs. Gold sets under evals/gold/ are tracked on purpose —
+# they are the ground truth every measurement is made against.
+evals/runs/

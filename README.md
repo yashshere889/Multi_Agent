@@ -951,6 +951,45 @@ Worth knowing before running it unattended:
 uv run pytest
 ```
 
+## Evaluating the search agents
+
+`pytest` proves the code does what it says; it can't tell you whether the search
+is any *good*. That's what `research_pipeline/eval/` is for — it makes "did that
+change help?" answerable about the Literature and Interdisciplinary Literature
+agents, which are otherwise judged by reading a few titles and forming an
+impression.
+
+Ground truth comes from real survey bibliographies fetched through Semantic
+Scholar, never from a model:
+
+```bash
+uv run research-pipeline eval-bootstrap --survey "arXiv:2312.10997" --question "how does retrieval augmentation affect factual accuracy?" --min-year 2015
+```
+
+```bash
+uv run research-pipeline eval-run --gold evals/gold --name baseline --judge
+```
+
+A run searches each question **once**, with the in-pipeline relevance screen
+disabled, and saves the whole raw pool — then replays the screen over it at
+every threshold. Searching is the slow, rate-limited, non-deterministic part, so
+running it twice to A/B one variable would double the cost and add a second
+sample of API flakiness to the very comparison meant to isolate that variable.
+Re-scoring a saved run (`eval-score`) touches no network at all, so a new metric
+or a new threshold costs nothing.
+
+The headline output is a sweep showing what each `RELEVANCE_MIN_SCORE` keeps,
+what it costs in recall, and how many papers an independent judge would have
+kept that the threshold discards. Recall is a *relative* signal — a survey
+bibliography holds far more papers than one run returns, so even a perfect
+search scores well below 1.0; what matters is whether a change moves it.
+
+Metrics are deterministic and LLM-free by default. The one judgment that no gold
+set can supply — precision over papers a bibliography never enumerated — is
+quarantined behind `--judge` in `eval/judge.py`, and deliberately does **not**
+reuse the relevance screen's rubric: grading the screen with its own answer key
+would measure nothing. See [evals/README.md](evals/README.md).
+
 ## Notes on this version vs. the original notebook
 
 - LLM/Barkla config is env-driven (`.env`) instead of hardcoded/Kaggle-specific.
