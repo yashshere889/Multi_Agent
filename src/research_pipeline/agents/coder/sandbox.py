@@ -10,6 +10,7 @@ import importlib.util
 import json
 import logging
 import math
+import os
 import py_compile
 import re
 import shutil
@@ -979,6 +980,33 @@ def ensure_experiment_env(
     return venv_python, None
 
 
+def _interpreter_path(python_executable: Path) -> str:
+    """An absolute path to `python_executable` that still goes *through* a venv.
+
+    Absolute because the subprocesses below set `cwd` to the experiment
+    directory, and CODER_EXPERIMENTS_DIR defaults to a relative "experiments" —
+    a relative interpreter path would be re-resolved against the subprocess's
+    own cwd, looking under experiments/H1/experiments/H1/.
+
+    `os.path.abspath`, emphatically **not** `Path.resolve()`. A venv's
+    `bin/python` is a symlink to the base interpreter, and resolving it hands
+    back that base interpreter — which has no idea the venv exists and cannot
+    see a single thing installed into it. That is a venv-destroying operation
+    dressed up as path normalisation, and it produced the failure that ended
+    Barkla jobs 10410771 and 10410847: `uv pip install --python <venv>/bin/python
+    numpy` reports success, the package really is in the venv's site-packages,
+    and the very next `<resolved base python> -c "import numpy"` raises
+    ModuleNotFoundError. Measured directly on Barkla:
+
+        ./.venv/bin/python -c "import numpy"   -> OK 2.5.2
+        $(resolve .venv/bin/python) -c "..."   -> ModuleNotFoundError
+
+    abspath normalises the path without following symlinks, which is exactly
+    what is wanted here.
+    """
+    return os.path.abspath(python_executable)
+
+
 def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
     """Can *this* interpreter import this module, from the directory run.py runs in?
 
@@ -997,7 +1025,10 @@ def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
         return False
     try:
         proc = subprocess.run(
-            [str(python_executable), "-c", f"import {module.split('.')[0]}"],
+            # Same interpreter path run_experiment will use — see
+            # _interpreter_path. If these two disagree, this check answers about
+            # a different interpreter than the one that runs the code.
+            [_interpreter_path(python_executable), "-c", f"import {module.split('.')[0]}"],
             cwd=str(cwd),
             capture_output=True,
             text=True,
@@ -1056,19 +1087,20 @@ def run_experiment(
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
     diagnosable tail of stdout/stderr (or a timeout note) on failure."""
-    # run_script and python_executable are both resolved to absolute paths
-    # before being handed to the subprocess. experiments_dir
-    # (CODER_EXPERIMENTS_DIR) defaults to a relative "experiments", so a
-    # caller passing experiment_dir / "run.py" (or a venv python under it)
-    # hands us relative paths here too; since cwd below is that same
-    # relative directory, a relative path would get re-resolved against the
-    # subprocess's cwd instead of the launching process's, doubling the
-    # directory (experiments/H1/experiments/H1/run.py) — or, for
-    # python_executable, raising a FileNotFoundError for a venv interpreter
-    # that does exist, just not under that doubled path.
+    # Both paths are made absolute before being handed to the subprocess, since
+    # cwd below is the experiment directory and CODER_EXPERIMENTS_DIR defaults
+    # to a relative "experiments" — a relative path would be re-resolved against
+    # the subprocess's own cwd, doubling the directory
+    # (experiments/H1/experiments/H1/run.py).
+    #
+    # The interpreter goes through _interpreter_path rather than .resolve():
+    # resolving a venv's bin/python follows the symlink to the base interpreter
+    # and silently discards the venv. run_script is a real file, so resolving it
+    # is harmless, but it uses the same helper to keep one answer to "how is a
+    # path made absolute here".
     try:
         proc = subprocess.run(
-            [str(python_executable.resolve()), str(run_script.resolve())],
+            [_interpreter_path(python_executable), _interpreter_path(run_script)],
             cwd=str(cwd),
             capture_output=True,
             text=True,
