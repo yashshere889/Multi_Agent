@@ -240,6 +240,59 @@ def test_render_sbatch_template_includes_hypothesis_id():
     assert "sbatch" in text.lower()
 
 
+def test_the_experiment_venv_is_built_with_the_requested_python(tmp_path, monkeypatch):
+    """Barkla job 10334394 generated a valid TensorFlow experiment and could not
+    provision it: the pipeline runs on 3.14 and uv reported "all versions of
+    tensorflow have no wheels with a matching Python ABI tag (cp314) ... we only
+    found cp310, cp311, cp312, cp313". Nothing was wrong with the code, and
+    env-provisioning failures are terminal by design, so every torch/tensorflow
+    experiment on that host died at the same gate."""
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+        if command[:2] == ["uv", "venv"]:
+            # uv venv creates the interpreter the install step then targets.
+            target = Path(command[-1])
+            (target / "bin").mkdir(parents=True, exist_ok=True)
+            (target / "bin" / "python").write_text("")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("tensorflow\n")
+
+    sandbox.ensure_experiment_env(
+        tmp_path, requirements, network_available=True, python_version="3.12"
+    )
+
+    venv_call = next(call for call in calls if call[:2] == ["uv", "venv"])
+    assert venv_call[2:4] == ["--python", "3.12"]
+
+
+def test_no_requested_python_leaves_the_venv_call_as_it_was(tmp_path, monkeypatch):
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+        if command[:2] == ["uv", "venv"]:
+            target = Path(command[-1])
+            (target / "bin").mkdir(parents=True, exist_ok=True)
+            (target / "bin" / "python").write_text("")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("tensorflow\n")
+
+    sandbox.ensure_experiment_env(tmp_path, requirements, network_available=True)
+
+    venv_call = next(call for call in calls if call[:2] == ["uv", "venv"])
+    assert "--python" not in venv_call
+
+
 def test_ensure_experiment_env_returns_current_interpreter_when_nothing_missing(tmp_path):
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("os\n")  # stdlib, never "missing"

@@ -1238,6 +1238,7 @@ class CoderAgent:
             network_available,
             extra_requirements,
             venv_root=Path(settings.coder_venv_root) if settings.coder_venv_root else None,
+            python_version=settings.coder_experiment_python or None,
         )
         # Checked as `is None` rather than `if env_error` so the interpreter is
         # narrowed to a Path for the run below; ensure_experiment_env's contract

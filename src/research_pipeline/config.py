@@ -44,6 +44,7 @@ class Settings:
     coder_max_env_repairs: int
     coder_data_dir: str
     coder_venv_root: str
+    coder_experiment_python: str
     coder_enable_hf_dataset_search: bool
     coder_dataset_download: bool
     coder_dataset_max_candidates: int
@@ -237,6 +238,16 @@ def load_settings() -> Settings:
         # cleared automatically. The venv is rebuilt per job either way, so
         # nothing is lost by keeping it off the shared filesystem.
         coder_venv_root=os.environ.get("CODER_VENV_ROOT", ""),
+        # The interpreter each experiment's throwaway venv is built with, rather
+        # than whatever is running the pipeline. The ML stack lags new Python
+        # releases by months, and a pipeline on a newer one cannot provision any
+        # experiment that imports torch or tensorflow: Barkla job 10334394 died
+        # on "all versions of tensorflow have no wheels with a matching Python
+        # ABI tag (cp314)" with nothing wrong in the generated code, and
+        # env-provisioning failures are terminal by design. uv fetches this
+        # version if the host does not have it. Empty means "whatever is running
+        # the pipeline", which is the old behaviour.
+        coder_experiment_python=os.environ.get("CODER_EXPERIMENT_PYTHON", "3.12"),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

@@ -903,6 +903,7 @@ def ensure_experiment_env(
     network_available: bool,
     extra_requirements: list[str] | None = None,
     venv_root: Path | None = None,
+    python_version: str | None = None,
 ) -> tuple[Path | None, str | None]:
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
@@ -927,7 +928,22 @@ def ensure_experiment_env(
     requirements.txt entries (skipped if already importable) and, when
     actually missing, installed the same way; they're just never written to
     requirements.txt on disk, since that file documents what *this
-    experiment's own code* declared, not what shared infra happens to need."""
+    experiment's own code* declared, not what shared infra happens to need.
+
+    `python_version` ("3.12") is the interpreter the venv is built with, rather
+    than whatever is running the pipeline. The ML stack lags new Python
+    releases by months: a Barkla run (job 10334394) generated a perfectly good
+    TensorFlow experiment and could not provision it, because the pipeline runs
+    on 3.14 and uv reported "all versions of tensorflow have no wheels with a
+    matching Python ABI tag (cp314) ... we only found cp310, cp311, cp312,
+    cp313". Nothing about the generated code was wrong, and the fix loop cannot
+    help — env-provisioning failures are terminal by design — so every
+    torch/tensorflow experiment on that host failed at the same gate.
+
+    Only honoured on the `uv` path, which can fetch an interpreter it does not
+    have. The stdlib fallback can only ever use `sys.executable`, so it ignores
+    this rather than pretending; that is why the version is a preference and not
+    a hard requirement."""
     requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
     combined_requirements = requirements + list(extra_requirements or [])
     missing = missing_packages(combined_requirements)
@@ -983,7 +999,12 @@ def ensure_experiment_env(
     try:
         if use_uv:
             subprocess.run(
-                ["uv", "venv", str(venv_dir)],
+                [
+                    "uv",
+                    "venv",
+                    *(("--python", python_version) if python_version else ()),
+                    str(venv_dir),
+                ],
                 check=True,
                 capture_output=True,
                 text=True,
