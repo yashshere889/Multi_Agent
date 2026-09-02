@@ -10,6 +10,7 @@ from research_pipeline.agents.experiment_planner.experiment_planner_agent import
 from research_pipeline.agents.experiment_planner.schema import (
     SchemaValidationError,
     clean_shared_infrastructure,
+    narrow_to_hypotheses,
     validate_output,
 )
 
@@ -365,3 +366,56 @@ def test_run_deterministically_coerces_priority_order_when_repair_also_fails(tmp
     assert sorted(e["hypothesis_id"] for e in result["priority_order"]) == ["H1", "H2", "H3"]
     assert sorted(e["rank"] for e in result["priority_order"]) == [1, 2, 3]
     assert not list(tmp_path.glob("experiment_plan_*_invalid.json"))
+
+
+# -- schema.py: narrowing an output to a subset of its plans ---------------------------
+
+
+def test_narrowing_to_one_hypothesis_stays_valid():
+    """Filtering experiment_plans alone leaves priority_order a permutation over
+    ids that no longer exist, which validate_output rejects and run_coder_agent
+    therefore refuses."""
+    narrowed = narrow_to_hypotheses(_valid_output(), ["H2"])
+
+    validate_output(narrowed)
+    assert [p["hypothesis_id"] for p in narrowed["experiment_plans"]] == ["H2"]
+    assert narrowed["priority_order"] == [
+        {"hypothesis_id": "H2", "rank": 1, "justification": "cheap to implement"}
+    ]
+    assert narrowed["source_hypothesis_ids"] == ["H2"]
+
+
+def test_narrowing_keeps_the_planner_s_own_ordering():
+    narrowed = narrow_to_hypotheses(_valid_output(), ["H3", "H1"])
+
+    validate_output(narrowed)
+    # H1 outranked H3 in the original, and the re-rank preserves that rather
+    # than taking the caller's argument order.
+    assert [e["hypothesis_id"] for e in narrowed["priority_order"]] == ["H1", "H3"]
+    assert [e["rank"] for e in narrowed["priority_order"]] == [1, 2]
+
+
+def test_narrowing_leaves_everything_else_untouched():
+    original = _valid_output()
+
+    narrowed = narrow_to_hypotheses(original, ["H1"])
+
+    assert narrowed["shared_infrastructure"] == original["shared_infrastructure"]
+    assert narrowed["model"] == original["model"]
+    assert original["experiment_plans"] == _valid_output()["experiment_plans"]  # not mutated
+
+
+def test_narrowing_appends_a_plan_the_priority_order_never_mentioned():
+    data = _valid_output()
+    data["priority_order"] = data["priority_order"][:1]  # only H1 ranked
+
+    narrowed = narrow_to_hypotheses(data, ["H1", "H2"])
+
+    assert [e["hypothesis_id"] for e in narrowed["priority_order"]] == ["H1", "H2"]
+    assert [e["rank"] for e in narrowed["priority_order"]] == [1, 2]
+    validate_output(narrowed)
+
+
+def test_narrowing_to_a_hypothesis_with_no_plan_is_an_error():
+    with pytest.raises(SchemaValidationError, match="no experiment plan"):
+        narrow_to_hypotheses(_valid_output(), ["H9"])

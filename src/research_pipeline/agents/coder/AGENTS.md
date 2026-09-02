@@ -208,7 +208,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   experiment never ran). A venv whose `bin/python` exists is now kept and only installed into again;
   a *half-built* one — directory present, no interpreter — is still wiped, which is the recovery the
   wipe existed for. Don't collapse those two cases back together.
-- **Never `Path.resolve()` an experiment interpreter — use `_interpreter_path`.** A venv's
+- **Never `Path.resolve()` an experiment interpreter — use `launch_path`.** A venv's
   `bin/python` is a symlink to the base interpreter, and resolving it hands back that base
   interpreter, which cannot see anything installed into the venv. It is a venv-destroying operation
   dressed up as path normalisation, and it is what ended Barkla jobs 10410771 and 10410847:
@@ -217,7 +217,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   Measured on Barkla: `./.venv/bin/python -c "import numpy"` → OK, `$(resolve …) -c "import numpy"` →
   ModuleNotFoundError. `os.path.abspath` gives the absolute path the subprocesses need (their `cwd`
   is the experiment dir, and `CODER_EXPERIMENTS_DIR` defaults to a relative `experiments`) without
-  following symlinks. `module_importable` and `run_experiment` both go through the helper and must
+  following symlinks. `module_importable` and `run_experiment` both go through `launch_path` and must
   keep agreeing — when they disagree, a repair that worked reads as "installed but still not
   importable" and ends the attempt.
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or

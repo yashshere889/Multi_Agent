@@ -20,6 +20,7 @@ import argparse
 import json
 import logging
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from research_pipeline import batch
@@ -33,7 +34,7 @@ from research_pipeline.agents.interdisciplinary_literature import (
 from research_pipeline.agents.literature.graph import build_literature_graph
 from research_pipeline.agents.reviewer import run_reviewer_agent
 from research_pipeline.agents.writer import run_writer_agent
-from research_pipeline.orchestrator.graph import build_pipeline_graph
+from research_pipeline.orchestrator.graph import STAGE_FOR_OUTPUT_KEY, build_pipeline_graph
 from research_pipeline.writer_reviewer_loop import run_writer_reviewer_loop
 
 logger = logging.getLogger(__name__)
@@ -259,22 +260,86 @@ def run_writer_reviewer_loop_cli(args: argparse.Namespace) -> None:
             print(f"- {issue}")
 
 
+def _resume_inputs(resume_from_file: str) -> dict:
+    """The graph inputs that pick a previous partial run back up.
+
+    Reads the JSON a partial `orchestrate` run wrote (`stages_completed` plus
+    each stage's raw output) and turns it into `resume_from` — the stage that
+    run stopped after — plus the stage outputs to seed the new run's state with.
+    The entry point does the rest; see orchestrator/graph.py's _entry_router.
+    """
+    previous = json.loads(Path(resume_from_file).read_text())
+    completed = previous.get("stages_completed") or []
+    if not completed:
+        raise SystemExit(
+            f"{resume_from_file} has no completed stages to resume from. Point --resume-from-file at an "
+            "orchestrate_partial_<timestamp>.json written by a run that stopped at an earlier --end-stage."
+        )
+
+    unknown = [key for key in completed if key not in STAGE_FOR_OUTPUT_KEY]
+    missing = [key for key in completed if key not in previous]
+    if unknown or missing:
+        raise SystemExit(
+            f"{resume_from_file} lists stage(s) this pipeline cannot resume from: "
+            f"{', '.join(unknown + missing)}."
+        )
+
+    inputs = {key: previous[key] for key in completed}
+    inputs["resume_from"] = STAGE_FOR_OUTPUT_KEY[completed[-1]]
+    return inputs
+
+
+def _write_partial_result(result: dict, output_dir: str | None) -> Path:
+    """Persist a partial run's bundle so `--resume-from-file` has something to
+    point at. Every stage already wrote its own output file; what only exists in
+    memory is *which* stages ran and their outputs gathered into one dict.
+
+    Timestamped rather than overwritten, matching how every agent writes its own
+    output — two partial runs of the same question must not clobber each other.
+    """
+    directory = Path(output_dir or "outputs")
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"orchestrate_partial_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    path.write_text(json.dumps(result, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    return path
+
+
 def run_orchestrate_cli(args: argparse.Namespace) -> None:
     graph = build_pipeline_graph()
     run_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-    state = graph.invoke(
-        {
-            "research_question": args.question,
-            "max_results_per_query": args.max_results,
-            "download_dir": args.download_dir,
-            "metadata_path": f"{args.download_dir}/metadata.json",
-            "output_dir": args.output_dir,
-            "max_iterations": args.max_iterations,
-            "quality_threshold": args.quality_threshold,
-        },
-        config=run_config,
-    )
+    inputs = {
+        "research_question": args.question,
+        "max_results_per_query": args.max_results,
+        "download_dir": args.download_dir,
+        "metadata_path": f"{args.download_dir}/metadata.json",
+        "output_dir": args.output_dir,
+        "max_iterations": args.max_iterations,
+        "quality_threshold": args.quality_threshold,
+        "end_stage": args.end_stage,
+        "include_interdisciplinary": not args.no_interdisciplinary,
+    }
+    if args.hypothesis_ids:
+        inputs["planned_hypothesis_ids"] = [h.strip() for h in args.hypothesis_ids.split(",") if h.strip()]
+
+    if args.papers_file:
+        # The question is still required and still used: every later stage's
+        # prompts frame their work around it, papers or no papers.
+        inputs["start_stage"] = "own_papers"
+        inputs["seed_papers"] = json.loads(Path(args.papers_file).read_text())
+
+    if args.resume_from_file:
+        inputs.update(_resume_inputs(args.resume_from_file))
+
+    state = graph.invoke(inputs, config=run_config)
     result = state["final_result"]
+
+    # A run that stopped before the Writer/Reviewer stage has no paper to report
+    # — just which stages ran, each having written its own output file already.
+    if "stages_completed" in result:
+        print(f"\nStopped after: {args.end_stage}")
+        print(f"Stages completed: {', '.join(result['stages_completed'])}")
+        print(f"Partial run written to: {_write_partial_result(result, args.output_dir)}")
+        return
 
     print(f"\nFinal paper: {result['final_paper_path']}")
     print(f"Iterations run: {result['iterations_run']}")
@@ -538,6 +603,50 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="minimum 1-5 quality score to pass (default: 4)",
+    )
+    orchestrate.add_argument(
+        "--end-stage",
+        choices=[
+            "literature",
+            "interdisciplinary_literature",
+            "hypothesis",
+            "experiment_planner",
+            "coder",
+            "writer_reviewer",
+        ],
+        default="writer_reviewer",
+        help="stop the run after this stage (default: writer_reviewer, i.e. the whole pipeline)",
+    )
+    orchestrate.add_argument(
+        "--no-interdisciplinary",
+        action="store_true",
+        help="skip the cross-field Interdisciplinary Literature stage",
+    )
+    orchestrate.add_argument(
+        "--hypothesis-ids",
+        default=None,
+        help=(
+            "comma-separated hypothesis ids for the Experiment Planner to take forward "
+            "(default: whichever the Hypothesis Agent ranked first). Useful with "
+            "--resume-from-file after reading a run that stopped at the hypothesis stage"
+        ),
+    )
+    orchestrate.add_argument(
+        "--papers-file",
+        default=None,
+        help=(
+            "JSON list of paper dicts to start from instead of running the literature search; "
+            "the question argument is still used as the research question by every later stage"
+        ),
+    )
+    orchestrate.add_argument(
+        "--resume-from-file",
+        default=None,
+        help=(
+            "JSON written by an earlier partial run (orchestrate_partial_<timestamp>.json): its finished "
+            "stages are carried forward and this run picks up after the last of them, so use --end-stage "
+            "to say how much further to go"
+        ),
     )
     orchestrate.set_defaults(func=run_orchestrate_cli)
 

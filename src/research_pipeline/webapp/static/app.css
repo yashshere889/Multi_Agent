@@ -45,6 +45,12 @@ header.site {
 .brand { font-weight: 600; color: var(--ink); text-decoration: none; }
 .pipeline { color: var(--muted); font-size: 13px; }
 
+/* Every link, not just the ones inside a table: the default blue-and-underlined
+   link is unreadable against the dark palette, and .brand / td a had been
+   overriding it one selector at a time. */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
 main { max-width: 62rem; margin: 0 auto; padding: 1.5rem; }
 
 .card {
@@ -70,7 +76,7 @@ h1.question { font-weight: 600; line-height: 1.35; }
 
 /* --- form --- */
 .start-form label { display: block; font-weight: 500; margin-bottom: .3rem; font-size: 13px; }
-textarea, input[type="number"] {
+textarea, input[type="number"], select {
   width: 100%;
   padding: .55rem .7rem;
   border: 1px solid var(--line);
@@ -82,6 +88,41 @@ textarea, input[type="number"] {
 textarea { resize: vertical; }
 .fields { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
 .fields > div { flex: 1 1 12rem; }
+
+/* Accent the small controls so they don't render as bright platform blue on a
+   dark card; the rest of their look is the browser default. */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+
+/* Where the run starts. The papers box is hidden until its radio is checked —
+   a sibling selector rather than JavaScript, which is why the two radios sit
+   directly before .own-papers in index.html. */
+.start-mode {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .5rem 1rem 1rem;
+  margin: 1rem 0;
+}
+.start-mode legend { font-size: 13px; font-weight: 500; padding: 0 .35rem; }
+.start-form .start-mode > label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin: 0 1.25rem .25rem .4rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+.own-papers { display: none; margin-top: .75rem; }
+#start_own:checked ~ .own-papers { display: block; }
+.own-papers code { font-size: 12px; }
+
+.start-form label.check {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 1rem;
+  font-weight: 400;
+  cursor: pointer;
+}
 
 button, .button-link {
   display: inline-block;
@@ -101,8 +142,6 @@ button.danger { background: transparent; color: var(--err); border-color: var(--
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .5rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 500; }
-td a { color: var(--accent); text-decoration: none; }
-td a:hover { text-decoration: underline; }
 
 .badge {
   display: inline-block;
@@ -125,6 +164,14 @@ td a:hover { text-decoration: underline; }
 
 .final { border-left: 3px solid var(--ok); padding: .5rem .75rem; margin: .75rem 0; }
 .issues { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+
+/* Picking a stopped run back up. Layout only — every colour is inherited from
+   the controls' own rules above. The select needs its width reset because the
+   shared rule stretches it to fill a stacked form column, not a flex row. */
+.continue-form { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.continue-form label { font-size: 13px; font-weight: 500; }
+.continue-form label.check { display: flex; align-items: center; gap: .35rem; font-weight: 400; cursor: pointer; }
+.continue-form select { width: auto; padding: .35rem .5rem; }
 
 ol.stages { list-style: none; margin: 1rem 0 0; padding: 0; }
 .stage { border-left: 2px solid var(--line); padding: 0 0 1rem 1rem; margin-left: .4rem; position: relative; }
@@ -178,3 +225,104 @@ ol.stages { list-style: none; margin: 1rem 0 0; padding: 0; }
 .log-msg { white-space: pre-wrap; word-break: break-word; }
 .log-warning .log-level, .log-warning .log-msg { color: var(--warn); }
 .log-error .log-level, .log-error .log-msg, .log-critical .log-msg { color: var(--err); }
+
+/* --- run artifact browser ------------------------------------------------ */
+
+.question-echo { margin: -.5rem 0 .75rem; }
+
+table.files td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+table.files td { white-space: nowrap; }
+table.files td:first-child { white-space: normal; word-break: break-all; }
+
+.file-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  word-break: break-all;
+  margin-bottom: .35rem;
+}
+
+/* Generated experiment code and stage JSON are both wide. Scrolling the block
+   rather than the page keeps the run's own navigation reachable. */
+.file-body {
+  margin: 0;
+  max-height: 70vh;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+  tab-size: 4;
+}
+
+/* --- experiment inspector ------------------------------------------------ */
+
+.experiment-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.experiment-head h2 { margin: 0; }
+.experiment h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--muted); font-weight: 500; margin: 1.1rem 0 .4rem; }
+
+/* The one thing on this page that must not read as a footnote: metrics with no
+   verdict look like a bug until you know the agent withheld it on purpose. */
+.withheld {
+  border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  padding: .6rem .8rem;
+  margin: .75rem 0;
+}
+.withheld p { margin: 0 0 .3rem; }
+.withheld p:last-child { margin-bottom: 0; }
+
+table.metrics { width: auto; }
+table.metrics td { padding: .2rem .9rem .2rem 0; border: 0; }
+.metric-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.inputs, .experiment-files { margin: .3rem 0; padding-left: 1.1rem; }
+.inputs li, .experiment-files li { margin-bottom: .35rem; }
+
+.fix-history { margin: .3rem 0; padding-left: 1.4rem; }
+.fix-history > li { margin-bottom: .8rem; }
+.fix-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .3rem; }
+
+/* Tracebacks and lint output, capped so three failed attempts don't turn the
+   page into a scroll. */
+.fix-error {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: .5rem .6rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+
+.rerun { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: .9rem 0; }
+.rerun button { white-space: nowrap; }
+
+/* --- steering the hypothesis choice --------------------------------------- */
+
+.steer { border: 1px solid var(--line); border-radius: 8px; padding: .75rem .9rem; margin: 0 0 .75rem; }
+.steer legend { padding: 0 .35rem; font-size: 12px; text-transform: uppercase;
+                letter-spacing: .04em; color: var(--muted); }
+.steer > p { margin: 0 0 .6rem; }
+
+/* Each choice is a whole hypothesis, not a word, so the label wraps as a block
+   with the checkbox held at the top rather than centred against three lines.
+   Scoped through .continue-form to outrank its own `label.check` rule, which
+   centres a checkbox against a single line of text. */
+.continue-form label.steer-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  margin-bottom: .7rem;
+}
+.continue-form label.steer-choice:last-child { margin-bottom: 0; }
+.continue-form label.steer-choice input { margin-top: .25rem; flex: none; }
+.steer-statement { display: block; margin-top: .25rem; }
+.steer-choice > span { min-width: 0; }
+.steer-why { display: block; margin-top: .15rem; font-size: 13px; }

@@ -9,6 +9,30 @@
     <textarea id="question" name="question" rows="3" required
               placeholder="e.g. Do retrieval-augmented language models reduce hallucination on long-form question answering?"></textarea>
 
+    {# CSS-only toggle: #start_own and .own-papers are siblings, so the papers box
+       is revealed by `#start_own:checked ~ .own-papers` in app.css. Keeping the
+       radios flat here (not wrapped in a row div) is what lets `~` reach it —
+       the alternative would be the first line of interactive JavaScript in this
+       UI, for a form that has never needed any. #}
+    <fieldset class="start-mode">
+      <legend>Papers</legend>
+      <input type="radio" id="start_search" name="start_mode" value="search" checked>
+      <label for="start_search">Search for papers</label>
+      <input type="radio" id="start_own" name="start_mode" value="own_papers">
+      <label for="start_own">I already have papers</label>
+
+      <div class="own-papers">
+        <label for="seed_papers">Your papers — a JSON array</label>
+        <textarea id="seed_papers" name="seed_papers" rows="6"
+                  placeholder='[{"title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP", "authors": ["Lewis, P."], "abstract": "...", "year": 2020, "doi": "10.48550/arXiv.2005.11401"}]'></textarea>
+        <p class="muted">
+          Used in place of the search. Only <code>title</code> is required — <code>authors</code>,
+          <code>abstract</code>, <code>year</code>, <code>doi</code> and <code>pdf_url</code> are used when present.
+          Papers with no title are dropped.
+        </p>
+      </div>
+    </fieldset>
+
     <div class="fields">
       <div>
         <label for="max_results">Papers per query, per source</label>
@@ -25,11 +49,35 @@
         <input id="quality_threshold" name="quality_threshold" type="number" min="1" max="5"
                placeholder="{{ settings.writer_reviewer_quality_threshold }}">
       </div>
+      <div>
+        <label for="end_stage">Run up to</label>
+        <select id="end_stage" name="end_stage">
+          {% for value, label in end_stage_choices %}
+          <option value="{{ value }}" {% if value == default_end_stage %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
+
+    <label class="check" for="include_interdisciplinary">
+      <input type="checkbox" id="include_interdisciplinary" name="include_interdisciplinary" value="1" checked>
+      Cross-pollinate with adjacent fields (Interdisciplinary Literature stage)
+    </label>
+
+    <label class="check" for="steer_hypothesis">
+      <input type="checkbox" id="steer_hypothesis" name="steer_hypothesis" value="1">
+      Stop after the hypotheses and let me choose which one to take forward
+    </label>
+    <p class="muted">
+      Without this, the Experiment Planner takes whichever hypothesis the ranking put first.
+      With it, the run stops after the Hypothesis Agent, shows you all three with their ranks
+      and scores, and continues to the stage you picked above once you have chosen.
+    </p>
 
     <p class="muted">
       A full run searches for papers, synthesizes hypotheses, plans and executes experiments, then drafts and
-      reviews a paper — expect tens of minutes. Blank fields use the configured defaults.
+      reviews a paper — expect tens of minutes. Stopping earlier is proportionally faster: the run ends after the
+      stage you pick, keeping every output produced up to there. Blank fields use the configured defaults.
     </p>
     <button type="submit">Run pipeline</button>
   </form>

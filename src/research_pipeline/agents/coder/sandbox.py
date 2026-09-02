@@ -1086,29 +1086,33 @@ def ensure_experiment_env(
     return venv_python, None
 
 
-def _interpreter_path(python_executable: Path) -> str:
-    """An absolute path to `python_executable` that still goes *through* a venv.
+def launch_path(python_executable: Path) -> str:
+    """Absolute path to an interpreter, WITHOUT resolving symlinks.
 
-    Absolute because the subprocesses below set `cwd` to the experiment
-    directory, and CODER_EXPERIMENTS_DIR defaults to a relative "experiments" —
-    a relative interpreter path would be re-resolved against the subprocess's
-    own cwd, looking under experiments/H1/experiments/H1/.
+    Both halves matter, and each closes a production failure.
 
-    `os.path.abspath`, emphatically **not** `Path.resolve()`. A venv's
-    `bin/python` is a symlink to the base interpreter, and resolving it hands
-    back that base interpreter — which has no idea the venv exists and cannot
-    see a single thing installed into it. That is a venv-destroying operation
-    dressed up as path normalisation, and it produced the failure that ended
-    Barkla jobs 10410771 and 10410847: `uv pip install --python <venv>/bin/python
-    numpy` reports success, the package really is in the venv's site-packages,
-    and the very next `<resolved base python> -c "import numpy"` raises
-    ModuleNotFoundError. Measured directly on Barkla:
+    Absolute: experiments_dir (CODER_EXPERIMENTS_DIR) defaults to a relative
+    "experiments", so a venv interpreter built from experiment_dir is relative
+    too. Every subprocess here runs with cwd=experiment_dir — that same
+    relative directory — so a relative interpreter path gets re-resolved
+    against the subprocess's cwd, doubling the directory
+    (experiments/H1/experiments/H1/.venv/bin/python) and raising
+    FileNotFoundError for an interpreter that does exist.
 
-        ./.venv/bin/python -c "import numpy"   -> OK 2.5.2
-        $(resolve .venv/bin/python) -c "..."   -> ModuleNotFoundError
+    Not resolved: a venv's bin/python is a *symlink* to the base interpreter,
+    and PEP 405 keys venv detection off the pyvenv.cfg beside the path used to
+    launch. Follow the symlink and you launch the base interpreter in the base
+    environment, which has none of the venv's packages. On Barkla job 10279682
+    that made every install unobservable to the code it was installed for: the
+    Coder installed numpy six times, confirmed each time that the venv
+    interpreter could import it, and still got `ModuleNotFoundError: No module
+    named 'numpy'` from run.py, which was being launched with the resolved base
+    interpreter. The whole env-repair budget and all three fix attempts went on
+    that one contradiction, and the paper was written with no experiment run.
 
-    abspath normalises the path without following symlinks, which is exactly
-    what is wanted here.
+    os.path.abspath rather than Path.resolve() or Path.absolute(): it
+    normalizes the path lexically (so "." and ".." segments go away) without
+    touching the filesystem, which is exactly the combination wanted here.
     """
     return os.path.abspath(python_executable)
 
@@ -1131,10 +1135,7 @@ def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
         return False
     try:
         proc = subprocess.run(
-            # Same interpreter path run_experiment will use — see
-            # _interpreter_path. If these two disagree, this check answers about
-            # a different interpreter than the one that runs the code.
-            [_interpreter_path(python_executable), "-c", f"import {module.split('.')[0]}"],
+            [launch_path(python_executable), "-c", f"import {module.split('.')[0]}"],
             cwd=str(cwd),
             capture_output=True,
             text=True,
@@ -1193,20 +1194,22 @@ def run_experiment(
     directory (so relative paths like ./results.json resolve correctly).
     Returns (succeeded, message) — message is empty on success, or a
     diagnosable tail of stdout/stderr (or a timeout note) on failure."""
-    # Both paths are made absolute before being handed to the subprocess, since
-    # cwd below is the experiment directory and CODER_EXPERIMENTS_DIR defaults
-    # to a relative "experiments" — a relative path would be re-resolved against
-    # the subprocess's own cwd, doubling the directory
+    # run_script and python_executable are both made absolute before being
+    # handed to the subprocess. experiments_dir (CODER_EXPERIMENTS_DIR)
+    # defaults to a relative "experiments", so a caller passing
+    # experiment_dir / "run.py" (or a venv python under it) hands us relative
+    # paths here too; since cwd below is that same relative directory, a
+    # relative path would get re-resolved against the subprocess's cwd instead
+    # of the launching process's, doubling the directory
     # (experiments/H1/experiments/H1/run.py).
     #
-    # The interpreter goes through _interpreter_path rather than .resolve():
-    # resolving a venv's bin/python follows the symlink to the base interpreter
-    # and silently discards the venv. run_script is a real file, so resolving it
-    # is harmless, but it uses the same helper to keep one answer to "how is a
-    # path made absolute here".
+    # The interpreter goes through launch_path rather than .resolve(), which
+    # would follow a venv's bin/python symlink to the base interpreter and run
+    # the code in the base environment — see launch_path's docstring for the
+    # run that cost.
     try:
         proc = subprocess.run(
-            [_interpreter_path(python_executable), _interpreter_path(run_script)],
+            [launch_path(python_executable), str(run_script.resolve())],
             cwd=str(cwd),
             capture_output=True,
             text=True,

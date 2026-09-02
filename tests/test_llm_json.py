@@ -4,7 +4,13 @@ from types import SimpleNamespace
 import pytest
 
 from research_pipeline import llm, llm_json
-from research_pipeline.llm_json import LLMJSONError, invoke_json, strip_fences, strip_reasoning
+from research_pipeline.llm_json import (
+    LLMJSONError,
+    invoke_json,
+    salvage_json_list,
+    strip_fences,
+    strip_reasoning,
+)
 
 
 class FakeChatModel:
@@ -19,7 +25,12 @@ class FakeChatModel:
     def invoke(self, messages, **kwargs):
         self.calls.append(messages)
         self.call_kwargs.append(kwargs)
-        return SimpleNamespace(content=self.responses.pop(0))
+        response = self.responses.pop(0)
+        # A queued (content, metadata) pair stands in for a response the server
+        # annotated — finish_reason="length" is how an OpenAI-compatible server
+        # says it cut the model off at max_tokens.
+        content, metadata = response if isinstance(response, tuple) else (response, {})
+        return SimpleNamespace(content=content, response_metadata=metadata)
 
 
 # -- strip_reasoning: Nemotron <think> traces --------------------------------------------
@@ -247,3 +258,74 @@ def test_a_present_field_is_never_overwritten():
 
 def test_a_non_dict_payload_passes_through():
     assert llm_json.repair_keys("not a dict", HYPOTHESIS_KEYS) == "not a dict"
+
+
+# -- truncated responses -----------------------------------------------------------------
+
+
+def test_invoke_json_does_not_spend_a_repair_turn_on_a_truncated_response():
+    """Regression test for Barkla job 10279682: a Reviewer hallucination check
+    came back cut off at the completion cap, and the repair turn — same prompt,
+    same max_tokens — regenerated the same over-long answer and was cut at the
+    byte-identical place, three minutes later. The retry cannot succeed, so it
+    is not attempted."""
+    cut_off = '{"hallucinations": [{"claim": "a", "issue": "cut off mid-str'
+    model = FakeChatModel([(cut_off, {"finish_reason": "length"})])
+
+    with pytest.raises(LLMJSONError) as exc_info:
+        invoke_json(model, "sys", "user")
+
+    assert len(model.calls) == 1
+    assert exc_info.value.truncated is True
+    assert exc_info.value.text == cut_off
+
+
+def test_invoke_json_still_repairs_a_response_that_is_merely_malformed():
+    # The completion finished; it was just bad JSON. That is what the repair
+    # turn has always been for, and a stop_reason check must not disable it.
+    model = FakeChatModel([("{oops not json}", {"finish_reason": "stop"}), '{"ok": true}'])
+
+    assert invoke_json(model, "sys", "user") == {"ok": True}
+    assert len(model.calls) == 2
+
+
+def test_invoke_json_error_carries_the_text_a_failed_repair_returned():
+    model = FakeChatModel(["{oops", "{still oops"])
+
+    with pytest.raises(LLMJSONError) as exc_info:
+        invoke_json(model, "sys", "user")
+
+    assert exc_info.value.text == "{still oops"
+    assert exc_info.value.truncated is False
+
+
+# -- salvage_json_list -------------------------------------------------------------------
+
+
+def test_salvage_json_list_keeps_every_entry_before_the_cut():
+    text = (
+        '{\n  "hallucinations": [\n'
+        '    {"claim": "a", "issue": "x", "grounded": false},\n'
+        '    {"claim": "b", "issue": "y", "nested": {"k": [1, 2]}},\n'
+        '    {"claim": "c", "issue": "cut off mid-str'
+    )
+    salvaged = salvage_json_list(text, "hallucinations")
+    assert [entry["claim"] for entry in salvaged] == ["a", "b"]
+
+
+def test_salvage_json_list_reads_a_complete_array_too():
+    assert salvage_json_list('{"framing_issues": [{"hypothesis_id": "H1"}]}', "framing_issues") == [{"hypothesis_id": "H1"}]
+
+
+def test_salvage_json_list_returns_nothing_for_a_missing_or_empty_key():
+    text = '{"hallucinations": []}'
+    assert salvage_json_list(text, "hallucinations") == []
+    assert salvage_json_list(text, "framing_issues") == []
+    assert salvage_json_list("not json at all", "hallucinations") == []
+
+
+def test_salvage_json_list_stops_at_the_first_entry_it_cannot_read():
+    # Everything after the damage is unreliable, so nothing past it is taken —
+    # a salvage that guesses is worse than one that stops.
+    text = '{"hallucinations": [{"claim": "a"}, {"claim": broken}, {"claim": "c"}]}'
+    assert salvage_json_list(text, "hallucinations") == [{"claim": "a"}]

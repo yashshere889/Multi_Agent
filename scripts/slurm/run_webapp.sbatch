@@ -19,12 +19,32 @@
 # jobs / read files — see README's "Web UI" section) so a login-node server
 # would be no use anyway. Reach it from your laptop with:
 #
-#   ssh -L 8000:<node-printed-below>:<port-printed-below> <user>@barklalogin1.liv.ac.uk
+#   ssh -J <user>@barklalogin1.liv.ac.uk -L 8000:localhost:<port> <user>@<node>
 #
 # then open http://localhost:8000 in a browser. The compute node and port are
 # only known once the job starts and change on every resubmission — watch the
 # job log (or squeue -u $USER -n research-pipeline-webapp) for the exact
 # command this job prints.
+#
+# The -J matters, and the forward target must be `localhost`, not the node.
+# Because the app binds the *node's* loopback, the forward has to be set up by
+# an ssh whose own endpoint is on that node — which is what jumping to it
+# through the login node achieves. The obvious-looking
+#
+#   ssh -L 8000:<node>:<port> <user>@barklalogin1.liv.ac.uk     # WRONG
+#
+# asks the *login* node to open a socket to <node>:<port>, and nothing is
+# listening on the node's external interface, so it fails with connection
+# refused every time. If your ssh is too old for -J, chain it by hand instead:
+#
+#   ssh <user>@barklalogin1.liv.ac.uk 'ssh -f -N -L <port>:localhost:<port> <node>'
+#   ssh -N -L 8000:localhost:<port> <user>@barklalogin1.liv.ac.uk
+#
+# run_llm_server.sbatch documents the plain `-L 8000:<node>:<port>` form and is
+# right to: _vllm_serve.sh passes --host 0.0.0.0, so vLLM really is reachable on
+# the node's external interface. The difference is deliberate, not an
+# inconsistency to tidy away — vLLM is a model server, while this one can start
+# jobs and read files with no authentication in front of it.
 
 #SBATCH --job-name=research-pipeline-webapp
 #SBATCH --partition=gpu-h100
@@ -125,8 +145,11 @@ cat <<EOF
     port: $WEBAPP_PORT
 
   From your laptop:
-    ssh -L 8000:$SLURM_NODELIST:$WEBAPP_PORT $USER@barklalogin1.liv.ac.uk
+    ssh -J $USER@barklalogin1.liv.ac.uk -L 8000:localhost:$WEBAPP_PORT $USER@$SLURM_NODELIST
     then open http://localhost:8000
+
+  (The app binds this node's loopback, so the forward target is localhost and
+   the -J jump is what puts the forward's endpoint on this node.)
 
   Runs land under: $WORK_DIR/runs
 ================================================================

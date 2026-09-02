@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Experiments — {{ run.question[:45] }}{% endblock %}
+
+{% macro file_link(run_id, rel, label) -%}
+<a href="/runs/{{ run_id }}/files/view?path={{ rel | urlencode }}">{{ label }}</a>
+{%- endmacro %}
+
+{% block content %}
+<section class="card">
+  <p class="muted">
+    <a href="/runs/{{ run.run_id }}">← Back to run</a> ·
+    <a href="/runs/{{ run.run_id }}/files">all files</a>
+  </p>
+  <h1>Experiments</h1>
+  <p class="muted question-echo">{{ run.question }}</p>
+  {% if summary_rel %}
+    <p class="muted">
+      From {{ file_link(run.run_id, summary_rel, summary_rel) }}.
+    </p>
+  {% endif %}
+</section>
+
+{% for e in experiments %}
+<section class="card experiment">
+  <div class="experiment-head">
+    <h2>{{ e.hypothesis_id }}</h2>
+    <span class="chip chip-{{ 'ok' if e.ok else 'warn' }}">{{ e.status }}</span>
+    {% if e.fix_attempts %}<span class="chip">{{ e.fix_attempts | length }} fix attempt(s)</span>{% endif %}
+    {% if e.slurm_job_id %}<span class="chip">SLURM job {{ e.slurm_job_id }}</span>{% endif %}
+    {% if e.starter_used %}<span class="chip">starter: {{ e.starter_used }}</span>{% endif %}
+  </div>
+
+  {% if e.reason %}<p class="muted">{{ e.reason }}</p>{% endif %}
+
+  {# The verdict, and — when it was withheld — why. An experiment with real
+     metrics and no verdict reads as a bug until you know it was a decision. #}
+  {% if e.verdict_withheld %}
+  <div class="withheld">
+    <p><strong>Verdict withheld.</strong> {{ e.verdict_withheld_because or e.methodological_validity }}</p>
+    {% if e.model_reported_verdict is not none %}
+      <p class="muted">The model itself reported <code>{{ e.model_reported_verdict }}</code>; the metrics below stand, the verdict does not.</p>
+    {% endif %}
+  </div>
+  {% elif e.verdict is not none %}
+  <p>Meets success criteria: <span class="chip chip-{{ 'ok' if e.verdict is true else '' }}">{{ e.verdict }}</span></p>
+  {% endif %}
+
+  {% if e.metrics %}
+  <h3>Metrics</h3>
+  <table class="metrics">
+    <tbody>
+      {% for name, value in e.metrics.items() %}
+      <tr><td>{{ name }}</td><td class="metric-value">{{ value }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if e.notes %}<p class="muted">{{ e.notes }}</p>{% endif %}
+
+  {% if e.inputs %}
+  <h3>Data used
+    {% if e.surrogate_count %}<span class="chip chip-warn">{{ e.surrogate_count }} surrogate</span>{% endif %}
+  </h3>
+  <ul class="inputs">
+    {% for i in e.inputs %}
+    <li>
+      <strong>{{ i.name }}</strong>
+      <span class="chip chip-{{ 'ok' if i.kind and i.kind.startswith('real') else 'warn' }}">{{ i.kind }}</span>
+      {% if i.uri %}<span class="muted">{{ i.uri }}</span>{% endif %}
+      {% if i.local_path %}<span class="muted">{{ i.local_path }}</span>{% endif %}
+      {% if i.reason %}<div class="muted">{{ i.reason }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if e.assumptions %}
+  <h3>Assumptions the agent made</h3>
+  <ul class="issues">{% for a in e.assumptions %}<li>{{ a }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if e.fix_attempts %}
+  <h3>Fix attempts</h3>
+  <ol class="fix-history">
+    {% for f in e.fix_attempts %}
+    <li>
+      <div class="fix-head">
+        <span class="chip chip-{{ 'ok' if f.resolved else 'warn' }}">{{ f.error_source }}</span>
+        {% if f.same_error_streak > 1 %}
+          <span class="chip chip-warn">{{ f.same_error_streak }}x same failure</span>
+        {% endif %}
+        {% if f.code_rel %}
+          <span class="muted">{{ file_link(run.run_id, f.code_rel ~ '/run.py', 'code at this attempt') }}</span>
+        {% endif %}
+      </div>
+      {% if f.error_summary %}<pre class="fix-error">{{ f.error_summary }}</pre>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  {% if e.files %}
+  <h3>Files</h3>
+  <ul class="experiment-files">
+    {% for name, why, rel in e.files %}
+    <li>{{ file_link(run.run_id, rel, name) }} <span class="muted">— {{ why }}</span></li>
+    {% endfor %}
+  </ul>
+  {% elif e.code_rel %}
+  <p class="muted">Code at <code>{{ e.code_rel }}</code>, which is no longer on disk.</p>
+  {% endif %}
+  {# Re-running starts a *new* run entering the graph at the Coder with this one
+     plan (see app.rerun_experiment) — nothing upstream runs again, which is
+     where a full rerun would spend nearly all of its time. #}
+  <form method="post" action="/runs/{{ run.run_id }}/experiments/{{ e.hypothesis_id | urlencode }}/rerun" class="rerun">
+    <button type="submit">Re-run this experiment →</button>
+    <span class="muted">Generates and executes {{ e.hypothesis_id }} again as a new run, from the same plan.</span>
+  </form>
+</section>
+{% else %}
+<section class="card">
+  <p class="muted">
+    No experiments to inspect. The Coder stage either hasn't run yet, or this run
+    stopped before it.
+  </p>
+</section>
+{% endfor %}
+{% endblock %}

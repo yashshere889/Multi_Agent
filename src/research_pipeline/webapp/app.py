@@ -14,10 +14,11 @@ deployment is a tunnel to a compute node.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, get_args
 from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
@@ -27,7 +28,10 @@ from fastapi.templating import Jinja2Templates
 
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
-from research_pipeline.webapp import events, runs, stages
+from research_pipeline.orchestrator.graph import DEFAULT_END_STAGE, STAGE_FOR_OUTPUT_KEY, STAGE_SEQUENCE
+from research_pipeline.agents.experiment_planner.schema import SchemaValidationError, narrow_to_hypotheses
+from research_pipeline.orchestrator.state import EndStage
+from research_pipeline.webapp import artifacts, events, experiments, runs, stages
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +42,134 @@ STATIC_DIR = PACKAGE_DIR / "static"
 # How many log lines the log pane shows. Enough to follow what's happening
 # without re-sending a whole run's output on every two-second poll.
 LOG_TAIL = 200
+
+# The two ways a run can get its papers. `SEARCH` is the form's default and
+# means "behave exactly as this form always has": it sets no start_stage at all,
+# matching the only-present-when-customized convention runner.py reads.
+SEARCH = "search"
+OWN_PAPERS = "own_papers"
+
+# What the "run up to" select offers. The order and the values come from the
+# orchestrator's own EndStage literal rather than a copy of it, so a stage
+# renamed there fails loudly here (KeyError at import) instead of silently
+# offering the user a value the graph will reject.
+END_STAGE_LABELS = {
+    "literature": "Papers only",
+    "interdisciplinary_literature": "+ cross-field papers",
+    "hypothesis": "+ hypotheses",
+    "experiment_planner": "+ experiment plan",
+    "coder": "+ code & results",
+    "writer_reviewer": "Full paper (default)",
+}
+END_STAGE_CHOICES = tuple((stage, END_STAGE_LABELS[stage]) for stage in get_args(EndStage))
+
+# The stage-output keys finalize_node's partial-run branch reports, in pipeline
+# order, mapped to the display names the progress pane already uses elsewhere.
+STAGE_OUTPUT_LABELS = {
+    "literature_output": stages.LABELS[stages.LITERATURE],
+    "interdisciplinary_output": stages.LABELS[stages.INTERDISCIPLINARY],
+    "hypothesis_output": stages.LABELS[stages.HYPOTHESIS],
+    "planner_output": stages.LABELS[stages.EXPERIMENT_PLANNER],
+    "coder_output": stages.LABELS[stages.CODER],
+}
+
+
+def _stage_name(output_key: str) -> str:
+    """Human-readable name for one of a partial run's stage-output keys."""
+    key = str(output_key)
+    return STAGE_OUTPUT_LABELS.get(key, key.removesuffix("_output").replace("_", " ").title())
+
+
+def _hypothesis_choices(record: dict) -> list[dict]:
+    """The ranked hypotheses of a run that stopped at the hypothesis stage.
+
+    This is the one point in the pipeline where continuing is a *decision* and
+    not just a range: the orchestrator would otherwise take whichever hypothesis
+    the ranking put first (run_planner_node), and everything downstream — the
+    plan, the experiment, the paper — is about that one. Showing all three with
+    their ranks, scores and justifications is what makes taking a different one
+    forward an informed choice rather than an override.
+
+    Read from the run record's own `hypothesis_output`, which the partial branch
+    of finalize_node bundles into `final_result`. Empty for any run that stopped
+    anywhere else, which is also how the template knows not to offer the choice.
+    """
+    output = (record.get("final_result") or {}).get("hypothesis_output") or {}
+    ranking = {r.get("hypothesis_id"): r for r in output.get("ranking") or [] if isinstance(r, dict)}
+    selected = output.get("selected_hypothesis_id")
+
+    rows = []
+    for hypothesis in output.get("hypotheses") or []:
+        if not isinstance(hypothesis, dict):
+            continue
+        entry = ranking.get(hypothesis.get("id")) or {}
+        rows.append(
+            {
+                "id": hypothesis.get("id"),
+                "statement": hypothesis.get("statement", ""),
+                "rationale": hypothesis.get("rationale", ""),
+                "rank": entry.get("rank"),
+                "score": entry.get("score"),
+                "justification": entry.get("justification", ""),
+                "ranked_first": hypothesis.get("id") == selected,
+            }
+        )
+    # Ranked order, so the default choice is the first row. An unranked entry
+    # (a hypothesis output read off disk from before ranking existed) sorts last
+    # rather than crashing the comparison.
+    return sorted(rows, key=lambda r: r["rank"] if isinstance(r["rank"], int) else 99)
+
+
+def _continue_options(record: dict) -> tuple[Optional[str], tuple]:
+    """What a finished run can be continued into: the stage it stopped after,
+    and the end stages still ahead of that point.
+
+    Only a run that stopped *cleanly* at a custom end_stage has anything to
+    offer — that is the branch of finalize_node which bundles `stages_completed`
+    together with each stage's raw output. A run that crashed never reached
+    finalize_node, so its intermediate work exists only as separate files under
+    outputs/ and cannot be picked up this way.
+
+    Returns `(None, ())` for everything else, which is also what the template
+    reads as "don't offer to continue this run".
+    """
+    completed = (record.get("final_result") or {}).get("stages_completed") or []
+    resume_from = STAGE_FOR_OUTPUT_KEY.get(completed[-1]) if completed else None
+    if not resume_from:
+        return None, ()
+    resume_index = STAGE_SEQUENCE.index(resume_from)
+    # Offering a stage at or before the resume point would start a run with
+    # nothing left to do: the graph would route straight from its entry point to
+    # finalize (see _entry_router).
+    return resume_from, tuple(
+        choice for choice in END_STAGE_CHOICES if STAGE_SEQUENCE.index(choice[0]) > resume_index
+    )
+
+
+def _parse_seed_papers(raw: str) -> list[dict]:
+    """The papers textarea, parsed and checked before any run exists.
+
+    Raises ValueError carrying the message to put in front of the user.
+    `seed_literature_output` silently drops entries with no title, so a list
+    where *none* has one would start a run with an empty paper pool and fail
+    several stages later — cheaper to refuse it here.
+    """
+    text = (raw or "").strip()
+    if not text:
+        raise ValueError('Paste your papers as JSON, or choose "Search for papers".')
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"The papers box is not valid JSON: {exc.msg} (line {exc.lineno}, column {exc.colno})."
+        ) from exc
+    if not isinstance(parsed, list) or not parsed:
+        raise ValueError("The papers box must hold a non-empty JSON array of paper objects.")
+    if not all(isinstance(paper, dict) for paper in parsed):
+        raise ValueError("Every entry in the papers array must be a JSON object, e.g. {\"title\": \"...\"}.")
+    if not any(str(paper.get("title") or "").strip() for paper in parsed):
+        raise ValueError("At least one paper needs a non-empty title field — papers without one are dropped.")
+    return parsed
 
 
 def _duration(start: Optional[str], end: Optional[str]) -> str:
@@ -109,20 +241,54 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.filters["duration"] = _duration
     templates.env.filters["short_time"] = _short_time
+    templates.env.filters["stage_name"] = _stage_name
+    templates.env.filters["human_size"] = artifacts.human_size
 
     def render(request: Request, name: str, **context) -> HTMLResponse:
         return templates.TemplateResponse(request=request, name=name, context=context)
+
+    def index_page(request: Request, error: Optional[str] = None) -> HTMLResponse:
+        """The start page, which is also where every form error lands — so the
+        form's own options are assembled in exactly one place."""
+        return render(
+            request,
+            "index.html",
+            runs=store.list_runs(),
+            error=error,
+            settings=settings,
+            end_stage_choices=END_STAGE_CHOICES,
+            default_end_stage=DEFAULT_END_STAGE,
+        )
 
     def progress_context(run_id: str) -> dict:
         record = store.get(run_id)
         stage_events = events.read_events(store.run_dir(run_id), types=[events.STAGE_COMPLETED])
         active = _is_active(record)
         paper = _latest_paper(store, record)
+        params = record.get("params") or {}
+        resume_from, continue_choices = _continue_options(record)
         return {
             "run": record,
             "active": active,
             "can_resume": _can_resume(record),
-            "rows": stages.build_progress(stage_events, active, (record.get("params") or {}).get("max_iterations")),
+            # Only a finished partial run offers to continue; while one is still
+            # going there is no settled stopping point to resume from.
+            "resume_from": resume_from,
+            "continue_choices": continue_choices,
+            # Continuing past the hypothesis stage is a decision, not just a
+            # range — without a choice the planner takes whichever the ranking
+            # put first, and the whole rest of the run is about that one.
+            "hypothesis_choices": _hypothesis_choices(record) if resume_from == stages.HYPOTHESIS else [],
+            "steer_to_end_stage": params.get("steer_to_end_stage"),
+            # The run's own params, so a run covering only part of the pipeline
+            # is not shown pending stages it will never reach.
+            "rows": stages.build_progress(
+                stage_events,
+                active,
+                params.get("max_iterations"),
+                end_stage=params.get("end_stage"),
+                include_interdisciplinary=params.get("include_interdisciplinary", True),
+            ),
             "paper_name": paper.name if paper else None,
         }
 
@@ -132,7 +298,7 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
-        return render(request, "index.html", runs=store.list_runs(), error=None, settings=settings)
+        return index_page(request)
 
     @app.get("/partials/runs", response_class=HTMLResponse)
     def runs_fragment(request: Request):
@@ -145,40 +311,158 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
         max_results: int = Form(settings.default_max_results_per_query),
         max_iterations: Optional[int] = Form(None),
         quality_threshold: Optional[int] = Form(None),
+        start_mode: str = Form(SEARCH),
+        seed_papers: str = Form(""),
+        end_stage: str = Form(DEFAULT_END_STAGE),
+        # A checkbox is simply absent when unchecked, so this arrives as None
+        # rather than as False — the form always asks, so absent means off.
+        include_interdisciplinary: Optional[str] = Form(None),
+        steer_hypothesis: Optional[str] = Form(None),
     ):
         question = question.strip()
         if not question:
-            return render(request, "index.html", runs=store.list_runs(), error="A research question is required.", settings=settings)
+            return index_page(request, error="A research question is required.")
+
+        if end_stage not in END_STAGE_LABELS:
+            return index_page(request, error=f"{end_stage!r} is not a stage this pipeline can stop at.")
+
+        params: dict = {
+            "max_results_per_query": max_results,
+            "max_iterations": max_iterations,
+            "quality_threshold": quality_threshold,
+            # Both always set: the form always presents the choice, and the
+            # defaults it presents are the orchestrator's own defaults, so
+            # setting them explicitly changes nothing for an untouched form.
+            "end_stage": end_stage,
+            "include_interdisciplinary": include_interdisciplinary is not None,
+        }
+
+        # Steering is the stage-range machinery with the destination remembered:
+        # the run stops at the hypothesis stage so the three hypotheses can be
+        # read, and `steer_to_end_stage` is where continuing should then aim, so
+        # the choice the user already made on this form isn't asked for twice.
+        # Requesting it for a run that stops at or before that stage anyway is a
+        # no-op, not an error — the run already ends where the choice is made.
+        if steer_hypothesis is not None and STAGE_SEQUENCE.index(end_stage) > STAGE_SEQUENCE.index(stages.HYPOTHESIS):
+            params["end_stage"] = stages.HYPOTHESIS
+            params["steer_to_end_stage"] = end_stage
+
+        # Only written when the user actually chose to supply papers. A `search`
+        # run leaves both keys absent, which is what runner.py reads as "not
+        # customized" — an explicit null there would mean something else.
+        if start_mode == OWN_PAPERS:
+            try:
+                papers = _parse_seed_papers(seed_papers)
+            except ValueError as exc:
+                # Checked before store.create, so a bad paste leaves no run
+                # directory behind, exactly like a blank question.
+                return index_page(request, error=str(exc))
+            params["start_stage"] = OWN_PAPERS
+            params["seed_papers"] = papers
 
         # Refused rather than queued: the pipeline talks to one LLM endpoint, so
         # a second concurrent run competes with the first for it instead of
         # finishing sooner. Saying so is more useful than a silent backlog.
         if store.active_count() >= settings.webapp_max_concurrent_runs:
-            return render(
+            return index_page(
                 request,
-                "index.html",
-                runs=store.list_runs(),
                 error=(
                     f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
                     f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it."
                 ),
-                settings=settings,
             )
 
-        record = store.create(
-            question,
-            {
-                "max_results_per_query": max_results,
-                "max_iterations": max_iterations,
-                "quality_threshold": quality_threshold,
-            },
-        )
+        record = store.create(question, params)
         store.launch(record["run_id"])
         return RedirectResponse(f"/runs/{record['run_id']}", status_code=303)
 
     @app.get("/runs/{run_id}", response_class=HTMLResponse)
     def run_page(request: Request, run_id: str, error: Optional[str] = None):
         return render(request, "run.html", run=store.get(run_id), error=error)
+
+    @app.post("/runs/{run_id}/continue")
+    def continue_run(
+        run_id: str,
+        end_stage: str = Form(DEFAULT_END_STAGE),
+        include_interdisciplinary: Optional[str] = Form(None),
+        planned_hypothesis_ids: list[str] = Form(default_factory=list),
+    ):
+        """Pick a stopped run back up, as a *new* run seeded with what the old
+        one already produced.
+
+        Always a new run_id rather than a restart of this one: RunStore's status
+        machine only moves forward and _reconcile trusts a terminal event, both
+        of which assume a run's params are fixed when it is created. The old
+        run's record is left exactly as it was; the new one records
+        `resumed_from_run_id` so the lineage is still visible.
+        """
+        record = store.get(run_id)
+        resume_from, choices = _continue_options(record)
+        if not resume_from:
+            return _back_to_run(
+                run_id,
+                (
+                    "This run has no stopped-at stage to continue from. Only a run that finished at a custom "
+                    "end stage carries its completed stages forward; a full or failed run does not."
+                ),
+            )
+
+        if end_stage not in dict(choices):
+            return _back_to_run(
+                run_id,
+                (
+                    f"This run already got as far as {END_STAGE_LABELS.get(resume_from, resume_from)!r}, so "
+                    f"{end_stage!r} is not a stage it can continue into. Pick a later one."
+                ),
+            )
+
+        if store.active_count() >= settings.webapp_max_concurrent_runs:
+            return _back_to_run(
+                run_id,
+                (
+                    f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
+                    f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it."
+                ),
+            )
+
+        previous_params = record.get("params") or {}
+        params: dict = {
+            # Carried from the run being continued, not re-asked: the user chose
+            # them for this question, and the continue form is deliberately two
+            # fields wide.
+            "max_results_per_query": previous_params.get("max_results_per_query"),
+            "max_iterations": previous_params.get("max_iterations"),
+            "quality_threshold": previous_params.get("quality_threshold"),
+            "end_stage": end_stage,
+            "resume_from": resume_from,
+            "resumed_from_run_id": run_id,
+        }
+        # Only meaningful when the cross-field stage is still ahead of the resume
+        # point. Past it, the stage either already ran (and its output is being
+        # carried forward) or was skipped, and neither is this form's to revisit.
+        if resume_from == stages.LITERATURE:
+            params["include_interdisciplinary"] = include_interdisciplinary is not None
+
+        # Only meaningful when the planner is still ahead. Past it the plans
+        # already exist and are being carried forward, so a choice here would
+        # name hypotheses nothing downstream would consult. Unknown ids are the
+        # planner node's own error to raise (see run_planner_node) — checked
+        # here too so the refusal lands on the form rather than in a run that
+        # starts and immediately dies.
+        if planned_hypothesis_ids and resume_from == stages.HYPOTHESIS:
+            known = {row["id"] for row in _hypothesis_choices(record)}
+            unknown = [hid for hid in planned_hypothesis_ids if hid not in known]
+            if unknown:
+                return _back_to_run(run_id, f"This run generated no hypothesis with id(s): {', '.join(unknown)}.")
+            params["planned_hypothesis_ids"] = planned_hypothesis_ids
+
+        final_result = record["final_result"]
+        for key in final_result["stages_completed"]:
+            params[key] = final_result[key]
+
+        new_record = store.create(record["question"], params)
+        store.launch(new_record["run_id"])
+        return RedirectResponse(f"/runs/{new_record['run_id']}", status_code=303)
 
     @app.get("/runs/{run_id}/progress", response_class=HTMLResponse)
     def progress_fragment(request: Request, run_id: str):
@@ -232,16 +516,151 @@ def create_app(run_store: Optional[runs.RunStore] = None) -> FastAPI:
             raise runs.RunNotFound(f"no such paper for run {run_id}")
         return FileResponse(path, media_type="application/pdf", filename=f"{run_id[:8]}_{path.name}")
 
+    @app.get("/runs/{run_id}/experiments", response_class=HTMLResponse)
+    def experiments_page(request: Request, run_id: str):
+        """Every generated experiment in the detail the progress panel can't
+        carry: what each fix attempt failed with, what data the run actually
+        used, and why a verdict was withheld when it was."""
+        record = store.get(run_id)
+        views, summary_rel = experiments.load_experiments(store.run_dir(run_id))
+        return render(
+            request,
+            "experiments.html",
+            run=record,
+            experiments=views,
+            summary_rel=summary_rel,
+        )
+
+    @app.post("/runs/{run_id}/experiments/{hypothesis_id}/rerun")
+    def rerun_experiment(run_id: str, hypothesis_id: str):
+        """Re-run one experiment, as a new run entering the graph at the Coder.
+
+        The same shape as "continue this run", for the same reasons: a new
+        run_id rather than a rewrite of this one, seeded with what the previous
+        run already produced, with a `resumed_from_run_id` for the lineage. What
+        it seeds is one *narrowed* planner output, so the Coder generates and
+        executes exactly one experiment and nothing upstream runs again — no
+        re-search, no re-synthesis, no re-planning, which is where a full rerun
+        spends almost all of its time and LLM calls.
+
+        The plan comes from the run's own experiment_plan file rather than its
+        record: a run that completed the whole pipeline has a final_result
+        shaped by the Writer/Reviewer stage, with no planner output in it.
+        """
+        record = store.get(run_id)
+
+        planner_output = experiments.find_planner_output(store.run_dir(run_id))
+        if not planner_output:
+            return _back_to_run(
+                run_id,
+                "This run has no experiment plan on disk, so there is nothing to re-run an experiment from.",
+            )
+
+        try:
+            narrowed = narrow_to_hypotheses(planner_output, [hypothesis_id])
+        except SchemaValidationError as exc:
+            return _back_to_run(run_id, str(exc))
+
+        # Same limit and same reasoning as starting or continuing a run: one LLM
+        # endpoint, so a second concurrent run competes with the first.
+        if store.active_count() >= settings.webapp_max_concurrent_runs:
+            return _back_to_run(
+                run_id,
+                f"{store.active_count()} run(s) already in progress and WEBAPP_MAX_CONCURRENT_RUNS "
+                f"is {settings.webapp_max_concurrent_runs}. Wait for one to finish, or cancel it.",
+            )
+
+        previous_params = record.get("params") or {}
+        params = {
+            "planner_output": narrowed,
+            "resume_from": "experiment_planner",
+            # Nothing downstream of the Coder can run: the Writer needs
+            # hypothesis_output and the full paper pool, which this run was not
+            # seeded with. Stopping here is the honest end of the slice, not a
+            # default someone should override.
+            "end_stage": "coder",
+            "resumed_from_run_id": run_id,
+            "rerun_hypothesis_id": hypothesis_id,
+            "quality_threshold": previous_params.get("quality_threshold"),
+        }
+
+        new_record = store.create(record["question"], params)
+        store.launch(new_record["run_id"])
+        logger.info("Re-running %s from run %s as run %s", hypothesis_id, run_id, new_record["run_id"])
+        return RedirectResponse(f"/runs/{new_record['run_id']}", status_code=303)
+
+    @app.get("/runs/{run_id}/files", response_class=HTMLResponse)
+    def files_page(request: Request, run_id: str):
+        """Everything this run wrote, grouped. Not a polled fragment: a finished
+        run's file list does not change, and a running one's is worth a manual
+        reload rather than a table that reshuffles under the reader every two
+        seconds."""
+        record = store.get(run_id)
+        found, truncated = artifacts.list_artifacts(store.run_dir(run_id))
+        return render(
+            request,
+            "files.html",
+            run=record,
+            groups=artifacts.group_artifacts(found),
+            total=len(found),
+            truncated=truncated,
+        )
+
+    @app.get("/runs/{run_id}/files/view", response_class=HTMLResponse)
+    def file_view(request: Request, run_id: str, path: str):
+        """One file, rendered in the page. `path` arrives from a link this
+        server built, and is re-checked anyway — resolve_inside is what refuses
+        anything outside the run directory, so nothing upstream of it has to be
+        trusted."""
+        record = store.get(run_id)
+        resolved = store.resolve_inside(run_id, path)
+        if not resolved.is_file():
+            raise runs.RunNotFound(f"no such file in run {run_id}: {path}")
+
+        kind = artifacts.kind_for(resolved)
+        if kind in (artifacts.PDF, artifacts.BINARY):
+            # Nothing useful to render as text; hand it straight to the browser.
+            return RedirectResponse(f"/runs/{run_id}/files/raw?path={quote(path, safe='')}", status_code=303)
+
+        return render(
+            request,
+            "file.html",
+            run=record,
+            rel=path,
+            preview=artifacts.read_preview(resolved),
+            size=resolved.stat().st_size,
+        )
+
+    @app.get("/runs/{run_id}/files/raw")
+    def file_raw(run_id: str, path: str):
+        """The bytes. PDFs render inline in the browser's own viewer; everything
+        else downloads under a name that says which run it came from."""
+        store.get(run_id)
+        resolved = store.resolve_inside(run_id, path)
+        if not resolved.is_file():
+            raise runs.RunNotFound(f"no such file in run {run_id}: {path}")
+
+        if artifacts.kind_for(resolved) == artifacts.PDF:
+            return FileResponse(resolved, media_type="application/pdf")
+        return FileResponse(resolved, filename=f"{run_id[:8]}_{resolved.name}")
+
     @app.get("/api/runs/{run_id}")
     def run_status(run_id: str):
         record = store.get(run_id)
         run_dir = store.run_dir(run_id)
         stage_events = events.read_events(run_dir, types=[events.STAGE_COMPLETED])
+        params = record.get("params") or {}
         return {
             **record,
             "active": _is_active(record),
             "stages_completed": [e.get("stage") for e in stage_events],
-            "stages": stages.build_progress(stage_events, _is_active(record), (record.get("params") or {}).get("max_iterations")),
+            "stages": stages.build_progress(
+                stage_events,
+                _is_active(record),
+                params.get("max_iterations"),
+                end_stage=params.get("end_stage"),
+                include_interdisciplinary=params.get("include_interdisciplinary", True),
+            ),
         }
 
     @app.get("/api/runs")
