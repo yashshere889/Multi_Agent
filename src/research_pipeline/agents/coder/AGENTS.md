@@ -191,6 +191,19 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   prompts, same threading pattern as `current_hf_dataset`. The chosen id is also recorded on the
   finished `ExperimentResult` as `starter_used`, for the same traceability reason `fix_history`
   exists.
+- **The experiment venv is reused across fix attempts, not rebuilt.** `ensure_experiment_env` runs
+  once per attempt, and it used to `rmtree` unconditionally — throwing away every package the
+  previous attempt's env repairs had discovered, so each attempt started bare and spent its whole
+  `CODER_MAX_ENV_REPAIRS` budget rediscovering them (job 10410771: numpy x6, pandas x6, numpy x6,
+  experiment never ran). A venv whose `bin/python` exists is now kept and only installed into again;
+  a *half-built* one — directory present, no interpreter — is still wiped, which is the recovery the
+  wipe existed for. Don't collapse those two cases back together.
+- **`module_importable` and `run_experiment` must resolve the interpreter the same way.** Both call
+  `.resolve()`. `CODER_EXPERIMENTS_DIR` defaults to a relative `experiments`, so a venv python under
+  it is a relative path and `cwd` is that same relative directory — an unresolved path is re-resolved
+  against the subprocess's own cwd, looking under `experiments/H1/experiments/H1/`. When they
+  disagree, a repair that actually worked reads as "installed but still not importable" and ends the
+  attempt. If you add a third caller that runs the experiment's interpreter, resolve there too.
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or
   unreachable index isn't something regenerating code can fix, so it returns a terminal
   `code_generated_not_run` result directly.

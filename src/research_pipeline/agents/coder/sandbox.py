@@ -994,22 +994,35 @@ def ensure_experiment_env(
     # fix attempt would fail on venv creation itself with the same
     # "already exists" error, regardless of what changed in the generated
     # code — the fix loop could never actually recover.
-    if venv_dir.exists():
+    #
+    # A venv with a working interpreter is *kept* and only installed into
+    # again. Wiping unconditionally — which this did first — throws away every
+    # package the previous attempt's env repairs discovered, because this
+    # function runs once per fix attempt. Barkla job 10410771 shows the cost:
+    # three attempts, each starting from a bare venv, each rediscovering what
+    # it needed one ModuleNotFoundError at a time and spending its whole
+    # CODER_MAX_ENV_REPAIRS budget doing it — numpy six times, then pandas six
+    # times, then numpy six times, and the experiment never ran. Reuse costs
+    # nothing: the install step below runs either way, and installing a package
+    # that is already present is the no-op uv reports in milliseconds.
+    reused_existing_venv = venv_python.exists()
+    if venv_dir.exists() and not reused_existing_venv:
         shutil.rmtree(venv_dir, ignore_errors=True)
     try:
         if use_uv:
-            subprocess.run(
-                [
-                    "uv",
-                    "venv",
-                    *(("--python", python_version) if python_version else ()),
-                    str(venv_dir),
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
+            if not reused_existing_venv:
+                subprocess.run(
+                    [
+                        "uv",
+                        "venv",
+                        *(("--python", python_version) if python_version else ()),
+                        str(venv_dir),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
             subprocess.run(
                 [
                     "uv",
@@ -1026,13 +1039,14 @@ def ensure_experiment_env(
                 timeout=600,
             )
         else:
-            subprocess.run(
-                [sys.executable, "-m", "venv", str(venv_dir)],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
+            if not reused_existing_venv:
+                subprocess.run(
+                    [sys.executable, "-m", "venv", str(venv_dir)],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
             subprocess.run(
                 [str(venv_python), "-m", "pip", "install", "-r", str(install_requirements_path)],
                 check=True,
@@ -1089,7 +1103,16 @@ def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
         return False
     try:
         proc = subprocess.run(
-            [str(python_executable), "-c", f"import {module.split('.')[0]}"],
+            # .resolve() for the same reason run_experiment does it, and it has
+            # to agree with run_experiment or this answers about a different
+            # interpreter than the one that will run the code:
+            # CODER_EXPERIMENTS_DIR defaults to a relative "experiments", so a
+            # venv python under it is a relative path, and `cwd` below is that
+            # same relative directory — the subprocess would re-resolve it
+            # against its own cwd and look under experiments/H1/experiments/H1/.
+            # A repair that actually worked would then read as "installed but
+            # still not importable", which ends the attempt.
+            [str(python_executable.resolve()), "-c", f"import {module.split('.')[0]}"],
             cwd=str(cwd),
             capture_output=True,
             text=True,

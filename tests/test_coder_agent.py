@@ -240,6 +240,96 @@ def test_render_sbatch_template_includes_hypothesis_id():
     assert "sbatch" in text.lower()
 
 
+def test_a_usable_venv_survives_the_next_fix_attempt(tmp_path, monkeypatch):
+    """Barkla job 10410771: ensure_experiment_env runs once per fix attempt and
+    wiped the venv each time, throwing away every package the previous attempt's
+    env repairs had discovered. Three attempts each started bare, each
+    rediscovered what it needed one ModuleNotFoundError at a time, and each
+    spent its whole CODER_MAX_ENV_REPAIRS budget doing it — numpy six times,
+    then pandas six times, then numpy six times. The experiment never ran."""
+    created: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        if command[:2] == ["uv", "venv"]:
+            created.append(list(command))
+            target = Path(command[-1])
+            (target / "bin").mkdir(parents=True, exist_ok=True)
+            (target / "bin" / "python").write_text("")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("numpy\n")
+
+    sandbox.ensure_experiment_env(tmp_path, requirements, network_available=True)
+    venv = tmp_path / ".venv"
+    # Stand in for what an env repair installed into the venv last attempt.
+    repaired = venv / "lib" / "site-packages" / "pandas"
+    repaired.mkdir(parents=True)
+
+    sandbox.ensure_experiment_env(tmp_path, requirements, network_available=True)
+
+    assert repaired.exists(), "the previous attempt's env repair was wiped"
+    assert len(created) == 1, "a usable venv should be reused, not recreated"
+
+
+def test_a_half_built_venv_is_still_wiped(tmp_path, monkeypatch):
+    """The recovery the wipe was there for in the first place: a venv directory
+    with no interpreter in it (creation succeeded, the install step died) must
+    be rebuilt, or every later attempt fails on "already exists"."""
+    created: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        if command[:2] == ["uv", "venv"]:
+            created.append(list(command))
+            target = Path(command[-1])
+            (target / "bin").mkdir(parents=True, exist_ok=True)
+            (target / "bin" / "python").write_text("")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("numpy\n")
+
+    # A directory, but no bin/python — exactly the partial state.
+    (tmp_path / ".venv" / "lib").mkdir(parents=True)
+
+    sandbox.ensure_experiment_env(tmp_path, requirements, network_available=True)
+
+    assert len(created) == 1
+    assert not (tmp_path / ".venv" / "lib").exists(), "the partial venv should have been rebuilt"
+
+
+def test_module_importable_resolves_the_interpreter_like_run_experiment(tmp_path, monkeypatch):
+    """The two must agree about which interpreter they are talking about.
+    CODER_EXPERIMENTS_DIR defaults to a relative "experiments", so a venv python
+    under it is a relative path and `cwd` is that same relative directory — an
+    unresolved path gets re-resolved against the subprocess's own cwd, looking
+    under experiments/H1/experiments/H1/. A repair that actually worked then
+    reads as "installed but still not importable", which ends the attempt."""
+    seen: list[str] = []
+
+    def fake_run(command, **kwargs):
+        seen.append(command[0])
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    experiment_dir = Path("experiments") / "H1"
+    experiment_dir.mkdir(parents=True)
+    venv_python = experiment_dir / ".venv" / "bin" / "python"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text("")
+
+    assert sandbox.module_importable(venv_python, "numpy", experiment_dir)
+
+    # Absolute, so the subprocess's cwd cannot change what it points at.
+    assert Path(seen[0]).is_absolute()
+    assert "experiments/H1/experiments" not in seen[0]
+
+
 def test_the_experiment_venv_is_built_with_the_requested_python(tmp_path, monkeypatch):
     """Barkla job 10334394 generated a valid TensorFlow experiment and could not
     provision it: the pipeline runs on 3.14 and uv reported "all versions of
