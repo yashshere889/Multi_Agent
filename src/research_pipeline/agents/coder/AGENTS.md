@@ -198,12 +198,18 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   experiment never ran). A venv whose `bin/python` exists is now kept and only installed into again;
   a *half-built* one — directory present, no interpreter — is still wiped, which is the recovery the
   wipe existed for. Don't collapse those two cases back together.
-- **`module_importable` and `run_experiment` must resolve the interpreter the same way.** Both call
-  `.resolve()`. `CODER_EXPERIMENTS_DIR` defaults to a relative `experiments`, so a venv python under
-  it is a relative path and `cwd` is that same relative directory — an unresolved path is re-resolved
-  against the subprocess's own cwd, looking under `experiments/H1/experiments/H1/`. When they
-  disagree, a repair that actually worked reads as "installed but still not importable" and ends the
-  attempt. If you add a third caller that runs the experiment's interpreter, resolve there too.
+- **Never `Path.resolve()` an experiment interpreter — use `_interpreter_path`.** A venv's
+  `bin/python` is a symlink to the base interpreter, and resolving it hands back that base
+  interpreter, which cannot see anything installed into the venv. It is a venv-destroying operation
+  dressed up as path normalisation, and it is what ended Barkla jobs 10410771 and 10410847:
+  `uv pip install --python <venv>/bin/python numpy` reports success, the package really is in the
+  venv's site-packages, and the next `import numpy` by the *resolved* path raises ModuleNotFoundError.
+  Measured on Barkla: `./.venv/bin/python -c "import numpy"` → OK, `$(resolve …) -c "import numpy"` →
+  ModuleNotFoundError. `os.path.abspath` gives the absolute path the subprocesses need (their `cwd`
+  is the experiment dir, and `CODER_EXPERIMENTS_DIR` defaults to a relative `experiments`) without
+  following symlinks. `module_importable` and `run_experiment` both go through the helper and must
+  keep agreeing — when they disagree, a repair that worked reads as "installed but still not
+  importable" and ends the attempt.
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or
   unreachable index isn't something regenerating code can fix, so it returns a terminal
   `code_generated_not_run` result directly.

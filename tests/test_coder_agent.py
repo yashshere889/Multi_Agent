@@ -302,13 +302,66 @@ def test_a_half_built_venv_is_still_wiped(tmp_path, monkeypatch):
     assert not (tmp_path / ".venv" / "lib").exists(), "the partial venv should have been rebuilt"
 
 
-def test_module_importable_resolves_the_interpreter_like_run_experiment(tmp_path, monkeypatch):
-    """The two must agree about which interpreter they are talking about.
-    CODER_EXPERIMENTS_DIR defaults to a relative "experiments", so a venv python
-    under it is a relative path and `cwd` is that same relative directory — an
-    unresolved path gets re-resolved against the subprocess's own cwd, looking
-    under experiments/H1/experiments/H1/. A repair that actually worked then
-    reads as "installed but still not importable", which ends the attempt."""
+def _venv_layout(root: Path) -> tuple[Path, Path]:
+    """A venv whose bin/python is a symlink to a base interpreter, which is what
+    both `uv venv` and the stdlib `venv` module actually create."""
+    base = root / "base" / "bin" / "python3.12"
+    base.parent.mkdir(parents=True)
+    base.write_text("")
+    venv_python = root / ".venv" / "bin" / "python"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.symlink_to(base)
+    return venv_python, base
+
+
+def test_the_interpreter_path_is_absolute_without_dereferencing_the_venv(tmp_path):
+    """Barkla jobs 10410771 and 10410847 both ended on "the package installed
+    successfully but 'numpy' is still not importable". A venv's bin/python is a
+    symlink to the base interpreter, and Path.resolve() follows it — handing
+    back an interpreter that has no idea the venv exists and cannot see
+    anything installed into it. Measured on Barkla:
+
+        ./.venv/bin/python -c "import numpy"        -> OK 2.5.2
+        $(resolve .venv/bin/python) -c "import numpy" -> ModuleNotFoundError
+
+    Absolute is required (cwd is the experiment dir); dereferenced is fatal.
+    """
+    venv_python, base = _venv_layout(tmp_path)
+    path = sandbox._interpreter_path(venv_python)
+
+    assert Path(path).is_absolute()
+    assert path == str(venv_python), "the venv symlink itself must be preserved"
+    assert path != str(base), "resolving to the base interpreter discards the venv"
+
+
+def test_both_subprocess_callers_use_the_same_undereferenced_path(tmp_path, monkeypatch):
+    """module_importable and run_experiment must agree, and both must go through
+    the venv — if they disagree, the check answers about a different interpreter
+    than the one that runs the code."""
+    seen: list[str] = []
+
+    def fake_run(command, **kwargs):
+        seen.append(command[0])
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    venv_python, base = _venv_layout(tmp_path)
+    experiment_dir = tmp_path / "H1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text("")
+
+    sandbox.module_importable(venv_python, "numpy", experiment_dir)
+    sandbox.run_experiment(venv_python, experiment_dir / "run.py", experiment_dir, 60)
+
+    assert seen[0] == seen[1] == str(venv_python)
+    assert str(base) not in seen
+
+
+def test_a_relative_interpreter_path_is_still_made_absolute(tmp_path, monkeypatch):
+    # The reason absolute paths were wanted in the first place:
+    # CODER_EXPERIMENTS_DIR defaults to a relative "experiments", and cwd below
+    # is that same relative directory, so a relative path would be re-resolved
+    # against the subprocess's own cwd — experiments/H1/experiments/H1/...
     seen: list[str] = []
 
     def fake_run(command, **kwargs):
@@ -323,9 +376,8 @@ def test_module_importable_resolves_the_interpreter_like_run_experiment(tmp_path
     venv_python.parent.mkdir(parents=True)
     venv_python.write_text("")
 
-    assert sandbox.module_importable(venv_python, "numpy", experiment_dir)
+    sandbox.module_importable(venv_python, "numpy", experiment_dir)
 
-    # Absolute, so the subprocess's cwd cannot change what it points at.
     assert Path(seen[0]).is_absolute()
     assert "experiments/H1/experiments" not in seen[0]
 
