@@ -3009,6 +3009,118 @@ def test_a_used_local_dataset_earns_a_real_data_verdict(tmp_path):
     assert inputs[0]["name"] == "Hugging Face dataset acme/sleep-survey"
 
 
+def test_the_real_normalizer_carries_a_downloaded_dataset_to_a_real_verdict(tmp_path):
+    """The seam six Barkla runs never got through end to end.
+
+    Every other dataset test fakes `normalize_to_jsonl`, so the join between
+    what the Hub actually hands over (a snapshot directory of CSV/parquet plus a
+    README) and the provenance credit at the far end was only ever asserted in
+    halves. This runs the real normalizer over a realistic snapshot — the shape
+    Ammok/apple_stock_price_from_1980-2021 actually has, which is what run 6
+    downloaded — and follows it all the way to `all_inputs_real`.
+
+    Job 10410771 reached this point on the cluster and died provisioning
+    TensorFlow, which has nothing to do with any of it.
+    """
+    snapshot_rows = [
+        "Date,Open,High,Low,Close,Adj Close,Volume",
+        "1980-12-12,0.128348,0.128906,0.128348,0.128348,0.100178,469033600",
+        "1980-12-15,0.122210,0.122210,0.121652,0.121652,0.094952,175884800",
+        "1980-12-16,0.113281,0.113281,0.112723,0.112723,0.087983,105728000",
+    ]
+
+    def download(dataset_id, revision, dest):
+        # What snapshot_download leaves behind: the data file at the repo root,
+        # alongside the card. Not a JSONL — that is the normalizer's job.
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "AAPL.csv").write_text("\n".join(snapshot_rows) + "\n", encoding="utf-8")
+        (dest / "README.md").write_text("# Apple stock price\n", encoding="utf-8")
+        return dest
+
+    stack, calls = _dataset_stack()
+    stack["dataset_download_fn"] = download
+    # The real one, not a fake. This is the whole point of the test.
+    stack["dataset_normalize_fn"] = huggingface_client.normalize_to_jsonl
+
+    plan = {
+        **_plan("H1", complexity="low"),
+        "data_requirements": {
+            "source": "Hugging Face",
+            "description": "daily stock closing prices",
+            "preprocessing_steps": [],
+        },
+    }
+    model = _dataset_model()
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([plan])
+    )
+
+    # 1. The real normalizer turned the snapshot CSV into stdlib-readable JSONL.
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    local_path = Path(record["local_path"])
+    assert local_path.name == "data.jsonl"
+    rows = [json.loads(line) for line in local_path.read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 3
+    assert rows[0]["Date"] == "1980-12-12"
+    assert rows[0]["Close"] == "0.128348"
+    assert record["rows"] == 3  # taken from what was written, not from the card
+
+    # 2. The codegen prompt pointed at that exact file, via the local-file
+    #    variant of the dataset block rather than the REST one. Asserted on the
+    #    variant's own wording, not on the viewer hostname: the *provenance*
+    #    block names that host too, because this plan's declared source is
+    #    "Hugging Face" and provenance.OPEN_SOURCES maps it to the /rows URI.
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert str(local_path) in prompt
+    assert "already been downloaded and flattened to JSON Lines" in prompt
+    assert "It was not downloaded, so read it over HTTP" not in prompt
+
+    # 3. And the generated code naming it earns a real verdict — the branch that
+    #    read hf_dataset["dataset"], a key the client has never returned, so a
+    #    real dataset was never once counted as a real input.
+    experiment = result["experiments"][0]
+    provenance_doc = experiment["data_provenance"]
+    assert provenance_doc["all_inputs_real"] is True
+    assert provenance_doc["surrogate_count"] == 0
+    assert experiment["results"]["meets_success_criteria"] != "unknown"
+    source = provenance_doc["inputs"][0]
+    assert source["kind"] == "real_local"
+    assert source["local_path"] == str(local_path)
+    assert "acme/sleep-survey" in source["name"]
+
+
+def test_a_dataset_whose_normalization_yields_nothing_is_not_credited_as_real(tmp_path):
+    """The converse, and the reason the assertion above is worth having: a
+    download that produces no readable rows must leave the dataset uncredited
+    rather than pointing generated code at an empty file."""
+
+    def download(dataset_id, revision, dest):
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "README.md").write_text("# card only, no data\n", encoding="utf-8")
+        return dest
+
+    stack, _ = _dataset_stack()
+    stack["dataset_download_fn"] = download
+    stack["dataset_normalize_fn"] = huggingface_client.normalize_to_jsonl
+
+    model = _dataset_model(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert record["local_path"] == ""
+    # Falls back to the REST URL that was the only path before downloading
+    # existed, rather than to a file that isn't there.
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "It was not downloaded, so read it over HTTP" in prompt
+    assert "already been downloaded and flattened to JSON Lines" not in prompt
+
+
 def test_an_offered_dataset_the_code_ignores_is_still_not_real(tmp_path):
     # The converse, and the reason the check above is worth having: an offered
     # dataset the generated code never names must not be counted as evidence.
