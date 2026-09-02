@@ -2838,6 +2838,85 @@ def test_every_candidate_vetoed_means_no_dataset_is_offered(tmp_path):
     assert "acme/sleep-survey" not in model.prompts_by_kind["codegen"][0]
 
 
+def test_an_over_budget_winner_falls_through_to_a_smaller_candidate(tmp_path, monkeypatch):
+    """Barkla job 10410949 accepted CryptoSpartan/stocks_bars_1m at 0.92, found
+    it 10.2 GB against a 5 GB cap, offered it as a REST URL the compute node
+    could not reach, and the experiment ran on synthesized data with its verdict
+    withheld — while paperswithbacktest/Stocks-Daily-Price sat one rank below at
+    0.88 with quality 1.00 and would have downloaded fine. The budget was
+    checked after selection instead of during it."""
+    _patch_settings(
+        monkeypatch, coder_dataset_max_download_gb=5, coder_dataset_max_critic_reviews=3
+    )
+
+    huge = {**HF_CANDIDATE, "dataset_id": "acme/huge", "num_bytes": 11_000_000_000}
+    small = {**HF_CANDIDATE, "dataset_id": "acme/small", "num_bytes": 2_000_000}
+    described = iter([huge, small])
+
+    stack, calls = _dataset_stack(
+        hits=({**HF_HIT, "id": "acme/huge"}, {**HF_HIT, "id": "acme/small"})
+    )
+    stack["dataset_describe_fn"] = lambda dataset_id: next(described, {})
+
+    model = _dataset_model(
+        dataset_evidence=[_evidence_response(), _evidence_response()],
+        dataset_critic=[_critic_response(), _critic_response()],
+    )
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    # The smaller one is downloaded; the 11 GB one never is.
+    assert [call[0] for call in calls["download"]] == ["acme/small"]
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert record["dataset"] == "acme/small"
+    assert record["local_path"].endswith("data.jsonl")
+
+
+def test_an_over_budget_candidate_is_still_offered_when_nothing_smaller_fits(tmp_path, monkeypatch):
+    """Falling through must not become "no dataset at all": a vetted
+    over-budget candidate offered over REST still beats offering nothing, which
+    is what happened before downloading existed."""
+    _patch_settings(monkeypatch, coder_dataset_max_download_gb=5)
+    huge = {**HF_CANDIDATE, "dataset_id": "acme/huge", "num_bytes": 11_000_000_000}
+    stack, calls = _dataset_stack(candidate=huge)
+
+    # Declines the offer explicitly, which the usage note sanctions — this test
+    # is about which dataset gets offered, not about what the model does with it.
+    model = _dataset_model(
+        codegen=[_codegen_response(assumptions=["acme/huge is not usable over HTTP here"])]
+    )
+    result = _agent(tmp_path, model, network_check=lambda: True, **stack).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert calls["download"] == []
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "It was not downloaded, so read it over HTTP" in prompt
+    assert "acme/huge" in prompt
+
+
+def test_a_global_download_block_does_not_reshuffle_the_ranking(tmp_path, monkeypatch):
+    """Downloads being switched off applies equally to every candidate, so it is
+    no reason to prefer a lower-scoring one. The rank-1 dataset is still the one
+    offered — over REST, as before."""
+    _patch_settings(monkeypatch, coder_dataset_download=False)
+    best = {**HF_CANDIDATE, "dataset_id": "acme/best", "num_bytes": 99_000_000_000}
+    stack, calls = _dataset_stack(candidate=best)
+
+    model = _dataset_model(
+        codegen=[_codegen_response(assumptions=["acme/best declined for this task"])]
+    )
+    _agent(tmp_path, model, network_check=lambda: True, **stack).run(_planner_output([_plan("H1")]))
+
+    record = json.loads(
+        (tmp_path / "experiments" / "H1" / "dataset_provenance.json").read_text(encoding="utf-8")
+    )
+    assert record["dataset"] == "acme/best"
+    assert calls["download"] == []
+
+
 def test_a_dataset_over_the_size_budget_falls_back_to_the_rest_url(tmp_path, monkeypatch):
     _patch_settings(monkeypatch, coder_dataset_max_download_gb=0.000001)
     stack, calls = _dataset_stack()

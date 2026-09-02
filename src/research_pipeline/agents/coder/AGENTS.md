@@ -154,6 +154,16 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   is closed; a code outside it is discarded on parse. Membership of `CRITIC_HARD_FAILS` is what makes
   an objection a veto rather than a penalty, and `CRITIC_PENALTIES` sizes the rest — the model never
   sizes its own penalty, which would be the invented score coming back through a different door.
+- **An over-budget candidate falls through, the same way a vetoed one does.** The download budget is
+  part of *selection*, not a post-hoc check on the winner: a dataset nothing can fetch is offered as
+  a REST URL a compute node often cannot reach, and the experiment then runs on synthesized data with
+  its verdict withheld. Barkla job 10410949 did exactly that — accepted a 10.2 GB dataset at 0.92
+  against a 5 GB cap while a 0.88 candidate with quality 1.00 sat one rank below and would have
+  downloaded fine. Only *size* falls through, though: `_too_large_to_download` deliberately ignores
+  the global reasons (downloads switched off, per-run cap spent) because they apply equally to every
+  candidate and are no reason to prefer a lower-scoring one. The best over-budget candidate is kept
+  as a REST fallback if nothing smaller is acceptable — it has been through the critic by then, so
+  the fallback is vetted, and offering it still beats offering nothing.
 - **The critic may not veto a band Python already scored.** `unusable_schema` is in
   `CONDITIONAL_HARD_FAILS`, not `CRITIC_HARD_FAILS`: it only lands when `schema_fit` was banded
   `incompatible`. The rubric measures schema fit by checking the model's column mapping against the

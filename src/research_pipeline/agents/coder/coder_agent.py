@@ -2103,6 +2103,7 @@ class CoderAgent:
         minimum = settings.coder_dataset_min_score
 
         rejections: list[dict] = []
+        oversized_fallback: dict = {}
         reviews = 0
         for payload in scores:
             scored = dataset_scoring.from_state(payload)
@@ -2138,6 +2139,31 @@ class CoderAgent:
             dataset_scoring.decide(scored, minimum)
 
             if scored.decision == "accept":
+                if self._too_large_to_download(scored.size_bytes):
+                    # Falls through to the next candidate rather than settling
+                    # for a dataset nothing can fetch. Barkla job 10410949
+                    # accepted CryptoSpartan/stocks_bars_1m at 0.92, found it
+                    # 10.2 GB against a 5 GB cap, offered it as a REST URL the
+                    # compute node could not reach, and the experiment ran on
+                    # synthesized data with its verdict withheld — while
+                    # paperswithbacktest/Stocks-Daily-Price sat one rank below
+                    # at 0.88 with quality 1.00 and would have downloaded fine.
+                    #
+                    # Kept as the fallback, though: if nothing smaller is
+                    # acceptable, offering this one over REST still beats
+                    # offering nothing, which is what happened before downloads
+                    # existed at all. It has been through the critic by this
+                    # point, so the fallback is a vetted candidate.
+                    logger.info(
+                        "Dataset %s accepted at %.2f but is too large to download "
+                        "(%.1f GB); trying the next candidate",
+                        scored.dataset_id,
+                        scored.score,
+                        scored.size_bytes / _BYTES_PER_GB,
+                    )
+                    if not oversized_fallback:
+                        oversized_fallback = dataset_scoring.to_state(scored)
+                    continue
                 logger.info(
                     "Dataset %s accepted at %.2f after review", scored.dataset_id, scored.score
                 )
@@ -2150,7 +2176,12 @@ class CoderAgent:
             )
             rejections.append(dataset_scoring.to_state(scored))
 
-        return {}, rejections
+        if oversized_fallback:
+            logger.info(
+                "No acceptable dataset fits the download budget; falling back to %s over REST",
+                oversized_fallback.get("dataset_id"),
+            )
+        return oversized_fallback, rejections
 
     def _dataset_card_quietly(self, dataset_id: str) -> str:
         try:
@@ -2198,6 +2229,30 @@ class CoderAgent:
                 f"{settings.coder_dataset_run_download_budget_gb:.1f} GB total budget"
             )
         return ""
+
+    def _too_large_to_download(self, size_bytes: int) -> bool:
+        """Whether *this candidate* is too big to fetch, given what's left.
+
+        Deliberately candidate-specific. A global reason — downloads switched
+        off, the per-run dataset cap already spent — applies equally to every
+        candidate, so it is no reason to prefer a different one and this returns
+        False for all of them; `_download_budget_reason` still reports it at
+        acquisition time. Size is different: a smaller candidate really can
+        succeed where a larger one cannot.
+        """
+        if not settings.coder_dataset_download:
+            return False
+        if self._datasets_accepted >= settings.coder_dataset_max_accepted_per_run:
+            return False
+        if not size_bytes:
+            # The viewer wouldn't say. Treat as fetchable and let
+            # _download_budget_reason decide — refusing an unmeasured candidate
+            # would reject most of the Hub on missing metadata.
+            return False
+        if size_bytes > settings.coder_dataset_max_download_gb * _BYTES_PER_GB:
+            return True
+        run_budget = settings.coder_dataset_run_download_budget_gb * _BYTES_PER_GB
+        return self._dataset_bytes_downloaded + size_bytes > run_budget
 
     def _acquire_dataset(self, accepted: dict, experiment_dir: Path | None) -> dict:
         """Fetch the accepted dataset and write its provenance record.
