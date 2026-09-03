@@ -135,6 +135,14 @@ class CoderState(TypedDict, total=False):
     current_broken_sections: dict
     current_fix_history: list[dict]
     current_attempt: int  # 0-based, matching the old `for attempt in range(max_fix_attempts + 1)`
+    # Regenerations spent because the model's *response* was unusable (it did
+    # not emit the delimited sections at all), not because the code it produced
+    # was wrong. Budgeted separately from current_attempt for the same reason
+    # env repairs and downscales are: there is no defect in the generated source
+    # to fix, so charging it to the fix budget spends the model's room to
+    # converge on a failure that was never about the code. See
+    # _route_after_attempt.
+    current_format_retries: int
     current_outcome: dict  # {"result": ...} or {"error_source", "error_text"}
 
     # assemble_and_validate — the schema-valid dict run() returns

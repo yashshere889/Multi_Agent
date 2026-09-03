@@ -1818,7 +1818,7 @@ def test_unparseable_format_from_initial_generation_routes_through_the_fix_loop_
     assert model.calls_by_kind["fix"] == 1
 
 
-def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
+def test_unparseable_format_from_regeneration_is_caught_and_bounded(tmp_path):
     # The regeneration call (_regenerate_with_fix) goes through the same
     # _call_sections path and can fail the same way — it must be caught too, not
     # just the initial generation call. invoke_sections' internal repair retry
@@ -1835,9 +1835,39 @@ def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budge
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
-    assert exp["fix_attempts"] == 2
     assert exp["fix_history"][0]["error_source"] == "run_experiment"
-    assert exp["fix_history"][1]["error_source"] == "invalid_format"
+    # Bounded by _MAX_FORMAT_RETRIES rather than by max_fix_attempts, and those
+    # retries are charged to the format budget -- see the next test for why.
+    assert [e["error_source"] for e in exp["fix_history"][1:]] == ["invalid_format"] * 2
+
+
+def test_a_malformed_response_does_not_spend_an_attempt_meant_for_fixing_code(tmp_path):
+    """An unusable *response* is not a defect in the generated source - there is
+    no source. Charging it to max_fix_attempts spends the model's room to
+    converge on a failure that was never about the code: Barkla job 10411184
+    lost attempt 1 of 3 to a response missing three sections, then ran out while
+    still converging on a real numpy bug.
+
+    Same reasoning that keeps env repairs and downscales off the fix budget.
+    """
+    # One fix attempt available. The code fails at run time, the first
+    # regeneration comes back malformed, and the second returns working code.
+    # The malformed one must not be what consumes the single attempt. (The
+    # second codegen entry is the unparseable one invoke_sections' internal
+    # repair retry pulls, so the fix call fails as a whole - see the test above.)
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS), _unparseable_sections_response()],
+        fix=[_unparseable_sections_response(), _codegen_response()],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    # Charged to max_fix_attempts=1, the malformed response would have burned
+    # the only attempt and this would be code_generated_not_run.
+    assert exp["status"] == "completed"
+    assert [e["error_source"] for e in exp["fix_history"]] == ["run_experiment", "invalid_format"]
 
 
 # -- coder_agent.py: the delimited code transport ----------------------------------------
@@ -4045,6 +4075,106 @@ def test_downscale_halves_cost_knobs_and_leaves_other_numbers_alone():
 def test_downscale_respects_its_floors():
     shrunk, changes = repair.downscale("chains = 2\ndraws = 250\n")
     assert changes == [] and shrunk == "chains = 2\ndraws = 250\n"
+
+
+def test_patch_removed_pandas_fillna_rewrites_the_non_inplace_form():
+    """Job 10416110's actual failing line — a pure syntax swap since the whole
+    chain's result is assigned, never mutated in place."""
+    code = "vol = pd.Series(returns).rolling(window=10).std().fillna(method='bfill').values\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "vol = pd.Series(returns).rolling(window=10).std().bfill().values\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_rewrites_the_inplace_form_as_reassignment():
+    """Job 10411325's actual failing line. A plain syntax swap here would drop
+    the mutation and turn a working line into a silent no-op, so this shape
+    gets reassignment instead of a bare call."""
+    code = "    df.fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "    df = df.bfill()\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_refuses_an_unsafe_inplace_receiver():
+    """`get_df()` cannot be reassigned back to — only a plain dotted-name
+    receiver is provably safe to rewrite, so anything else is left for the
+    model rather than guessed at."""
+    code = "get_df().fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_patch_removed_pandas_fillna_leaves_a_constant_fillna_alone():
+    """`.fillna(0)` is unaffected by the pandas 3 removal and must not match."""
+    code = "df = df.fillna(0)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_a_removed_pandas_call_is_patched_without_spending_a_fix_attempt(tmp_path, monkeypatch):
+    """The exact shape of Barkla job 10416110: the model reproduced
+    byte-identical code across two fix attempts despite the fix prompt naming
+    the exact replacement. The deterministic patch must resolve it on the
+    first execution retry, spending zero fix attempts and zero model calls —
+    same contract test_a_missing_package_is_installed... establishes for the
+    env-repair route this one sits beside."""
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    executed_sources = []
+    attempts = {"n": 0}
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        attempts["n"] += 1
+        executed_sources.append(Path(run_script).read_text())
+        if attempts["n"] == 1:
+            # Written directly rather than through codegen: the point under
+            # test is the patch-and-rerun loop, not getting the model to
+            # produce this exact line.
+            Path(run_script).write_text(
+                "vol = pd.Series([1.0]).fillna(method='bfill')\n"
+                "print('unreachable if the pandas call above still raises')\n"
+            )
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    assert exp["status"] == "completed", exp.get("reason")
+    assert attempts["n"] == 2, "one failed run, one re-run of the patched file"
+    assert "fillna(method=" not in executed_sources[1]
+    assert ".bfill()" in executed_sources[1]
+    assert exp["fix_attempts"] == 0, "a deterministic patch is not a fix attempt"
+    # Not a call-count assertion: this agent may legitimately call the model for
+    # things unrelated to this fix loop (e.g. a dataset-requirement spec on a
+    # branch that has one). What must never happen is a *fix* call - the
+    # signature opening line of EXPERIMENT_CODEGEN_FIX_PROMPT - since the patch
+    # resolved the failure before the loop asked to regenerate anything.
+    assert not any(
+        "The code you generated for hypothesis" in call[-1][1] for call in fake_model.calls
+    ), "the model was never asked to fix the code - the patch already had"
 
 
 def test_install_into_env_prefers_uv_and_reports_failure_without_raising(tmp_path, monkeypatch):

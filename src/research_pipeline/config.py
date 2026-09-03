@@ -46,6 +46,7 @@ class Settings:
     coder_venv_root: str
     coder_experiment_python: str
     coder_enable_hf_dataset_search: bool
+    coder_require_real_data: bool
     coder_dataset_download: bool
     coder_dataset_max_candidates: int
     coder_dataset_max_inspections: int
@@ -256,6 +257,7 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        coder_require_real_data=_env_bool("CODER_REQUIRE_REAL_DATA", False),
         # On by default, and the reason the search is worth doing at all on a
         # cluster: the accepted dataset is fetched once, here, and normalized to
         # a data.jsonl the experiment reads with the standard library. A Barkla

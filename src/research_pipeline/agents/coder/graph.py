@@ -100,6 +100,7 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_node("appraise_datasets", agent._node_appraise_datasets)
     graph.add_node("critique_leading_dataset", agent._node_critique_leading_dataset)
     graph.add_node("acquire_dataset", agent._node_acquire_dataset)
+    graph.add_node("skip_no_real_data", agent._node_skip_no_real_data)
     graph.add_node(
         "generate_experiment_code",
         agent._node_generate_experiment_code,
@@ -155,7 +156,12 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_edge("shortlist_datasets", "appraise_datasets")
     graph.add_edge("appraise_datasets", "critique_leading_dataset")
     graph.add_edge("critique_leading_dataset", "acquire_dataset")
-    graph.add_edge("acquire_dataset", "generate_experiment_code")
+    graph.add_conditional_edges(
+        "acquire_dataset",
+        agent._route_after_search_hf_dataset,
+        {"generate": "generate_experiment_code", "skip": "skip_no_real_data"},
+    )
+    graph.add_conditional_edges("skip_no_real_data", route_plan_loop, _plan_loop_targets)
     graph.add_edge("generate_experiment_code", "attempt")
 
     # The fix loop. `attempt` is the only node that runs generated code; every

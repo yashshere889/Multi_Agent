@@ -65,6 +65,52 @@ DEAD_IMPORTS: dict[str, tuple[str, str]] = {
     "aesara": ("pytensor", "Aesara was renamed. Use `import pytensor.tensor as pt`."),
 }
 
+# APIs removed by a major release of a package the experiments routinely use,
+# matched on the traceback line and mapped to the replacement to write instead.
+#
+# Same reasoning as DEAD_IMPORTS, one level down: the failure is not that
+# something is missing from the environment but that the model wrote a call
+# that no longer exists, and the error text names what broke without naming
+# what to write instead. requirements_txt pins nothing (deliberately — see
+# prompts.py), so experiments resolve the newest major while the model writes
+# the idioms it was trained on, and the fix loop rediscovers the same
+# TypeError every attempt. Barkla job 10411325 spent all three that way on one
+# `fillna(method=...)` call, the identical error each time.
+REMOVED_APIS: list[tuple[re.Pattern[str], str]] = [
+    (
+        re.compile(r"fillna\(\) got an unexpected keyword argument ['\"]method['\"]"),
+        "pandas 3 removed the `method=` argument of .fillna(). Use the dedicated methods: "
+        "`df.ffill()` / `df.bfill()` (and `df.ffill(axis=1)` for the axis form). "
+        "`.fillna(value)` for a constant is unchanged. Note `inplace=True` is also being "
+        "phased out — assign the result instead: `df = df.bfill()`.",
+    ),
+    (
+        re.compile(r"'DataFrame' object has no attribute 'append'"),
+        "pandas 2 removed DataFrame.append(). Use `pd.concat([df, other], ignore_index=True)`.",
+    ),
+    (
+        re.compile(
+            r"module ['\"]numpy['\"] has no attribute ['\"](?:float|int|bool|object|str)['\"]"
+        ),
+        "numpy removed the `np.float`/`np.int`/`np.bool`/`np.object`/`np.str` aliases. Use the "
+        "Python builtins (`float`, `int`, `bool`, `object`, `str`) or the sized dtypes "
+        "(`np.float64`, `np.int64`).",
+    ),
+    (
+        re.compile(r"get_feature_names\(\)"),
+        "scikit-learn removed .get_feature_names(). Use `.get_feature_names_out()`.",
+    ),
+]
+
+
+def removed_api(text: str) -> str | None:
+    """Replacement guidance for a call a major release deleted, else None."""
+    for pattern, guidance in REMOVED_APIS:
+        if pattern.search(text):
+            return guidance
+    return None
+
+
 _MODULE_RE = re.compile(r"ModuleNotFoundError:\s*No module named ['\"]([\w.]+)['\"]")
 _IMPORT_NO_MODULE_RE = re.compile(r"ImportError:\s*No module named ['\"]?([\w.]+)")
 _SHARED_LIB_RE = re.compile(r"(lib[\w.+-]*\.so[\w.]*)[^\n]*cannot open shared object file")
@@ -117,6 +163,20 @@ def classify_execution_failure(message: str) -> ExecutionDiagnosis:
     exit, so the specific cases are tried before the fallback.
     """
     text = message or ""
+
+    # --- a call a major release deleted -------------------------------------
+    # Regeneration, not an env repair: the package is installed and correct, it
+    # is the call that is out of date, so installing anything changes nothing.
+    # Carries the replacement, because the traceback says what broke but not
+    # what to write instead — and without it the model rewrites the same call.
+    guidance = removed_api(text)
+    if guidance:
+        return ExecutionDiagnosis(
+            error_source="obsolete_dependency",
+            route=ROUTE_REGENERATE,
+            summary=f"The experiment calls an API that has been removed. {guidance}",
+            guidance=guidance,
+        )
 
     # --- an import nothing can install --------------------------------------
     # Checked before the installable case, or `pymc3` would be sent to pip.

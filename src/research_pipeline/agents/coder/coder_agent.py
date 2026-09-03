@@ -107,6 +107,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.store.base import BaseStore
@@ -225,6 +226,18 @@ _FIX_TEMPERATURE = 0.0
 # to tell "slightly over budget" from "the wrong shape of computation" — past
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
+# 1 is enough: patch_removed_pandas_fillna's regexes match every occurrence in
+# one pass, so a second attempt only fires if the model's own regeneration
+# reintroduced the pattern — a different situation the fix loop should see,
+# not silently patch again.
+_MAX_API_PATCHES = 1
+
+# How many times the model may fail to return the delimited section format
+# before the plan is given up. Small because llm_sections already retries once
+# with a repair prompt inside each call, so reaching here means two consecutive
+# malformed responses; this bounds a model that cannot produce the format for
+# this prompt at all, without letting it consume the code-fix budget.
+_MAX_FORMAT_RETRIES = 2
 
 # Rows shown to the evidence/critic prompts. The full inspection sample is 200+
 # rows, which no prompt can carry alongside a plan and a card — the measured
@@ -682,6 +695,7 @@ class CoderAgent:
             "current_experiment_dir": str(experiment_dir),
             "current_fix_history": [],
             "current_attempt": 0,
+            "current_format_retries": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
             "current_dataset_spec": {},
@@ -754,6 +768,38 @@ class CoderAgent:
             "datasets_accepted": self._datasets_accepted,
         }
 
+    def _node_skip_no_real_data(self, state: CoderState) -> dict:
+        """CODER_REQUIRE_REAL_DATA's skip: every real source has already had
+        its turn (staging dir, credentialed/open sources, acquire_dataset's
+        download this plan just went through) and the plan's data still
+        resolves to a surrogate. Recorded and the cursor advanced right here,
+        before a single codegen call."""
+        plan = state["current_plan"]
+        hypothesis_id = plan["hypothesis_id"]
+        sources = self._provenance_for(
+            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+        )
+        unresolved = [s.name for s in sources if not s.is_real]
+        logger.info(
+            "Skipping %s: CODER_REQUIRE_REAL_DATA is set and no real source was found for: %s",
+            hypothesis_id,
+            "; ".join(unresolved),
+        )
+        skipped = self._result(
+            hypothesis_id,
+            status="skipped",
+            reason=(
+                "CODER_REQUIRE_REAL_DATA is set and no real source was found for: "
+                f"{'; '.join(unresolved)}"
+            ),
+            code_path=None,
+            data_provenance=provenance.as_document(sources),
+        )
+        return {
+            "experiments": [*state["experiments"], skipped],
+            "plan_index": state["plan_index"] + 1,
+        }
+
     def _node_generate_experiment_code(self, state: CoderState) -> dict:
         """The first generation for this plan, given whatever the lookup found."""
         try:
@@ -817,6 +863,23 @@ class CoderAgent:
                 )
         return update
 
+    def _route_after_search_hf_dataset(self, state: CoderState) -> str:
+        """CODER_REQUIRE_REAL_DATA's gate, checked once acquire_dataset has had
+        its turn and before the first codegen call. Off by default: "generate"
+        unconditionally, so a graph built with the setting off has no extra
+        work here.
+
+        Bound to the agent for the same reason _route_after_attempt is:
+        _provenance_for reads settings.coder_data_dir through self, not state.
+        """
+        if not settings.coder_require_real_data:
+            return "generate"
+        plan = state["current_plan"]
+        sources = self._provenance_for(
+            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+        )
+        return "generate" if provenance.all_real(sources) else "skip"
+
     def _route_after_attempt(self, state: CoderState) -> str:
         """The fix loop's stop condition, unchanged: a terminal result ends the
         plan, an exhausted budget gives up, anything else is regenerated against
@@ -824,6 +887,17 @@ class CoderAgent:
         per-instance."""
         if "result" in state["current_outcome"]:
             return "finalize"
+        # A response that never arrived in the delimited format is not a defect
+        # in the generated source - there is no source. It gets its own small
+        # budget, the same reasoning that keeps env repairs and downscales off
+        # the fix budget: charging it to max_fix_attempts spends the model's
+        # room to converge on a failure that was never about the code. Barkla
+        # job 10411184 lost attempt 1 of 3 to a response missing three sections,
+        # then ran out while still converging on a real numpy bug.
+        if state["current_outcome"].get("error_source") == "invalid_format":
+            if state.get("current_format_retries", 0) < _MAX_FORMAT_RETRIES:
+                return "regenerate"
+            return "give_up"
         if state["current_attempt"] == self.max_fix_attempts:
             return "give_up"
         # Stop early when the last three attempts failed identically. The budget
@@ -895,10 +969,15 @@ class CoderAgent:
                 "assumptions_made": [],
                 "generation_error": str(exc),
             }
+        # A format failure is charged to its own budget instead, so the fix
+        # budget still measures what it is named for: attempts at fixing code.
+        was_format_failure = outcome.get("error_source") == "invalid_format"
         return {
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
-            "current_attempt": attempt + 1,
+            "current_attempt": attempt if was_format_failure else attempt + 1,
+            "current_format_retries": state.get("current_format_retries", 0)
+            + (1 if was_format_failure else 0),
             # The sections that just failed (state["current_generation"], read
             # before this node's own reassignment above) — i.e. what entry's
             # error_source was produced by. Read back once entry's `resolved`
@@ -1281,6 +1360,7 @@ class CoderAgent:
         # loop, which is still the right place for a genuine code defect.
         env_repairs = 0
         downscales = 0
+        api_patches = 0
         run_path = experiment_dir / "run.py"
 
         while True:
@@ -1348,6 +1428,29 @@ class CoderAgent:
                     )
                     continue  # re-run the smaller version, still no model call
                 # Nothing to shrink: fall through and let the model rethink it.
+
+            # Keyed on error_source rather than a route: this is one narrow
+            # deterministic case inside obsolete_dependency (whose route is
+            # ROUTE_REGENERATE, since most of that category — a dead import,
+            # DataFrame.append — genuinely needs a model to rewrite). Barkla
+            # jobs 10411325 and 10416110 both hit exactly the shape
+            # patch_removed_pandas_fillna covers, and 10416110 spent two fix
+            # attempts reproducing byte-identical code despite the fix prompt
+            # naming the exact replacement — the guidance was right and the
+            # model did not apply it, so this stops asking.
+            if failure.error_source == "obsolete_dependency" and api_patches < _MAX_API_PATCHES:
+                patched, changes = repair.patch_removed_pandas_fillna(run_path.read_text())
+                if changes:
+                    run_path.write_text(patched)
+                    api_patches += 1
+                    logger.info(
+                        "[%s] %s Patched deterministically: %s",
+                        hypothesis_id,
+                        failure.summary,
+                        "; ".join(changes),
+                    )
+                    continue  # re-run the patched version, still no model call
+                # Not a shape this patcher covers: fall through to the model.
 
             return {"error_source": failure.error_source, "error_text": failure.summary}
 
@@ -2295,7 +2398,7 @@ class CoderAgent:
         plan: dict,
         network_available: bool,
         hf_dataset: dict | None = None,
-        run_py: str = "",
+        run_py: str | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2327,8 +2430,15 @@ class CoderAgent:
         # download normalized it into. The local file is checked by its bare
         # name as well as its full path, since generated code routinely builds
         # the path from a constant rather than pasting it.
-        named = bool(run_py) and (
-            (bool(dataset_id) and dataset_id in run_py)
+        # run_py is None at prompt time: the code does not exist yet, so an
+        # accepted dataset is an input the model is *being asked* to read and is
+        # listed as real. Calling it a surrogate there is not caution, it is a
+        # contradiction — prompt_block would order a `synthesize_` generator in
+        # the same prompt that hf_dataset_block introduces the dataset as real,
+        # and the model does as it is told. Once run.py exists the question is
+        # instead whether the code that got written actually reads it.
+        named = run_py is None or (
+            (bool(dataset_id) and self._reads_dataset(dataset_id, run_py))
             or (bool(local_path) and (local_path in run_py or Path(local_path).name in run_py))
         )
         if dataset_id and named:
@@ -2349,9 +2459,31 @@ class CoderAgent:
                         "selected by the dataset appraisal (score "
                         f"{(hf_dataset or {}).get('score', 0.0)}) and read by the generated code"
                     ),
+                    # Reached only when run_py named the dataset (or at prompt
+                    # time, when there is no code to check), so its use is
+                    # already established more strongly than a URL-host match.
+                    usage_verified=True,
                 ),
             )
+
+        # Order matters. Confirm which declared inputs the code really reads,
+        # *then* let those answer requirements nothing could resolve -
+        # superseding first would let an unfetched declaration stand in for one.
+        if run_py is not None:
+            sources = provenance.verify_downloads_used(sources, run_py)
+            sources = provenance.supersede_unresolved(sources, run_py)
         return sources
+
+    @staticmethod
+    def _reads_dataset(dataset_id: str, code: str) -> bool:
+        """Whether `code` shows a trace of reading `dataset_id`.
+
+        Matches the raw id or the percent-encoded form, because a rows URL
+        encodes the namespace slash — a plain `id in code` test misses exactly
+        the code that followed the instructions. Same pair
+        `sandbox.check_hf_dataset_usage` matches on.
+        """
+        return dataset_id in code or quote(dataset_id, safe="") in code
 
     @staticmethod
     def _hf_dataset_block(hf_dataset: dict) -> str:
@@ -2426,7 +2558,13 @@ class CoderAgent:
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
-            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
+            provenance_block=provenance.prompt_block(
+                # hf_dataset passed so an accepted dataset is described as the real
+                # input the model is being asked to read. Without it this block
+                # called that same dataset a surrogate and ordered a `synthesize_`
+                # generator, contradicting hf_dataset_block in the same prompt.
+                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+            ),
             starter_block=self._starter_block(starter_id),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
@@ -2469,7 +2607,13 @@ class CoderAgent:
             # longer knows which inputs are surrogates is free to "fix" a
             # failure by quietly inventing data, which is the outcome the
             # provenance gate exists to prevent.
-            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
+            provenance_block=provenance.prompt_block(
+                # hf_dataset passed so an accepted dataset is described as the real
+                # input the model is being asked to read. Without it this block
+                # called that same dataset a surrogate and ordered a `synthesize_`
+                # generator, contradicting hf_dataset_block in the same prompt.
+                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+            ),
             starter_block=self._starter_block(starter_id),
             # Looked up fresh every fix call, unlike the starter/dataset blocks
             # above — it depends on error_source, which can (and often does)
