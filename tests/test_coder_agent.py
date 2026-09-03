@@ -3616,3 +3616,106 @@ def test_an_install_that_does_not_make_the_import_work_is_not_retried(tmp_path, 
     summaries = " ".join(e["error_summary"] for e in exp["fix_history"])
     assert "still not importable" in summaries, "the message must name the real problem"
     assert exp["status"] != "completed"
+
+
+# --- provenance wiring -------------------------------------------------------
+# _provenance_for had no direct coverage, which is how a branch keyed on a dict
+# key nothing sets ("dataset" rather than "dataset_id") stayed dead long enough
+# to withhold the verdict on every experiment built from a real Hub dataset.
+
+
+def _provenance_agent(tmp_path):
+    return CoderAgent(
+        chat_model=FakeChatModel({}),
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: True,
+        gpu_check=lambda: False,
+    )
+
+
+def _hf_match() -> dict:
+    return {
+        "dataset_id": "acme/prices",
+        "config": "default",
+        "split": "train",
+        "columns": [],
+        "sample_rows": [],
+    }
+
+
+def test_matched_hf_dataset_counts_as_real_when_the_code_reads_it(tmp_path):
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    run_py = 'requests.get("https://datasets-server.huggingface.co/rows?dataset=acme%2Fprices")'
+
+    sources = agent._provenance_for(plan, True, hf_dataset=_hf_match(), run_py=run_py)
+
+    dataset_source = sources[0]
+    assert dataset_source.kind == provenance.KIND_REAL_DOWNLOAD
+    assert "acme/prices" in dataset_source.name
+    # The URI is derived, not read off a key the lookup never returns.
+    assert dataset_source.uri.startswith("https://datasets-server.huggingface.co/rows?")
+    assert "acme%2Fprices" in dataset_source.uri
+
+
+def test_matched_hf_dataset_is_not_credited_when_the_code_ignores_it(tmp_path):
+    agent = _provenance_agent(tmp_path)
+
+    sources = agent._provenance_for(
+        _plan("H1"),
+        True,
+        hf_dataset=_hf_match(),
+        run_py="def synthesize_prices():\n    return [1, 2, 3]\n",
+    )
+
+    assert all("acme/prices" not in s.name for s in sources)
+    assert not provenance.all_real(sources)
+
+
+def test_prompt_time_provenance_offers_the_dataset_as_real(tmp_path):
+    """With no code yet (run_py=None) the dataset is what the model is being
+    asked to read, so the block must not order a `synthesize_` generator in the
+    same prompt that hands over a verified dataset."""
+    agent = _provenance_agent(tmp_path)
+
+    block = provenance.prompt_block(
+        agent._provenance_for(_plan("H1"), True, hf_dataset=_hf_match())
+    )
+
+    assert "acme/prices" in block
+    assert "REAL, fetch from" in block
+    assert "synthesize_" not in block.split("acme/prices")[1].split("\n\n")[0]
+
+
+def test_declared_download_is_withheld_when_the_code_never_fetches_it(tmp_path):
+    """Widening OPEN_SOURCES makes more inputs *declared* real; this is the
+    check that keeps a declaration from becoming an unearned evidence stamp."""
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    plan["data_requirements"]["source"] = "Yahoo Finance S&P 500 daily closing prices"
+
+    fetched = agent._provenance_for(
+        plan, True, run_py='pd.read_csv("https://stooq.com/q/d/l/?s=^spx")'
+    )
+    synthesized = agent._provenance_for(
+        plan, True, run_py="def synthesize_prices():\n    return []\n"
+    )
+
+    assert provenance.all_real(fetched)
+    assert not provenance.all_real(synthesized)
+    assert "never fetches stooq.com" in synthesized[0].reason
+
+
+def test_stock_price_requirement_resolves_to_an_open_source(tmp_path):
+    """The requirement from Barkla run 10411022, which resolved to a surrogate
+    and had its verdict withheld because no OPEN_SOURCES entry matched it."""
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    plan["data_requirements"]["source"] = (
+        "Yahoo Finance API or public stock market datasets (e.g., S&P 500 daily closing prices)"
+    )
+
+    sources = agent._provenance_for(plan, True)
+
+    assert [s.kind for s in sources] == [provenance.KIND_REAL_DOWNLOAD]

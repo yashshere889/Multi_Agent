@@ -33,6 +33,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 KIND_REAL_LOCAL = "real_local"
 KIND_REAL_DOWNLOAD = "real_download"
@@ -88,6 +89,13 @@ CREDENTIALED_SOURCES: list[tuple[str, str, str, tuple[str, ...], str]] = [
         ("NOAA_CDO_TOKEN",),
         "request a token at https://www.ncdc.noaa.gov/cdo-web/token, then export NOAA_CDO_TOKEN",
     ),
+    (
+        r"\bFRED\b|federal reserve economic data",
+        "FRED",
+        "https://api.stlouisfed.org/fred/series/observations",
+        ("FRED_API_KEY",),
+        "request a free key at https://fredaccount.stlouisfed.org/apikeys, then export FRED_API_KEY",
+    ),
 ]
 
 OPEN_SOURCES: list[tuple[str, str, str]] = [
@@ -97,6 +105,35 @@ OPEN_SOURCES: list[tuple[str, str, str]] = [
     (r"open ?street ?map|\bOSM\b", "OpenStreetMap", "https://overpass-api.de/api"),
     (r"\bNDVI\b|landsat|\bUSGS\b", "USGS EarthExplorer", "https://earthexplorer.usgs.gov"),
     (r"hugging ?face", "Hugging Face datasets", "https://datasets-server.huggingface.co/rows"),
+    # Daily OHLC equity/index history, keyless. Stooq serves plain CSV over a
+    # stable GET (Yahoo Finance's chart endpoint is the same shape but rate-limits
+    # server IPs harder), so it is the one named here. A run asking to compare
+    # forecasting models against "S&P 500 daily closing prices" resolved to a
+    # surrogate before this entry existed — no open source matched, so the
+    # verdict was withheld on an experiment that could have used real prices.
+    (
+        r"yahoo ?finance|stock (price|market)|share price|equity price|"
+        r"\bS&?P ?500\b|\bOHLC\b|ticker|stock exchange|market index",
+        "Stooq daily OHLC (keyless CSV; ^SPX for the S&P 500)",
+        "https://stooq.com/q/d/l/",
+    ),
+    (
+        r"coin ?gecko|crypto(currency)? price|bitcoin|ethereum",
+        "CoinGecko",
+        "https://api.coingecko.com/api/v3",
+    ),
+    (
+        r"open-?meteo|weather (data|history)|temperature record",
+        "Open-Meteo",
+        "https://archive-api.open-meteo.com/v1/archive",
+    ),
+    (r"open ?alex|scholarly (metadata|citation)", "OpenAlex", "https://api.openalex.org"),
+    (
+        r"eurostat",
+        "Eurostat",
+        "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data",
+    ),
+    (r"wikipedia pageviews|wikimedia", "Wikimedia REST", "https://wikimedia.org/api/rest_v1"),
 ]
 
 
@@ -269,6 +306,47 @@ def resolve(
             )
         )
     return resolved
+
+
+def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSource]:
+    """Downgrade a `real_download` the generated code never actually fetches.
+
+    `resolve` can only say a source *is* openly fetchable; whether the code went
+    and fetched it is a different question, and until it is asked a plan whose
+    model quietly synthesized instead still earns the "real data — findings are
+    interpretable as evidence" stamp. That is the over-claiming direction, the
+    one this module exists to prevent, and every entry added to OPEN_SOURCES
+    widens the exposure to it.
+
+    The host of the declared URI is the fixed trace — the same reasoning as
+    `sandbox.check_hf_dataset_usage` matching on the dataset id rather than
+    walking the AST for a particular call shape: the model can write the request
+    in more ways than are worth enumerating, but it cannot fetch the source
+    without naming its host. `real_local` is left alone (a staged file is on
+    disk whatever the code does with it), and so is anything already a surrogate.
+    """
+    if not code:
+        return sources
+    verified: list[DataSource] = []
+    for source in sources:
+        host = urlparse(source.uri).netloc
+        if source.kind != KIND_REAL_DOWNLOAD or not host or host in code:
+            verified.append(source)
+            continue
+        verified.append(
+            DataSource(
+                name=source.name,
+                kind=KIND_SURROGATE,
+                uri=source.uri,
+                reason=(
+                    f"{source.reason}, but the generated code never fetches {host} — it "
+                    "appears to have synthesized this input instead, so the verdict is "
+                    "withheld rather than credited to data that was never read"
+                ),
+                credentials=source.credentials,
+            )
+        )
+    return verified
 
 
 def all_real(sources: list[DataSource]) -> bool:
