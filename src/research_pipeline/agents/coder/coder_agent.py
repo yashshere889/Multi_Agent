@@ -224,6 +224,13 @@ _FIX_TEMPERATURE = 0.0
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
 
+# How many times the model may fail to return the delimited section format
+# before the plan is given up. Small because llm_sections already retries once
+# with a repair prompt inside each call, so reaching here means two consecutive
+# malformed responses; this bounds a model that cannot produce the format for
+# this prompt at all, without letting it consume the code-fix budget.
+_MAX_FORMAT_RETRIES = 2
+
 
 def _estimate_tokens(text: str) -> int:
     return len(text) // _CHARS_PER_TOKEN_ESTIMATE
@@ -610,6 +617,7 @@ class CoderAgent:
             "current_experiment_dir": str(experiment_dir),
             "current_fix_history": [],
             "current_attempt": 0,
+            "current_format_retries": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
             "current_starter_id": selected_starter["id"] if selected_starter else "",
@@ -700,6 +708,17 @@ class CoderAgent:
         per-instance."""
         if "result" in state["current_outcome"]:
             return "finalize"
+        # A response that never arrived in the delimited format is not a defect
+        # in the generated source — there is no source. It gets its own small
+        # budget, the same reasoning that keeps env repairs and downscales off
+        # the fix budget: charging it to max_fix_attempts spends the model's
+        # room to converge on a failure that was never about the code. Barkla
+        # job 10411184 lost attempt 1 of 3 to a response missing three sections,
+        # then ran out while still converging on a real numpy bug.
+        if state["current_outcome"].get("error_source") == "invalid_format":
+            if state.get("current_format_retries", 0) < _MAX_FORMAT_RETRIES:
+                return "regenerate"
+            return "give_up"
         if state["current_attempt"] == self.max_fix_attempts:
             return "give_up"
         # Stop early when the last three attempts failed identically. The budget
@@ -765,16 +784,21 @@ class CoderAgent:
             # also come back in an unparseable format. Feed it back through the
             # fix loop rather than crashing the run — _attempt_once's
             # generation_error check turns this into a normal "invalid_format"
-            # outcome, so it still counts against max_fix_attempts.
+            # outcome, which _route_after_attempt charges to the format budget.
             generation = {
                 "run_py_sections": {},
                 "assumptions_made": [],
                 "generation_error": str(exc),
             }
+        # A format failure is charged to its own budget instead, so the fix
+        # budget still measures what it is named for: attempts at fixing code.
+        was_format_failure = outcome.get("error_source") == "invalid_format"
         return {
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
-            "current_attempt": attempt + 1,
+            "current_attempt": attempt if was_format_failure else attempt + 1,
+            "current_format_retries": state.get("current_format_retries", 0)
+            + (1 if was_format_failure else 0),
             # The sections that just failed (state["current_generation"], read
             # before this node's own reassignment above) — i.e. what entry's
             # error_source was produced by. Read back once entry's `resolved`

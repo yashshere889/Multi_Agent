@@ -1601,13 +1601,17 @@ def test_unparseable_format_from_initial_generation_routes_through_the_fix_loop_
     assert model.calls_by_kind["fix"] == 1
 
 
-def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
+def test_unparseable_format_from_regeneration_is_caught_and_bounded(tmp_path):
     # The regeneration call (_regenerate_with_fix) goes through the same
     # _call_sections path and can fail the same way — it must be caught too, not
     # just the initial generation call. invoke_sections' internal repair retry
     # sends a fresh prompt with no "fix" marker text, so ScriptedChatModel
     # routes that retry to the "codegen" bucket — a second, broken "codegen"
     # entry keeps both the fix call and its repair retry failing.
+    #
+    # A model that can never return the format is bounded by _MAX_FORMAT_RETRIES
+    # rather than running forever, but those retries are charged to the format
+    # budget, not to max_fix_attempts — see the next test for why that matters.
     model = ScriptedChatModel(
         codegen=[_codegen_response(RAISING_SECTIONS), _unparseable_sections_response()],
         fix=[_unparseable_sections_response()],
@@ -1618,9 +1622,37 @@ def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budge
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
-    assert exp["fix_attempts"] == 2
     assert exp["fix_history"][0]["error_source"] == "run_experiment"
-    assert exp["fix_history"][1]["error_source"] == "invalid_format"
+    assert [e["error_source"] for e in exp["fix_history"][1:]] == ["invalid_format"] * 2
+
+
+def test_a_malformed_response_does_not_spend_an_attempt_meant_for_fixing_code(tmp_path):
+    """An unusable *response* is not a defect in the generated source — there is
+    no source. Charging it to max_fix_attempts spends the model's room to
+    converge on a failure that was never about the code: Barkla job 10411184
+    lost attempt 1 of 3 to a response missing three sections, then ran out while
+    still converging on a real numpy bug.
+
+    Same reasoning that keeps env repairs and downscales off the fix budget.
+    """
+    # One fix attempt available. The code fails at run time, the first
+    # regeneration comes back malformed, and the second returns working code.
+    # The malformed one must not be what consumes the single attempt.
+    # (The second codegen entry is the unparseable one invoke_sections' internal
+    # repair retry pulls, so the fix call fails as a whole — see the test above.)
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS), _unparseable_sections_response()],
+        fix=[_unparseable_sections_response(), _codegen_response()],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    # Charged to max_fix_attempts=1, the malformed response would have burned
+    # the only attempt and this would be code_generated_not_run.
+    assert exp["status"] == "completed"
+    assert [e["error_source"] for e in exp["fix_history"]] == ["run_experiment", "invalid_format"]
 
 
 # -- coder_agent.py: the delimited code transport ----------------------------------------
