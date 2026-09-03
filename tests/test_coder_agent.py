@@ -3857,6 +3857,72 @@ def test_a_stock_price_requirement_is_left_unresolved_rather_than_promised(tmp_p
     assert sources[0].unresolved is True
 
 
+# --- CODER_REQUIRE_REAL_DATA -------------------------------------------------
+
+
+def test_default_off_still_runs_an_experiment_it_cannot_find_real_data_for(tmp_path):
+    """The pre-existing behaviour, unchanged for anyone not opting in:
+    provenance.py's own contract is "a working, reviewable pipeline on
+    surrogate data is a legitimate deliverable" — this setting narrows that
+    only when explicitly turned on."""
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["data_provenance"]["all_inputs_real"] is False
+
+
+def test_require_real_data_skips_a_plan_with_no_real_source_before_any_model_call(
+    tmp_path, monkeypatch
+):
+    """The setting's whole point: "no experiment" over "an experiment on
+    invented numbers". No codegen call happens — the fixture plan's
+    data_requirements.source is "synthetic", which resolves to a surrogate with
+    nothing to fall back on, so this must be caught before the model is ever
+    asked for code."""
+    fake_model = FakeChatModel({})  # any call fails the test
+    _patch_settings(monkeypatch, coder_require_real_data=True)
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "skipped"
+    assert exp["code_path"] is None
+    assert "CODER_REQUIRE_REAL_DATA" in exp["reason"]
+    assert fake_model.calls == []
+
+
+def test_require_real_data_still_runs_a_plan_a_staged_file_answers(tmp_path, monkeypatch):
+    """The gate checks real-or-not, not "did the Hub search find something" —
+    a file staged under CODER_DATA_DIR resolves the same requirement the
+    surrogate test above leaves unresolved, and generation must proceed."""
+    data_dir = tmp_path / "staged"
+    data_dir.mkdir()
+    (data_dir / "synthetic_data.csv").write_text("x,y\n1,2\n")  # matches plan()'s
+    # data_requirements.source == "synthetic" by shared keyword, same as
+    # provenance._staged_file's matching rule.
+    _patch_settings(monkeypatch, coder_require_real_data=True, coder_data_dir=str(data_dir))
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed", exp.get("reason")
+    assert exp["data_provenance"]["all_inputs_real"] is True
+    assert len(fake_model.calls) == 1
+
+
 def test_a_found_dataset_answers_a_requirement_nothing_could_resolve(tmp_path):
     """The plan names "Yahoo Finance or public stock market data", no open
     source matches it, and the Hub search finds real daily prices the code then

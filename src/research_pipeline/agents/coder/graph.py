@@ -95,6 +95,7 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_node("start_plan_loop", agent._node_start_plan_loop)
     graph.add_node("process_current_plan", agent._node_process_current_plan)
     graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
+    graph.add_node("skip_no_real_data", agent._node_skip_no_real_data)
     graph.add_node(
         "generate_experiment_code",
         agent._node_generate_experiment_code,
@@ -133,10 +134,18 @@ def build_coder_graph(agent: CoderAgent):
     # The dataset lookup is its own step, ahead of the first generation, because
     # what it finds goes *into* the codegen prompt — and because "did this
     # experiment get offered real data?" should be visible in a trace rather than
-    # buried inside the generation call. It never branches: a miss is an empty
-    # dict and generation proceeds unchanged.
-    graph.add_edge("search_hf_dataset", "generate_experiment_code")
+    # buried inside the generation call. With CODER_REQUIRE_REAL_DATA off (the
+    # default) it never branches: a miss is an empty dict and generation
+    # proceeds unchanged, same as before this gate existed. On, a plan whose
+    # data still resolves to a surrogate after this lookup is skipped here,
+    # before any codegen call — see _node_skip_no_real_data.
+    graph.add_conditional_edges(
+        "search_hf_dataset",
+        agent._route_after_search_hf_dataset,
+        {"generate": "generate_experiment_code", "skip": "skip_no_real_data"},
+    )
     graph.add_edge("generate_experiment_code", "attempt")
+    graph.add_conditional_edges("skip_no_real_data", route_plan_loop, _plan_loop_targets)
 
     # The fix loop. `attempt` is the only node that runs generated code; every
     # exit from it is a real check's verdict, never model judgment.

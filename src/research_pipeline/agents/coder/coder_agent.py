@@ -643,6 +643,41 @@ class CoderAgent:
             )
         }
 
+    def _node_skip_no_real_data(self, state: CoderState) -> dict:
+        """CODER_REQUIRE_REAL_DATA's skip: every real source has already had
+        its turn (staging dir, credentialed/open sources, the Hugging Face
+        lookup this plan's search_hf_dataset node just ran) and the plan's data
+        still resolves to a surrogate. Recorded and the cursor advanced right
+        here, before a single codegen call — same shape as
+        _node_process_current_plan's infeasible-plan skip, for the same reason:
+        there is nothing this plan can produce under this setting, so there is
+        nothing to spend a model call finding out."""
+        plan = state["current_plan"]
+        hypothesis_id = plan["hypothesis_id"]
+        sources = self._provenance_for(
+            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+        )
+        unresolved = [s.name for s in sources if not s.is_real]
+        logger.info(
+            "Skipping %s: CODER_REQUIRE_REAL_DATA is set and no real source was found for: %s",
+            hypothesis_id,
+            "; ".join(unresolved),
+        )
+        skipped = self._result(
+            hypothesis_id,
+            status="skipped",
+            reason=(
+                "CODER_REQUIRE_REAL_DATA is set and no real source was found for: "
+                f"{'; '.join(unresolved)}"
+            ),
+            code_path=None,
+            data_provenance=provenance.as_document(sources),
+        )
+        return {
+            "experiments": [*state["experiments"], skipped],
+            "plan_index": state["plan_index"] + 1,
+        }
+
     def _node_generate_experiment_code(self, state: CoderState) -> dict:
         """The first generation for this plan, given whatever the lookup found."""
         try:
@@ -705,6 +740,25 @@ class CoderAgent:
                     state["current_generation"].get("run_py_sections", {}),
                 )
         return update
+
+    def _route_after_search_hf_dataset(self, state: CoderState) -> str:
+        """CODER_REQUIRE_REAL_DATA's gate, checked once the Hugging Face lookup
+        has had its turn (it just ran, in search_hf_dataset) and before the
+        first codegen call. Off by default: "generate" unconditionally, so a
+        graph built with the setting off has no extra HTTP-shaped work here —
+        _provenance_for is cheap, but skipping the call entirely is what makes
+        the off-path read exactly as it did before this gate existed.
+
+        Bound to the agent for the same reason _route_after_attempt is:
+        _provenance_for reads settings.coder_data_dir through self, not state.
+        """
+        if not settings.coder_require_real_data:
+            return "generate"
+        plan = state["current_plan"]
+        sources = self._provenance_for(
+            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+        )
+        return "generate" if provenance.all_real(sources) else "skip"
 
     def _route_after_attempt(self, state: CoderState) -> str:
         """The fix loop's stop condition, unchanged: a terminal result ends the

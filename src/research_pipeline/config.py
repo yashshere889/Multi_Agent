@@ -45,6 +45,7 @@ class Settings:
     coder_data_dir: str
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
+    coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
     coder_fix_store_sqlite_path: str
@@ -233,6 +234,20 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        # Off by default, matching this file's own rule for every other opt-in
+        # gate: the base behaviour (run on a documented surrogate rather than
+        # skip, per provenance.py's docstring — "a working, reviewable pipeline
+        # on surrogate data is a legitimate deliverable") stays exactly as it
+        # was for anyone not opting in. On, a plan whose data requirements
+        # cannot be resolved to real_local/real_download — after the staging
+        # directory, credentialed/open sources, and the Hugging Face lookup
+        # have all had their turn — is skipped before a single codegen call,
+        # the same way an infeasible plan already is. This is a stronger
+        # guarantee than the existing default: that default still runs
+        # synthetic data and only withholds the *verdict*; this refuses to run
+        # it at all, for a caller who wants "no experiment" over "an experiment
+        # on invented numbers", not merely "no unearned verdict from one".
+        coder_require_real_data=_env_bool("CODER_REQUIRE_REAL_DATA", False),
         # On by default, and — unlike CHECKPOINTER_BACKEND — defaulting to
         # "sqlite" rather than "memory": a checkpointer's in-memory default is
         # fine because most runs are one-shot processes anyway, but this
