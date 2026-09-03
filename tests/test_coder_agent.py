@@ -3801,3 +3801,34 @@ def test_a_restricted_source_is_never_superseded(tmp_path):
 
     assert not provenance.all_real(sources)
     assert any("Data Use Agreement" in s.reason for s in sources)
+
+
+def test_a_removed_api_carries_its_replacement_to_the_model():
+    """Barkla job 10411325's whole fix budget, verbatim. The package is present
+    and correct; the call is what pandas 3 deleted, so installing anything
+    changes nothing and only the replacement gets the loop moving."""
+    message = (
+        "Traceback (most recent call last):\n"
+        '  File "run.py", line 205, in load_data\n'
+        "    df.fillna(method='bfill', inplace=True)\n"
+        "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+    )
+
+    d = diagnose.classify_execution_failure(message)
+
+    assert d.error_source == "obsolete_dependency"
+    assert d.route == diagnose.ROUTE_REGENERATE  # never the installer
+    assert "df.bfill()" in d.summary
+
+
+def test_a_removed_api_is_told_apart_from_a_missing_package():
+    """The two failure kinds share an exit code and must not share a route: one
+    is repaired by installing, the other can only be repaired by rewriting."""
+    missing = diagnose.classify_execution_failure("ModuleNotFoundError: No module named 'pandas'")
+    removed = diagnose.classify_execution_failure(
+        "AttributeError: 'DataFrame' object has no attribute 'append'"
+    )
+
+    assert missing.route == diagnose.ROUTE_ENV
+    assert removed.route == diagnose.ROUTE_REGENERATE
+    assert "pd.concat" in removed.summary
