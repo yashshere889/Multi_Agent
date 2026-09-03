@@ -185,11 +185,18 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `CODER_MAX_STRUCTURAL_RETRIES` instead of `max_fix_attempts`, which exists for
   debugging code. `compile_check` is deliberately **not** in the set: a syntax
   error is a real defect in a real answer, and it is the failure most likely to
-  repeat. When the structural budget runs out the failure falls through and
-  costs a fix attempt like any other, rather than ending the plan on the spot.
-  The identical-failure stop is checked *before* either budget and applies to
-  both, so this cannot turn a model that never produces the format into an
-  unbounded loop. Two consequences to keep in mind: `fix_history` entries are
+  repeat. Exhausting the structural budget **ends the plan** — it does not fall
+  through to the fix budget. Both readings were implemented independently (see
+  `barkla-wip/coder-format-retries`, which bounded `invalid_format` alone) and
+  this is the reconciliation: the identical-failure stop cannot bound a
+  fall-through, because an `invalid_format` summary embeds
+  `Raw response: <500 chars of the model's own output>` and `_failure_signature`
+  normalises numbers, paths and addresses but not prose — so malformed responses
+  that differ read as different failures and the streak never fires. Falling
+  through would spend `max_structural_retries + max_fix_attempts` regenerations
+  producing nothing. `0` means off, not "give up immediately": with no separate
+  budget a structural failure costs a fix attempt exactly as it did before the
+  split. Two more consequences to keep in mind: `fix_history` entries are
   numbered by their own ordinal (`len(fix_history) + 1`), never by
   `current_attempt`, or two entries and two snapshot directories would collide
   once the counters diverge; and `_recursion_limit_for` takes the structural

@@ -178,9 +178,18 @@ _ERROR_STAGE_ORDER = [
 # executed, so nothing was learned about the experiment; what the next call
 # needs is simply another go at the shape, which is why these get their own
 # small budget (CODER_MAX_STRUCTURAL_RETRIES) instead of drawing on the
-# max_fix_attempts that exists for debugging code. A run that spent all three
-# fix attempts on the model omitting evaluate_function three times had no
-# attempts left for the bug it would have found on the first execution.
+# max_fix_attempts that exists for debugging code. Barkla job 10411184 is the
+# shape: attempt 1 of 3 went to a response missing three sections, and the run
+# then ran out of budget while still converging on a real numpy bug.
+#
+# The set covers both shapes the same failure takes, which is why it is a set
+# and not the single `invalid_format` that an earlier, independently written
+# version of this bounded: a response whose section markers are absent entirely
+# fails as `invalid_format`, while one whose markers parse but whose bodies are
+# blank, misnamed or hollow fails as missing_sections / missing_required_function
+# / empty_body. Both are "the model did not return a program", and bounding only
+# the first leaves the second charging the fix budget — including job 10411184's
+# own missing-sections case.
 #
 # compile_check is deliberately NOT here: a syntax error is a real defect in a
 # real answer, and it is also the failure most likely to repeat, so it must
@@ -848,8 +857,8 @@ class CoderAgent:
         (_STRUCTURAL_ERROR_SOURCES) is the model not returning a program at all:
         nothing was rendered, provisioned or executed, so it draws on its own
         small budget rather than on the fix budget that exists for debugging
-        code. The identical-failure stop below applies to both, so this cannot
-        turn a model that never produces the format into an unbounded loop.
+        code. Exhausting that budget ends the plan; it does not fall through to
+        the fix budget — see the comment on that branch for why.
         """
         if "result" in state["current_outcome"]:
             return "finalize"
@@ -874,13 +883,34 @@ class CoderAgent:
         if not just_made_progress and _identical_failure_streak(history) >= _NO_PROGRESS_STREAK:
             return "give_up"
 
-        if state["current_outcome"]["error_source"] in _STRUCTURAL_ERROR_SOURCES:
+        # `> 0` so that 0 still means "off": with no separate budget, a
+        # structural failure costs a fix attempt exactly as it did before this
+        # split existed. Without the guard, 0 would instead mean "give up on the
+        # first one" — stricter than the behaviour it is meant to disable, which
+        # is the last thing a knob turned off should do.
+        if (
+            self.max_structural_retries > 0
+            and state["current_outcome"]["error_source"] in _STRUCTURAL_ERROR_SOURCES
+        ):
             if state.get("current_structural_retries", 0) < self.max_structural_retries:
                 return "regenerate"
-            # Budget spent: fall through and let this cost a fix attempt like
-            # any other failure, rather than ending the plan outright. A model
-            # that keeps mangling the format has still had none of its actual
-            # code looked at, and the fix budget is the honest place for that.
+            # Budget spent: end the plan rather than falling through to the fix
+            # budget. Both readings were implemented independently, and this one
+            # is right, because the identical-failure stop above cannot be relied
+            # on to bound the fall-through. An `invalid_format` error_text embeds
+            # `Raw response: <500 chars of whatever the model actually said>`,
+            # and _failure_signature normalises numbers, paths and addresses —
+            # not arbitrary prose. Three malformed responses whose garbage
+            # differs therefore read as three *different* failures, the streak
+            # never reaches _NO_PROGRESS_STREAK, and falling through spends
+            # max_structural_retries + max_fix_attempts regenerations — five, at
+            # the defaults — to produce nothing at all.
+            #
+            # Ending here caps a plan that never returns a program at
+            # max_structural_retries + 1 attempts, and it is the honest reading
+            # of the split besides: the fix budget measures attempts at fixing
+            # code, and there is no code here to fix.
+            return "give_up"
 
         if state["current_attempt"] == self.max_fix_attempts:
             return "give_up"
