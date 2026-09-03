@@ -3246,7 +3246,14 @@ def test_a_removed_pandas_call_is_patched_without_spending_a_fix_attempt(tmp_pat
     assert "fillna(method=" not in executed_sources[1]
     assert ".bfill()" in executed_sources[1]
     assert exp["fix_attempts"] == 0, "a deterministic patch is not a fix attempt"
-    assert len(fake_model.calls) == 1, "the model was asked for code once and never again"
+    # Not a call-count assertion: this agent may legitimately call the model for
+    # things unrelated to this fix loop (e.g. a dataset-requirement spec on a
+    # branch that has one). What must never happen is a *fix* call — the
+    # signature opening line of EXPERIMENT_CODEGEN_FIX_PROMPT — since the patch
+    # resolved the failure before the loop asked to regenerate anything.
+    assert not any(
+        "The code you generated for hypothesis" in call[-1][1] for call in fake_model.calls
+    ), "the model was never asked to fix the code — the patch already had"
 
 
 def test_install_into_env_prefers_uv_and_reports_failure_without_raising(tmp_path, monkeypatch):
