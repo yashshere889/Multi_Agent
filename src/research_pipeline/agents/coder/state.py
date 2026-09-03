@@ -109,6 +109,15 @@ class CoderState(TypedDict, total=False):
     current_broken_sections: dict
     current_fix_history: list[dict]
     current_attempt: int  # 0-based, matching the old `for attempt in range(max_fix_attempts + 1)`
+    # Regenerations this plan has spent on a structural failure — a response
+    # that was malformed or hollow rather than a program that was wrong. Counted
+    # separately from current_attempt, and bounded separately
+    # (CODER_MAX_STRUCTURAL_RETRIES), so a formatting fumble doesn't consume the
+    # budget that exists for debugging code. See
+    # CoderAgent._route_after_attempt. Entry numbering in fix_history does not
+    # read either counter — it is the entry's own ordinal — so the two budgets
+    # can advance independently without two attempts sharing a number.
+    current_structural_retries: int
     current_outcome: dict  # {"result": ...} or {"error_source", "error_text"}
 
     # assemble_and_validate — the schema-valid dict run() returns

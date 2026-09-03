@@ -37,8 +37,8 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 ## Conventions
 
 - **Constructor injection, not monkeypatching.** `chat_model`, `experiments_dir`, `output_dir`,
-  `network_check`, `gpu_check`, `max_fix_attempts`, `huggingface_lookup_fn` are all constructor
-  args. Tests pass `network_check=lambda: False, gpu_check=lambda: False` rather than patching
+  `network_check`, `gpu_check`, `max_fix_attempts`, `max_structural_retries`,
+  `huggingface_lookup_fn` are all constructor args. Tests pass `network_check=lambda: False, gpu_check=lambda: False` rather than patching
   `sandbox.has_network_access`/`has_gpu`, and a fake `huggingface_lookup_fn` rather than faking
   four HTTP endpoints. Keep any new environment dependency injectable the same way.
 - **Code-bearing model responses use `llm_sections.py`, not `llm_json.py`.** `_call_sections`
@@ -177,6 +177,24 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `results.json` (or removes the final attempt's, which was written by code no
   longer on disk), and the result carries `reported_attempt`. Ties go to the final
   attempt, so a run that never regressed is untouched.
+- **There are two regeneration budgets, and which one a failure draws on is
+  decided by whether anything was learned.** `_STRUCTURAL_ERROR_SOURCES` —
+  `invalid_format`, `missing_sections`, `missing_required_function`,
+  `empty_body` — is the model failing to return a program at all: nothing was
+  rendered, provisioned or executed, so those draw on
+  `CODER_MAX_STRUCTURAL_RETRIES` instead of `max_fix_attempts`, which exists for
+  debugging code. `compile_check` is deliberately **not** in the set: a syntax
+  error is a real defect in a real answer, and it is the failure most likely to
+  repeat. When the structural budget runs out the failure falls through and
+  costs a fix attempt like any other, rather than ending the plan on the spot.
+  The identical-failure stop is checked *before* either budget and applies to
+  both, so this cannot turn a model that never produces the format into an
+  unbounded loop. Two consequences to keep in mind: `fix_history` entries are
+  numbered by their own ordinal (`len(fix_history) + 1`), never by
+  `current_attempt`, or two entries and two snapshot directories would collide
+  once the counters diverge; and `_recursion_limit_for` takes the structural
+  budget too, or a plan that spends it stops on the recursion limit instead of
+  on a check's verdict.
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or
   unreachable index isn't something regenerating code can fix, so it returns a terminal
   `code_generated_not_run` result directly.
@@ -197,6 +215,11 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   compares a normalized `error_summary` too and *stops the plan* at 3. The stricter one is what
   the stop uses on purpose: three different bugs all surface as `run_experiment`, and a model
   fixing one bug into the next is making progress even though the source never changes.
+  The stop additionally skips when the newest `fix_history` entry is `resolved`: that list
+  describes the attempts *before* the current one, so its streak is stale by exactly one, and a
+  regeneration that just cleared the failure the streak is made of has converged whatever the
+  three before it did. Only reachable since structural failures got their own budget — until then
+  the fix budget ran out on the very same step, so the staleness never showed.
 - **The provenance gate returns the string `"unknown"`, never `False`.** `writer_agent.compute_hypothesis_verdict`
   maps `False` to **"refuted"** and `"unknown"` to "inconclusive", so returning `False` for a run on
   synthesized data would have the paper publish a refutation of a hypothesis that was never tested.

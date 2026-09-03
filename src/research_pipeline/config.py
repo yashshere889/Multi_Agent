@@ -42,6 +42,7 @@ class Settings:
     coder_output_dir: str
     coder_max_fix_attempts: int
     coder_max_env_repairs: int
+    coder_max_structural_retries: int
     coder_data_dir: str
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
@@ -214,6 +215,15 @@ def load_settings() -> Settings:
         # model's fault and not the model's problem. Sharing one budget is how a
         # 2026-08-19 run spent all three fix attempts on a missing pandas.
         coder_max_env_repairs=int(os.environ.get("CODER_MAX_ENV_REPAIRS", "6")),
+        # Regenerations spent on a response that was malformed or hollow rather
+        # than wrong — see coder_agent._STRUCTURAL_ERROR_SOURCES. Separate from
+        # the fix budget for the same reason installs are: nothing was executed,
+        # so nothing was learned about the experiment, and the budget for
+        # debugging code should not be spent on the model failing to answer in
+        # the requested shape. Small on purpose — a model that cannot produce
+        # the format twice running will not produce it on the fifth try, and
+        # the identical-failure stop still applies on top of this.
+        coder_max_structural_retries=int(os.environ.get("CODER_MAX_STRUCTURAL_RETRIES", "2")),
         # A directory of data files staged by hand — CMS extracts obtained under
         # a DUA, a licensed cohort, anything the agent cannot fetch for itself.
         # Inputs matched here resolve as real, which is what lets a run report a

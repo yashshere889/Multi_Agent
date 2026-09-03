@@ -173,6 +173,28 @@ _ERROR_STAGE_ORDER = [
 ]
 
 
+# Failures that are not a defect in a program — they are the model failing to
+# return one. Nothing was rendered, nothing was provisioned and nothing was
+# executed, so nothing was learned about the experiment; what the next call
+# needs is simply another go at the shape, which is why these get their own
+# small budget (CODER_MAX_STRUCTURAL_RETRIES) instead of drawing on the
+# max_fix_attempts that exists for debugging code. A run that spent all three
+# fix attempts on the model omitting evaluate_function three times had no
+# attempts left for the bug it would have found on the first execution.
+#
+# compile_check is deliberately NOT here: a syntax error is a real defect in a
+# real answer, and it is also the failure most likely to repeat, so it must
+# stay bounded by the budget that stops the loop.
+_STRUCTURAL_ERROR_SOURCES = frozenset(
+    {
+        "invalid_format",
+        "missing_sections",
+        "missing_required_function",
+        "empty_body",
+    }
+)
+
+
 # LangGraph's default recursion_limit (25 super-steps) is a limit on the graph's
 # *shape*, which is the wrong unit for this graph: both of its loops are real
 # cycles, so the step count scales with how many plans there are and how large
@@ -514,10 +536,18 @@ def _plan_count(planner_output: object) -> int:
     return len(plans) if isinstance(plans, list) else 0
 
 
-def _recursion_limit_for(plan_count: int, max_fix_attempts: int) -> int:
-    """Worst case: every plan feasible, every plan exhausting its fix budget."""
+def _recursion_limit_for(
+    plan_count: int, max_fix_attempts: int, max_structural_retries: int = 0
+) -> int:
+    """Worst case: every plan feasible, every plan exhausting both budgets.
+
+    Structural retries are real trips around the same cycle and have to be
+    counted, or a plan that spends them stops on the recursion limit instead of
+    on a check's verdict.
+    """
     worst_case = _FIXED_STEPS + plan_count * (
-        _STEPS_PER_PLAN + _STEPS_PER_FIX_ATTEMPT * max(max_fix_attempts, 0)
+        _STEPS_PER_PLAN
+        + _STEPS_PER_FIX_ATTEMPT * (max(max_fix_attempts, 0) + max(max_structural_retries, 0))
     )
     return max(worst_case + 10, 25)
 
@@ -535,6 +565,7 @@ class CoderAgent:
         network_check: Callable[[], bool] | None = None,
         gpu_check: Callable[[], bool] | None = None,
         max_fix_attempts: int | None = None,
+        max_structural_retries: int | None = None,
         huggingface_lookup_fn: Callable[[str], dict | None] | None = None,
         fix_store: BaseStore | None = None,
         interactive_slurm_review: bool | None = None,
@@ -561,6 +592,13 @@ class CoderAgent:
         )
         self.max_fix_attempts = (
             settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
+        )
+        # Injectable alongside max_fix_attempts, and read the same way: a test
+        # sets it to 0 to assert the old single-budget behaviour still falls out.
+        self.max_structural_retries = (
+            settings.coder_max_structural_retries
+            if max_structural_retries is None
+            else max_structural_retries
         )
         # Injectable for the same reason huggingface_lookup_fn is: a test needs
         # an isolated store (its own patterns, not another test's or a real
@@ -604,7 +642,7 @@ class CoderAgent:
         config = {
             "configurable": {"thread_id": str(uuid.uuid4())},
             "recursion_limit": _recursion_limit_for(
-                _plan_count(planner_output), self.max_fix_attempts
+                _plan_count(planner_output), self.max_fix_attempts, self.max_structural_retries
             ),
         }
         final_state = graph.invoke(
@@ -715,6 +753,7 @@ class CoderAgent:
             "current_experiment_dir": str(experiment_dir),
             "current_fix_history": [],
             "current_attempt": 0,
+            "current_structural_retries": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
             "current_starter_id": selected_starter["id"] if selected_starter else "",
@@ -799,19 +838,51 @@ class CoderAgent:
         return update
 
     def _route_after_attempt(self, state: CoderState) -> str:
-        """The fix loop's stop condition, unchanged: a terminal result ends the
-        plan, an exhausted budget gives up, anything else is regenerated against
-        the concrete error. Bound to the agent because the budget is
-        per-instance."""
+        """The fix loop's stop condition: a terminal result ends the plan, an
+        exhausted budget gives up, anything else is regenerated against the
+        concrete error. Bound to the agent because both budgets are
+        per-instance.
+
+        There are two budgets, and which one a failure draws on is decided by
+        whether anything was learned. A structural failure
+        (_STRUCTURAL_ERROR_SOURCES) is the model not returning a program at all:
+        nothing was rendered, provisioned or executed, so it draws on its own
+        small budget rather than on the fix budget that exists for debugging
+        code. The identical-failure stop below applies to both, so this cannot
+        turn a model that never produces the format into an unbounded loop.
+        """
         if "result" in state["current_outcome"]:
             return "finalize"
-        if state["current_attempt"] == self.max_fix_attempts:
+
+        # Checked before the budgets, and against both kinds of attempt: three
+        # identical failures is not convergence, whichever budget paid for them.
+        # (Kept first for the same reason it was written: spending the remainder
+        # re-deriving the same failure costs allocation to reach the same place.)
+        #
+        # fix_history describes the attempts *before* this one — the current
+        # outcome isn't an entry yet — so a streak in it can be stale by exactly
+        # one attempt. `resolved` on the newest entry is how this node knows what
+        # the current outcome did to it (the attempt node writes it there before
+        # routing), and a regeneration that just cleared the failure the streak
+        # is made of has demonstrably converged, whatever the three before it
+        # did. Without this, a plan whose model fumbled the response format three
+        # times would be abandoned on the attempt that finally produced a real
+        # program — reachable only since structural failures got their own
+        # budget, because until then the fix budget ran out on the same step.
+        history = state.get("current_fix_history") or []
+        just_made_progress = bool(history) and bool(history[-1].get("resolved"))
+        if not just_made_progress and _identical_failure_streak(history) >= _NO_PROGRESS_STREAK:
             return "give_up"
-        # Stop early when the last three attempts failed identically. The budget
-        # exists to give the model room to converge; once it has landed on the
-        # same failure three times it is not converging, and spending the
-        # remainder re-deriving it costs allocation to reach the same place.
-        if _identical_failure_streak(state.get("current_fix_history") or []) >= _NO_PROGRESS_STREAK:
+
+        if state["current_outcome"]["error_source"] in _STRUCTURAL_ERROR_SOURCES:
+            if state.get("current_structural_retries", 0) < self.max_structural_retries:
+                return "regenerate"
+            # Budget spent: fall through and let this cost a fix attempt like
+            # any other failure, rather than ending the plan outright. A model
+            # that keeps mangling the format has still had none of its actual
+            # code looked at, and the fix budget is the honest place for that.
+
+        if state["current_attempt"] == self.max_fix_attempts:
             return "give_up"
         return "regenerate"
 
@@ -823,20 +894,31 @@ class CoderAgent:
         attempt = state["current_attempt"]
 
         target_sections = _target_sections(outcome)
+        structural = outcome["error_source"] in _STRUCTURAL_ERROR_SOURCES
+        structural_retries = state.get("current_structural_retries", 0)
+        # Only one of the two budgets moves, and only the one this failure
+        # actually drew on — see _route_after_attempt.
+        spends_structural_budget = structural and structural_retries < self.max_structural_retries
         logger.info(
-            "Fixing %s after %s failure (attempt %d/%d), regenerating %s",
+            "Fixing %s after %s failure (%s %d/%d), regenerating %s",
             plan["hypothesis_id"],
             outcome["error_source"],
-            attempt + 1,
-            self.max_fix_attempts,
+            "structural retry" if spends_structural_budget else "attempt",
+            (structural_retries if spends_structural_budget else attempt) + 1,
+            self.max_structural_retries if spends_structural_budget else self.max_fix_attempts,
             ", ".join(target_sections or []) or "every section",
         )
+        # The entry's own ordinal, not either budget's cursor — identical to
+        # `current_attempt + 1` until a structural retry advances one counter
+        # and not the other, after which reading the cursor would give two
+        # entries (and two snapshot directories) the same number.
+        ordinal = len(state["current_fix_history"]) + 1
         entry = {
-            "attempt": attempt + 1,
+            "attempt": ordinal,
             "error_source": outcome["error_source"],
             "error_summary": _truncate(outcome["error_text"]),
             "code_path": str(
-                self._snapshot_attempt(Path(state["current_experiment_dir"]), attempt + 1)
+                self._snapshot_attempt(Path(state["current_experiment_dir"]), ordinal)
             ),
             "resolved": False,
             # Which sections the regeneration below was asked for — [] meaning
@@ -892,7 +974,10 @@ class CoderAgent:
         return {
             "current_fix_history": [*state["current_fix_history"], entry],
             "current_generation": generation,
-            "current_attempt": attempt + 1,
+            "current_attempt": attempt if spends_structural_budget else attempt + 1,
+            "current_structural_retries": (
+                structural_retries + 1 if spends_structural_budget else structural_retries
+            ),
             # The sections that just failed (state["current_generation"], read
             # before this node's own reassignment above) — i.e. what entry's
             # error_source was produced by. Read back once entry's `resolved`

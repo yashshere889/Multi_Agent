@@ -21,6 +21,8 @@ from research_pipeline.agents.coder import (
 from research_pipeline.agents.coder.coder_agent import (
     _CHARS_PER_TOKEN_ESTIMATE,
     _CONTEXT_SAFETY_MARGIN,
+    _ERROR_STAGE_ORDER,
+    _STRUCTURAL_ERROR_SOURCES,
     CoderAgent,
     CoderAgentError,
     _best_candidate,
@@ -31,6 +33,7 @@ from research_pipeline.agents.coder.coder_agent import (
     _identical_failure_streak,
     _parse_assumptions,
     _parse_bool_text,
+    _recursion_limit_for,
 )
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
@@ -1614,7 +1617,7 @@ def test_unparseable_format_from_initial_generation_routes_through_the_fix_loop_
     assert model.calls_by_kind["fix"] == 1
 
 
-def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budget(tmp_path):
+def test_unparseable_format_from_regeneration_is_caught_and_ends_the_plan(tmp_path):
     # The regeneration call (_regenerate_with_fix) goes through the same
     # _call_sections path and can fail the same way — it must be caught too, not
     # just the initial generation call. invoke_sections' internal repair retry
@@ -1631,9 +1634,177 @@ def test_unparseable_format_from_regeneration_still_counts_against_the_fix_budge
 
     exp = result["experiments"][0]
     assert exp["status"] == "code_generated_not_run"
-    assert exp["fix_attempts"] == 2
-    assert exp["fix_history"][0]["error_source"] == "run_experiment"
-    assert exp["fix_history"][1]["error_source"] == "invalid_format"
+    # invalid_format is structural, so it draws on CODER_MAX_STRUCTURAL_RETRIES
+    # (2 by default) rather than on the fix budget — and what stops the plan is
+    # then the identical-failure streak, not either budget running out. Neither
+    # the run nor the plan is lost, which is what this test exists to guard.
+    assert [entry["error_source"] for entry in exp["fix_history"]] == [
+        "run_experiment",
+        "invalid_format",
+        "invalid_format",
+        "invalid_format",
+    ]
+    assert [entry["attempt"] for entry in exp["fix_history"]] == [1, 2, 3, 4]
+
+
+# ── The structural budget ─────────────────────────────────────────────────────
+# A malformed or hollow response is the model failing to return a program, not a
+# defect in one. Nothing was rendered, provisioned or executed, so it draws on
+# its own budget rather than on the one that exists for debugging code.
+# See coder_agent._STRUCTURAL_ERROR_SOURCES.
+
+INCOMPLETE_SECTIONS = {**GOOD_SECTIONS, "evaluate_function": ""}
+RAISING_EVALUATE_SECTIONS = {
+    **GOOD_SECTIONS,
+    "evaluate_function": "def evaluate(experiment_output):\n    raise RuntimeError('boom')\n",
+}
+
+
+def test_structural_failures_do_not_consume_the_fix_budget(tmp_path):
+    # Two malformed responses, then a real bug, then the fix for it — with a fix
+    # budget of exactly one. The two structural failures have to cost nothing
+    # from that budget or the real bug never gets its attempt, which is the
+    # production failure this exists for: a run that spent all three attempts on
+    # the model omitting a section had none left for the defect underneath.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(INCOMPLETE_SECTIONS)],
+        fix=[
+            _codegen_response(INCOMPLETE_SECTIONS),
+            _codegen_response(RAISING_EVALUATE_SECTIONS),
+            _codegen_response(GOOD_SECTIONS),
+        ],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1, max_structural_retries=2).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert [entry["error_source"] for entry in exp["fix_history"]] == [
+        "missing_sections",
+        "missing_sections",
+        "run_experiment",
+    ]
+
+
+def test_the_old_single_budget_falls_out_when_structural_retries_are_zero(tmp_path):
+    # The same scenario with the budget switched off: the first structural
+    # failure spends the one fix attempt, and the second ends the plan.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(INCOMPLETE_SECTIONS)],
+        fix=[
+            _codegen_response(INCOMPLETE_SECTIONS),
+            _codegen_response(RAISING_EVALUATE_SECTIONS),
+            _codegen_response(GOOD_SECTIONS),
+        ],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1, max_structural_retries=0).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert [entry["error_source"] for entry in exp["fix_history"]] == ["missing_sections"]
+
+
+def test_a_structural_failure_past_its_budget_falls_back_to_the_fix_budget(tmp_path):
+    # The budget running out doesn't end the plan on the spot — the model has
+    # still had none of its actual code looked at, so the failure goes on to
+    # cost a fix attempt like any other.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(INCOMPLETE_SECTIONS)],
+        fix=[_codegen_response(INCOMPLETE_SECTIONS), _codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=2, max_structural_retries=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    # One structural retry, then the same failure again on the fix budget.
+    assert [entry["error_source"] for entry in exp["fix_history"]] == [
+        "missing_sections",
+        "missing_sections",
+    ]
+
+
+def test_a_code_defect_never_draws_on_the_structural_budget(tmp_path):
+    # compile_check is deliberately not structural: a syntax error is a real
+    # defect in a real answer, and it is the failure most likely to repeat.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(BROKEN_SYNTAX_SECTIONS)],
+        fix=[_codegen_response(BROKEN_SYNTAX_SECTIONS), _codegen_response(GOOD_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1, max_structural_retries=2).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert [entry["error_source"] for entry in exp["fix_history"]] == ["compile_check"]
+
+
+def test_structural_error_sources_are_a_subset_of_the_valid_ones():
+    assert _STRUCTURAL_ERROR_SOURCES < schema.VALID_ERROR_SOURCES
+    # A structural failure is one where nothing was rendered, provisioned or
+    # executed — so every member must sort before compile_check, the first check
+    # that reads a rendered run.py.
+    order = _ERROR_STAGE_ORDER
+    assert all(order.index(s) < order.index("compile_check") for s in _STRUCTURAL_ERROR_SOURCES)
+
+
+def test_a_streak_does_not_abandon_the_attempt_that_broke_it(tmp_path):
+    # Three identical structural failures, then a response that finally produces
+    # a real program. fix_history describes the attempts *before* the current
+    # one, so its streak is stale by exactly one — and abandoning the plan on the
+    # attempt that just cleared the failure is the opposite of what the
+    # no-progress stop is for. Reachable only since structural failures got their
+    # own budget: before that, the fix budget ran out on the same step.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(INCOMPLETE_SECTIONS)],
+        fix=[
+            _codegen_response(INCOMPLETE_SECTIONS),
+            _codegen_response(INCOMPLETE_SECTIONS),
+            _codegen_response(RAISING_EVALUATE_SECTIONS),
+            _codegen_response(GOOD_SECTIONS),
+        ],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=3, max_structural_retries=2).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert [entry["error_source"] for entry in exp["fix_history"]] == [
+        "missing_sections",
+        "missing_sections",
+        "missing_sections",
+        "run_experiment",
+    ]
+
+
+def test_a_streak_that_keeps_repeating_still_stops_the_plan(tmp_path):
+    # The other half of the same rule: when the current outcome did *not* clear
+    # the streak, three identical failures still end the plan rather than
+    # spending the rest of the budget re-deriving them.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(INCOMPLETE_SECTIONS)],
+        fix=[_codegen_response(INCOMPLETE_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=9, max_structural_retries=9).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["fix_attempts"] == 3, "stopped by the streak, not by either budget"
+
+
+def test_recursion_limit_leaves_room_for_both_budgets():
+    # Structural retries are real trips around the same cycle: unaccounted for,
+    # a plan that spends them stops on the recursion limit rather than on a
+    # check's verdict.
+    assert _recursion_limit_for(3, 3, 2) > _recursion_limit_for(3, 3, 0)
 
 
 # -- coder_agent.py: the delimited code transport ----------------------------------------
