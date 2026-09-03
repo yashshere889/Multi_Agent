@@ -22,11 +22,11 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `graph.py` | `build_coder_graph(agent)` — wires the two cycles. Module docstring explains why they're cycles and not `Send` fan-out. |
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
-| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering. No LLM calls, no settings reads — unit-testable anywhere. |
+| `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `check_undefined_names`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering (`render_experiment_with_spans` and its line map). No LLM calls, no settings reads — unit-testable anywhere. |
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
-| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
+| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
 | `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
 | `prompts.py` | All prompt templates. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
@@ -80,6 +80,14 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `attempt` node calls whole, precisely so the deferred-to-sbatch branch
   (`_handle_unrunnable_locally`: self-review → per-run cap → concurrent cap → submit) stays
   untouched. Don't split that helper up to thread them through state.
+- **`render_experiment_template` delegates to `render_experiment_with_spans`.**
+  There is one splicing implementation on purpose: the span map describes the
+  file the renderer returns, and two implementations agreeing only by inspection
+  would drift. The metadata tokens are substituted first, over the whole
+  template, and always to a `repr()` — always a single line — so they can never
+  shift a line number; only the seven agent tokens (each alone on its own line in
+  the template, which is what makes the spans exact) are spliced line-wise. A test
+  asserts the two entry points return identical text.
 - **Two different templating mechanisms, and they are not interchangeable.**
   `run.py.template` is filled by `str.replace()` on `__TOKEN__` markers
   (`sandbox.py:251`, `:274`) because model-generated Python routinely contains literal `{`/`}`
@@ -90,6 +98,15 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   delimiter shapes have no braces at all (that's one less thing to get wrong than the JSON
   examples they replaced), and `HF_DATASET_USAGE_NOTE` keeps its literal JSON braces *unescaped*
   precisely because it is appended by `_hf_dataset_block` and never passed through `.format()`.
+- **Three static checks run on the rendered `run.py`, in order, and they answer
+  different questions.** `lenient_compile_check` asks "does it parse";
+  `check_undefined_names` asks "does it bind every name it uses" (pyflakes, not a
+  hand-rolled AST walk — scope handling is exactly where a home-grown version
+  produces the false positives that would spend fix attempts on correct code, and
+  only `UndefinedName`/`UndefinedLocal` are reported, never style findings);
+  `static_safety_check` asks "does it do anything it shouldn't". The pyflakes
+  import is guarded so a venv synced before it was declared loses this one check
+  rather than the whole agent.
 - **`static_safety_check` is regex-based, not AST-based** — intentional, since it runs against
   code the fix loop rewrites repeatedly and the pattern list is cheap to extend. It is the
   **only** gate on the SLURM auto-submit path, where nothing ever executes locally first. Treat
@@ -122,6 +139,44 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   prompts, same threading pattern as `current_hf_dataset`. The chosen id is also recorded on the
   finished `ExperimentResult` as `starter_used`, for the same traceability reason `fix_history`
   exists.
+- **The first execution of an experiment is usually a shrunken one.**
+  `_smoke_failure` writes `run_smoke.py` — the same rendered code with every
+  `repair.DOWNSCALE_KNOBS` entry pinned to its floor — and runs it under
+  `CODER_SMOKE_TIMEOUT_SECONDS` before the real run. The asymmetry is the design:
+  it can end an attempt early but can never let one through, so an experiment
+  that passes it is still executed at full size and the smoke run's own
+  `results.json` is deleted rather than read. Three guards keep it from failing
+  correct code — it is skipped when `smoke_variant` found nothing to shrink (the
+  smoke run would then *be* the real run); an env or resource failure falls
+  through to the execution loop that owns those repairs; and a code failure is
+  only believed when `diagnose.is_scale_independent` says the exception could not
+  have been produced by the shrinking itself. Keep `SCALE_INDEPENDENT_EXCEPTIONS`
+  conservative: `KeyError`/`IndexError`/`ValueError` are all things a small sample
+  provokes, and a member added there turns a correct experiment into a spent fix
+  attempt.
+- **A failing check names the section it came from wherever it can, and the
+  regeneration asks only for that.** `_target_sections` returns either a subset
+  of `prompts.RUN_PY_SECTION_NAMES` or `None` for "all of them" (the behaviour
+  every fix had before this existed). Three sources feed it: a static table
+  (`_SECTIONS_BY_ERROR_SOURCE`, for checks that run against one section's own
+  source), the finding text (`_sections_mentioned_in`, for the two structural
+  checks that open each finding with its section name), and a line number mapped
+  through `sandbox.render_experiment_with_spans`'s span map (`compile_check`,
+  `undefined_name`). `_ALWAYS_REGENERATED` — imports/configuration/helpers — is
+  added to every targeted set, because a fix routinely needs a new import and
+  those three are short. A set covering every code section collapses back to
+  `None` rather than being spelled out. The merge happens in
+  `_assemble_generation(sections, previous=...)`: fields the model wasn't asked
+  for come from the previous generation, and with `previous=None` that path is
+  byte-for-byte what it was.
+- **`give_up` reports the furthest attempt, not the last one.** A fix loop is not
+  monotonic, and `_best_candidate` ranks candidates by `_ERROR_STAGE_ORDER` — the
+  same ordering `_cleared_previous_error` already uses, deliberately not a second
+  definition of "better". When an earlier attempt outranks the final one,
+  `_restore_attempt` puts that snapshot's `run.py`/`requirements.txt` back and its
+  `results.json` (or removes the final attempt's, which was written by code no
+  longer on disk), and the result carries `reported_attempt`. Ties go to the final
+  attempt, so a run that never regressed is untouched.
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or
   unreachable index isn't something regenerating code can fix, so it returns a terminal
   `code_generated_not_run` result directly.
@@ -151,8 +206,9 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `check_hf_dataset_usage` accepts — and treating an offered-but-declined dataset as evidence is
   exactly the over-claim the gate exists to prevent.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
-  sync.** Same sixteen members; the list additionally encodes check *order*, which
-  `_cleared_previous_error` uses to decide whether a regeneration made progress. A new failure
+  sync.** Same seventeen members; the list additionally encodes check *order*, which
+  `_cleared_previous_error` uses to decide whether a regeneration made progress — and which
+  `_best_candidate` uses to decide which attempt to leave on disk. A new failure
   path needs an entry in both, in the right position. `test_error_source_lists_stay_in_sync` now
   enforces this rather than leaving it to be remembered.
 - **Adding or removing a graph node means updating the recursion-limit constants**
@@ -196,6 +252,8 @@ uv run pre-commit run --files src/research_pipeline/agents/coder/*.py   # manual
 uv run mypy --config-file=pyproject.toml src/research_pipeline/agents/coder
 ```
 
+- `pyflakes` is a base dependency (not an extra) because `check_undefined_names` uses it as a
+  library; it is listed in the mypy hook's `additional_dependencies` too.
 - The hooks auto-fix (`ruff --fix`, `ruff format`) and mypy blocks on real type errors. Code is
   formatted to 100 columns; `E501` is off so long explanatory comments aren't force-rewrapped.
 - mypy is gradual (`check_untyped_defs`, not `strict`) and `follow_imports = "silent"` keeps it

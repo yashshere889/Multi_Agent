@@ -110,6 +110,65 @@ def dead_import(module: str) -> tuple[str, str] | None:
     return DEAD_IMPORTS.get(module.split(".")[0])
 
 
+# Exception types whose verdict does not depend on how big the run was. A
+# NameError is a NameError on ten rows and on ten million; a ValueError is very
+# often "n_splits=5 cannot be greater than the number of samples", which is a
+# statement about the sample, not about the code.
+#
+# This is the whole basis on which a smoke run — a deliberately shrunken first
+# execution, see repair.smoke_variant — is allowed to fail an experiment rather
+# than merely to hurry it along. Anything outside this set that fails under the
+# smoke run is re-run at full size before the fix loop is told anything, because
+# the shrinking itself is a plausible cause. Keep the set conservative: a member
+# added here that *can* be provoked by a small sample turns a correct experiment
+# into a spent fix attempt.
+#
+# KeyError is deliberately absent (a category missing from a small sample
+# produces one) and so is IndexError, ZeroDivisionError, AssertionError and
+# every StatisticsError-shaped library error.
+SCALE_INDEPENDENT_EXCEPTIONS = frozenset(
+    {
+        "NameError",
+        "UnboundLocalError",
+        "AttributeError",
+        "TypeError",
+        "ImportError",
+        "ModuleNotFoundError",
+        "SyntaxError",
+        "IndentationError",
+        "FileNotFoundError",
+        "NotImplementedError",
+    }
+)
+
+# Traceback exception lines start at column 0; anything indented is source
+# context or a chained "During handling..." frame.
+_EXCEPTION_LINE_RE = re.compile(r"^([A-Za-z_][\w.]*)\s*:", re.MULTILINE)
+# sandbox.run_experiment's own wrapper, stripped before scanning so that a short
+# tail whose whole content is one exception line ("run.py exited with code 1:
+# NameError: ...") is still read as starting a line.
+_RUN_PREFIX_RE = re.compile(r"^run\.py exited with code -?\d+:\s*")
+
+
+def is_scale_independent(message: str) -> bool:
+    """Whether this failure would have happened at any size.
+
+    Reads the *last* exception named in the output, which for a chained
+    traceback is the one that actually propagated. An output naming no
+    exception at all is not scale-independent: with nothing to identify, the
+    safe answer is "re-run it properly before believing it".
+    """
+    text = _RUN_PREFIX_RE.sub("", (message or "").strip())
+    named = [match.group(1).rsplit(".", 1)[-1] for match in _EXCEPTION_LINE_RE.finditer(text)]
+    exceptions = [
+        name for name in named if name.endswith(("Error", "Exception", "Exit", "Interrupt"))
+    ]
+    # The last one, not any of them: a `TypeError` caught and re-raised as a
+    # `ValueError` is a ValueError, and reading anything but the final line
+    # would let an incidental early exception speak for the whole run.
+    return bool(exceptions) and exceptions[-1] in SCALE_INDEPENDENT_EXCEPTIONS
+
+
 def classify_execution_failure(message: str) -> ExecutionDiagnosis:
     """Diagnose the message `sandbox.run_experiment` returns on failure.
 

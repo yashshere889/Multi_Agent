@@ -152,6 +152,7 @@ _ERROR_STAGE_ORDER = [
     "missing_required_function",
     "empty_body",
     "compile_check",
+    "undefined_name",
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
@@ -217,6 +218,29 @@ _CONTEXT_SAFETY_MARGIN = 1024
 # different line. Initial generation keeps the constructor's temperature; only
 # the regeneration paths use this.
 _FIX_TEMPERATURE = 0.0
+
+# Sections regenerated alongside whichever one a localized failure names. A fix
+# routinely needs a new import, a new constant or a new helper, and all three are
+# short — including them costs a fraction of what re-emitting load_data and
+# run_experiment costs, and not including them would leave the model unable to
+# fix anything that needs one.
+_ALWAYS_REGENERATED = ("imports", "configuration", "helpers")
+
+# Failures whose check localizes the defect by construction: each of these runs
+# against one section's own source (or against the output only one section
+# produces), so the section that has to change is known without inspecting the
+# finding. Everything absent from this table either localizes dynamically (a
+# line number, via sandbox.section_for_line) or not at all — a logic bug at
+# execution can live anywhere, and those still regenerate the whole program.
+_SECTIONS_BY_ERROR_SOURCE: dict[str, tuple[str, ...]] = {
+    # check_data_fallback parses load_data's own source and nothing else.
+    "missing_data_fallback": ("load_data_function",),
+    # check_hf_dataset_usage reads configuration + load_data.
+    "ignored_available_dataset": ("load_data_function",),
+    # check_results_plausibility judges the dict evaluate() returns.
+    "implausible_results": ("evaluate_function",),
+}
+
 
 # How many times one execution may be shrunk before the model is asked to
 # rethink the approach instead. Halving twice is a 4x reduction, which is enough
@@ -398,6 +422,87 @@ def _parse_assumptions(text: str) -> list[str]:
             continue
         assumptions.append(item)
     return assumptions
+
+
+def _sections_mentioned_in(findings: list[str]) -> list[str]:
+    """The code sections a list of findings names, in canonical order.
+
+    sandbox's structural checks (check_required_function_names,
+    check_nontrivial_function_bodies) iterate REQUIRED_FUNCTION_NAMES and open
+    every finding with the section name it came from, so the finding text is
+    where that association already lives — reading it back is cheaper than
+    changing both checks' return types and every caller and test that depends on
+    them. A finding naming no known section contributes nothing, which degrades
+    to "regenerate everything", i.e. the behaviour before targeting existed.
+    """
+    named = {
+        name
+        for name in prompts.RUN_PY_SECTION_NAMES
+        if any(re.search(rf"\b{re.escape(name)}\b", finding) for finding in findings)
+    }
+    return [name for name in prompts.RUN_PY_SECTION_NAMES if name in named]
+
+
+def _target_sections(outcome: dict) -> list[str] | None:
+    """Which sections a regeneration should be asked for, or None for all of them.
+
+    None is the pre-existing behaviour and stays the default: a failure that
+    can't be pinned to a section has to be answered by rewriting the program.
+    What this adds is the other case — when the failing check *did* name its
+    section, asking for the rest back is pure risk. The fix prompt already tells
+    the model to keep "whatever already worked", and a production trace shows how
+    little that is worth: attempt 1 correctly fixed a ModuleNotFoundError while
+    attempts 2 and 3 each introduced a fresh syntax error somewhere they were
+    never asked to touch.
+
+    A target set covering every code section collapses back to None rather than
+    being spelled out — the prompt then reads exactly as it did before, and a
+    "targeted" rewrite of the whole program is not targeted.
+    """
+    named = list(
+        outcome.get("error_sections")
+        or _SECTIONS_BY_ERROR_SOURCE.get(outcome.get("error_source", ""), ())
+    )
+    if not named:
+        return None
+    wanted = set(named) | set(_ALWAYS_REGENERATED)
+    if wanted.issuperset(prompts.RUN_PY_SECTION_NAMES):
+        return None
+    return [name for name in prompts.RUN_PY_SECTION_NAMES if name in wanted]
+
+
+def _stage_reached(error_source: str) -> int:
+    """How far a candidate got, as an index into the check order.
+
+    The same ordering _cleared_previous_error uses to decide whether a
+    regeneration made progress — deliberately not a second definition of
+    "better", since two would drift.
+    """
+    return _ERROR_STAGE_ORDER.index(error_source)
+
+
+def _best_candidate(fix_history: list[dict], final_outcome: dict) -> dict | None:
+    """The earlier attempt that got further than the final one, or None.
+
+    A fix loop is not monotonic. When the budget runs out, the code left on disk
+    is simply the last thing generated, which may be materially worse than
+    something this run already had: an attempt that reached a real execution
+    failure is a better artifact to hand a human than one that no longer
+    compiles. Ties go to the final attempt — the newest code wins when nothing
+    separates them, so a run that never regressed is untouched.
+    """
+    best: dict | None = None
+    best_stage = _stage_reached(final_outcome["error_source"])
+    for entry in fix_history:
+        # An entry whose snapshot has no run.py never got as far as writing one
+        # (an unparseable response, a missing section) — there is nothing to
+        # restore even if its error_source ranked higher, which it cannot.
+        if not Path(entry["code_path"]).exists():
+            continue
+        stage = _stage_reached(entry["error_source"])
+        if stage > best_stage:
+            best, best_stage = entry, stage
+    return best
 
 
 def _plan_count(planner_output: object) -> int:
@@ -717,12 +822,14 @@ class CoderAgent:
         outcome = state["current_outcome"]
         attempt = state["current_attempt"]
 
+        target_sections = _target_sections(outcome)
         logger.info(
-            "Fixing %s after %s failure (attempt %d/%d)",
+            "Fixing %s after %s failure (attempt %d/%d), regenerating %s",
             plan["hypothesis_id"],
             outcome["error_source"],
             attempt + 1,
             self.max_fix_attempts,
+            ", ".join(target_sections or []) or "every section",
         )
         entry = {
             "attempt": attempt + 1,
@@ -732,6 +839,16 @@ class CoderAgent:
                 self._snapshot_attempt(Path(state["current_experiment_dir"]), attempt + 1)
             ),
             "resolved": False,
+            # Which sections the regeneration below was asked for — [] meaning
+            # "all of them". Recorded for the same reason the rest of this entry
+            # is: scripts/analyze_coder_fix_history.py is how "does targeting
+            # actually resolve more failures than a full rewrite" gets answered
+            # from real runs rather than from argument.
+            "regenerated_sections": target_sections or [],
+            # This attempt's own assumptions, not the run's final ones — see
+            # schema.FixAttempt. _node_give_up_current_plan may report this
+            # attempt's code rather than the last, and the two can differ.
+            "assumptions_made": list(state["current_generation"].get("assumptions_made", [])),
         }
         # Computed against fix_history *with* this entry included, so a streak
         # of 2 means "this failure and the one immediately before it were both
@@ -759,6 +876,7 @@ class CoderAgent:
                 state.get("current_starter_id", ""),
                 stuck_streak=streak,
                 previous_error_summary=previous_error_summary,
+                target_sections=target_sections,
             )
         except CoderAgentError as exc:
             # Same as the initial generation call: a regeneration attempt can
@@ -798,21 +916,56 @@ class CoderAgent:
         }
 
     def _node_give_up_current_plan(self, state: CoderState) -> dict:
-        """The fix budget is spent and the last error still stands — the code
-        stays on disk, reported with what it failed on and how many times."""
+        """The fix budget is spent and an error still stands. This plan's best
+        attempt is left on disk and reported — which is not always the last one:
+        a fix loop can regress, and the code a human is handed should be the
+        furthest this run actually got. See _best_candidate."""
         fix_history = state["current_fix_history"]
+        outcome = state["current_outcome"]
         attempted = f" after {len(fix_history)} fix attempt(s)" if fix_history else ""
+
+        reason = f"{outcome['error_text']}{attempted}"
+        assumptions = state["current_generation"].get("assumptions_made", [])
+        # 1-indexed like fix_history's own entries: N snapshots means the code
+        # currently on disk is candidate N+1.
+        reported_attempt = len(fix_history) + 1
+
+        best = _best_candidate(fix_history, outcome)
+        if best is not None:
+            self._restore_attempt(Path(state["current_experiment_dir"]), Path(best["code_path"]))
+            reported_attempt = best["attempt"]
+            assumptions = best.get("assumptions_made", assumptions)
+            reason = (
+                f"{best['error_summary']}{attempted}. Reporting attempt {best['attempt']}, "
+                f"which failed at {best['error_source']} — further than the final attempt, "
+                f"which regressed to {outcome['error_source']}. The code on disk is attempt "
+                f"{best['attempt']}'s."
+            )
+            logger.info(
+                "[%s] fix budget spent; restored attempt %d (%s), which got further than the "
+                "final attempt (%s)",
+                state["current_plan"]["hypothesis_id"],
+                best["attempt"],
+                best["error_source"],
+                outcome["error_source"],
+            )
+
         experiment = {
             **self._result(
                 state["current_plan"]["hypothesis_id"],
                 status="code_generated_not_run",
-                reason=f"{state['current_outcome']['error_text']}{attempted}",
+                reason=reason,
                 code_path=state["current_experiment_dir"],
-                assumptions_made=state["current_generation"].get("assumptions_made", []),
+                assumptions_made=assumptions,
                 starter_used=state.get("current_starter_id", ""),
             ),
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
+            # Which candidate's code `code_path` actually holds. Equal to
+            # fix_attempts + 1 whenever the run never regressed, which is the
+            # common case — recorded anyway so the two can be told apart without
+            # re-deriving it from fix_history.
+            "reported_attempt": reported_attempt,
         }
         return {
             "experiments": [*state["experiments"], experiment],
@@ -975,6 +1128,11 @@ class CoderAgent:
             return {
                 "error_source": "missing_sections",
                 "error_text": f"Model response was missing required code section(s): {missing_sections} — run.py was not written or executed.",
+                # Asking only for what was missing is doubly right here: the
+                # other sections did arrive intact, and a shorter answer is less
+                # likely to be truncated — truncation being the usual reason a
+                # section goes missing in the first place.
+                "error_sections": missing_sections,
             }
 
         # Checked before anything expensive happens: a section defining a
@@ -986,6 +1144,7 @@ class CoderAgent:
             return {
                 "error_source": "missing_required_function",
                 "error_text": f"Generated code doesn't define the required function name(s): {'; '.join(function_name_findings)}",
+                "error_sections": _sections_mentioned_in(function_name_findings),
             }
 
         # Checked before anything expensive too, same reasoning as the function-
@@ -999,13 +1158,14 @@ class CoderAgent:
             return {
                 "error_source": "empty_body",
                 "error_text": f"Generated code has no real implementation: {'; '.join(empty_body_findings)}",
+                "error_sections": _sections_mentioned_in(empty_body_findings),
             }
 
         # run.py's metadata block + orchestration are a fixed template, not
         # model output — only the four functions/imports/configuration/helpers
         # are spliced in, so the calling convention is guaranteed correct
         # rather than depending on the model reproducing it exactly every time.
-        run_py = sandbox.render_experiment_template(
+        run_py, section_spans = sandbox.render_experiment_with_spans(
             hypothesis_id=hypothesis_id,
             objective=plan["objective"],
             design=plan["design"],
@@ -1035,9 +1195,44 @@ class CoderAgent:
         self._write_files(experiment_dir, files)
 
         if compile_error:
+            # The line number the compiler reported maps back through the
+            # template's own line map to the section that was spliced there, so
+            # a syntax error in evaluate() asks for evaluate() back rather than
+            # for the whole program. A line in the fixed template resolves to
+            # None (nothing model-written to blame) and falls back to a full
+            # regeneration, same as before.
+            error_line = sandbox.compile_error_line(compile_error)
+            broken_section = (
+                sandbox.section_for_line(section_spans, error_line) if error_line else None
+            )
             return {
                 "error_source": "compile_check",
                 "error_text": f"Generated code has a syntax error, not executed: {compile_error}",
+                "error_sections": [broken_section] if broken_section else [],
+            }
+
+        # Parsing is not the same as being able to run: a helper that was
+        # referenced but never written, or a name whose import a regeneration
+        # dropped, compiles and then dies with a NameError — after a venv has
+        # been provisioned and the experiment has run far enough to reach it.
+        # Decidable from the text, so decided here. See
+        # sandbox.check_undefined_names.
+        undefined = sandbox.check_undefined_names(run_py)
+        if undefined:
+            undefined_sections = [
+                section
+                for section in prompts.RUN_PY_SECTION_NAMES
+                if section
+                in {sandbox.section_for_line(section_spans, line) for line, _ in undefined}
+            ]
+            return {
+                "error_source": "undefined_name",
+                "error_text": (
+                    "Generated code uses name(s) it never defines, so it would fail with a "
+                    "NameError at runtime: "
+                    + "; ".join(f"line {line}: {message}" for line, message in undefined)
+                ),
+                "error_sections": undefined_sections,
             }
 
         findings = sandbox.static_safety_check(run_py)
@@ -1158,6 +1353,16 @@ class CoderAgent:
         downscales = 0
         run_path = experiment_dir / "run.py"
 
+        # A deliberately shrunken first execution, so that a defect anywhere in
+        # the program costs seconds instead of the full timeout above — and so
+        # that each round of the fix loop costs seconds too. It can only ever
+        # end this attempt early, never let one through: see _smoke_failure.
+        smoke_failure = self._smoke_failure(
+            python_executable, run_py, experiment_dir, timeout_seconds, hypothesis_id
+        )
+        if smoke_failure is not None:
+            return smoke_failure
+
         while True:
             succeeded, message = sandbox.run_experiment(
                 python_executable, run_path, experiment_dir, timeout_seconds
@@ -1272,6 +1477,98 @@ class CoderAgent:
                 starter_used=starter_id,
                 data_provenance=provenance_document,
             )
+        }
+
+    def _smoke_failure(
+        self,
+        python_executable: Path,
+        run_py: str,
+        experiment_dir: Path,
+        timeout_seconds: int,
+        hypothesis_id: str,
+    ) -> dict | None:
+        """Run a shrunken copy of this experiment first. Returns the failure it
+        proves, or None to go on and run the experiment properly.
+
+        The asymmetry is the whole design: this can fail an attempt, but it can
+        never pass one. Every experiment that gets past here is still executed
+        at full size, because a smoke run's *results* are worthless — the knobs
+        were pinned below the point where the numbers mean anything. What it is
+        worth is time: a NameError in evaluate() otherwise costs a full venv
+        provision plus however long the experiment takes to compute before
+        reaching that line, and then costs it again on the next fix attempt.
+
+        Three things keep it from failing a correct experiment:
+
+        - It is skipped entirely when there was nothing to shrink
+          (repair.smoke_variant found no known cost knob). The smoke run would
+          then be the real run, and a timeout on it would say nothing the real
+          timeout doesn't already say.
+        - A failure the shrinking could plausibly have *caused* is ignored and
+          the real run happens anyway — anything but a scale-independent
+          exception (diagnose.is_scale_independent). A ValueError reading
+          "n_splits=5 cannot be greater than the number of members in each
+          class" is exactly what pinning a sample size produces, and reporting
+          it would spend a fix attempt rewriting code that was correct.
+        - An environment or resource failure falls through untouched, so
+          installing a missing package and halving an over-budget run stay in
+          one place: the execution loop that owns those repairs.
+        """
+        if not settings.coder_enable_smoke_run:
+            return None
+
+        smoke_py, changes = repair.smoke_variant(run_py)
+        if not changes:
+            return None
+
+        smoke_path = experiment_dir / "run_smoke.py"
+        smoke_path.write_text(smoke_py)
+        try:
+            succeeded, message = sandbox.run_experiment(
+                python_executable,
+                smoke_path,
+                experiment_dir,
+                min(settings.coder_smoke_timeout_seconds, timeout_seconds),
+            )
+        finally:
+            smoke_path.unlink(missing_ok=True)
+            # The smoke copy writes results.json into the experiment directory
+            # exactly as the real run does, and those numbers came from a run
+            # shrunk past the point of meaning anything. Removed rather than
+            # left for read_results_json_for_diagnosis — or a human reading the
+            # experiment directory — to mistake for the experiment's result.
+            (experiment_dir / "results.json").unlink(missing_ok=True)
+
+        if succeeded:
+            logger.info(
+                "[%s] smoke run clean (%s) — running at full size",
+                hypothesis_id,
+                "; ".join(changes),
+            )
+            return None
+
+        failure = diagnose.classify_execution_failure(message)
+        if failure.route in (diagnose.ROUTE_ENV, diagnose.ROUTE_DOWNSCALE):
+            return None
+        if failure.route == diagnose.ROUTE_REGENERATE and not diagnose.is_scale_independent(
+            message
+        ):
+            logger.info(
+                "[%s] smoke run failed in a way the shrinking could have caused — "
+                "running at full size before believing it",
+                hypothesis_id,
+            )
+            return None
+
+        logger.info("[%s] smoke run found a real defect: %s", hypothesis_id, failure.summary)
+        return {
+            "error_source": failure.error_source,
+            "error_text": (
+                f"{failure.summary} This was found by a fast pre-run of this same code with its "
+                f"cost knobs at their minimum ({'; '.join(changes)}). The failure is of a kind "
+                "that does not depend on how much data or how many iterations there are, so it "
+                "will happen identically at full size — fix the defect itself, not the knobs."
+            ),
         }
 
     def _handle_unrunnable_locally(
@@ -1437,6 +1734,28 @@ class CoderAgent:
         return snapshot_dir / "run.py"
 
     @staticmethod
+    def _restore_attempt(experiment_dir: Path, snapshot_run_py: Path) -> None:
+        """Put a snapshotted attempt's files back as the experiment's own.
+
+        The inverse of _snapshot_attempt, and it restores the same three files
+        so the directory ends up matching that attempt exactly. results.json is
+        handled asymmetrically on purpose: an attempt that never produced one
+        must not inherit the *final* attempt's, which was written by code that
+        is no longer on disk and would read as this experiment's own output.
+        """
+        snapshot_dir = snapshot_run_py.parent
+        for name in ("run.py", "requirements.txt"):
+            source = snapshot_dir / name
+            if source.exists():
+                (experiment_dir / name).write_text(source.read_text())
+
+        results = snapshot_dir / "results.json"
+        if results.exists():
+            (experiment_dir / "results.json").write_text(results.read_text())
+        else:
+            (experiment_dir / "results.json").unlink(missing_ok=True)
+
+    @staticmethod
     def _result(
         hypothesis_id: str,
         status: str,
@@ -1551,26 +1870,56 @@ class CoderAgent:
             raise CoderAgentError(str(exc)) from exc
 
     @staticmethod
-    def _assemble_generation(sections: dict[str, str]) -> dict:
+    def _assemble_generation(sections: dict[str, str], previous: dict | None = None) -> dict:
         """Turns the flat dict of raw section text `_call_sections` returns into
         the exact `generation` dict shape everything downstream already expects
         (`run_py_sections` nested, `assumptions_made` a list, `needs_gpu` a
-        bool) — so `_attempt_once`, `sandbox.render_experiment_template` and
+        bool) — so `_attempt_once`, `sandbox.render_experiment_with_spans` and
         `schema.py` are untouched by the transport change.
 
         The text -> bool/list conversions live here rather than in
         llm_sections.py deliberately: that module owns the transport, and what a
         field's text *means* is this agent's domain knowledge, the same split
-        the pipeline already makes for `meets_success_criteria`."""
+        the pipeline already makes for `meets_success_criteria`.
+
+        `previous` is what a *targeted* regeneration merges onto: the model was
+        asked for a subset of the sections, so a field absent from the response
+        means "the one already in hand", not "empty". With `previous=None` —
+        every first generation, and every untargeted fix — each field falls back
+        to the same empty default it always had, so the assembled dict is
+        byte-for-byte what it was before merging existed."""
+        previous = previous or {}
+        previous_run_py = previous.get("run_py_sections") or {}
+
+        def kept(name: str, empty: object) -> object:
+            """The model's value if it returned this field, else the previous
+            generation's, else the empty default."""
+            if name in sections:
+                return sections[name]
+            return previous.get(name, empty)
+
         return {
             "run_py_sections": {
-                name: sections.get(name, "") for name in prompts.RUN_PY_SECTION_NAMES
+                name: sections[name] if name in sections else previous_run_py.get(name, "")
+                for name in prompts.RUN_PY_SECTION_NAMES
             },
-            "readme": sections.get("readme", ""),
-            "requirements_txt": sections.get("requirements_txt", ""),
-            "assumptions_made": _parse_assumptions(sections.get("assumptions_made", "")),
-            "needs_network": _parse_bool_text(sections.get("needs_network", "")),
-            "needs_gpu": _parse_bool_text(sections.get("needs_gpu", "")),
+            "readme": kept("readme", ""),
+            "requirements_txt": kept("requirements_txt", ""),
+            "assumptions_made": (
+                _parse_assumptions(sections["assumptions_made"])
+                if "assumptions_made" in sections
+                else previous.get("assumptions_made", [])
+            ),
+            "needs_network": (
+                _parse_bool_text(sections["needs_network"])
+                if "needs_network" in sections
+                else previous.get("needs_network", False)
+            ),
+            "needs_gpu": (
+                _parse_bool_text(sections["needs_gpu"])
+                if "needs_gpu" in sections
+                else previous.get("needs_gpu", False)
+            ),
         }
 
     @staticmethod
@@ -1812,8 +2161,25 @@ class CoderAgent:
         starter_id: str = "",
         stuck_streak: int = 0,
         previous_error_summary: str = "",
+        target_sections: list[str] | None = None,
     ) -> dict:
+        # A localized failure asks only for the sections that can have caused it
+        # (plus the two short metadata fields a code change can invalidate);
+        # everything else is reused verbatim from previous_generation. None —
+        # the failure could be anywhere — asks for the whole program back, which
+        # is what every fix did before localization existed.
+        requested = (
+            [*target_sections, "requirements_txt", "assumptions_made"]
+            if target_sections is not None
+            else prompts.EXPERIMENT_FIELD_NAMES
+        )
         prompt = prompts.EXPERIMENT_CODEGEN_FIX_PROMPT.format(
+            return_instruction=(
+                prompts.FIX_RETURN_ALL if target_sections is None else prompts.FIX_RETURN_TARGETED
+            ),
+            section_shape=prompts.experiment_section_shape(
+                None if target_sections is None else requested
+            ),
             hypothesis_id=plan["hypothesis_id"],
             plan_block=_compact_json(plan),
             # Carried into the fix prompt too, not just the first generation: the
@@ -1851,9 +2217,8 @@ class CoderAgent:
             ),
         )
         return self._assemble_generation(
-            self._call_sections(
-                prompt, prompts.EXPERIMENT_FIELD_NAMES, temperature=_FIX_TEMPERATURE
-            )
+            self._call_sections(prompt, requested, temperature=_FIX_TEMPERATURE),
+            previous=previous_generation if target_sections is not None else None,
         )
 
     def _self_review(self, plan: dict, run_py: str) -> list[str]:

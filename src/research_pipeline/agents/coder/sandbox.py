@@ -17,6 +17,7 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
@@ -291,6 +292,98 @@ def lenient_compile_check(
             current = repaired
     assert last_error is not None
     return source, f"{filename}: {last_error.msg} (line {last_error.lineno})"
+
+
+_COMPILE_ERROR_LINE_RE = re.compile(r"\(line (\d+)\)\s*$")
+
+
+def compile_error_line(message: str) -> int | None:
+    """The line number out of a lenient_compile_check error message, or None.
+
+    Lives here rather than in the caller because the format being parsed is the
+    one this module writes, three lines above — the two must change together,
+    and splitting them across files is how they stop agreeing.
+    """
+    match = _COMPILE_ERROR_LINE_RE.search(message or "")
+    return int(match.group(1)) if match else None
+
+
+# pyflakes is a declared dependency, but this import is guarded anyway: a
+# deployment whose venv was synced before it was added (the cluster checkout is
+# routinely a few commits behind) must lose this one check, not the whole Coder
+# Agent. Same "degrade rather than exit" rule as huggingface_client and the fix
+# pattern store.
+# Deliberately Any: the module is either the real one or None, and the two
+# branches can't share a type mypy would accept without stubs for a dependency
+# this file is designed to survive the absence of.
+_pyflakes_checker: Any
+_UNDEFINED_MESSAGE_TYPES: tuple[type, ...]
+try:
+    from pyflakes import checker as _checker_module
+    from pyflakes import messages as _messages_module
+
+    _pyflakes_checker = _checker_module
+    _UNDEFINED_MESSAGE_TYPES = (
+        _messages_module.UndefinedName,
+        _messages_module.UndefinedLocal,
+    )
+except ImportError:  # pragma: no cover — exercised only on an out-of-date venv
+    _pyflakes_checker = None
+    _UNDEFINED_MESSAGE_TYPES = ()
+
+
+def check_undefined_names(source: str) -> list[tuple[int, str]]:
+    """Names the rendered run.py uses but never binds. Returns (line, message)
+    pairs; empty means clean.
+
+    compile_check only proves the file *parses*. A helper the model referenced
+    but never wrote, or a name whose import went missing when a regeneration
+    rewrote the imports section, parses perfectly and then dies with a NameError
+    — after a `uv venv` has been provisioned (the single most expensive step in
+    the loop) and the experiment has run far enough to reach that line, which for
+    a name used inside evaluate() means after the whole experiment computed. The
+    defect is decidable from the text alone, so it is decided from the text
+    alone, exactly like check_required_function_names.
+
+    Returns line numbers rather than only prose because they are what
+    section_for_line turns into "which section do we have to regenerate" — the
+    reason this returns a different shape from its sibling checks.
+
+    pyflakes rather than a hand-rolled AST walk: scope handling (comprehensions,
+    class bodies, globals/nonlocals, conditional imports, forward references
+    between module-level functions) is where a home-grown version produces false
+    positives, and a false positive here spends a fix attempt rewriting code that
+    was correct. Only UndefinedName/UndefinedLocal are reported — not unused
+    imports, not shadowing, not any other pyflakes finding — because those are
+    style, and this check exists to catch programs that cannot run. A file
+    containing `from x import *` reports ImportStarUsage instead of UndefinedName
+    for the names it can't resolve, so a star import degrades to silence rather
+    than to a wall of false findings.
+    """
+    if _pyflakes_checker is None:
+        return []
+    try:
+        tree = ast.parse(source, filename="run.py")
+    except SyntaxError:
+        # compile_check's job, on a file whose line numbers still mean
+        # something — and a file that doesn't parse has no reliable scopes to
+        # resolve names against anyway.
+        return []
+    try:
+        reported = _pyflakes_checker.Checker(tree, filename="run.py").messages
+    except Exception as exc:  # noqa: BLE001 — see the docstring's degrade rule
+        logger.warning("Could not run the undefined-name check: %s", exc)
+        return []
+
+    findings: list[tuple[int, str]] = []
+    for reported_message in reported:
+        if not isinstance(reported_message, _UNDEFINED_MESSAGE_TYPES):
+            continue
+        # Re-bound as Any: isinstance against a tuple[type, ...] narrows to
+        # `object`, which has none of the attributes a pyflakes message carries.
+        message: Any = reported_message
+        findings.append((message.lineno, str(message.message % message.message_args)))
+    return findings
 
 
 # Regex rather than AST: this runs against model-generated code that the fix
@@ -1094,6 +1187,101 @@ def render_sbatch_template(hypothesis_id: str, has_requirements: bool) -> str:
     )
 
 
+# The template tokens carrying a model-written code section, and the section
+# name each one holds. Every one of these sits alone on its own line in
+# run.py.template, which is what makes render_experiment_with_spans able to
+# report exact line spans without parsing anything.
+#
+# The metadata tokens (__EXPERIMENT_ID__ and friends) are deliberately NOT here:
+# they are substituted inline, always with a repr() — which is always a single
+# line, even for a string containing newlines — so they can never shift a line
+# number.
+_AGENT_SECTION_TOKENS: dict[str, str] = {
+    "__AGENT_IMPORTS__": "imports",
+    "__AGENT_CONFIGURATION__": "configuration",
+    "__AGENT_LOAD_DATA_FUNCTION__": "load_data_function",
+    "__AGENT_BUILD_MODEL_FUNCTION__": "build_model_function",
+    "__AGENT_RUN_EXPERIMENT_FUNCTION__": "run_experiment_function",
+    "__AGENT_EVALUATE_FUNCTION__": "evaluate_function",
+    "__AGENT_HELPERS__": "helpers",
+}
+
+
+def render_experiment_with_spans(
+    *,
+    hypothesis_id: str,
+    objective: str,
+    design: str,
+    data_description: str,
+    baseline: str,
+    success_criteria: str,
+    agent_imports: str,
+    agent_configuration: str,
+    load_data_function: str,
+    build_model_function: str,
+    run_experiment_function: str,
+    evaluate_function: str,
+    agent_helpers: str,
+) -> tuple[str, dict[str, tuple[int, int]]]:
+    """render_experiment_template, plus the 1-indexed inclusive line span each
+    model-written section occupies in the file it produced.
+
+    The spans are what turn a line-numbered finding about the rendered run.py
+    — a SyntaxError's `lineno`, an undefined name's line — back into the name
+    of the section that has to be regenerated to fix it. Without them, every
+    failure anywhere in the file can only be answered by asking the model to
+    rewrite the whole program, which is how a fix for one bug introduces
+    another somewhere it never needed to touch.
+
+    Computed by splicing line by line rather than by locating the content
+    afterwards: the section bodies are arbitrary generated Python, so searching
+    the rendered file for one is not reliably unambiguous, whereas walking the
+    template already knows exactly where each block starts and how many lines
+    it is.
+    """
+    template = _load_template("run.py.template")
+
+    # Applied first, to the whole template, exactly as before — an agent
+    # section whose own text happens to contain "__BASELINE_TEXT__" is
+    # therefore left alone, which is the order the single substitution loop
+    # this replaced also produced (dict order: metadata, then agent sections).
+    for token, value in {
+        "__EXPERIMENT_ID__": repr(hypothesis_id),
+        "__EXPERIMENT_NAME__": repr(f"Experiment {hypothesis_id}"),
+        "__HYPOTHESIS_TEXT__": repr(objective),
+        "__DESCRIPTION_TEXT__": repr(f"{design} Data: {data_description}"),
+        "__BASELINE_TEXT__": repr(baseline),
+        "__SUCCESS_CRITERIA_TEXT__": repr(success_criteria),
+    }.items():
+        template = template.replace(token, value)
+
+    agent_values = {
+        "__AGENT_IMPORTS__": agent_imports.strip() or "# (no extra imports needed)",
+        "__AGENT_CONFIGURATION__": agent_configuration.strip()
+        or "# (no extra configuration needed)",
+        "__AGENT_LOAD_DATA_FUNCTION__": load_data_function.strip(),
+        "__AGENT_BUILD_MODEL_FUNCTION__": build_model_function.strip(),
+        "__AGENT_RUN_EXPERIMENT_FUNCTION__": run_experiment_function.strip(),
+        "__AGENT_EVALUATE_FUNCTION__": evaluate_function.strip(),
+        "__AGENT_HELPERS__": agent_helpers.strip() or "# (no helper functions needed)",
+    }
+
+    # str.split("\n") / "\n".join round-trip exactly, trailing newline included
+    # — str.splitlines() would silently drop the file's final empty element.
+    rendered: list[str] = []
+    spans: dict[str, tuple[int, int]] = {}
+    for line in template.split("\n"):
+        section = _AGENT_SECTION_TOKENS.get(line.strip())
+        if section is None:
+            rendered.append(line)
+            continue
+        start = len(rendered) + 1  # 1-indexed, matching SyntaxError.lineno
+        rendered.extend(agent_values[line.strip()].split("\n"))
+        spans[section] = (start, len(rendered))
+
+    return "\n".join(rendered), spans
+
+
 def render_experiment_template(
     *,
     hypothesis_id: str,
@@ -1115,28 +1303,37 @@ def render_experiment_template(
     model-generated); the four functions plus imports/configuration/helpers
     are the model-generated pieces, spliced in as complete text blocks.
 
-    Uses plain string replacement on unique __TOKEN__ markers rather than
-    str.format() — the spliced-in content is arbitrary LLM-generated Python
-    source, which routinely contains literal '{' / '}' (dict literals,
-    f-strings) that would break format()'s placeholder syntax.
+    Splices on unique __TOKEN__ markers rather than str.format() — the
+    spliced-in content is arbitrary LLM-generated Python source, which
+    routinely contains literal '{' / '}' (dict literals, f-strings) that would
+    break format()'s placeholder syntax.
+
+    Delegates to render_experiment_with_spans and drops the spans, so there is
+    exactly one splicing implementation and the line map can never disagree
+    with the file it describes.
     """
-    template = _load_template("run.py.template")
-    substitutions = {
-        "__EXPERIMENT_ID__": repr(hypothesis_id),
-        "__EXPERIMENT_NAME__": repr(f"Experiment {hypothesis_id}"),
-        "__HYPOTHESIS_TEXT__": repr(objective),
-        "__DESCRIPTION_TEXT__": repr(f"{design} Data: {data_description}"),
-        "__BASELINE_TEXT__": repr(baseline),
-        "__SUCCESS_CRITERIA_TEXT__": repr(success_criteria),
-        "__AGENT_IMPORTS__": agent_imports.strip() or "# (no extra imports needed)",
-        "__AGENT_CONFIGURATION__": agent_configuration.strip()
-        or "# (no extra configuration needed)",
-        "__AGENT_LOAD_DATA_FUNCTION__": load_data_function.strip(),
-        "__AGENT_BUILD_MODEL_FUNCTION__": build_model_function.strip(),
-        "__AGENT_RUN_EXPERIMENT_FUNCTION__": run_experiment_function.strip(),
-        "__AGENT_EVALUATE_FUNCTION__": evaluate_function.strip(),
-        "__AGENT_HELPERS__": agent_helpers.strip() or "# (no helper functions needed)",
-    }
-    for token, value in substitutions.items():
-        template = template.replace(token, value)
-    return template
+    return render_experiment_with_spans(
+        hypothesis_id=hypothesis_id,
+        objective=objective,
+        design=design,
+        data_description=data_description,
+        baseline=baseline,
+        success_criteria=success_criteria,
+        agent_imports=agent_imports,
+        agent_configuration=agent_configuration,
+        load_data_function=load_data_function,
+        build_model_function=build_model_function,
+        run_experiment_function=run_experiment_function,
+        evaluate_function=evaluate_function,
+        agent_helpers=agent_helpers,
+    )[0]
+
+
+def section_for_line(spans: dict[str, tuple[int, int]], lineno: int) -> str | None:
+    """Which model-written section a 1-indexed line of the rendered run.py falls
+    in, or None for a line in the fixed template (metadata or orchestration) —
+    which is not something regenerating a section could fix."""
+    for section, (start, end) in spans.items():
+        if start <= lineno <= end:
+            return section
+    return None

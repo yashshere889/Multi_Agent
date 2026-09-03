@@ -926,6 +926,13 @@ Worth knowing before running it unattended:
   / `CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS`; `high` is never run
   synchronously at all unless
   `CODER_RUN_HIGH_COMPLEXITY_WHEN_GPU_AVAILABLE` is on).
+- Usually runs it **twice**: first a shrunken copy (`run_smoke.py`, every known
+  cost knob pinned to its floor, `CODER_SMOKE_TIMEOUT_SECONDS`), deleted along
+  with the results.json it wrote as soon as it finishes, and then the real run.
+  The point is that a defect anywhere in the program surfaces in seconds rather
+  than after the full timeout — so a fix-loop round costs seconds too. The smoke
+  run can only end an attempt early; it can never let one skip the real
+  execution. `CODER_ENABLE_SMOKE_RUN=false` turns it off.
 - Never submits anything to SLURM itself; `run.sbatch` files are generated
   for a human to review and submit.
 

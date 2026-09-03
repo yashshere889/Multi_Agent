@@ -19,6 +19,8 @@ still use JSON via llm_json.py.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from research_pipeline.llm_sections import render_section
 
 # The order the model is asked to emit them in, each with the placeholder shown
@@ -69,6 +71,24 @@ def _section_shape(fields: list[tuple[str, str]]) -> str:
 
 
 EXPERIMENT_SECTION_SHAPE = _section_shape(EXPERIMENT_SECTION_PLACEHOLDERS)
+
+
+def experiment_section_shape(field_names: Sequence[str] | None = None) -> str:
+    """The format example for exactly `field_names`, in the canonical order.
+
+    `None` means all of them — byte-for-byte EXPERIMENT_SECTION_SHAPE, which is
+    what an untargeted fix and every first generation still ask for. A subset is
+    what a *targeted* fix asks for: when the failing check names the section it
+    came from, the rest of the program is already correct and rewriting it can
+    only introduce new bugs (see CoderAgent._target_sections).
+    """
+    if field_names is None:
+        return EXPERIMENT_SECTION_SHAPE
+    wanted = set(field_names)
+    return _section_shape(
+        [field for field in EXPERIMENT_SECTION_PLACEHOLDERS if field[0] in wanted]
+    )
+
 
 SECTION_FORMAT_RULES = """Rules for this format — read them, they are not the \
 usual JSON rules:
@@ -289,20 +309,31 @@ The code sections you produced last time:
 
 Network access on this machine: {network_status}.{network_note}
 
-Diagnose the actual cause and regenerate every section, keeping whatever \
-already worked and correcting what caused the failure. Do not merely describe \
-the bug in "assumptions_made" — the returned code must actually fix it. If the \
-failure was a missing or misnamed dependency, correct requirements_txt to \
-match what the code imports. If the failure was a flagged unsafe pattern, \
-rewrite that logic so it no longer needs it — do not just move or obfuscate it.
+Diagnose the actual cause and correct what caused the failure. Do not merely \
+describe the bug in "assumptions_made" — the returned code must actually fix \
+it. If the failure was a missing or misnamed dependency, correct \
+requirements_txt to match what the code imports. If the failure was a flagged \
+unsafe pattern, rewrite that logic so it no longer needs it — do not just move \
+or obfuscate it.
 
-Return every section again, in EXACTLY this delimited format:
+{return_instruction}
+
+{section_shape}
 
 """
-    + EXPERIMENT_SECTION_SHAPE
-    + "\n\n"
     + SECTION_FORMAT_RULES
 )
+
+# The two shapes {return_instruction} takes. The full rewrite is what every fix
+# did before failures could be localized; the targeted one is used when the
+# failing check names the section(s) it came from.
+FIX_RETURN_ALL = """Return every section again, keeping whatever already \
+worked, in EXACTLY this delimited format:"""
+
+FIX_RETURN_TARGETED = """Only the section(s) listed below need to change — every \
+other part of this program already passed its checks and will be reused exactly \
+as you last wrote it, so do NOT return the others. Return ONLY these sections, \
+complete, in EXACTLY this delimited format:"""
 
 SHARED_INFRA_FIX_PROMPT = (
     """The shared infrastructure you generated failed a check. Fix it.

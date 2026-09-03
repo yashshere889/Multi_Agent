@@ -13,6 +13,11 @@ dependencies = [
     "python-dotenv>=1.0",
     "reportlab>=4.0",
     "pypdf>=4.0",
+    # Used by agents/coder/sandbox.py's check_undefined_names, to catch a
+    # NameError in generated code from the text alone rather than by
+    # provisioning a venv and running it. Pure Python, no dependencies of its
+    # own — the reason this is a base dependency and not an extra.
+    "pyflakes>=3.2",
 ]
 
 [project.optional-dependencies]

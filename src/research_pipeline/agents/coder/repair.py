@@ -6,6 +6,10 @@ smaller when it ran out of time or memory. Both re-run source that was never
 wrong, which is why neither should consume the fix-attempt budget —
 `max_fix_attempts` exists to bound bad code.
 
+`smoke_variant` is the same shrinking machinery pointed at a different problem:
+not rescuing a run that already failed, but making the *first* run cheap enough
+that a defect is found in seconds instead of after the full timeout.
+
 No settings are read here and nothing is logged, same rule as sandbox.py, so
 this stays unit-testable without a cluster or a model. `coder_agent` supplies
 the budgets and does the dispatching.
@@ -68,6 +72,37 @@ def downscale(code: str) -> tuple[str, list[str]]:
             return f"{match.group('prefix')}{reduced}"
 
         result = pattern.sub(shrink, result)
+
+    return result, changes
+
+
+def smoke_variant(code: str) -> tuple[str, list[str]]:
+    """Pin every known cost knob straight to its floor. Returns (new_code,
+    human-readable changes); an empty change list means there was nothing to
+    shrink.
+
+    `downscale` halves, because it is rescuing an experiment that was only
+    somewhat too big and the result still has to be worth reporting. This does
+    not: nothing produced by a smoke run is ever reported, so the only thing
+    that matters is reaching the end of the program as fast as possible. Both
+    read the same knob table, so a knob that is safe to halve is by
+    construction one that is safe to pin — the floors in DOWNSCALE_KNOBS are
+    already "small enough to be cheap, large enough to still be a valid run".
+    """
+    changes: list[str] = []
+    result = code
+
+    for knob, floor in DOWNSCALE_KNOBS.items():
+        pattern = re.compile(rf"(?P<prefix>\b{re.escape(knob)}\b\s*=\s*)(?P<value>\d+)")
+
+        def pin(match: re.Match[str], knob: str = knob, floor: int = floor) -> str:
+            current = int(match.group("value"))
+            if current <= floor:
+                return match.group(0)
+            changes.append(f"{knob}: {current} -> {floor}")
+            return f"{match.group('prefix')}{floor}"
+
+        result = pattern.sub(pin, result)
 
     return result, changes
 

@@ -30,9 +30,10 @@ repos:
         # mirrors-mypy runs mypy in its own isolated venv, so the module's
         # third-party imports have to be listed here or they all silently
         # become `Any` and the hook passes things `uv run mypy` rejects. These
-        # three are every non-stdlib import under agents/coder/ (requests came
-        # in with huggingface_client.py).
+        # four are every non-stdlib import under agents/coder/ (requests came
+        # in with huggingface_client.py, pyflakes with check_undefined_names).
         additional_dependencies:
           - langgraph>=0.2
           - langchain-core>=0.3
           - requests>=2.31
+          - pyflakes>=3.2

@@ -53,6 +53,8 @@ class Settings:
     coder_high_complexity_timeout_seconds: int
     coder_low_complexity_timeout_seconds: int
     coder_medium_complexity_timeout_seconds: int
+    coder_enable_smoke_run: bool
+    coder_smoke_timeout_seconds: int
     coder_auto_submit_slurm: bool
     coder_interactive_slurm_review: bool
     coder_max_concurrent_slurm_jobs: int
@@ -277,6 +279,18 @@ def load_settings() -> Settings:
         coder_medium_complexity_timeout_seconds=int(
             os.environ.get("CODER_MEDIUM_COMPLEXITY_TIMEOUT_SECONDS", "300")
         ),
+        # A deliberately shrunken first execution (repair.smoke_variant pins
+        # every cost knob to its floor), so a defect that would surface anywhere
+        # in the program is found in seconds instead of after the full timeout
+        # above — and each round of the fix loop costs seconds too. It can only
+        # ever fail an experiment early, never pass one: a smoke run that
+        # succeeds, times out, or fails for a reason the shrinking could have
+        # caused is followed by the real run regardless. See
+        # CoderAgent._smoke_failure.
+        coder_enable_smoke_run=_env_bool("CODER_ENABLE_SMOKE_RUN", True),
+        # Capped against the real timeout at the call site: a smoke run must
+        # never be given longer than the run it is meant to be cheaper than.
+        coder_smoke_timeout_seconds=int(os.environ.get("CODER_SMOKE_TIMEOUT_SECONDS", "60")),
         # Off by default: run.sbatch is generated from code nothing has ever
         # executed, and submitting it spends GPU allocation on a cluster other
         # people are queueing for. Turning this on is a deliberate choice for

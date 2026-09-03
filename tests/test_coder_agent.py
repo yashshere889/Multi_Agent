@@ -23,6 +23,7 @@ from research_pipeline.agents.coder.coder_agent import (
     _CONTEXT_SAFETY_MARGIN,
     CoderAgent,
     CoderAgentError,
+    _best_candidate,
     _compact_json,
     _consecutive_error_streak,
     _default_slurm_review_prompt,
@@ -36,6 +37,7 @@ from research_pipeline.agents.coder.schema import (
     SchemaValidationError,
     validate_output,
 )
+from research_pipeline.config import settings
 from research_pipeline.llm_sections import render_sections
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -1442,9 +1444,20 @@ def test_fix_loop_does_not_escalate_when_the_error_category_changes(tmp_path):
     # First fix response has a different failure shape (a syntax error, not a
     # runtime one) before the second one repeats the original — the streak
     # must reset rather than keep counting across unrelated failure kinds.
+    #
+    # The syntax error is put in run_experiment_function rather than in
+    # evaluate_function so that the targeted regeneration it triggers asks for
+    # run_experiment_function back — which is the section carrying the raising
+    # body the third attempt needs. Targeting evaluate_function would keep the
+    # working run_experiment from the attempt before and the run would succeed,
+    # testing nothing about streaks.
+    broken_run_experiment = {
+        **GOOD_SECTIONS,
+        "run_experiment_function": "def run_experiment(data, model:\n    pass\n",
+    }
     model = RecordingScriptedChatModel(
         codegen=[_codegen_response(RAISING_SECTIONS)],
-        fix=[_codegen_response(BROKEN_SYNTAX_SECTIONS), _codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(broken_run_experiment), _codegen_response(RAISING_SECTIONS)],
     )
     result = _agent(tmp_path, model, max_fix_attempts=3).run(
         _planner_output([_plan("H1", complexity="low")])
@@ -1963,7 +1976,15 @@ def test_check_data_fallback_ignores_unparseable_source():
 def test_missing_data_fallback_routes_through_the_fix_loop(tmp_path):
     # End to end: an unguarded first generation is never executed, the concrete
     # finding goes back to the model, and a guarded second generation runs.
-    unguarded = {**GOOD_SECTIONS, "load_data_function": BARE_LOAD_DATA}
+    # `import pandas as pd` matters: without it the rendered run.py uses a name
+    # it never binds, and sandbox.check_undefined_names — which runs earlier —
+    # would (correctly) fail this on undefined_name before the data-fallback
+    # check ever saw it.
+    unguarded = {
+        **GOOD_SECTIONS,
+        "imports": "import pandas as pd",
+        "load_data_function": BARE_LOAD_DATA,
+    }
     guarded = {**GOOD_SECTIONS, "load_data_function": "def load_data():\n    return None\n"}
     model = RecordingScriptedChatModel(
         codegen=[_codegen_response(unguarded)], fix=[_codegen_response(guarded)]
@@ -1986,7 +2007,11 @@ def test_missing_data_fallback_routes_through_the_fix_loop(tmp_path):
 
 
 def test_missing_data_fallback_gives_up_without_ever_executing(tmp_path):
-    unguarded = {**GOOD_SECTIONS, "load_data_function": BARE_LOAD_DATA}
+    unguarded = {
+        **GOOD_SECTIONS,
+        "imports": "import pandas as pd",
+        "load_data_function": BARE_LOAD_DATA,
+    }
     model = ScriptedChatModel(
         codegen=[_codegen_response(unguarded)], fix=[_codegen_response(unguarded)]
     )
@@ -2244,20 +2269,26 @@ HF_DATASET_MATCH = {
 # below script a model that took the offered dataset, not one that silently
 # ignored it (a separate scenario covered by test_coder_agent's
 # ignored_available_dataset tests).
+# Names the offered dataset — which is all sandbox.check_hf_dataset_usage asks
+# for — without performing the fetch itself. The tests using this are about what
+# the prompt offered and what the lookup was asked; the fetch is deliberately
+# elided because no test in this file touches the network. (It used to call
+# `requests` without importing it, which had the same effect only by accident:
+# the NameError was swallowed by the fallback's own `except Exception`. Now that
+# sandbox.check_undefined_names exists, that accident is a caught defect.)
 GOOD_SECTIONS_WITH_HF_DATASET = {
     **GOOD_SECTIONS,
+    "configuration": (
+        "DATASET_ROWS_URL = (\n"
+        "    'https://datasets-server.huggingface.co/rows"
+        "?dataset=acme%2Fsleep-survey&config=default&split=train&offset=0&length=100'\n"
+        ")\n"
+    ),
     "load_data_function": (
         "def load_data():\n"
-        "    try:\n"
-        "        response = requests.get(\n"
-        "            'https://datasets-server.huggingface.co/rows"
-        "?dataset=acme%2Fsleep-survey&config=default&split=train&offset=0&length=100',\n"
-        "            timeout=30,\n"
-        "        )\n"
-        "        response.raise_for_status()\n"
-        "        return [entry['row'] for entry in response.json()['rows']]\n"
-        "    except Exception:\n"
-        "        return [{'hours_slept': 7.5, 'score': 88}]\n"
+        "    # A real generated program fetches DATASET_ROWS_URL here, guarded, and\n"
+        "    # falls back to rows in this shape when the fetch fails.\n"
+        "    return [{'hours_slept': 7.5, 'score': 88}]\n"
     ),
 }
 
@@ -3250,8 +3281,14 @@ def test_a_timed_out_experiment_is_shrunk_before_the_model_is_asked(tmp_path, mo
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
     assert result["experiments"][0]["status"] == "completed", result["experiments"][0].get("reason")
-    assert len(seen) == 2, "one timed-out run, one shrunk re-run"
-    assert "draws = 2000" in seen[1] and "chains = 4" in seen[1]
+    # Three executions: the smoke run (knobs pinned to their floor, clean), the
+    # real run at full size (times out), and the halved re-run. The smoke run
+    # passing is exactly what it is allowed to do — it can end an attempt early
+    # but never let one skip the real execution.
+    assert len(seen) == 3, "smoke run, timed-out full run, shrunk re-run"
+    assert "draws = 250" in seen[0] and "chains = 2" in seen[0]
+    assert "draws = 4000" in seen[1]
+    assert "draws = 2000" in seen[2] and "chains = 4" in seen[2]
     assert len(fake_model.calls) == 1, "downscaling costs no model call"
 
 
@@ -3616,3 +3653,504 @@ def test_an_install_that_does_not_make_the_import_work_is_not_retried(tmp_path, 
     summaries = " ".join(e["error_summary"] for e in exp["fix_history"])
     assert "still not importable" in summaries, "the message must name the real problem"
     assert exp["status"] != "completed"
+
+
+# ── Section line spans, and the undefined-name check they localize ────────────
+# render_experiment_with_spans is what turns a line-numbered finding about the
+# rendered run.py back into the name of the section that has to change.
+
+
+def _render(sections):
+    return sandbox.render_experiment_with_spans(
+        hypothesis_id="H1",
+        objective="o",
+        design="d",
+        data_description="dd",
+        baseline="b",
+        success_criteria="sc",
+        agent_imports=sections.get("imports", ""),
+        agent_configuration=sections.get("configuration", ""),
+        load_data_function=sections["load_data_function"],
+        build_model_function=sections["build_model_function"],
+        run_experiment_function=sections["run_experiment_function"],
+        evaluate_function=sections["evaluate_function"],
+        agent_helpers=sections.get("helpers", ""),
+    )
+
+
+def test_render_with_spans_is_byte_identical_to_the_plain_renderer():
+    # The two must never drift: the spans describe the file the other one
+    # returns, and render_experiment_template now delegates precisely so there
+    # is one splicing implementation rather than two that agree by inspection.
+    rendered, _ = _render(GOOD_SECTIONS)
+    assert rendered == sandbox.render_experiment_template(
+        hypothesis_id="H1",
+        objective="o",
+        design="d",
+        data_description="dd",
+        baseline="b",
+        success_criteria="sc",
+        agent_imports=GOOD_SECTIONS["imports"],
+        agent_configuration=GOOD_SECTIONS["configuration"],
+        load_data_function=GOOD_SECTIONS["load_data_function"],
+        build_model_function=GOOD_SECTIONS["build_model_function"],
+        run_experiment_function=GOOD_SECTIONS["run_experiment_function"],
+        evaluate_function=GOOD_SECTIONS["evaluate_function"],
+        agent_helpers=GOOD_SECTIONS["helpers"],
+    )
+
+
+def test_spans_point_at_the_lines_each_section_actually_occupies():
+    rendered, spans = _render(GOOD_SECTIONS)
+    lines = rendered.split("\n")
+    for section, (start, end) in spans.items():
+        block = "\n".join(lines[start - 1 : end])
+        expected = GOOD_SECTIONS[section].strip()
+        # Empty sections are rendered as the template's own placeholder comment.
+        assert block == expected or (not expected and block.startswith("# ("))
+
+
+def test_section_for_line_returns_none_for_the_fixed_template():
+    _, spans = _render(GOOD_SECTIONS)
+    assert sandbox.section_for_line(spans, 1) is None  # the docstring header
+    assert sandbox.section_for_line(spans, spans["evaluate_function"][0]) == "evaluate_function"
+
+
+def test_check_undefined_names_flags_a_helper_that_was_never_written():
+    rendered, spans = _render(
+        {
+            **GOOD_SECTIONS,
+            "load_data_function": "def load_data():\n    return _read_the_survey()\n",
+        }
+    )
+    findings = sandbox.check_undefined_names(rendered)
+    assert len(findings) == 1
+    line, message = findings[0]
+    assert "_read_the_survey" in message
+    assert sandbox.section_for_line(spans, line) == "load_data_function"
+
+
+def test_check_undefined_names_is_clean_on_the_template_itself():
+    # The fixed orchestration defines `logger` *after* the model's sections, and
+    # a module-level binding is a module-level binding wherever it appears — a
+    # check that got this wrong would fail every correct experiment.
+    rendered, _ = _render(
+        {
+            **GOOD_SECTIONS,
+            "load_data_function": 'def load_data():\n    logger.info("x")\n    return 1\n',
+        }
+    )
+    assert sandbox.check_undefined_names(rendered) == []
+
+
+def test_check_undefined_names_stays_quiet_on_a_star_import():
+    # pyflakes reports ImportStarUsage rather than UndefinedName once a star
+    # import is in scope, so an unresolvable name degrades to silence instead of
+    # to a wall of findings against code that may well be correct.
+    rendered, _ = _render(
+        {
+            **GOOD_SECTIONS,
+            "imports": "from math import *",
+            "load_data_function": "def load_data():\n    return sqrt(4) + tau\n",
+        }
+    )
+    assert sandbox.check_undefined_names(rendered) == []
+
+
+def test_check_undefined_names_leaves_a_syntax_error_to_compile_check():
+    assert sandbox.check_undefined_names("def load_data(:\n    pass\n") == []
+
+
+def test_undefined_name_routes_through_the_fix_loop_before_anything_is_provisioned(tmp_path):
+    broken = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(o):\n    return score(o)\n"}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(broken)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["fix_history"][0]["error_source"] == "undefined_name"
+    assert "score" in exp["fix_history"][0]["error_summary"]
+    assert not (tmp_path / "experiments" / "H1" / ".venv").exists()
+
+
+def test_compile_error_line_reads_lenient_compile_checks_own_format():
+    _, error = sandbox.lenient_compile_check("def f(:\n    pass\n", "run.py")
+    assert sandbox.compile_error_line(error) is not None
+    assert sandbox.compile_error_line("run.py: something with no line number") is None
+
+
+# ── The smoke pass ────────────────────────────────────────────────────────────
+# A shrunken first execution that can fail an attempt early but can never let
+# one skip the real run. See CoderAgent._smoke_failure.
+
+SLOW_SECTIONS = {**GOOD_SECTIONS, "configuration": "n_rows = 100000\nepochs = 40\n"}
+
+
+def test_smoke_run_ends_the_attempt_on_a_scale_independent_failure(tmp_path, monkeypatch):
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(SLOW_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    agent = _agent(tmp_path, model)
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        source = Path(run_script).read_text()
+        runs.append((Path(run_script).name, timeout_seconds))
+        if "epochs = 1\n" in source:  # the smoke copy — epochs pinned to its floor
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                '  File "run.py", line 60, in load_data\n'
+                "AttributeError: 'NoneType' object has no attribute 'shape'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    # The first attempt never reached a full-size execution at all.
+    assert runs[0] == ("run_smoke.py", settings.coder_smoke_timeout_seconds)
+    assert "run.py" not in [name for name, _ in runs[:1]]
+    assert exp["fix_history"][0]["error_source"] == "run_experiment"
+    assert "cost knobs at their minimum" in exp["fix_history"][0]["error_summary"]
+
+
+def test_a_smoke_failure_the_shrinking_could_have_caused_is_re_run_at_full_size(
+    tmp_path, monkeypatch
+):
+    # A ValueError about sample sizes is exactly what pinning a row count
+    # produces. Reporting it would spend a fix attempt rewriting correct code,
+    # so the real run happens anyway and decides.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(SLOW_SECTIONS)])
+    agent = _agent(tmp_path, model)
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        source = Path(run_script).read_text()
+        runs.append(Path(run_script).name)
+        if "epochs = 1\n" in source:  # the smoke copy
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "ValueError: n_splits=5 cannot be greater than the number of members in each class."
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert runs == ["run_smoke.py", "run.py"]
+    assert result["experiments"][0]["status"] == "completed"
+    assert result["experiments"][0]["fix_attempts"] == 0, "no model call was spent on it"
+
+
+def test_a_missing_package_found_by_the_smoke_run_still_goes_to_the_installer(
+    tmp_path, monkeypatch
+):
+    # An environment failure is not the smoke pass's to answer: installing and
+    # re-running belongs to the execution loop, in one place.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(SLOW_SECTIONS)])
+    agent = _agent(
+        tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        runs.append(Path(run_script).name)
+        if len(runs) <= 2:  # the smoke copy, then the first full run
+            return False, "run.py exited with code 1:\nModuleNotFoundError: No module named 'numpy'"
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    monkeypatch.setattr(sandbox, "install_into_env", lambda *a, **k: (True, "installed"))
+    monkeypatch.setattr(sandbox, "module_importable", lambda *a, **k: True)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert runs == ["run_smoke.py", "run.py", "run.py"]
+    assert result["experiments"][0]["status"] == "completed"
+    assert result["experiments"][0]["fix_attempts"] == 0
+
+
+def test_smoke_run_is_skipped_when_there_is_nothing_to_shrink(tmp_path, monkeypatch):
+    # GOOD_SECTIONS declares no known cost knob, so a smoke run would be the
+    # real run — pure duplicated cost, and a timeout on it would mean nothing.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        runs.append(Path(run_script).name)
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert runs == ["run.py"]
+
+
+def test_smoke_run_can_be_turned_off(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_enable_smoke_run=False)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(SLOW_SECTIONS)])
+    runs = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        runs.append(Path(run_script).name)
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert runs == ["run.py"]
+
+
+def test_smoke_run_leaves_neither_its_script_nor_its_results_behind(tmp_path, monkeypatch):
+    # Its numbers came from a run shrunk past the point of meaning anything, so
+    # they must not be mistaken for the experiment's own result.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(SLOW_SECTIONS)])
+    seen_during_run = {}
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        (Path(cwd) / "results.json").write_text(json.dumps({"metrics": {"accuracy": 0.1}}))
+        if Path(run_script).name == "run_smoke.py":
+            seen_during_run["smoke_script_existed"] = Path(run_script).exists()
+            return True, ""
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert seen_during_run["smoke_script_existed"] is True
+    assert not (tmp_path / "experiments" / "H1" / "run_smoke.py").exists()
+    # The reported metrics are the full run's, never the smoke run's.
+    assert result["experiments"][0]["results"]["metrics"] == {"accuracy": 0.9}
+
+
+def test_smoke_variant_pins_to_the_floor_where_downscale_only_halves():
+    code = "epochs = 40\nn_rows = 100000\nyear = 2020\n"
+    pinned, changes = repair.smoke_variant(code)
+    assert "epochs = 1" in pinned and "n_rows = 1000" in pinned
+    assert "year = 2020" in pinned, "a value that is not a known knob is left alone"
+    assert repair.downscale(code)[0] != pinned
+    assert changes
+
+
+def test_smoke_variant_reports_nothing_to_shrink_when_no_knob_is_present():
+    assert repair.smoke_variant("alpha = 3\n") == ("alpha = 3\n", [])
+
+
+@pytest.mark.parametrize(
+    "message, expected",
+    [
+        ("Traceback:\nNameError: name 'helper' is not defined", True),
+        ("Traceback:\nModuleNotFoundError: No module named 'pandas'", True),
+        ("Traceback:\nValueError: n_splits=5 cannot be greater than the number of members", False),
+        ("Traceback:\nZeroDivisionError: division by zero", False),
+        # The exception that actually propagated is the last one named.
+        ("TypeError: bad operand\n\nDuring handling...\n\nValueError: too few samples", False),
+        ("execution timed out after 60s", False),
+        ("", False),
+    ],
+)
+def test_is_scale_independent(message, expected):
+    assert diagnose.is_scale_independent(message) is expected
+
+
+# ── Targeted regeneration ─────────────────────────────────────────────────────
+# A failing check that names its own section asks only for that section back;
+# everything else is reused verbatim. See CoderAgent._target_sections.
+
+
+def test_a_localized_failure_asks_only_for_the_section_it_came_from(tmp_path):
+    broken = {**GOOD_SECTIONS, "evaluate_function": "def evaluate(experiment_output:\n    pass\n"}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(broken)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    # Asserted against the format example's placeholders, not against bare
+    # BEGIN markers: the prompt also quotes the previous attempt's sections in
+    # that same format, so a marker alone says nothing about what was requested.
+    fix_prompt = model.prompts_by_kind["fix"][0]
+    placeholders = dict(prompts.EXPERIMENT_SECTION_PLACEHOLDERS)
+    assert placeholders["evaluate_function"] in fix_prompt
+    # The long sections the syntax error cannot have come from are not asked
+    # for — this is the whole saving, and the whole reduction in risk.
+    assert placeholders["load_data_function"] not in fix_prompt
+    assert placeholders["run_experiment_function"] not in fix_prompt
+    assert placeholders["readme"] not in fix_prompt
+    assert "do NOT return the others" in fix_prompt
+    assert result["experiments"][0]["fix_history"][0]["regenerated_sections"] == [
+        "imports",
+        "configuration",
+        "evaluate_function",
+        "helpers",
+    ]
+
+
+def test_targeted_regeneration_keeps_the_sections_it_never_asked_for(tmp_path):
+    # The response carries every section, but only the requested ones are read
+    # back; the rest must survive verbatim from the previous attempt.
+    distinctive = "def load_data():\n    return {'kept': 'from the first attempt'}\n"
+    broken = {
+        **GOOD_SECTIONS,
+        "load_data_function": distinctive,
+        "evaluate_function": "def evaluate(experiment_output:\n    pass\n",
+    }
+    replacement = {
+        **GOOD_SECTIONS,
+        "load_data_function": "def load_data():\n    return 'clobbered'\n",
+    }
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(broken)], fix=[_codegen_response(replacement)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert result["experiments"][0]["status"] == "completed"
+    run_py = (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert "from the first attempt" in run_py
+    assert "clobbered" not in run_py
+
+
+def test_an_unlocalized_failure_still_asks_for_every_section(tmp_path):
+    # A logic bug at execution can live anywhere, so the whole program is fair
+    # game — the behaviour every fix had before localization existed.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    fix_prompt = model.prompts_by_kind["fix"][0]
+    placeholders = dict(prompts.EXPERIMENT_SECTION_PLACEHOLDERS)
+    for section in ("load_data_function", "run_experiment_function", "readme"):
+        assert placeholders[section] in fix_prompt
+    assert "do NOT return the others" not in fix_prompt
+    assert result["experiments"][0]["fix_history"][0]["regenerated_sections"] == []
+
+
+def test_a_missing_section_asks_only_for_what_was_missing(tmp_path):
+    # Doubly right here: the other sections did arrive intact, and a shorter
+    # answer is less likely to be truncated — truncation being the usual reason
+    # a section goes missing at all.
+    incomplete = {**GOOD_SECTIONS, "evaluate_function": ""}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(incomplete)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    assert result["experiments"][0]["status"] == "completed"
+    placeholders = dict(prompts.EXPERIMENT_SECTION_PLACEHOLDERS)
+    assert placeholders["evaluate_function"] in model.prompts_by_kind["fix"][0]
+    assert placeholders["build_model_function"] not in model.prompts_by_kind["fix"][0]
+
+
+def test_assemble_generation_without_a_previous_generation_is_unchanged():
+    # The merging path must not alter what a first generation assembles to.
+    sections = {**GOOD_SECTIONS, "readme": "r", "requirements_txt": "", "assumptions_made": ""}
+    assembled = CoderAgent._assemble_generation(sections)
+    assert assembled["run_py_sections"] == GOOD_SECTIONS
+    assert assembled["assumptions_made"] == []
+    assert assembled["needs_gpu"] is False
+
+
+def test_assemble_generation_merges_a_subset_onto_the_previous_one():
+    previous = CoderAgent._assemble_generation(
+        {**GOOD_SECTIONS, "readme": "the original readme", "needs_gpu": "true"}
+    )
+    merged = CoderAgent._assemble_generation(
+        {"evaluate_function": "def evaluate(o):\n    return {}\n"}, previous=previous
+    )
+    assert merged["run_py_sections"]["evaluate_function"] == "def evaluate(o):\n    return {}\n"
+    assert merged["run_py_sections"]["load_data_function"] == GOOD_SECTIONS["load_data_function"]
+    assert merged["readme"] == "the original readme"
+    assert merged["needs_gpu"] is True
+
+
+# ── Keeping the best attempt, not merely the last ─────────────────────────────
+
+
+def test_the_furthest_attempt_is_restored_when_the_last_one_regressed(tmp_path):
+    # Attempt 1 reaches a real execution failure; the fix regresses to code that
+    # no longer compiles. The budget then runs out. What a human is handed
+    # should be the version that got further, not the one that happens to be
+    # last.
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS)],
+        fix=[_codegen_response(BROKEN_SYNTAX_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["reported_attempt"] == 1
+    assert "Reporting attempt 1" in exp["reason"]
+    assert "regressed to compile_check" in exp["reason"]
+    run_py = (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert "raise RuntimeError('boom')" in run_py
+    assert "def evaluate(experiment_output:" not in run_py
+
+
+def test_nothing_is_restored_when_the_final_attempt_is_the_best(tmp_path):
+    # The common case: the run never regressed, so the newest code stays.
+    # The syntax error goes in run_experiment_function so that the targeted
+    # regeneration it triggers is the section carrying RAISING_SECTIONS' raising
+    # body — targeting evaluate_function would keep the working one and the run
+    # would simply succeed.
+    broken_run_experiment = {
+        **GOOD_SECTIONS,
+        "run_experiment_function": "def run_experiment(data, model:\n    pass\n",
+    }
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(broken_run_experiment)],
+        fix=[_codegen_response(RAISING_SECTIONS)],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "code_generated_not_run"
+    assert exp["reported_attempt"] == 2
+    assert "Reporting attempt" not in exp["reason"]
+    assert "raise RuntimeError('boom')" in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+
+
+def test_a_restored_attempt_reports_its_own_assumptions(tmp_path):
+    model = ScriptedChatModel(
+        codegen=[_codegen_response(RAISING_SECTIONS, assumptions=["the first attempt's"])],
+        fix=[_codegen_response(BROKEN_SYNTAX_SECTIONS, assumptions=["the last attempt's"])],
+    )
+    result = _agent(tmp_path, model, max_fix_attempts=1).run(
+        _planner_output([_plan("H1", complexity="low")])
+    )
+
+    assert result["experiments"][0]["assumptions_made"] == ["the first attempt's"]
+
+
+def test_best_candidate_ignores_an_attempt_with_no_code_on_disk(tmp_path):
+    # An unparseable response never got as far as writing a run.py, so there is
+    # nothing to restore even though its snapshot directory exists.
+    missing = tmp_path / "fix_attempts" / "attempt_1" / "run.py"
+    history = [{"attempt": 1, "error_source": "results_json", "code_path": str(missing)}]
+    assert _best_candidate(history, {"error_source": "compile_check"}) is None

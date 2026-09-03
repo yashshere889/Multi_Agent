@@ -19,6 +19,11 @@ VALID_ERROR_SOURCES = {
     # NotImplementedError raise — see sandbox.check_nontrivial_function_bodies.
     "empty_body",
     "compile_check",
+    # The rendered run.py uses a name it never binds — a helper that was
+    # referenced but never written, or one whose import a regeneration dropped.
+    # Parses fine, so compile_check clears it; only a NameError at execution
+    # would otherwise reveal it. See sandbox.check_undefined_names.
+    "undefined_name",
     "static_lint",
     # load_data reads a local file with nothing to fall back on if it isn't there
     # — see sandbox.check_data_fallback.
@@ -75,6 +80,17 @@ class FixAttempt(TypedDict):
     # have to load, same "checked when present but not required" rule as the
     # rest of this function.
     same_error_streak: int
+    # Which code sections the regeneration that followed this failure was asked
+    # for — [] meaning all of them. See coder_agent._target_sections. Optional,
+    # same rule as same_error_streak.
+    regenerated_sections: list[str]
+    # What this attempt's code assumed, carried per-attempt because the code
+    # this run ends up reporting is not always the last one generated: when the
+    # fix budget runs out, coder_agent restores whichever attempt got furthest
+    # (see _best_candidate), and the final generation's assumptions would then
+    # describe a program that is no longer on disk. Optional, same rule as
+    # same_error_streak.
+    assumptions_made: list[str]
 
 
 class ExperimentResult(TypedDict):
