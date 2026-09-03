@@ -217,13 +217,31 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 - **Env-provisioning failures are not retried through the fix loop.** A missing package or
   unreachable index isn't something regenerating code can fix, so it returns a terminal
   `code_generated_not_run` result directly.
-- **An execution failure is classified before it is repaired, and two kinds never reach the
+- **An execution failure is classified before it is repaired, and three kinds never reach the
   model.** `_attempt_once` loops around `sandbox.run_experiment`: a `missing_dependency` is
-  installed and the *unchanged* code re-run, and a `resource_limit` has its own cost knobs halved
-  by `repair.downscale` and is re-run. Neither spends a fix attempt — `CODER_MAX_ENV_REPAIRS`
-  bounds installs separately — because neither was a defect in the generated source. This is the
-  fix for a production run that spent all three fix attempts regenerating code against
+  installed and the *unchanged* code re-run, a `resource_limit` has its own cost knobs halved
+  by `repair.downscale` and is re-run, and one narrow shape of `obsolete_dependency` — pandas 3's
+  removed `.fillna(method=)` — is rewritten by `repair.patch_removed_pandas_fillna` and re-run,
+  bounded by `_MAX_API_PATCHES`. None spends a fix attempt — `CODER_MAX_ENV_REPAIRS` bounds
+  installs separately — because none was a defect in the generated source. This is the fix for a
+  production run that spent all three fix attempts regenerating code against
   `ModuleNotFoundError: No module named 'pandas'`.
+- **The removed-API patch is keyed on `error_source`, not on a route, and that is deliberate.**
+  Most of `obsolete_dependency` — a dead import, `DataFrame.append` — genuinely needs a model to
+  rewrite, so the category's route stays `ROUTE_REGENERATE`; the patcher is the narrow
+  deterministic case *inside* it, exactly as `downscale` is the narrow case inside
+  `resource_limit`. `patch_removed_pandas_fillna` covers two shapes and refuses everything else:
+  the expression form is a pure syntax swap, while the inplace form is rewritten only when the
+  whole line is a bare `<dotted.name>.fillna(..., inplace=True)`, because reassigning anything
+  else could turn a mutation into a silent no-op — worse than the TypeError it replaces, in a
+  pipeline whose entire point is not reporting numbers that were never computed.
+- **`_smoke_failure` must fall through for anything the execution loop can repair itself.**
+  It already does for `ROUTE_ENV` and `ROUTE_DOWNSCALE`; `diagnose.removed_api` is the third and
+  is not optional bookkeeping. A removed-API failure raises `TypeError`, which
+  `is_scale_independent` treats as a real defect, so without that line the smoke run reports it,
+  the fix loop takes over, and the patcher above becomes unreachable in the one case it was
+  written for. A test asserts the execution order (`run_smoke.py`, `run.py`, `run.py`) and fails
+  if the fall-through is removed.
 - **`diagnose.IMPORT_TO_PACKAGE` and `diagnose.DEAD_IMPORTS` must not be merged.** The first is
   aliases, where installing the distribution satisfies the import (`sklearn` → `scikit-learn`).
   The second is successors, where nothing can (`pymc3` → `pymc`): installing there reports success

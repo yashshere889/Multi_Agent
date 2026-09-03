@@ -41,9 +41,14 @@ VALID_ERROR_SOURCES = {
     # A package the code correctly imports but nothing installed. Repaired by
     # installing it and re-running the same code; regenerating cannot install.
     "missing_dependency",
-    # An import no installable package provides (pymc3, pystan, theano...).
-    # The opposite repair: only new code can fix it, and an install that
-    # "succeeds" changes nothing.
+    # Something the code refers to no longer exists. Two halves, same repair
+    # and same route: an import no installable package provides (pymc3, pystan,
+    # theano...), and a call a major release deleted (pandas' fillna(method=),
+    # DataFrame.append, numpy's scalar aliases — see diagnose.REMOVED_APIS).
+    # The opposite of missing_dependency: only new code can fix it, and an
+    # install that "succeeds" changes nothing. One narrow shape inside the
+    # second half is repaired deterministically instead — see
+    # repair.patch_removed_pandas_fillna.
     "obsolete_dependency",
     # A native library. pip cannot supply it, so neither repair applies and the
     # experiment stops with something a human can act on.

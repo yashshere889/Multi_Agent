@@ -4447,3 +4447,172 @@ def test_best_candidate_ignores_an_attempt_with_no_code_on_disk(tmp_path):
     missing = tmp_path / "fix_attempts" / "attempt_1" / "run.py"
     history = [{"attempt": 1, "error_source": "results_json", "code_path": str(missing)}]
     assert _best_candidate(history, {"error_source": "compile_check"}) is None
+
+
+# ── The removed-API repair ────────────────────────────────────────────────────
+# The third no-model-call repair, beside installing a package and shrinking a
+# run. Ported from barkla-wip/coder-format-retries (0c799c8).
+
+
+def test_patch_removed_pandas_fillna_rewrites_the_non_inplace_form():
+    """Job 10416110's actual failing line — a pure syntax swap since the whole
+    chain's result is assigned, never mutated in place."""
+    code = "vol = pd.Series(returns).rolling(window=10).std().fillna(method='bfill').values\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "vol = pd.Series(returns).rolling(window=10).std().bfill().values\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_rewrites_the_inplace_form_as_reassignment():
+    """Job 10411325's actual failing line. A plain syntax swap here would drop
+    the mutation and turn a working line into a silent no-op, so this shape
+    gets reassignment instead of a bare call."""
+    code = "    df.fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "    df = df.bfill()\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_refuses_an_unsafe_inplace_receiver():
+    """`get_df()` cannot be reassigned back to — only a plain dotted-name
+    receiver is provably safe to rewrite, so anything else is left for the
+    model rather than guessed at."""
+    code = "get_df().fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_patch_removed_pandas_fillna_leaves_a_constant_fillna_alone():
+    """`.fillna(0)` is unaffected by the pandas 3 removal and must not match."""
+    code = "df = df.fillna(0)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_patch_removed_pandas_fillna_keeps_the_following_line():
+    """The inplace regex ends `[ \\t]*$`, not `\\s*$`: under MULTILINE the `$`
+    sits before the newline, and `\\s*` would consume that newline too, silently
+    joining the next line onto the rewritten one."""
+    code = "df.fillna(method='ffill', inplace=True)\nreturn df\n"
+
+    patched, _ = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "df = df.ffill()\nreturn df\n"
+
+
+def test_a_removed_api_is_diagnosed_as_obsolete_and_carries_the_replacement():
+    diagnosis = diagnose.classify_execution_failure(
+        "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+    )
+    assert diagnosis.error_source == "obsolete_dependency"
+    assert diagnosis.route == diagnose.ROUTE_REGENERATE
+    assert ".ffill()" in diagnosis.guidance
+    # An install cannot fix it, so it must never be routed to the installer.
+    assert diagnosis.needs_install is False
+
+
+def test_a_removed_pandas_call_is_patched_without_spending_a_fix_attempt(tmp_path, monkeypatch):
+    """The exact shape of Barkla job 10416110: the model reproduced
+    byte-identical code across two fix attempts despite the fix prompt naming
+    the exact replacement. The deterministic patch must resolve it on the first
+    execution retry, spending zero fix attempts and zero model calls."""
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    executed_sources = []
+    attempts = {"n": 0}
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        attempts["n"] += 1
+        executed_sources.append(Path(run_script).read_text())
+        if attempts["n"] == 1:
+            # Written directly rather than through codegen: the point under test
+            # is the patch-and-rerun loop, not getting the model to produce this
+            # exact line.
+            Path(run_script).write_text(
+                "vol = pd.Series([1.0]).fillna(method='bfill')\n"
+                "print('unreachable if the pandas call above still raises')\n"
+            )
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    assert exp["status"] == "completed", exp.get("reason")
+    assert attempts["n"] == 2, "one failed run, one re-run of the patched file"
+    assert "fillna(method=" not in executed_sources[1]
+    assert ".bfill()" in executed_sources[1]
+    assert exp["fix_attempts"] == 0, "a deterministic patch is not a fix attempt"
+    # What must never happen is a *fix* call — the opening line of
+    # EXPERIMENT_CODEGEN_FIX_PROMPT — since the patch resolved the failure
+    # before the loop asked to regenerate anything.
+    assert not any(
+        "The code you generated for hypothesis" in messages[-1][1] for messages in fake_model.calls
+    )
+
+
+def test_the_smoke_run_does_not_pre_empt_the_removed_api_patch(tmp_path, monkeypatch):
+    """The reconciliation between the two features. A removed-API failure raises
+    TypeError, which diagnose.is_scale_independent treats as a real defect — so
+    without the explicit fall-through in _smoke_failure, the smoke run reports
+    it, the fix loop takes over, and the deterministic patch below is never
+    reached in the one case it exists for."""
+    sections = {
+        **GOOD_SECTIONS,
+        "configuration": "epochs = 40\n",  # gives the smoke run something to shrink
+        "helpers": "def _fill(series):\n    return series.fillna(method='bfill')\n",
+    }
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(sections)})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    ran = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        ran.append(Path(run_script).name)
+        if "fillna(method=" in Path(run_script).read_text():
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    # The smoke run really did happen and really did see the failure — it just
+    # declined to answer for it.
+    assert ran == ["run_smoke.py", "run.py", "run.py"]
+    assert exp["status"] == "completed", exp.get("reason")
+    assert exp["fix_attempts"] == 0, "the patch resolved it; no fix attempt was spent"
+    assert ".bfill()" in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert not any(
+        "The code you generated for hypothesis" in messages[-1][1] for messages in fake_model.calls
+    )
