@@ -322,15 +322,34 @@ def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSour
     `sandbox.check_hf_dataset_usage` matching on the dataset id rather than
     walking the AST for a particular call shape: the model can write the request
     in more ways than are worth enumerating, but it cannot fetch the source
-    without naming its host. `real_local` is left alone (a staged file is on
-    disk whatever the code does with it), and so is anything already a surrogate.
+    without naming its host. `real_local` is left alone (a file on disk is real
+    whatever the code string looks like), and so is anything already a surrogate.
+
+    The question is asked of the experiment as a whole, not of each requirement
+    separately: if *any* declared real input is demonstrably obtained, nothing is
+    downgraded. One requirement is routinely satisfied by another entry's data —
+    a matched Hub dataset downloaded to disk answers the "Hugging Face" the plan
+    asked for, and the generated code then reads a local file and never names the
+    REST host — and per-requirement matching turns that into a phantom surrogate.
+    What stays caught is the failure this guards: an experiment that declared
+    real inputs, fetched none of them, and synthesized instead.
     """
     if not code:
         return sources
+
+    def obtained(source: DataSource) -> bool:
+        if source.kind == KIND_REAL_LOCAL:
+            return True
+        host = urlparse(source.uri).netloc
+        return bool(host) and host in code
+
+    if any(obtained(s) for s in sources if s.is_real):
+        return sources
+
     verified: list[DataSource] = []
     for source in sources:
         host = urlparse(source.uri).netloc
-        if source.kind != KIND_REAL_DOWNLOAD or not host or host in code:
+        if source.kind != KIND_REAL_DOWNLOAD or not host:
             verified.append(source)
             continue
         verified.append(

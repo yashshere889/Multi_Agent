@@ -18,6 +18,54 @@
 #              derive both from this one variable so they cannot drift.
 #   HF_HOME    HuggingFace cache, on fastscratch (NOT home — 100k inode quota)
 
+# Weights that must fit in ONE card's memory at the chosen TP. Qwen3-Coder-30B-A3B
+# reported "Model loading took 56.9342 GiB" on Barkla job 10274103; the margin
+# covers the CUDA graphs and activations sized after the weights land.
+VLLM_WEIGHTS_GIB="${VLLM_WEIGHTS_GIB:-57}"
+
+# Refuse a card the model cannot fit on, before spending minutes loading it.
+#
+# gpu-a-lowsmall is heterogeneous — gpu14/15/16 are a100:2 (80GB), gpu21..24 are
+# a40:2 (48GB) — and the sbatch scripts request a bare `--gres=gpu:2`, which does
+# not distinguish them. So submitting there is a coin flip, and the losing side
+# is a raw CUDA OOM ~60s in ("total capacity of 44.42 GiB", job 10410945) after
+# the queue wait is already spent, with nothing in the log naming the real cause.
+#
+# Fails with the fix rather than guessing at one: raising TP silently would take
+# the second GPU that TP=1 deliberately leaves free for generated experiments,
+# which is a tradeoff the submitter should make knowingly.
+check_gpu_fits_model() {
+    local per_gpu_mib
+    per_gpu_mib=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1)
+    if [[ -z "$per_gpu_mib" ]]; then
+        echo "WARNING: could not read GPU memory; skipping the fit check." >&2
+        return 0
+    fi
+
+    local needed_mib=$(( VLLM_WEIGHTS_GIB * 1024 / TP ))
+    local usable_mib=$(( per_gpu_mib * 90 / 100 ))  # matches --gpu-memory-utilization
+    if (( usable_mib >= needed_mib )); then
+        return 0
+    fi
+
+    local name
+    name=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
+    cat >&2 <<EOF
+ERROR: $MODEL does not fit on this node's GPUs at TP=$TP.
+  allocated card : ${name:-unknown} (${per_gpu_mib} MiB, ~${usable_mib} MiB usable at 0.90)
+  weights need   : ~${needed_mib} MiB per GPU at TP=$TP
+
+Resubmit pinning a big card, which keeps TP=1 and leaves GPU 1 free for
+generated experiments:
+  sbatch -p $SLURM_JOB_PARTITION --gres=gpu:a100:2 $0 "<research question>"
+
+Or shard across both of this node's GPUs (card-agnostic, but experiments then
+have no GPU of their own):
+  sbatch -p $SLURM_JOB_PARTITION --gres=gpu:2 --export=ALL,TP=2 $0 "<research question>"
+EOF
+    return 1
+}
+
 vllm_serve_background() {
     # --nv passes the host NVIDIA driver into the container (Apptainer guide
     # §17.1.3); no CUDA module needed, the container carries its own toolkit.

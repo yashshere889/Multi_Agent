@@ -82,6 +82,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 cleanup() { [[ -n "${VLLM_PID:-}" ]] && kill "$VLLM_PID" 2>/dev/null || true; }
 trap cleanup EXIT
 
+check_gpu_fits_model
 vllm_serve_background
 wait_for_vllm
 

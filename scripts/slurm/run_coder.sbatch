@@ -64,6 +64,7 @@ nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader || true
 
 # shellcheck source=_vllm_serve.sh
 source "$SLURM_SUBMIT_DIR/scripts/slurm/_vllm_serve.sh"
+check_gpu_fits_model
 vllm_serve_background
 trap 'kill $VLLM_PID 2>/dev/null || true' EXIT
 wait_for_vllm || { echo "error: the model server never came up" >&2; exit 1; }
