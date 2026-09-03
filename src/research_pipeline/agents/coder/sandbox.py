@@ -298,22 +298,79 @@ def lenient_compile_check(
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
-DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\b__import__\s*\(", "dynamic __import__() call"),
-    (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
-    (r"\bos\.system\s*\(", "os.system() call"),
-    (r"\bos\.popen\s*\(", "os.popen() call"),
-    (r"\bshutil\.rmtree\s*\(", "shutil.rmtree() call"),
-    (r"\bos\.(remove|unlink)\s*\(", "file deletion via os.remove()/os.unlink()"),
-    (r"\bos\.chmod\s*\(", "os.chmod() call"),
-    (r"\bsocket\.(socket|create_connection)\s*\(", "raw socket usage"),
-    (r"\bpickle\.loads?\s*\(", "pickle load (arbitrary code execution on untrusted data)"),
-    (r"\bctypes\b", "ctypes usage"),
+#
+# Each entry's third element is the alternative shown to the model — both up
+# front in prompts.SYSTEM_PROMPT (via prompts.BANNED_CONSTRUCTS_BLOCK, built
+# from this list so the two can't drift apart) and inline in a fix-loop finding
+# (see static_safety_check below), since a small non-reasoning model follows
+# "use X instead" far more reliably than a bare "don't do this" — see the
+# 2026-08-11 batch post-mortem, where eval() kept recurring across fix attempts
+# with nothing telling the model what to write instead.
+DANGEROUS_PATTERNS: list[tuple[str, str, str]] = [
+    (
+        r"\beval\s*\(",
+        "eval() call",
+        "ast.literal_eval() to parse a literal, or explicit parsing logic — never eval a string as code",
+    ),
+    (
+        r"\bexec\s*\(",
+        "exec() call",
+        "a direct call to the function/logic itself — never build up and exec a string as code",
+    ),
+    (
+        r"\b__import__\s*\(",
+        "dynamic __import__() call",
+        "a normal top-level `import` statement, or importlib.import_module() only when the module name is genuinely computed at runtime",
+    ),
+    (
+        r"subprocess\.\w+\([^)]*shell\s*=\s*True",
+        "subprocess call with shell=True",
+        "subprocess.run([...]) with a list of arguments and shell=False (the default)",
+    ),
+    (
+        r"\bos\.system\s*\(",
+        "os.system() call",
+        "subprocess.run([...]) with a list of arguments",
+    ),
+    (
+        r"\bos\.popen\s*\(",
+        "os.popen() call",
+        "subprocess.run([...], capture_output=True)",
+    ),
+    (
+        r"\bshutil\.rmtree\s*\(",
+        "shutil.rmtree() call",
+        "OUTPUT_DIR for all writes — never delete existing directories",
+    ),
+    (
+        r"\bos\.(remove|unlink)\s*\(",
+        "file deletion via os.remove()/os.unlink()",
+        "OUTPUT_DIR for all writes — never delete existing files",
+    ),
+    (
+        r"\bos\.chmod\s*\(",
+        "os.chmod() call",
+        "the default file permissions — never change them",
+    ),
+    (
+        r"\bsocket\.(socket|create_connection)\s*\(",
+        "raw socket usage",
+        "the `requests` library (or urllib.request) for any network access this experiment needs",
+    ),
+    (
+        r"\bpickle\.loads?\s*\(",
+        "pickle load (arbitrary code execution on untrusted data)",
+        "json for serialization, or numpy.load/pandas.read_* for array/tabular data",
+    ),
+    (
+        r"\bctypes\b",
+        "ctypes usage",
+        "pure Python or a standard scientific library (numpy/scipy) instead of native code",
+    ),
     (
         r"os\.environ(?:\.get\(\s*)?\[?[\"'][^\"']*(SECRET|TOKEN|PASSWORD|API_KEY|AWS_)",
         "credential-like environment variable access",
+        "nothing — no experiment needs credential access, so remove it entirely",
     ),
 ]
 
@@ -321,11 +378,12 @@ DANGEROUS_PATTERNS: list[tuple[str, str]] = [
 def static_safety_check(code: str) -> list[str]:
     """Scans generated Python source for patterns that shouldn't appear in an
     experiment script, before it is executed or submitted anywhere. Returns a
-    list of human-readable findings; empty means clean."""
+    list of human-readable findings, each naming the alternative to use;
+    empty means clean."""
     findings = []
-    for pattern, description in DANGEROUS_PATTERNS:
+    for pattern, description, alternative in DANGEROUS_PATTERNS:
         if re.search(pattern, code):
-            findings.append(description)
+            findings.append(f"{description} (use {alternative})")
     return findings
 
 
