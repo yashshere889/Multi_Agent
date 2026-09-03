@@ -1753,14 +1753,6 @@ class CoderAgent:
             requirements, staging_dir=staging, network_available=network_available
         )
 
-        # A source resolve() declared openly fetchable still has to be fetched.
-        # Done before the dataset below is added, not after: that one carries its
-        # own, stronger usage check (the code naming the dataset id), and
-        # re-checking it here by URL host would downgrade code that reads it via
-        # a locally downloaded copy or a URL built some other way.
-        if run_py is not None:
-            sources = provenance.verify_downloads_used(sources, run_py)
-
         # Keyed on "dataset_id" because that is what huggingface_client returns.
         # This read used to be .get("dataset"), a key nothing ever sets, so the
         # branch was dead: every experiment built on a real Hub dataset was still
@@ -1778,14 +1770,18 @@ class CoderAgent:
                     # nothing sets left this uri empty even when it was reached.
                     uri=self._hf_rows_url(hf_dataset or {}),
                     reason="found by the Hugging Face lookup and read by the generated code",
+                    # Reached only when run_py named the dataset (or at prompt
+                    # time, when there is no code to check), so its use is
+                    # already established more strongly than a URL-host match.
+                    usage_verified=True,
                 ),
             )
 
-        # Last, once every input's realness is settled: a requirement nothing
-        # could resolve is dropped when a real input the code actually reads
-        # already answers it. Superseding before the verification above would
-        # let an unfetched declaration stand in for one.
+        # Order matters. Confirm which declared inputs the code really reads,
+        # *then* let those answer requirements nothing could resolve —
+        # superseding first would let an unfetched declaration stand in for one.
         if run_py is not None:
+            sources = provenance.verify_downloads_used(sources, run_py)
             sources = provenance.supersede_unresolved(sources, run_py)
         return sources
 

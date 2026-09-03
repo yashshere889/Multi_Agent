@@ -153,6 +153,13 @@ class DataSource:
     # verdict, and this one can be answered by a dataset found elsewhere. See
     # `supersede_unresolved`.
     unresolved: bool = False
+    # Set for an input whose use by the generated code has already been
+    # established by a stronger check than `verify_downloads_used` can make —
+    # the Hugging Face dataset, confirmed by the code naming its id. Checking
+    # such a source again by URL host would downgrade code that reads it from a
+    # downloaded local copy, or from a URL built some way other than the one
+    # handed over in the prompt.
+    usage_verified: bool = False
 
     @property
     def is_real(self) -> bool:
@@ -377,7 +384,7 @@ def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSour
         return sources
 
     def obtained(source: DataSource) -> bool:
-        if source.kind == KIND_REAL_LOCAL:
+        if source.kind == KIND_REAL_LOCAL or source.usage_verified:
             return True
         host = urlparse(source.uri).netloc
         return bool(host) and host in code
@@ -388,7 +395,7 @@ def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSour
     verified: list[DataSource] = []
     for source in sources:
         host = urlparse(source.uri).netloc
-        if source.kind != KIND_REAL_DOWNLOAD or not host:
+        if source.kind != KIND_REAL_DOWNLOAD or not host or source.usage_verified:
             verified.append(source)
             continue
         verified.append(
