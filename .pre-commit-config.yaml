@@ -15,9 +15,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_agent|coder_starters|slurm_submit)\.py)
+        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_acquire|coder_agent|coder_starters|slurm_submit)\.py)
       - id: ruff-format
-        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_agent|coder_starters|slurm_submit)\.py)
+        files: ^(src/research_pipeline/agents/coder/|tests/test_(coder_acquire|coder_agent|coder_starters|slurm_submit)\.py)
 
   # Source only, not the tests: the test files are unannotated by convention,
   # and gradual typing is scoped to the module's own source.

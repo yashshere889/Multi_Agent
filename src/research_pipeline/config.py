@@ -44,6 +44,9 @@ class Settings:
     coder_max_env_repairs: int
     coder_max_structural_retries: int
     coder_data_dir: str
+    coder_data_cache_dir: str
+    coder_enable_data_acquisition: bool
+    coder_max_download_bytes: int
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
     coder_require_real_data: bool
@@ -230,6 +233,28 @@ def load_settings() -> Settings:
         # Inputs matched here resolve as real, which is what lets a run report a
         # hypothesis verdict at all; see agents/coder/provenance.py.
         coder_data_dir=os.environ.get("CODER_DATA_DIR", ""),
+        # Where the pipeline writes data it fetched for an experiment itself.
+        # Deliberately NOT CODER_DATA_DIR: that one is a human's staging
+        # directory, walked by provenance._staged_file, and dropping fetched
+        # files into it would have them keyword-matched as "staged locally" for
+        # unrelated requirements — a provenance record that says the wrong
+        # thing about where data came from, which is the one thing that module
+        # exists to get right.
+        coder_data_cache_dir=os.environ.get("CODER_DATA_CACHE_DIR", "data_cache"),
+        # Off by default while it earns trust, same as every other switch here
+        # that changes what reaches the model. When on, an input the pipeline
+        # can fetch is fetched here and handed over as a local file with its
+        # real columns, instead of as a URL for the generated code to request —
+        # see agents/coder/acquire.py for why that moves a whole class of
+        # failure out of the fix loop. Every failure degrades to the previous
+        # behaviour, so turning it on cannot lose an experiment that worked.
+        coder_enable_data_acquisition=_env_bool("CODER_ENABLE_DATA_ACQUISITION", False),
+        # Cap on a single fetched input. The right number on node-local NVMe and
+        # the right number on a quota'd home directory are not the same, which
+        # is why this is a setting and not the constant in acquire.py.
+        coder_max_download_bytes=int(
+            os.environ.get("CODER_MAX_DOWNLOAD_BYTES", str(64 * 1024 * 1024))
+        ),
         # Where each experiment's throwaway venv is created. Empty means "beside
         # the results", which is right on a laptop. On Barkla it should point at
         # localscratch (/tmp/users/$USER): a venv is thousands of small files,

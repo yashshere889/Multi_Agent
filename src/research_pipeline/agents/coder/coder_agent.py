@@ -114,6 +114,7 @@ from langgraph.store.base import BaseStore
 from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    acquire,
     diagnose,
     fix_pattern_store,
     huggingface_client,
@@ -210,10 +211,10 @@ _STRUCTURAL_ERROR_SOURCES = frozenset(
 # the fix budget is. Derived per run from those two numbers rather than guessed —
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
-_STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
+_STEPS_PER_PLAN = 6  # process_current_plan, search_hf_dataset, acquire_data, generate_experiment_code, the first attempt, finalize/give_up
 # skip_no_real_data (CODER_REQUIRE_REAL_DATA) is deliberately absent from the
 # count: it *replaces* generate/attempt/finalize rather than adding to them, so
-# a skipped plan costs 3 steps where a generated one costs 5. The worst case the
+# a skipped plan costs 4 steps where a generated one costs 6. The worst case the
 # limit is derived from is unchanged.
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 
@@ -776,6 +777,7 @@ class CoderAgent:
             "current_structural_retries": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
+            "current_acquisitions": {},
             "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
@@ -794,14 +796,38 @@ class CoderAgent:
             )
         }
 
-    def _route_after_search_hf_dataset(self, state: CoderState) -> str:
+    def _node_acquire_data(self, state: CoderState) -> dict:
+        """Fetch this plan's real inputs to disk before any code is generated.
+
+        Its own node, after the dataset lookup and before the routing decision
+        below, for two reasons. The lookup is what produces the one URL most
+        plans have, so there is nothing to fetch until it has run; and
+        acquisition can turn a `real_download` into a `real_local`, which is a
+        change CODER_REQUIRE_REAL_DATA's skip decision must see rather than
+        pre-empt.
+
+        Off unless CODER_ENABLE_DATA_ACQUISITION is set, and skipped without a
+        request when the network probe already failed. Every failure inside
+        `acquire` degrades to an empty map, which leaves every input exactly the
+        `real_download` it was and the generated code fetching it as before —
+        so a run with this on can only differ from a run with it off by having
+        *more* real data, never less."""
+        return {
+            "current_acquisitions": self._acquire_data(
+                state["current_plan"],
+                state["network_available"],
+                state.get("current_hf_dataset") or {},
+            )
+        }
+
+    def _route_after_data_lookup(self, state: CoderState) -> str:
         """Whether this plan is worth generating code for at all.
 
         Only ever diverts when CODER_REQUIRE_REAL_DATA is set — otherwise this
         returns "generate" without resolving anything, so the graph reads
         exactly as it did before the setting existed. Placed after the dataset
-        lookup, not before it, because the lookup is the last thing that can
-        turn a surrogate into a real input.
+        lookup and the fetch, not before them, because those are the last two
+        things that can turn a surrogate into a real input.
 
         _provenance_for reads settings.coder_data_dir through self, not state.
         """
@@ -811,6 +837,7 @@ class CoderAgent:
             state["current_plan"],
             state["network_available"],
             hf_dataset=state.get("current_hf_dataset") or {},
+            acquisitions=state.get("current_acquisitions") or {},
         )
         return "generate" if provenance.all_real(sources) else "skip"
 
@@ -823,7 +850,10 @@ class CoderAgent:
         plan = state["current_plan"]
         hypothesis_id = plan["hypothesis_id"]
         sources = self._provenance_for(
-            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+            plan,
+            state["network_available"],
+            hf_dataset=state.get("current_hf_dataset") or {},
+            acquisitions=state.get("current_acquisitions") or {},
         )
         unresolved = [s.name for s in sources if not s.is_real]
         logger.info(
@@ -856,6 +886,7 @@ class CoderAgent:
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
+                state.get("current_acquisitions") or {},
             )
         except CoderAgentError as exc:
             # A generation whose format can't be parsed is a per-plan failure,
@@ -886,6 +917,7 @@ class CoderAgent:
             state["shared_files"],
             state.get("current_starter_id", ""),
             state.get("current_hf_dataset") or {},
+            state.get("current_acquisitions") or {},
         )
 
         update: dict = {
@@ -1049,6 +1081,7 @@ class CoderAgent:
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
+                acquisitions=state.get("current_acquisitions") or {},
                 stuck_streak=streak,
                 previous_error_summary=previous_error_summary,
                 target_sections=target_sections,
@@ -1277,6 +1310,7 @@ class CoderAgent:
         shared_files: dict[str, str],
         starter_id: str = "",
         hf_dataset: dict | None = None,
+        acquisitions: dict[str, dict] | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -1441,6 +1475,10 @@ class CoderAgent:
             sections["load_data_function"],
             assumptions_made,
             hf_dataset or {},
+            # When the dataset was fetched here, the code was told to read a
+            # local file and never sees the dataset id — reading that path is
+            # the same "engaged with the offer" the id used to evidence.
+            acquire.local_paths(acquisitions),
         )
         if dataset_usage_findings:
             return {
@@ -1657,7 +1695,11 @@ class CoderAgent:
         # string "unknown", which the Writer reads as "inconclusive". Returning
         # False instead would have it publish a *refutation* off generated data.
         sources = self._provenance_for(
-            plan, network_available, hf_dataset=hf_dataset, run_py=run_py
+            plan,
+            network_available,
+            hf_dataset=hf_dataset,
+            run_py=run_py,
+            acquisitions=acquisitions,
         )
         provenance_document = provenance.write(sources, experiment_dir / "data_provenance.json")
         results = provenance.apply_to_results(results, sources)
@@ -2255,12 +2297,44 @@ class CoderAgent:
             return {}
         return dataset or {}
 
+    def _acquire_data(
+        self, plan: dict, network_available: bool, hf_dataset: dict
+    ) -> dict[str, dict]:
+        """Fetch this plan's fetchable inputs to disk. {} when nothing was.
+
+        Same skip-without-a-request shape as _find_hf_dataset, and the same
+        never-raise contract: `acquire.fetch` already absorbs every network and
+        parse failure, so the try/except here is only for the unexpected — a
+        cache directory that cannot be created, say. An experiment must not go
+        ungenerated because a download did not work; that is precisely the
+        coupling this module exists to break.
+        """
+        if not network_available or not settings.coder_enable_data_acquisition:
+            return {}
+        # Resolved without acquisitions (there are none yet) — this is the list
+        # of inputs that *could* be fetched, which is what we are about to try.
+        sources = self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+        try:
+            return acquire.acquire_sources(
+                sources,
+                cache_dir=Path(settings.coder_data_cache_dir),
+                max_bytes=settings.coder_max_download_bytes,
+            )
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            logger.warning(
+                "Data acquisition raised for %s; generating without it: %s",
+                plan["hypothesis_id"],
+                exc,
+            )
+            return {}
+
     def _provenance_for(
         self,
         plan: dict,
         network_available: bool,
         hf_dataset: dict | None = None,
         run_py: str | None = None,
+        acquisitions: dict[str, dict] | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2269,6 +2343,12 @@ class CoderAgent:
         rather than threaded through graph state like the Hugging Face lookup —
         that one is a real network call with its own cache and retry policy, and
         this is a pure function of the plan.
+
+        `acquisitions` keeps that true now that inputs can also be *fetched*:
+        the fetching happens once, in its own node, and what arrives here is the
+        record of what landed on disk. `acquire.apply` is a pure rewrite over
+        it, so this stays callable at prompt time, after generation and at
+        finalize without a second download.
         """
         requirements = provenance.split_requirements(
             (plan.get("data_requirements") or {}).get("source") or "",
@@ -2317,6 +2397,13 @@ class CoderAgent:
                 ),
             )
 
+        # Before verify_downloads_used, deliberately. That check asks whether
+        # the *code* went and fetched a declared download; an input this
+        # pipeline already fetched is not a question the code text can answer,
+        # and leaving it a `real_download` here would have code reading a local
+        # CSV (naming no host) downgraded to a surrogate for it.
+        sources = acquire.apply(sources, acquisitions)
+
         # Order matters. Confirm which declared inputs the code really reads,
         # *then* let those answer requirements nothing could resolve —
         # superseding first would let an unfetched declaration stand in for one.
@@ -2364,7 +2451,7 @@ class CoderAgent:
         )
 
     @staticmethod
-    def _hf_dataset_block(hf_dataset: dict) -> str:
+    def _hf_dataset_block(hf_dataset: dict, acquisitions: dict[str, dict] | None = None) -> str:
         """Renders a matched dataset for the codegen/fix prompt: what it is, its
         real column names and a few real rows, and the exact REST URL to read it
         from. Empty string when nothing matched, so a prompt with no dataset
@@ -2379,6 +2466,25 @@ class CoderAgent:
         config = str(hf_dataset.get("config") or "default")
         split = str(hf_dataset.get("split") or "train")
         rows_url = CoderAgent._rows_url(hf_dataset)
+        fetched = (acquisitions or {}).get(rows_url)
+        if fetched:
+            # The rows are already on disk, so the model is told to read them
+            # rather than to build a REST call. This removes the single most
+            # common way an experiment lost its real data: getting that URL
+            # subtly wrong and falling back to synthesizing. The provenance
+            # block carries the columns and first rows read off the file, so
+            # they are not repeated here.
+            return (
+                "A real, public dataset matching this experiment's data requirements was found, "
+                "verified by the Hugging Face Dataset Viewer, and **already downloaded for "
+                "you**:\n"
+                f"  dataset: {dataset_id} (config={config}, split={split})\n"
+                f"  local file: {fetched.get('path', '')}\n"
+                f"  rows: {fetched.get('row_count', 0)}\n"
+                f"  format: {fetched.get('read_hint') or fetched.get('data_format', '')}\n\n"
+                "Read that file from disk. Do NOT make any HTTP request for this dataset and do "
+                "NOT add the `datasets` package.\n\n" + prompts.HF_DATASET_USAGE_NOTE
+            )
         return (
             "A real, public dataset matching this experiment's data requirements was found and "
             "verified as servable by the Hugging Face Dataset Viewer:\n"
@@ -2400,18 +2506,21 @@ class CoderAgent:
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
         starter_id: str = "",
+        acquisitions: dict[str, dict] | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
-            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
             provenance_block=provenance.prompt_block(
                 # hf_dataset passed so an accepted dataset is described as the
                 # real input the model is being asked to read. Without it this
                 # block called that same dataset a surrogate and ordered a
                 # `synthesize_` generator, contradicting hf_dataset_block in the
                 # very same prompt.
-                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+                self._provenance_for(
+                    plan, network_available, hf_dataset=hf_dataset, acquisitions=acquisitions
+                )
             ),
             starter_block=self._starter_block(starter_id),
             hypothesis_id=plan["hypothesis_id"],
@@ -2438,6 +2547,7 @@ class CoderAgent:
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
         starter_id: str = "",
+        acquisitions: dict[str, dict] | None = None,
         stuck_streak: int = 0,
         previous_error_summary: str = "",
         target_sections: list[str] | None = None,
@@ -2467,7 +2577,7 @@ class CoderAgent:
             # three more HTTP calls to learn the same thing. Same reasoning for
             # the starter block — it stays grounded in the same worked example
             # across every fix attempt instead of drifting.
-            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
             # Same block the codegen prompt was given. A fix attempt that no
             # longer knows which inputs are surrogates is free to "fix" a
             # failure by quietly inventing data, which is the outcome the
@@ -2476,7 +2586,9 @@ class CoderAgent:
                 # Same reason as the codegen prompt: an accepted dataset must be
                 # described as the real input to read, not as a surrogate to
                 # replace with a `synthesize_` generator.
-                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+                self._provenance_for(
+                    plan, network_available, hf_dataset=hf_dataset, acquisitions=acquisitions
+                )
             ),
             starter_block=self._starter_block(starter_id),
             # Looked up fresh every fix call, unlike the starter/dataset blocks

@@ -4801,3 +4801,209 @@ def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):
 
     assert not any("acme/sleep-survey" in s.name for s in sources)
     assert provenance.all_real(sources) is False
+
+
+# ---------------------------------------------------------------------------
+# Data acquisition (agents/coder/acquire.py) — wired into the graph.
+#
+# acquire.py's own behaviour (the URL safety gate, paging, parsing, the cache)
+# is covered in tests/test_coder_acquire.py. These are about the wiring: that
+# the node runs at the right point, that what it fetched reaches the prompt and
+# the provenance document, and that every way it can fail leaves the run exactly
+# as it was before the module existed.
+# ---------------------------------------------------------------------------
+
+
+def _hf_rows_response(rows=2):
+    """The Dataset Viewer payload acquire.py would fetch for HF_DATASET_MATCH."""
+
+    class _Response:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+        is_redirect = False
+        is_permanent_redirect = False
+
+        def iter_content(self, chunk_size=65536):
+            payload = {
+                "rows": [
+                    {"row_idx": i, "row": {"hours_slept": 7.0 + i, "score": 80 + i}}
+                    for i in range(rows)
+                ],
+                "num_rows_total": rows,
+            }
+            yield json.dumps(payload).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    return _Response()
+
+
+@pytest.fixture
+def acquisition_on(monkeypatch, tmp_path):
+    """CODER_ENABLE_DATA_ACQUISITION on, a cache under tmp_path, and a faked
+    network — no test here touches the real one."""
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        acquire.socket, "getaddrinfo", lambda host, port: [(2, 1, 6, "", ("93.184.216.34", 0))]
+    )
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        return _hf_rows_response()
+
+    monkeypatch.setattr(acquire.requests, "get", fake_get)
+    return calls
+
+
+def test_a_fetched_dataset_reaches_the_model_as_a_local_file(tmp_path, acquisition_on):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "already downloaded for you" in prompt
+    assert "Read that file from disk" in prompt
+    assert str(tmp_path / "data_cache") in prompt
+    # And crucially *not* the instruction to build the REST call, which is the
+    # step that used to go wrong and burn fix attempts.
+    assert "Read it over HTTP with `requests`" not in prompt
+
+
+def test_a_fetched_dataset_is_a_real_local_input_in_the_provenance_document(
+    tmp_path, acquisition_on
+):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    fetched = [entry for entry in inputs if entry.get("acquired")]
+    assert len(fetched) == 1
+    assert fetched[0]["kind"] == "real_local"
+    assert fetched[0]["acquired"]["row_count"] == 2
+    assert len(fetched[0]["acquired"]["sha256"]) == 64
+    # The origin URL is kept, so the record still says where the bytes came from.
+    assert fetched[0]["uri"].startswith("https://datasets-server.huggingface.co/rows")
+
+
+def test_the_fetch_happens_once_per_plan_not_once_per_fix_attempt(tmp_path, acquisition_on):
+    # Same reasoning as the dataset lookup being threaded through state: a fix
+    # attempt must reuse what the first generation read rather than re-download.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS_WITH_HF_DATASET, "imports": "import ("})],
+        fix=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)],
+    )
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert len(model.prompts_by_kind["fix"]) == 1, "the fix loop ran"
+    # One page of rows, fetched for the first generation and reused for the fix.
+    assert len(acquisition_on) == 1
+    assert "already downloaded for you" in model.prompts_by_kind["fix"][0]
+
+
+def test_acquisition_is_skipped_without_the_setting(tmp_path, monkeypatch):
+    """The default. Nothing is fetched and the prompt keeps handing over a URL."""
+    from research_pipeline.agents.coder import acquire
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no request may be made with acquisition off")
+
+    monkeypatch.setattr(acquire.requests, "get", fail)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Read it over HTTP with `requests`" in model.prompts_by_kind["codegen"][0]
+    assert not any(
+        entry.get("acquired") for entry in result["experiments"][0]["data_provenance"]["inputs"]
+    )
+
+
+def test_acquisition_is_skipped_without_a_network(tmp_path, monkeypatch):
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(monkeypatch, coder_enable_data_acquisition=True)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no request may be made when the network probe failed")
+
+    monkeypatch.setattr(acquire.requests, "get", fail)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: False).run(
+        _planner_output([_plan("H1")])
+    )
+    assert result["experiments"][0]["status"] == "completed"
+
+
+def test_a_failing_fetch_generates_exactly_as_before(tmp_path, monkeypatch):
+    """The degradation contract, at the agent level: a download that breaks
+    leaves the input a real_download and the code fetching it as it always did.
+    An experiment must never go ungenerated because a fetch failed."""
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        acquire.requests,
+        "get",
+        lambda url, **kwargs: (_ for _ in ()).throw(acquire.requests.RequestException("down")),
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Read it over HTTP with `requests`" in model.prompts_by_kind["codegen"][0]
+
+
+def test_require_real_data_sees_the_fetch_before_deciding_to_skip(
+    tmp_path, monkeypatch, acquisition_on
+):
+    """The routing order that matters: acquire_data runs *before* the skip
+    decision, so an input the pipeline managed to fetch counts as real when that
+    decision is made rather than after it."""
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+        coder_require_real_data=True,
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert acquisition_on, "the fetch ran before the skip decision, not after it"
+    # This fixture plan also names a requirement nothing can resolve, so the run
+    # is still skipped — but the skip's own provenance record shows the fetched
+    # dataset as a real_local input, which is only possible if acquire_data had
+    # already run when _route_after_data_lookup resolved the sources.
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs if entry.get("acquired")] == ["real_local"]

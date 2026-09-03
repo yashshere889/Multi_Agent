@@ -152,13 +152,22 @@ class DataSource:
     # downloaded local copy, or from a URL built some way other than the one
     # handed over in the prompt.
     usage_verified: bool = False
+    # Set by `acquire.apply` when this pipeline fetched the input itself: the
+    # url it came from, a sha256 of the bytes, the format written, and the real
+    # columns and first rows read off it. Empty for a staged file (nothing was
+    # fetched) and for an input the generated code is still expected to fetch.
+    # Carried on the DataSource rather than as five more fields because it is
+    # one indivisible fact — "these exact bytes, from there, at that time" — and
+    # because it lands verbatim in data_provenance.json, which is the record
+    # someone re-running this experiment reads.
+    acquired: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_real(self) -> bool:
         return self.kind in REAL_KINDS
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        document: dict[str, Any] = {
             "name": self.name,
             "kind": self.kind,
             "uri": self.uri,
@@ -166,6 +175,11 @@ class DataSource:
             "reason": self.reason,
             "credentials": self.credentials,
         }
+        # Additive: an input nobody fetched produces exactly the document this
+        # wrote before acquisition existed.
+        if self.acquired:
+            document["acquired"] = self.acquired
+        return document
 
 
 def split_requirements(source: str, description: str = "") -> list[str]:
@@ -461,6 +475,32 @@ def apply_to_results(results: dict, sources: list[DataSource]) -> dict:
     return stamped
 
 
+def _acquired_lines(source: DataSource) -> list[str]:
+    """What the model is told about a file this pipeline fetched for it.
+
+    The columns and first rows are the part that matters: before acquisition
+    the model wrote `load_data` against a schema it had only been told about in
+    prose, and guessed column names accordingly. These were read off the actual
+    bytes now on disk.
+    """
+    acquired = source.acquired
+    if not acquired:
+        return []
+    lines = [
+        f"   Fetched by the pipeline from {acquired.get('url', '')} — "
+        f"{acquired.get('row_count', 0)} rows, "
+        f"sha256 {str(acquired.get('sha256', ''))[:12]}.",
+        f"   Format: {acquired.get('read_hint') or acquired.get('data_format', '')}",
+    ]
+    columns = acquired.get("columns") or []
+    if columns:
+        lines.append(f"   Columns: {', '.join(str(column) for column in columns)}")
+    sample = acquired.get("sample_rows") or []
+    if sample:
+        lines.append(f"   First rows: {json.dumps(sample, default=str)[:1200]}")
+    return lines
+
+
 def prompt_block(sources: list[DataSource]) -> str:
     """What the code generator is told about its inputs.
 
@@ -479,6 +519,7 @@ def prompt_block(sources: list[DataSource]) -> str:
         lines.append(f"\n{index}. {source.name}")
         if source.kind == KIND_REAL_LOCAL:
             lines.append(f"   REAL, already on disk at: {source.local_path}")
+            lines.extend(_acquired_lines(source))
             lines.append("   Read it directly. Do not download anything for this input.")
         elif source.kind == KIND_REAL_DOWNLOAD:
             lines.append(f"   REAL, fetch from: {source.uri}")

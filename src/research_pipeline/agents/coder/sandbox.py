@@ -711,6 +711,7 @@ def check_hf_dataset_usage(
     load_data_source: str,
     assumptions_made: list[str],
     hf_dataset: dict,
+    acquired_paths: list[str] | None = None,
 ) -> list[str]:
     """When coder_agent._find_hf_dataset matched a real, pre-verified dataset
     and offered it to the model (see _hf_dataset_block), checks that
@@ -734,6 +735,13 @@ def check_hf_dataset_usage(
     AST walk for a specific HTTP call shape, since the id is the one fixed
     trace consistent with how the prompt hands the dataset over — the model
     can build the actual read call in more shapes than are worth enumerating.
+
+    `acquired_paths` is the third sanctioned trace, and exists because the
+    prompt can now hand the dataset over a second way. When acquire.py has
+    already downloaded it, `_hf_dataset_block` gives the model a local file and
+    tells it *not* to make an HTTP request — so the dataset id never appears in
+    correct code, and checking only for the id would flag every experiment that
+    did exactly as instructed.
     """
     dataset_id = hf_dataset.get("dataset_id")
     if not dataset_id:
@@ -742,6 +750,8 @@ def check_hf_dataset_usage(
     quoted_id = quote(dataset_id, safe="")
     code = f"{configuration_source}\n{load_data_source}"
     if dataset_id in code or quoted_id in code:
+        return []
+    if any(path and path in code for path in acquired_paths or []):
         return []
     if any(dataset_id in note for note in assumptions_made):
         return []

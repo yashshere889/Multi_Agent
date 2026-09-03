@@ -780,6 +780,34 @@ before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it off for fully offline or
 reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
 limits.
 
+##### Fetching the data here, not in the generated code
+
+`CODER_ENABLE_DATA_ACQUISITION=true` (default **false**) goes one step further:
+instead of handing the model a URL and asking `load_data()` to fetch it,
+`agents/coder/acquire.py` fetches it in the pipeline, validates what came back,
+writes it under `CODER_DATA_CACHE_DIR` (content-addressed on the URL, so a
+100-question sweep downloads each dataset once), and hands the model a **local
+file path plus the real column names and first rows** read off the bytes on
+disk. The input is then recorded as `real_local` rather than `real_download`,
+with the origin URL and a sha256 kept in `data_provenance.json`.
+
+The reason is failure attribution. A fetch that 404s or returns an HTML
+interstitial is, to the fix loop, indistinguishable from a defect in the
+generated source, so it spends `CODER_MAX_FIX_ATTEMPTS` on code that was never
+wrong — Barkla job 10411308 is the recorded case. Moving the fetch out of the
+generated program takes that whole class of failure out of the fix budget, and
+removes the need to *infer* afterwards whether the code fetched anything.
+
+Because a URL reaching this module may one day be model-suggested rather than
+table-matched, the fetch is guarded: https only, the host must resolve to a
+public address (no loopback, RFC1918 or link-local — the SSRF guard), redirects
+are followed by hand and re-checked on every hop, the body is streamed and
+abandoned past `CODER_MAX_DOWNLOAD_BYTES`, an HTML body is rejected rather than
+saved, and nothing downloaded is ever executed or unpacked. Same degradation
+contract as the dataset lookup: every failure leaves the input a
+`real_download` that the generated code fetches exactly as it did before, so
+turning this on cannot lose an experiment that already worked.
+
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags
 any `open`/`pandas.read_*`/`numpy.load` that isn't inside a `try` block, routing

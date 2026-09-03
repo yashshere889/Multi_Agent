@@ -126,10 +126,11 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `invalid_json` until generated code moved off the JSON transport.)
 - **The dataset lookup happens in its own node, before generation.** `process_current_plan` sets
   up the plan; `search_hf_dataset` looks a dataset up once per plan and parks it in
-  `current_hf_dataset`; `generate_experiment_code` writes the first candidate. The result is
-  threaded into both the codegen *and* the fix prompt from state, so a three-attempt fix loop
-  doesn't re-search. Don't fold the lookup back into the generation call — a run whose
-  experiments silently stopped getting real data should be visible in the trace.
+  `current_hf_dataset`; `acquire_data` fetches what can be fetched into `current_acquisitions`;
+  `generate_experiment_code` writes the first candidate. Both results are threaded into the codegen
+  *and* the fix prompt from state, so a three-attempt fix loop doesn't re-search or re-download.
+  Don't fold either back into the generation call — a run whose experiments silently stopped
+  getting real data should be visible in the trace.
 - **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
   real network call with its own cache/retry policy), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside
@@ -287,10 +288,28 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   really did fetch.
 - **`CODER_REQUIRE_REAL_DATA` (default false) is a policy gate, not a repair.** It skips a plan whose
   every input would be a surrogate before any codegen call, rather than generating, running and
-  reporting it inconclusive. Routed after `search_hf_dataset` because the lookup is the last thing
-  that can turn a surrogate into a real input, and `skip_no_real_data` is a per-plan exit like
-  `finalize`/`give_up` — it costs fewer super-steps than the path it replaces, so the recursion
-  limit is unchanged.
+  reporting it inconclusive. Routed after `acquire_data` because the lookup and the fetch are the
+  last two things that can turn a surrogate into a real input, and `skip_no_real_data` is a per-plan
+  exit like `finalize`/`give_up` — it costs fewer super-steps than the path it replaces, so the
+  recursion limit is unchanged.
+- **`acquire.apply` runs *before* `verify_downloads_used`, and that order is load-bearing.**
+  `verify_downloads_used` asks whether the generated *code* fetched a declared download, by matching
+  the URI's host against the code text. An input this pipeline already fetched is not a question the
+  code can answer: it reads a local file and names no host, so leaving it a `real_download` there
+  would downgrade correct code to a surrogate and withhold a verdict that was earned. Promote first,
+  then verify what is still a download.
+- **A fetched dataset is handed over as a path, so `check_hf_dataset_usage` needs `acquired_paths`.**
+  Once `acquire_data` has the rows, `_hf_dataset_block` tells the model to read a local file and
+  *not* to make an HTTP request — so the dataset id never appears in correct code. Reading an
+  acquired path is the third sanctioned trace alongside naming the id and declining it in
+  `assumptions_made`; without it, every experiment that did exactly as instructed gets flagged
+  `ignored_available_dataset`.
+- **Nothing in `acquire.py` may raise, and nothing may read settings.** Same two rules as
+  `huggingface_client.py` and `sandbox.py` respectively: every failure degrades to `None`/`{}` and
+  leaves the run exactly as it was without the module, and the cache directory and byte cap arrive
+  as arguments resolved by `coder_agent._acquire_data`. The URL safety gate (https, public-address
+  hosts, hand-followed redirects, streamed byte cap, HTML rejection) applies per hop and must stay
+  that way — a URL reaching that module is table-matched today and may be model-suggested later.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
   sync.** Same seventeen members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress — and which
