@@ -3156,6 +3156,99 @@ def test_downscale_respects_its_floors():
     assert changes == [] and shrunk == "chains = 2\ndraws = 250\n"
 
 
+def test_patch_removed_pandas_fillna_rewrites_the_non_inplace_form():
+    """Job 10416110's actual failing line — a pure syntax swap since the whole
+    chain's result is assigned, never mutated in place."""
+    code = "vol = pd.Series(returns).rolling(window=10).std().fillna(method='bfill').values\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "vol = pd.Series(returns).rolling(window=10).std().bfill().values\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_rewrites_the_inplace_form_as_reassignment():
+    """Job 10411325's actual failing line. A plain syntax swap here would drop
+    the mutation and turn a working line into a silent no-op, so this shape
+    gets reassignment instead of a bare call."""
+    code = "    df.fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == "    df = df.bfill()\n"
+    assert len(changes) == 1
+
+
+def test_patch_removed_pandas_fillna_refuses_an_unsafe_inplace_receiver():
+    """`get_df()` cannot be reassigned back to — only a plain dotted-name
+    receiver is provably safe to rewrite, so anything else is left for the
+    model rather than guessed at."""
+    code = "get_df().fillna(method='bfill', inplace=True)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_patch_removed_pandas_fillna_leaves_a_constant_fillna_alone():
+    """`.fillna(0)` is unaffected by the pandas 3 removal and must not match."""
+    code = "df = df.fillna(0)\n"
+
+    patched, changes = repair.patch_removed_pandas_fillna(code)
+
+    assert patched == code
+    assert changes == []
+
+
+def test_a_removed_pandas_call_is_patched_without_spending_a_fix_attempt(tmp_path, monkeypatch):
+    """The exact shape of Barkla job 10416110: the model reproduced
+    byte-identical code across two fix attempts despite the fix prompt naming
+    the exact replacement. The deterministic patch must resolve it on the
+    first execution retry, spending zero fix attempts and zero model calls —
+    same contract test_a_missing_package_is_installed... establishes for the
+    env-repair route this one sits beside."""
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    agent = _agent(
+        tmp_path, fake_model, network_check=lambda: True, huggingface_lookup_fn=lambda *a, **k: None
+    )
+
+    executed_sources = []
+    attempts = {"n": 0}
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        attempts["n"] += 1
+        executed_sources.append(Path(run_script).read_text())
+        if attempts["n"] == 1:
+            # Written directly rather than through codegen: the point under
+            # test is the patch-and-rerun loop, not getting the model to
+            # produce this exact line.
+            Path(run_script).write_text(
+                "vol = pd.Series([1.0]).fillna(method='bfill')\n"
+                "print('unreachable if the pandas call above still raises')\n"
+            )
+            return False, (
+                "run.py exited with code 1: Traceback (most recent call last):\n"
+                "TypeError: NDFrame.fillna() got an unexpected keyword argument 'method'"
+            )
+        (Path(cwd) / "results.json").write_text(
+            json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+    exp = result["experiments"][0]
+
+    assert exp["status"] == "completed", exp.get("reason")
+    assert attempts["n"] == 2, "one failed run, one re-run of the patched file"
+    assert "fillna(method=" not in executed_sources[1]
+    assert ".bfill()" in executed_sources[1]
+    assert exp["fix_attempts"] == 0, "a deterministic patch is not a fix attempt"
+    assert len(fake_model.calls) == 1, "the model was asked for code once and never again"
+
+
 def test_install_into_env_prefers_uv_and_reports_failure_without_raising(tmp_path, monkeypatch):
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
     calls = []

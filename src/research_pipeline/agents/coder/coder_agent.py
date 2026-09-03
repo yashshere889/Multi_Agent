@@ -223,6 +223,11 @@ _FIX_TEMPERATURE = 0.0
 # to tell "slightly over budget" from "the wrong shape of computation" — past
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
+# 1 is enough: patch_removed_pandas_fillna's regexes match every occurrence in
+# one pass, so a second attempt only fires if the model's own regeneration
+# reintroduced the pattern — a different situation the fix loop should see,
+# not silently patch again.
+_MAX_API_PATCHES = 1
 
 # How many times the model may fail to return the delimited section format
 # before the plan is given up. Small because llm_sections already retries once
@@ -1180,6 +1185,7 @@ class CoderAgent:
         # loop, which is still the right place for a genuine code defect.
         env_repairs = 0
         downscales = 0
+        api_patches = 0
         run_path = experiment_dir / "run.py"
 
         while True:
@@ -1247,6 +1253,29 @@ class CoderAgent:
                     )
                     continue  # re-run the smaller version, still no model call
                 # Nothing to shrink: fall through and let the model rethink it.
+
+            # Keyed on error_source rather than a route: this is one narrow
+            # deterministic case inside obsolete_dependency (whose route is
+            # ROUTE_REGENERATE, since most of that category — a dead import,
+            # DataFrame.append — genuinely needs a model to rewrite). Barkla
+            # jobs 10411325 and 10416110 both hit exactly the shape
+            # patch_removed_pandas_fillna covers, and 10416110 spent two fix
+            # attempts reproducing byte-identical code despite the fix prompt
+            # naming the exact replacement — the guidance was right and the
+            # model did not apply it, so this stops asking.
+            if failure.error_source == "obsolete_dependency" and api_patches < _MAX_API_PATCHES:
+                patched, changes = repair.patch_removed_pandas_fillna(run_path.read_text())
+                if changes:
+                    run_path.write_text(patched)
+                    api_patches += 1
+                    logger.info(
+                        "[%s] %s Patched deterministically: %s",
+                        hypothesis_id,
+                        failure.summary,
+                        "; ".join(changes),
+                    )
+                    continue  # re-run the patched version, still no model call
+                # Not a shape this patcher covers: fall through to the model.
 
             return {"error_source": failure.error_source, "error_text": failure.summary}
 
