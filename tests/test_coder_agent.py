@@ -3725,23 +3725,26 @@ def test_declared_download_is_withheld_when_the_code_never_fetches_it(tmp_path):
     check that keeps a declaration from becoming an unearned evidence stamp."""
     agent = _provenance_agent(tmp_path)
     plan = _plan("H1")
-    plan["data_requirements"]["source"] = "Yahoo Finance S&P 500 daily closing prices"
+    plan["data_requirements"]["source"] = "World Bank GDP indicators by country"
 
     fetched = agent._provenance_for(
-        plan, True, run_py='pd.read_csv("https://stooq.com/q/d/l/?s=^spx")'
+        plan, True, run_py='pd.read_json("https://api.worldbank.org/v2/country/GB")'
     )
-    synthesized = agent._provenance_for(
-        plan, True, run_py="def synthesize_prices():\n    return []\n"
-    )
+    synthesized = agent._provenance_for(plan, True, run_py="def synthesize_gdp():\n    return []\n")
 
     assert provenance.all_real(fetched)
     assert not provenance.all_real(synthesized)
-    assert "never fetches stooq.com" in synthesized[0].reason
+    assert "never fetches api.worldbank.org" in synthesized[0].reason
 
 
-def test_stock_price_requirement_resolves_to_an_open_source(tmp_path):
-    """The requirement from Barkla run 10411022, which resolved to a surrogate
-    and had its verdict withheld because no OPEN_SOURCES entry matched it."""
+def test_a_stock_price_requirement_is_left_unresolved_rather_than_promised(tmp_path):
+    """Stooq and Yahoo look keyless but are not fetchable from a compute node —
+    Stooq answers a datacentre IP with a JavaScript challenge under HTTP 200,
+    Yahoo with 429. Naming one would promise the generated code a source it
+    cannot read (Barkla job 10411308 burned every fix attempt on the 404s, then
+    synthesized anyway). Real prices arrive via the Hub download instead, which
+    `test_a_found_dataset_answers_a_requirement_nothing_could_resolve` covers.
+    """
     agent = _provenance_agent(tmp_path)
     plan = _plan("H1")
     plan["data_requirements"]["source"] = (
@@ -3750,4 +3753,51 @@ def test_stock_price_requirement_resolves_to_an_open_source(tmp_path):
 
     sources = agent._provenance_for(plan, True)
 
+    assert [s.kind for s in sources] == [provenance.KIND_SURROGATE]
+    assert sources[0].unresolved is True
+
+
+def test_a_found_dataset_answers_a_requirement_nothing_could_resolve(tmp_path):
+    """The plan names "Yahoo Finance or public stock market data", no open
+    source matches it, and the Hub search finds real daily prices the code then
+    reads. Nothing synthetic went in, so the run must not be reported as mixed —
+    the unresolved requirement is the same data under another name."""
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    plan["data_requirements"]["source"] = "Yahoo Finance or public stock market datasets"
+    run_py = 'rows = requests.get("...dataset=acme%2Fprices...").json()\ndef load_data():\n    return rows\n'
+
+    sources = agent._provenance_for(plan, True, hf_dataset=_hf_match(), run_py=run_py)
+
     assert [s.kind for s in sources] == [provenance.KIND_REAL_DOWNLOAD]
+    assert provenance.all_real(sources)
+
+
+def test_a_synthesizing_experiment_is_never_superseded_into_a_real_verdict(tmp_path):
+    """Same setup, except the code also synthesizes. The `synthesize_` generator
+    is the trace that something was invented, so the verdict stays withheld."""
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    plan["data_requirements"]["source"] = "Yahoo Finance or public stock market datasets"
+    run_py = (
+        'rows = requests.get("...dataset=acme%2Fprices...").json()\n'
+        "def synthesize_prices():\n    return []\n"
+    )
+
+    sources = agent._provenance_for(plan, True, hf_dataset=_hf_match(), run_py=run_py)
+
+    assert not provenance.all_real(sources)
+
+
+def test_a_restricted_source_is_never_superseded(tmp_path):
+    """CMS claims name real data that specifically was not obtained. No dataset
+    found elsewhere answers that, so it keeps withholding the verdict."""
+    agent = _provenance_agent(tmp_path)
+    plan = _plan("H1")
+    plan["data_requirements"]["source"] = "CMS hospital claims for admissions"
+    run_py = 'requests.get("...dataset=acme%2Fprices...")\n'
+
+    sources = agent._provenance_for(plan, True, hf_dataset=_hf_match(), run_py=run_py)
+
+    assert not provenance.all_real(sources)
+    assert any("Data Use Agreement" in s.reason for s in sources)

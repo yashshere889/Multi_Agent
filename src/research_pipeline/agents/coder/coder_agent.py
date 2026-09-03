@@ -1753,6 +1753,14 @@ class CoderAgent:
             requirements, staging_dir=staging, network_available=network_available
         )
 
+        # A source resolve() declared openly fetchable still has to be fetched.
+        # Done before the dataset below is added, not after: that one carries its
+        # own, stronger usage check (the code naming the dataset id), and
+        # re-checking it here by URL host would downgrade code that reads it via
+        # a locally downloaded copy or a URL built some other way.
+        if run_py is not None:
+            sources = provenance.verify_downloads_used(sources, run_py)
+
         # Keyed on "dataset_id" because that is what huggingface_client returns.
         # This read used to be .get("dataset"), a key nothing ever sets, so the
         # branch was dead: every experiment built on a real Hub dataset was still
@@ -1773,10 +1781,12 @@ class CoderAgent:
                 ),
             )
 
-        # A source that is openly fetchable still has to be fetched. Only asked
-        # once the code exists; at prompt time there is nothing to check yet.
+        # Last, once every input's realness is settled: a requirement nothing
+        # could resolve is dropped when a real input the code actually reads
+        # already answers it. Superseding before the verification above would
+        # let an unfetched declaration stand in for one.
         if run_py is not None:
-            sources = provenance.verify_downloads_used(sources, run_py)
+            sources = provenance.supersede_unresolved(sources, run_py)
         return sources
 
     @staticmethod

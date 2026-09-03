@@ -105,18 +105,17 @@ OPEN_SOURCES: list[tuple[str, str, str]] = [
     (r"open ?street ?map|\bOSM\b", "OpenStreetMap", "https://overpass-api.de/api"),
     (r"\bNDVI\b|landsat|\bUSGS\b", "USGS EarthExplorer", "https://earthexplorer.usgs.gov"),
     (r"hugging ?face", "Hugging Face datasets", "https://datasets-server.huggingface.co/rows"),
-    # Daily OHLC equity/index history, keyless. Stooq serves plain CSV over a
-    # stable GET (Yahoo Finance's chart endpoint is the same shape but rate-limits
-    # server IPs harder), so it is the one named here. A run asking to compare
-    # forecasting models against "S&P 500 daily closing prices" resolved to a
-    # surrogate before this entry existed — no open source matched, so the
-    # verdict was withheld on an experiment that could have used real prices.
-    (
-        r"yahoo ?finance|stock (price|market)|share price|equity price|"
-        r"\bS&?P ?500\b|\bOHLC\b|ticker|stock exchange|market index",
-        "Stooq daily OHLC (keyless CSV; ^SPX for the S&P 500)",
-        "https://stooq.com/q/d/l/",
-    ),
+    # Deliberately no equity/stock-price entry. Stooq, Yahoo Finance's chart
+    # endpoint and the like look keyless but are not reachable from a compute
+    # node: Stooq answers a datacentre IP with an HTTP 200 carrying a JavaScript
+    # proof-of-work page rather than CSV (which pandas then parses as garbage
+    # instead of failing loudly), and Yahoo returns 429. Barkla job 10411308
+    # spent every fix attempt on the resulting 404s and then synthesized anyway.
+    # Real market data reaches an experiment here through the Hugging Face
+    # dataset search, which downloads to disk over the Hub API — that is what
+    # found and staged 50,000 rows of daily prices on job 10411184. An entry
+    # naming a source this network cannot fetch is worse than no entry: it turns
+    # "no real source" into a promise the generated code cannot keep.
     (
         r"coin ?gecko|crypto(currency)? price|bitcoin|ethereum",
         "CoinGecko",
@@ -147,6 +146,13 @@ class DataSource:
     local_path: str = ""
     reason: str = ""
     credentials: list[str] = field(default_factory=list)
+    # True only for the last-resort branch of `resolve`: nothing was staged and
+    # no source could be *identified* for this requirement. That is a different
+    # statement from a restricted or credentialed source, which names real data
+    # that specifically was not obtained — those must keep withholding the
+    # verdict, and this one can be answered by a dataset found elsewhere. See
+    # `supersede_unresolved`.
+    unresolved: bool = False
 
     @property
     def is_real(self) -> bool:
@@ -303,9 +309,42 @@ def resolve(
                     else "no open source identified for this input and nothing staged locally; "
                     "a documented surrogate is generated instead"
                 ),
+                unresolved=True,
             )
         )
     return resolved
+
+
+def supersede_unresolved(sources: list[DataSource], code: str) -> list[DataSource]:
+    """Drop requirements that a real input the code actually reads already answers.
+
+    `resolve` produces one entry per requirement *string the planner wrote*, and
+    a dataset found by the Hugging Face search is added as its own entry — so a
+    plan naming "Yahoo Finance or public stock market data" that ends up reading
+    50,000 rows of real daily prices from the Hub scores one real input and one
+    surrogate, and is reported as mixed. Nothing synthetic went into that
+    experiment; the surrogate is a phantom, describing a requirement the dataset
+    met under a different name.
+
+    Two conditions, both deterministic, both required:
+
+    - some real input is demonstrably read by the code (`verify_downloads_used`
+      has already downgraded any that are not), and
+    - the code defines no `synthesize_*` generator — the name `prompt_block`
+      instructs a surrogate to use, so its absence is the trace that nothing was
+      invented.
+
+    Only `unresolved` entries are superseded. A restricted source (CMS, UK
+    Biobank) or one missing its API key names real data that specifically was
+    not obtained, and no amount of other data answers it — those keep withholding
+    the verdict, which is the whole point of this module.
+    """
+    if not code or not any(s.is_real for s in sources):
+        return sources
+    if re.search(r"\bdef\s+synthesize_\w*", code):
+        return sources
+    kept = [s for s in sources if not (s.unresolved and s.kind == KIND_SURROGATE)]
+    return kept if any(s.is_real for s in kept) else sources
 
 
 def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSource]:
