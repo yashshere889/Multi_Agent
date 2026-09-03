@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from research_pipeline.llm_sections import render_section
 
+from . import diagnose
+
 # The order the model is asked to emit them in, each with the placeholder shown
 # in the format example. The first seven are spliced into run.py by
 # sandbox.render_experiment_template; the rest are per-experiment metadata.
@@ -108,7 +110,7 @@ first BEGIN line or after the last END line, and nothing between an END line \
 and the next BEGIN line.
 """
 
-SYSTEM_PROMPT = """You are a research software engineer generating real, runnable \
+_SYSTEM_PROMPT_TEMPLATE = """You are a research software engineer generating real, runnable \
 Python code for a single computational experiment, to be handed off with NO \
 further clarification available.
 
@@ -126,6 +128,10 @@ describing what the function should do is not a substitute for writing it.
 the experiment genuinely needs it (e.g. numpy/pandas/scikit-learn for the \
 specific method called for) — list every such import name, one per line, in \
 "requirements_txt", with no version pin unless one is scientifically important.
+- Because nothing is pinned, the experiment installs the CURRENT major version \
+of every package. Write code for those, not for the older majors that appear \
+in most training data:
+{api_currency_block}
 - Add real error handling and logging (Python's `logging` module, using the \
 module-level `logger` the template already defines) so a failure is \
 diagnosable from the output, not silent — e.g. a clear message if a data file \
@@ -159,6 +165,14 @@ it is read verbatim, not decoded.
 # out of .format() reach on purpose: it contains literal JSON braces describing
 # the API's response shape, which would have to be doubled in a format template
 # and would then be wrong if this text were ever reused verbatim.
+
+# Spliced, not formatted: SYSTEM_PROMPT carries literal braces, and
+# diagnose.REMOVED_APIS is the single place that knows these replacements —
+# the fix loop repairs one after it costs an attempt, this prevents it.
+SYSTEM_PROMPT = _SYSTEM_PROMPT_TEMPLATE.replace(
+    "{api_currency_block}", diagnose.api_currency_note()
+)
+
 HF_DATASET_USAGE_NOTE = """The response body is JSON shaped like:
   {"num_rows_total": 1234, "rows": [{"row_idx": 0, "row": {"<column>": <value>}}]}
 so the records you want are `[entry["row"] for entry in response.json()["rows"]]`. \

@@ -111,6 +111,20 @@ def removed_api(text: str) -> str | None:
     return None
 
 
+def api_currency_note() -> str:
+    """The same removals, told to the model *before* it writes the code.
+
+    REMOVED_APIS repairs one of these after it has already cost an attempt, and
+    the table is the only place that knows the replacements — so the codegen
+    prompt is rendered from it rather than restating them, the same "one table"
+    rule `resolve_package` follows for import names. Prevention is worth more
+    than the repair here: requirements_txt pins nothing, so every experiment
+    resolves the newest major of packages the model learned an older major of,
+    and this is a standing mismatch rather than an occasional accident.
+    """
+    return "\n".join(f"- {guidance}" for _, guidance in REMOVED_APIS)
+
+
 _MODULE_RE = re.compile(r"ModuleNotFoundError:\s*No module named ['\"]([\w.]+)['\"]")
 _IMPORT_NO_MODULE_RE = re.compile(r"ImportError:\s*No module named ['\"]?([\w.]+)")
 _SHARED_LIB_RE = re.compile(r"(lib[\w.+-]*\.so[\w.]*)[^\n]*cannot open shared object file")

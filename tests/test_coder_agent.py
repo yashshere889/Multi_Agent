@@ -3832,3 +3832,13 @@ def test_a_removed_api_is_told_apart_from_a_missing_package():
     assert missing.route == diagnose.ROUTE_ENV
     assert removed.route == diagnose.ROUTE_REGENERATE
     assert "pd.concat" in removed.summary
+
+
+def test_the_codegen_prompt_states_the_api_rules_the_fix_loop_would_repair():
+    """The removals are told to the model up front, not only after one has cost
+    an attempt — and rendered from diagnose.REMOVED_APIS so the prompt and the
+    repair path cannot disagree about what the replacement is."""
+    assert "{api_currency_block}" not in prompts.SYSTEM_PROMPT  # actually spliced
+    assert "df.bfill()" in prompts.SYSTEM_PROMPT
+    for _, guidance in diagnose.REMOVED_APIS:
+        assert guidance in prompts.SYSTEM_PROMPT
