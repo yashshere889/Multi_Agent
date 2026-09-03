@@ -4616,3 +4616,188 @@ def test_the_smoke_run_does_not_pre_empt_the_removed_api_patch(tmp_path, monkeyp
     assert not any(
         "The code you generated for hypothesis" in messages[-1][1] for messages in fake_model.calls
     )
+
+
+# ── Provenance: what the code actually read ───────────────────────────────────
+# Ported from barkla-wip/coder-format-retries (0c799c8). verify_downloads_used
+# tightens (fewer inputs credited as real), supersede_unresolved loosens (fewer
+# phantom surrogates); both are deterministic and both run after the experiment.
+
+
+def _download(name="World Bank", uri="https://api.worldbank.org/v2", **kw):
+    return provenance.DataSource(
+        name=name, kind=provenance.KIND_REAL_DOWNLOAD, uri=uri, reason="openly fetchable", **kw
+    )
+
+
+def test_a_declared_download_the_code_never_fetches_is_downgraded():
+    # The over-claiming direction: without this the experiment earns the
+    # "findings are interpretable as evidence" stamp for data it invented.
+    sources = [_download()]
+
+    verified = provenance.verify_downloads_used(sources, "def load_data():\n    return [1, 2]\n")
+
+    assert verified[0].kind == provenance.KIND_SURROGATE
+    assert "never fetches api.worldbank.org" in verified[0].reason
+    assert provenance.all_real(verified) is False
+
+
+def test_a_download_the_code_does_fetch_is_left_alone():
+    code = "requests.get('https://api.worldbank.org/v2/country')\n"
+    assert provenance.verify_downloads_used([_download()], code)[0].kind == (
+        provenance.KIND_REAL_DOWNLOAD
+    )
+
+
+def test_one_obtained_input_vouches_for_the_experiment_as_a_whole():
+    # Asked of the experiment, not of each requirement: a Hub dataset routinely
+    # answers a requirement the code then reads from a local copy, and
+    # per-requirement matching would turn that into a phantom surrogate.
+    sources = [_download(name="Hub", uri="https://x.co", usage_verified=True), _download()]
+
+    verified = provenance.verify_downloads_used(sources, "read('data.jsonl')")
+
+    assert [s.kind for s in verified] == [provenance.KIND_REAL_DOWNLOAD] * 2
+
+
+def test_a_local_file_is_real_whatever_the_code_looks_like():
+    local = provenance.DataSource(
+        name="staged", kind=provenance.KIND_REAL_LOCAL, local_path="/data/x.csv", reason="staged"
+    )
+    assert provenance.verify_downloads_used([local], "print('hi')")[0].kind == (
+        provenance.KIND_REAL_LOCAL
+    )
+
+
+def _unresolved(name="stock prices"):
+    return provenance.DataSource(
+        name=name,
+        kind=provenance.KIND_SURROGATE,
+        reason="no open source identified",
+        unresolved=True,
+    )
+
+
+def test_a_phantom_surrogate_is_superseded_by_data_the_code_really_reads():
+    sources = [_download(name="Hub", usage_verified=True), _unresolved()]
+
+    kept = provenance.supersede_unresolved(sources, "df = read_jsonl('data.jsonl')\n")
+
+    assert [s.name for s in kept] == ["Hub"]
+    assert provenance.all_real(kept) is True
+
+
+def test_a_synthesize_generator_blocks_superseding():
+    # The name prompt_block instructs, so its presence is the trace that
+    # something really was invented — no verdict is credited past it.
+    sources = [_download(name="Hub", usage_verified=True), _unresolved()]
+    code = "def synthesize_prices(n):\n    return [1.0] * n\n"
+
+    assert provenance.supersede_unresolved(sources, code) == sources
+
+
+def test_a_restricted_source_is_never_superseded():
+    # Naming real data that specifically was not obtained is not a phantom, and
+    # no amount of other data answers it.
+    restricted = provenance.DataSource(
+        name="UK Biobank", kind=provenance.KIND_SURROGATE, reason="restricted access"
+    )
+    sources = [_download(name="Hub", usage_verified=True), restricted]
+
+    assert provenance.supersede_unresolved(sources, "read('data.jsonl')") == sources
+
+
+def test_reads_dataset_matches_the_percent_encoded_form():
+    # The prompt hands over a rows URL, which encodes the namespace slash — a
+    # plain `id in code` test misses exactly the form the model is given.
+    assert CoderAgent._reads_dataset("acme/sleep-survey", "url = '...dataset=acme%2Fsleep-survey'")
+    assert CoderAgent._reads_dataset("acme/sleep-survey", "load('acme/sleep-survey')")
+    assert not CoderAgent._reads_dataset("acme/sleep-survey", "load('other/thing')")
+
+
+def test_an_offered_dataset_is_described_to_the_model_as_real_not_as_a_surrogate(tmp_path):
+    # The contradiction this fixes: hf_dataset_block introduced the dataset as
+    # real while provenance_block, in the same prompt, called it a surrogate and
+    # ordered a `synthesize_` generator — and the model does as it is told.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    # Asserted against the provenance block specifically, not the whole prompt:
+    # the dataset was always named by hf_dataset_block. What was missing is its
+    # appearing *here*, as a resolved real input.
+    prompt = model.prompts_by_kind["codegen"][0]
+    block = prompt[prompt.index("RESOLVED DATA INPUTS") :]
+    assert "Hugging Face dataset acme/sleep-survey\n   REAL" in block
+    # The plan's own "synthetic" requirement is still listed as a surrogate —
+    # this fix credits the offered dataset, it does not silence the rest.
+    assert "SURROGATE" in block
+
+
+def test_require_real_data_skips_a_synthetic_only_plan_before_any_codegen(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_require_real_data=True)
+    model = FakeChatModel({})  # no responses configured — any model call fails the test
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "skipped"
+    assert exp["code_path"] is None
+    assert "CODER_REQUIRE_REAL_DATA" in exp["reason"]
+    assert exp["data_provenance"]["all_inputs_real"] is False
+    assert model.calls == [], "skipped before a single codegen call"
+    assert not (tmp_path / "experiments" / "H1" / "run.py").exists()
+
+
+def test_require_real_data_off_generates_exactly_as_before(tmp_path):
+    # The default. The fixture plan's data_requirements are synthetic, and the
+    # experiment is still generated, run and reported "inconclusive".
+    model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+
+
+def test_a_dataset_the_code_reads_is_counted_as_a_real_input(tmp_path):
+    """Regression for a key that never matched. _provenance_for read
+    hf_dataset["dataset"], but huggingface_client returns "dataset_id" — so this
+    branch never once fired, and an experiment that genuinely fetched a real Hub
+    dataset still had its verdict withheld as though it had invented the data.
+    That is the one path by which a real verdict is reachable at all."""
+    agent = _agent(tmp_path, FakeChatModel({}))
+    code = (
+        "resp = requests.get('https://datasets-server.huggingface.co/rows"
+        "?dataset=acme%2Fsleep-survey&config=default&split=train&offset=0&length=100')\n"
+    )
+
+    sources = agent._provenance_for(
+        _plan("H1"), network_available=True, hf_dataset=HF_DATASET_MATCH, run_py=code
+    )
+
+    dataset = next(s for s in sources if "acme/sleep-survey" in s.name)
+    assert dataset.is_real
+    # The uri must carry the real host, or verify_downloads_used stops vouching
+    # for a dataset the code did fetch.
+    assert "datasets-server.huggingface.co" in dataset.uri
+    # The plan's own "synthetic" requirement is a phantom here — the dataset
+    # answered it under another name, and no synthesize_ generator was written.
+    assert provenance.all_real(sources)
+
+
+def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):
+    # The other direction, and the one that must not regress: an offered-but-
+    # unread dataset is not evidence.
+    agent = _agent(tmp_path, FakeChatModel({}))
+
+    sources = agent._provenance_for(
+        _plan("H1"),
+        network_available=True,
+        hf_dataset=HF_DATASET_MATCH,
+        run_py="def load_data():\n    return synthesize_rows(100)\n",
+    )
+
+    assert not any("acme/sleep-survey" in s.name for s in sources)
+    assert provenance.all_real(sources) is False

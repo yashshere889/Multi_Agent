@@ -264,7 +264,33 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 - **A Hugging Face dataset counts as a real input only when the rendered `run.py` names it.** It is
   offered, not imposed — the model may decline it and say why in `assumptions_made`, which
   `check_hf_dataset_usage` accepts — and treating an offered-but-declined dataset as evidence is
-  exactly the over-claim the gate exists to prevent.
+  exactly the over-claim the gate exists to prevent. `_reads_dataset` matches the raw id *and* the
+  percent-encoded one, because the prompt hands over a rows URL that encodes the namespace slash;
+  it must keep agreeing with `check_hf_dataset_usage`, which checks the same two forms. The id key
+  is `dataset_id` — it was `dataset` here once, which meant the branch never fired and a genuinely
+  fetched dataset was still scored a surrogate.
+- **`_provenance_for(run_py=None)` means "prompt time", and that is not the same as `run_py=""`.**
+  With no code yet, an offered dataset is the input the model is *being asked* to read and is listed
+  as real. Calling it a surrogate there is not caution but a contradiction: `prompt_block` would
+  order a `synthesize_` generator in the same prompt where `_hf_dataset_block` introduces the
+  dataset as real, and the model does as it is told. Once `run.py` exists the question becomes
+  whether the code that got written actually reads it.
+- **The two post-run provenance passes run in this order and not the other.**
+  `verify_downloads_used` first — downgrade any declared download the code never fetches — then
+  `supersede_unresolved`, which lets what remains answer requirements no source could be found for.
+  Superseding first would let an *unfetched* declaration stand in for one. `supersede_unresolved`
+  touches only `unresolved` entries: a restricted or credentialed source names real data that
+  specifically was not obtained, and no amount of other data answers it.
+- **`_rows_url` has one definition for a reason.** The prompt block hands that URL to the model and
+  `_provenance_for` records it as the input's `uri`, which `verify_downloads_used` matches on by
+  *host* — a uri built differently, or left empty, silently stops vouching for a dataset the code
+  really did fetch.
+- **`CODER_REQUIRE_REAL_DATA` (default false) is a policy gate, not a repair.** It skips a plan whose
+  every input would be a surrogate before any codegen call, rather than generating, running and
+  reporting it inconclusive. Routed after `search_hf_dataset` because the lookup is the last thing
+  that can turn a surrogate into a real input, and `skip_no_real_data` is a per-plan exit like
+  `finalize`/`give_up` — it costs fewer super-steps than the path it replaces, so the recursion
+  limit is unchanged.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
   sync.** Same seventeen members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress — and which

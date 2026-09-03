@@ -211,6 +211,10 @@ _STRUCTURAL_ERROR_SOURCES = frozenset(
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
 _STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
+# skip_no_real_data (CODER_REQUIRE_REAL_DATA) is deliberately absent from the
+# count: it *replaces* generate/attempt/finalize rather than adding to them, so
+# a skipped plan costs 3 steps where a generated one costs 5. The worst case the
+# limit is derived from is unchanged.
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 
 
@@ -788,6 +792,58 @@ class CoderAgent:
             "current_hf_dataset": self._find_hf_dataset(
                 state["current_plan"], state["network_available"]
             )
+        }
+
+    def _route_after_search_hf_dataset(self, state: CoderState) -> str:
+        """Whether this plan is worth generating code for at all.
+
+        Only ever diverts when CODER_REQUIRE_REAL_DATA is set — otherwise this
+        returns "generate" without resolving anything, so the graph reads
+        exactly as it did before the setting existed. Placed after the dataset
+        lookup, not before it, because the lookup is the last thing that can
+        turn a surrogate into a real input.
+
+        _provenance_for reads settings.coder_data_dir through self, not state.
+        """
+        if not settings.coder_require_real_data:
+            return "generate"
+        sources = self._provenance_for(
+            state["current_plan"],
+            state["network_available"],
+            hf_dataset=state.get("current_hf_dataset") or {},
+        )
+        return "generate" if provenance.all_real(sources) else "skip"
+
+    def _node_skip_no_real_data(self, state: CoderState) -> dict:
+        """CODER_REQUIRE_REAL_DATA's skip: every real source has had its turn
+        (the staging directory, the credentialed and open source tables, the
+        Hugging Face lookup this plan just went through) and the plan's data
+        still resolves to a surrogate. Recorded and the cursor advanced right
+        here, before a single codegen call."""
+        plan = state["current_plan"]
+        hypothesis_id = plan["hypothesis_id"]
+        sources = self._provenance_for(
+            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+        )
+        unresolved = [s.name for s in sources if not s.is_real]
+        logger.info(
+            "Skipping %s: CODER_REQUIRE_REAL_DATA is set and no real source was found for: %s",
+            hypothesis_id,
+            "; ".join(unresolved),
+        )
+        skipped = self._result(
+            hypothesis_id,
+            status="skipped",
+            reason=(
+                "CODER_REQUIRE_REAL_DATA is set and no real source was found for: "
+                f"{'; '.join(unresolved)}"
+            ),
+            code_path=None,
+            data_provenance=provenance.as_document(sources),
+        )
+        return {
+            "experiments": [*state["experiments"], skipped],
+            "plan_index": state["plan_index"] + 1,
         }
 
     def _node_generate_experiment_code(self, state: CoderState) -> dict:
@@ -2204,7 +2260,7 @@ class CoderAgent:
         plan: dict,
         network_available: bool,
         hf_dataset: dict | None = None,
-        run_py: str = "",
+        run_py: str | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2227,20 +2283,85 @@ class CoderAgent:
         # the code actually reads it. It is offered, not imposed: the model may
         # decline it and say why in assumptions_made, and check_hf_dataset_usage
         # accepts that. Counting an offered-but-declined dataset as evidence
-        # would be exactly the over-claim this gate exists to prevent, so this
-        # requires the rendered run.py to name it.
-        dataset_id = (hf_dataset or {}).get("dataset")
-        if dataset_id and run_py and dataset_id in run_py:
+        # would be exactly the over-claim this gate exists to prevent.
+        #
+        # `run_py is None` means prompt time: the code does not exist yet, so an
+        # offered dataset is an input the model is *being asked* to read and is
+        # listed as real. Calling it a surrogate there is not caution, it is a
+        # contradiction — prompt_block would order a `synthesize_` generator in
+        # the same prompt that _hf_dataset_block introduces the dataset as real,
+        # and the model does as it is told. Once run.py exists the question
+        # becomes whether the code that got written actually reads it.
+        # "dataset_id", the key huggingface_client actually returns and the one
+        # sandbox.check_hf_dataset_usage and _hf_dataset_block both read. This
+        # said "dataset" until now, so it was always None: the branch below had
+        # never once fired, and an experiment that genuinely read a real Hub
+        # dataset still had its verdict withheld as though it had invented the
+        # data. The one path that makes a real verdict reachable was closed.
+        dataset_id = (hf_dataset or {}).get("dataset_id")
+        named = run_py is None or (
+            bool(dataset_id) and self._reads_dataset(str(dataset_id), run_py)
+        )
+        if dataset_id and named:
             sources.insert(
                 0,
                 provenance.DataSource(
                     name=f"Hugging Face dataset {dataset_id}",
                     kind=provenance.KIND_REAL_DOWNLOAD,
-                    uri=(hf_dataset or {}).get("rows_url", ""),
+                    uri=self._rows_url(hf_dataset or {}),
                     reason="found by the Hugging Face lookup and read by the generated code",
+                    # Reached only when run_py named the dataset (or at prompt
+                    # time, when there is no code to check), so its use is
+                    # already established more strongly than a URL-host match.
+                    usage_verified=True,
                 ),
             )
+
+        # Order matters. Confirm which declared inputs the code really reads,
+        # *then* let those answer requirements nothing could resolve —
+        # superseding first would let an unfetched declaration stand in for one.
+        if run_py is not None:
+            sources = provenance.verify_downloads_used(sources, run_py)
+            sources = provenance.supersede_unresolved(sources, run_py)
         return sources
+
+    @staticmethod
+    def _reads_dataset(dataset_id: str, code: str) -> bool:
+        """Whether `code` shows a trace of reading `dataset_id`.
+
+        Matches the raw id and the percent-encoded form, because a rows URL
+        encodes the namespace slash — a plain `dataset_id in code` test misses
+        exactly the case the prompt hands over, which is the URL. The same two
+        forms sandbox.check_hf_dataset_usage already checks; the two must agree,
+        or a dataset that clears that gate can still be scored a surrogate here.
+        """
+        return bool(code) and (dataset_id in code or quote(dataset_id, safe="") in code)
+
+    @staticmethod
+    def _rows_url(hf_dataset: dict) -> str:
+        """The Dataset Viewer rows URL for a matched dataset, or "".
+
+        One definition, used by the prompt block that hands the URL to the model
+        and by _provenance_for, which records it as the input's uri —
+        provenance.verify_downloads_used matches on that URL's *host*, so a uri
+        built any other way (or left empty) would silently stop vouching for a
+        dataset the code really did fetch.
+
+        safe="" so the namespace slash in "owner/name" is percent-encoded: these
+        are query-parameter *values*, and a bare slash there is what makes a
+        hand-built dataset-viewer URL 404.
+        """
+        dataset_id = hf_dataset.get("dataset_id")
+        if not dataset_id:
+            return ""
+        config = quote(str(hf_dataset.get("config") or "default"), safe="")
+        split = quote(str(hf_dataset.get("split") or "train"), safe="")
+        return (
+            f"{huggingface_client.DATASET_VIEWER_ROWS_URL}"
+            f"?dataset={quote(str(dataset_id), safe='')}"
+            f"&config={config}&split={split}"
+            "&offset=0&length=100"
+        )
 
     @staticmethod
     def _hf_dataset_block(hf_dataset: dict) -> str:
@@ -2257,15 +2378,7 @@ class CoderAgent:
         )
         config = str(hf_dataset.get("config") or "default")
         split = str(hf_dataset.get("split") or "train")
-        # safe="" so the namespace slash in "owner/name" is percent-encoded:
-        # these are query-parameter *values*, and a bare slash there is what makes
-        # a hand-built dataset-viewer URL 404.
-        rows_url = (
-            f"{huggingface_client.DATASET_VIEWER_ROWS_URL}"
-            f"?dataset={quote(str(dataset_id), safe='')}"
-            f"&config={quote(config, safe='')}&split={quote(split, safe='')}"
-            "&offset=0&length=100"
-        )
+        rows_url = CoderAgent._rows_url(hf_dataset)
         return (
             "A real, public dataset matching this experiment's data requirements was found and "
             "verified as servable by the Hugging Face Dataset Viewer:\n"
@@ -2292,7 +2405,14 @@ class CoderAgent:
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
-            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
+            provenance_block=provenance.prompt_block(
+                # hf_dataset passed so an accepted dataset is described as the
+                # real input the model is being asked to read. Without it this
+                # block called that same dataset a surrogate and ordered a
+                # `synthesize_` generator, contradicting hf_dataset_block in the
+                # very same prompt.
+                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+            ),
             starter_block=self._starter_block(starter_id),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
@@ -2352,7 +2472,12 @@ class CoderAgent:
             # longer knows which inputs are surrogates is free to "fix" a
             # failure by quietly inventing data, which is the outcome the
             # provenance gate exists to prevent.
-            provenance_block=provenance.prompt_block(self._provenance_for(plan, network_available)),
+            provenance_block=provenance.prompt_block(
+                # Same reason as the codegen prompt: an accepted dataset must be
+                # described as the real input to read, not as a surrogate to
+                # replace with a `synthesize_` generator.
+                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+            ),
             starter_block=self._starter_block(starter_id),
             # Looked up fresh every fix call, unlike the starter/dataset blocks
             # above — it depends on error_source, which can (and often does)

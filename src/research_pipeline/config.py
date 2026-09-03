@@ -46,6 +46,7 @@ class Settings:
     coder_data_dir: str
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
+    coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
     coder_fix_store_sqlite_path: str
@@ -245,6 +246,13 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        # Off by default, and a policy choice rather than a repair: when set, a
+        # plan whose every data input resolves to a surrogate is skipped before
+        # a single codegen call, instead of being generated, run, and reported
+        # "inconclusive" by the provenance gate. Right for a sweep collecting
+        # only interpretable results; wrong whenever the generated code itself
+        # is the artefact you want, which is why it is not the default.
+        coder_require_real_data=_env_bool("CODER_REQUIRE_REAL_DATA", False),
         # On by default, and — unlike CHECKPOINTER_BACKEND — defaulting to
         # "sqlite" rather than "memory": a checkpointer's in-memory default is
         # fine because most runs are one-shot processes anyway, but this

@@ -33,6 +33,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 KIND_REAL_LOCAL = "real_local"
 KIND_REAL_DOWNLOAD = "real_download"
@@ -97,6 +98,33 @@ OPEN_SOURCES: list[tuple[str, str, str]] = [
     (r"open ?street ?map|\bOSM\b", "OpenStreetMap", "https://overpass-api.de/api"),
     (r"\bNDVI\b|landsat|\bUSGS\b", "USGS EarthExplorer", "https://earthexplorer.usgs.gov"),
     (r"hugging ?face", "Hugging Face datasets", "https://datasets-server.huggingface.co/rows"),
+    # Deliberately no equity/stock-price entry. Stooq, Yahoo Finance's chart
+    # endpoint and the like look keyless but are not reachable from a compute
+    # node: Stooq answers a datacentre IP with an HTTP 200 carrying a JavaScript
+    # proof-of-work page rather than CSV (which pandas then parses as garbage
+    # instead of failing loudly), and Yahoo returns 429. Barkla job 10411308
+    # spent every fix attempt on the resulting 404s and then synthesized anyway.
+    # An entry naming a source this network cannot fetch is worse than no entry:
+    # it turns "no real source" into a promise the generated code cannot keep.
+    # Real market data reaches an experiment here through the Hugging Face
+    # dataset search instead.
+    (
+        r"coin ?gecko|crypto(currency)? price|bitcoin|ethereum",
+        "CoinGecko",
+        "https://api.coingecko.com/api/v3",
+    ),
+    (
+        r"open-?meteo|weather (data|history)|temperature record",
+        "Open-Meteo",
+        "https://archive-api.open-meteo.com/v1/archive",
+    ),
+    (r"open ?alex|scholarly (metadata|citation)", "OpenAlex", "https://api.openalex.org"),
+    (
+        r"eurostat",
+        "Eurostat",
+        "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data",
+    ),
+    (r"wikipedia pageviews|wikimedia", "Wikimedia REST", "https://wikimedia.org/api/rest_v1"),
 ]
 
 
@@ -110,6 +138,20 @@ class DataSource:
     local_path: str = ""
     reason: str = ""
     credentials: list[str] = field(default_factory=list)
+    # True only for the last-resort branch of `resolve`: nothing was staged and
+    # no source could be *identified* for this requirement. That is a different
+    # statement from a restricted or credentialed source, which names real data
+    # that specifically was not obtained — those must keep withholding the
+    # verdict, and this one can be answered by a dataset found elsewhere. See
+    # `supersede_unresolved`.
+    unresolved: bool = False
+    # Set for an input whose use by the generated code has already been
+    # established by a stronger check than `verify_downloads_used` can make —
+    # the Hugging Face dataset, confirmed by the code naming its id. Checking
+    # such a source again by URL host would downgrade code that reads it from a
+    # downloaded local copy, or from a URL built some way other than the one
+    # handed over in the prompt.
+    usage_verified: bool = False
 
     @property
     def is_real(self) -> bool:
@@ -266,9 +308,102 @@ def resolve(
                     else "no open source identified for this input and nothing staged locally; "
                     "a documented surrogate is generated instead"
                 ),
+                unresolved=True,
             )
         )
     return resolved
+
+
+def verify_downloads_used(sources: list[DataSource], code: str) -> list[DataSource]:
+    """Downgrade a `real_download` the generated code never actually fetches.
+
+    `resolve` can only say a source *is* openly fetchable; whether the code went
+    and fetched it is a different question, and until it is asked a plan whose
+    model quietly synthesized instead still earns the "real data — findings are
+    interpretable as evidence" stamp. That is the over-claiming direction, the
+    one this module exists to prevent, and every entry added to OPEN_SOURCES
+    widens the exposure to it.
+
+    The host of the declared URI is the fixed trace — the same reasoning as
+    `sandbox.check_hf_dataset_usage` matching on the dataset id rather than
+    walking the AST for a particular call shape: the model can write the request
+    in more ways than are worth enumerating, but it cannot fetch the source
+    without naming its host. `real_local` is left alone (a file on disk is real
+    whatever the code string looks like), and so is anything already a surrogate.
+
+    The question is asked of the experiment as a whole, not of each requirement
+    separately: if *any* declared real input is demonstrably obtained, nothing is
+    downgraded. One requirement is routinely satisfied by another entry's data —
+    a matched Hub dataset answers the "Hugging Face" the plan asked for, and the
+    generated code may then read it in a form that never names the REST host —
+    and per-requirement matching turns that into a phantom surrogate. What stays
+    caught is the failure this guards: an experiment that declared real inputs,
+    fetched none of them, and synthesized instead.
+    """
+    if not code:
+        return sources
+
+    def obtained(source: DataSource) -> bool:
+        if source.kind == KIND_REAL_LOCAL or source.usage_verified:
+            return True
+        host = urlparse(source.uri).netloc
+        return bool(host) and host in code
+
+    if any(obtained(s) for s in sources if s.is_real):
+        return sources
+
+    verified: list[DataSource] = []
+    for source in sources:
+        host = urlparse(source.uri).netloc
+        if source.kind != KIND_REAL_DOWNLOAD or not host or source.usage_verified:
+            verified.append(source)
+            continue
+        verified.append(
+            DataSource(
+                name=source.name,
+                kind=KIND_SURROGATE,
+                uri=source.uri,
+                reason=(
+                    f"{source.reason}, but the generated code never fetches {host} — it "
+                    "appears to have synthesized this input instead, so the verdict is "
+                    "withheld rather than credited to data that was never read"
+                ),
+                credentials=source.credentials,
+            )
+        )
+    return verified
+
+
+def supersede_unresolved(sources: list[DataSource], code: str) -> list[DataSource]:
+    """Drop requirements that a real input the code actually reads already answers.
+
+    `resolve` produces one entry per requirement *string the planner wrote*, and
+    a dataset found by the Hugging Face search is added as its own entry — so a
+    plan naming "Yahoo Finance or public stock market data" that ends up reading
+    50,000 rows of real daily prices from the Hub scores one real input and one
+    surrogate, and is reported as mixed. Nothing synthetic went into that
+    experiment; the surrogate is a phantom, describing a requirement the dataset
+    met under a different name.
+
+    Two conditions, both deterministic, both required:
+
+    - some real input is demonstrably read by the code (`verify_downloads_used`
+      has already downgraded any that are not), and
+    - the code defines no `synthesize_*` generator — the name `prompt_block`
+      instructs a surrogate to use, so its absence is the trace that nothing was
+      invented.
+
+    Only `unresolved` entries are superseded. A restricted source (CMS, UK
+    Biobank) or one missing its API key names real data that specifically was
+    not obtained, and no amount of other data answers it — those keep withholding
+    the verdict, which is the whole point of this module.
+    """
+    if not code or not any(s.is_real for s in sources):
+        return sources
+    if re.search(r"\bdef\s+synthesize_\w*", code):
+        return sources
+    kept = [s for s in sources if not (s.unresolved and s.kind == KIND_SURROGATE)]
+    return kept if any(s.is_real for s in kept) else sources
 
 
 def all_real(sources: list[DataSource]) -> bool:
