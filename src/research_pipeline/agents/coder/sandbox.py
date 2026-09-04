@@ -939,6 +939,50 @@ def check_results_plausibility(metrics: dict) -> list[str]:
     return findings
 
 
+# A requirement starts with a letter or digit. Everything a requirements file
+# may legitimately carry besides a package — a comment, a blank line, a `-r`
+# include — is either dropped or handled elsewhere, and anything else is the
+# model writing prose where a package name belongs.
+_REQUIREMENT_LINE = re.compile(r"^[A-Za-z0-9]")
+
+
+def parse_requirements_lines(text: str) -> list[str]:
+    """Package lines from a generated requirements.txt, prose discarded.
+
+    Barkla job 10424998 died here with the whole plan lost: the model echoed the
+    prompt's own section placeholder, so requirements.txt contained the literal
+    text `<empty>`, which was merged into .resolved_requirements.txt and made uv
+    reject the file outright —
+
+        error: Unexpected '<', expected '-c', '-e', '-r' or the start of a
+        requirement at .resolved_requirements.txt:1:1
+
+    — taking numpy, pandas, scipy, scikit-learn and torch down with it. That is
+    expensive out of all proportion to the mistake, because an env-provisioning
+    failure is deliberately never retried (regenerating the code cannot install a
+    package), so one stray line ends the plan where a real defect would have got
+    ten attempts.
+
+    Comments and blank lines are dropped as any requirements parser would. What
+    is new is dropping a line that cannot be a requirement at all: `<empty>`,
+    `None`, a sentence explaining that nothing is needed. Filtering beats
+    validating-and-failing here for the same reason the surrounding module
+    prefers degrading — the packages the code actually imports are recovered
+    separately by extract_third_party_imports, so a dropped placeholder costs
+    nothing while a rejected file costs the experiment.
+    """
+    lines = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if not _REQUIREMENT_LINE.match(line):
+            logger.warning("Ignoring non-requirement line in requirements.txt: %r", line[:80])
+            continue
+        lines.append(line)
+    return lines
+
+
 def ensure_experiment_env(
     experiment_dir: Path,
     requirements_path: Path,
@@ -970,7 +1014,11 @@ def ensure_experiment_env(
     actually missing, installed the same way; they're just never written to
     requirements.txt on disk, since that file documents what *this
     experiment's own code* declared, not what shared infra happens to need."""
-    requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
+    requirements = (
+        parse_requirements_lines(requirements_path.read_text())
+        if requirements_path.exists()
+        else []
+    )
     combined_requirements = requirements + list(extra_requirements or [])
     missing = missing_packages(combined_requirements)
     if not missing:
@@ -1442,8 +1490,10 @@ def check_unused_configuration(configuration_source: str, rendered_code: str) ->
         if len(re.findall(rf"\b{re.escape(name)}\b", rendered_code)) <= 1:
             findings.append(
                 f"line {lineno}: {name} is declared in configuration and never used anywhere "
-                "else in the program. Either use it where it belongs, or delete it — a constant "
-                "that looks like a setting but does nothing misrepresents what the experiment did"
+                "else in the program. Either use it where it belongs, or delete that one line — "
+                "a constant that looks like a setting but does nothing misrepresents what the "
+                "experiment did. Change nothing else in configuration: every other constant "
+                "there is in use, and removing one produces a NameError"
             )
     return findings
 

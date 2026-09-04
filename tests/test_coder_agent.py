@@ -5727,3 +5727,62 @@ def test_the_convergence_loop_never_reads_the_verdict():
         code = "\n".join(_ast.unparse(node) for node in body)
         assert "meets_success_criteria" not in code
         assert "success" not in code
+
+
+# -- sandbox.parse_requirements_lines ------------------------------------------
+#
+# Regression for Barkla job 10424998: the model echoed the prompt's own section
+# placeholder, so requirements.txt held the literal text `<empty>`. That was
+# merged into .resolved_requirements.txt and made uv reject the whole file,
+# taking numpy, pandas, scipy, scikit-learn and torch with it — and because an
+# env-provisioning failure is deliberately never retried, one stray line ended
+# the plan where a real defect would have got ten attempts.
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "<empty>",
+        "<empty section — no third-party packages needed>",
+        "  <empty>  \n",
+        "None needed\n",  # starts with a letter, but see the asserts below
+    ],
+)
+def test_parse_requirements_drops_placeholder_prose(text):
+    parsed = sandbox.parse_requirements_lines(text)
+    assert all(not line.startswith("<") for line in parsed)
+
+
+def test_parse_requirements_drops_the_exact_line_that_broke_the_run():
+    assert sandbox.parse_requirements_lines("<empty>") == []
+
+
+def test_parse_requirements_keeps_real_packages():
+    text = "numpy\npandas>=2.0\nscikit-learn==1.5.0\ntorch\n"
+    assert sandbox.parse_requirements_lines(text) == [
+        "numpy",
+        "pandas>=2.0",
+        "scikit-learn==1.5.0",
+        "torch",
+    ]
+
+
+def test_parse_requirements_drops_comments_and_blanks():
+    text = "# generated\n\nnumpy\n\n  # trailing note\npandas\n"
+    assert sandbox.parse_requirements_lines(text) == ["numpy", "pandas"]
+
+
+def test_parse_requirements_survives_a_placeholder_mixed_with_real_packages():
+    """The costly shape: one bad line must not discard the good ones."""
+    assert sandbox.parse_requirements_lines("<empty>\nnumpy\ntorch\n") == ["numpy", "torch"]
+
+
+def test_unused_configuration_warns_against_collateral_deletion():
+    """Job 10424998 attempt 1 flagged CSV_DATA_PATH; the regeneration dropped
+    BATCH_SIZE too and produced a NameError. undefined_name caught it, but the
+    attempt was spent."""
+    config = "BATCH_SIZE = 32\nCSV_DATA_PATH = 'x.csv'\n"
+    code = f"{config}\nloader = DataLoader(ds, batch_size=BATCH_SIZE)\n"
+    findings = sandbox.check_unused_configuration(config, code)
+    assert len(findings) == 1 and "CSV_DATA_PATH" in findings[0]
+    assert "Change nothing else in configuration" in findings[0]
