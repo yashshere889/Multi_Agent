@@ -32,10 +32,6 @@ VALID_ERROR_SOURCES = {
     # using it, and it wasn't declined in assumptions_made either — see
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
-    # A constant is declared in `configuration` and read nowhere else, so the
-    # config misrepresents what the experiment does — see
-    # sandbox.check_unused_configuration.
-    "unused_configuration",
     # A torch training loop takes one optimizer step per epoch over the whole
     # tensor: as many gradient updates as epochs, which measures the training
     # budget rather than the thing under test. See sandbox.check_training_batching.

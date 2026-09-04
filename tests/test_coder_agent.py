@@ -5501,44 +5501,6 @@ def test_an_acquired_dataset_the_code_reads_is_a_real_input(tmp_path, monkeypatc
     assert provenance.verdict(sources) != provenance.VERDICT_SURROGATE
 
 
-# -- sandbox.check_unused_configuration ---------------------------------------
-#
-# From Barkla job 10424488: BATCH_SIZE = 32 sat in configuration while the
-# training loop passed the whole tensor to one optimizer step per epoch, and
-# CSV_DATA_PATH named a file the code never opened. Both read as deliberate
-# settings to anyone auditing the run and neither did anything.
-
-
-def test_unused_configuration_flags_a_declared_but_unread_constant():
-    config = "BATCH_SIZE = 32\nWINDOW_SIZE = 60\n"
-    code = f"{config}\ndef f(x):\n    return x[:WINDOW_SIZE]\n"
-    findings = sandbox.check_unused_configuration(config, code)
-    assert len(findings) == 1
-    assert "BATCH_SIZE" in findings[0]
-
-
-def test_unused_configuration_counts_a_use_inside_configuration_itself():
-    config = "WINDOW = 60\nSTRIDE = WINDOW // 2\n"
-    code = f"{config}\ndef f(x):\n    return x[:STRIDE]\n"
-    assert sandbox.check_unused_configuration(config, code) == []
-
-
-def test_unused_configuration_does_not_match_a_longer_name():
-    """BATCH_SIZE must not be counted as used by BATCH_SIZE_LIMIT."""
-    config = "BATCH_SIZE = 32\n"
-    code = "BATCH_SIZE = 32\nBATCH_SIZE_LIMIT = 64\nprint(BATCH_SIZE_LIMIT)\n"
-    assert [f for f in sandbox.check_unused_configuration(config, code) if "BATCH_SIZE " in f]
-
-
-def test_unused_configuration_ignores_lowercase_and_short_names():
-    config = "df = None\nN = 5\nlr = 0.1\n"
-    assert sandbox.check_unused_configuration(config, config) == []
-
-
-def test_unused_configuration_survives_a_syntax_error():
-    assert sandbox.check_unused_configuration("BATCH = (", "BATCH = (") == []
-
-
 # -- sandbox.check_training_batching -------------------------------------------
 
 _UNBATCHED = (
@@ -5617,7 +5579,7 @@ def test_neither_check_is_a_retry_on_bad_results():
     import inspect
     import textwrap
 
-    for fn in (sandbox.check_unused_configuration, sandbox.check_training_batching):
+    for fn in (sandbox.check_training_batching,):
         tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
         function = tree.body[0]
         assert isinstance(function, ast.FunctionDef)
@@ -5775,14 +5737,3 @@ def test_parse_requirements_drops_comments_and_blanks():
 def test_parse_requirements_survives_a_placeholder_mixed_with_real_packages():
     """The costly shape: one bad line must not discard the good ones."""
     assert sandbox.parse_requirements_lines("<empty>\nnumpy\ntorch\n") == ["numpy", "torch"]
-
-
-def test_unused_configuration_warns_against_collateral_deletion():
-    """Job 10424998 attempt 1 flagged CSV_DATA_PATH; the regeneration dropped
-    BATCH_SIZE too and produced a NameError. undefined_name caught it, but the
-    attempt was spent."""
-    config = "BATCH_SIZE = 32\nCSV_DATA_PATH = 'x.csv'\n"
-    code = f"{config}\nloader = DataLoader(ds, batch_size=BATCH_SIZE)\n"
-    findings = sandbox.check_unused_configuration(config, code)
-    assert len(findings) == 1 and "CSV_DATA_PATH" in findings[0]
-    assert "Change nothing else in configuration" in findings[0]

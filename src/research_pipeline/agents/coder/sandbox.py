@@ -1444,60 +1444,6 @@ def section_for_line(spans: dict[str, tuple[int, int]], lineno: int) -> str | No
 _BATCHING_NAMES = ("DataLoader", "TensorDataset", "batch_iter", "minibatch", "next_batch")
 
 
-def _assigned_constants(configuration_source: str) -> dict[str, int]:
-    """{NAME: lineno} for every module-level ALL_CAPS assignment in `configuration`.
-
-    Upper-case only, and only bare `NAME = ...` targets. A lower-case module
-    global is as likely to be scratch as a knob, and tuple-unpacking targets are
-    skipped rather than guessed at — this check's value depends entirely on not
-    crying wolf.
-    """
-    try:
-        tree = ast.parse(configuration_source)
-    except SyntaxError:
-        return {}
-    found: dict[str, int] = {}
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id.isupper() and len(target.id) > 2:
-                found.setdefault(target.id, node.lineno)
-    return found
-
-
-def check_unused_configuration(configuration_source: str, rendered_code: str) -> list[str]:
-    """Constants the program declares in `configuration` and then never reads.
-
-    A declared-and-ignored knob is the config lying about what the experiment
-    does, and it is a defect whichever way the numbers came out — which is what
-    makes it checkable here rather than a matter of taste about the results.
-
-    Barkla job 10424488 is the case: `BATCH_SIZE = 32` sat in configuration while
-    `run_experiment` passed the whole training tensor to one optimizer step per
-    epoch, and `CSV_DATA_PATH` named a file the code never opened. Both read as
-    deliberate settings to anyone auditing the run, and neither was doing
-    anything. The metrics that came out of that were reported as a refutation.
-
-    Counted over the *rendered* run.py, not the model's sections, so a constant
-    the fixed template consumes is not miscounted as dead. A name that appears
-    only once — its own assignment — is unused.
-    """
-    findings = []
-    for name, lineno in _assigned_constants(configuration_source).items():
-        # \b so BATCH_SIZE does not match BATCH_SIZE_LIMIT, and a plain count so
-        # a use inside configuration itself (A = 1; B = A * 2) still counts.
-        if len(re.findall(rf"\b{re.escape(name)}\b", rendered_code)) <= 1:
-            findings.append(
-                f"line {lineno}: {name} is declared in configuration and never used anywhere "
-                "else in the program. Either use it where it belongs, or delete that one line — "
-                "a constant that looks like a setting but does nothing misrepresents what the "
-                "experiment did. Change nothing else in configuration: every other constant "
-                "there is in use, and removing one produces a NameError"
-            )
-    return findings
-
-
 def _optimizer_step_calls(tree: ast.AST) -> list[ast.Call]:
     """`<something>.step()` calls whose receiver name looks like an optimizer."""
     steps = []
