@@ -1459,7 +1459,15 @@ class CoderAgent:
         )
         if (needs_gpu and not gpu_available) or (complexity == "high" and not run_high_locally):
             return self._handle_unrunnable_locally(
-                plan, generation, run_py, experiment_dir, requirements_path, complexity, starter_id
+                plan,
+                generation,
+                run_py,
+                experiment_dir,
+                requirements_path,
+                complexity,
+                starter_id,
+                network_available=network_available,
+                hf_dataset=hf_dataset,
             )
 
         # Both experiments/_shared/ and this experiment's own run_py can import a
@@ -1821,6 +1829,8 @@ class CoderAgent:
         requirements_path: Path,
         complexity: str,
         starter_id: str = "",
+        network_available: bool = False,
+        hf_dataset: dict | None = None,
     ) -> dict:
         """Plans that can't run here: too heavy, or they need a GPU this
         machine doesn't have. Always writes run.sbatch. Whether it also gets
@@ -1828,6 +1838,17 @@ class CoderAgent:
         submits it, since nothing has ever executed this code."""
         hypothesis_id = plan["hypothesis_id"]
         assumptions_made = generation.get("assumptions_made", [])
+        # Resolved here, on the machine that generated the code, because this is
+        # the only place that can: reconcile.py imports this job's results in a
+        # later process which may not mount the staging directory, and would
+        # answer "is this input real?" wrongly if it re-resolved there. Written
+        # to disk and carried on the result for it to read back. Without this a
+        # reconciled cluster job would publish a verdict off inputs nobody ever
+        # checked — the exact failure provenance.py exists to prevent.
+        provenance_document = provenance.write(
+            self._provenance_for(plan, network_available, hf_dataset=hf_dataset, run_py=run_py),
+            experiment_dir / "data_provenance.json",
+        )
         why_unrunnable = (
             "estimated_complexity is 'high'"
             if complexity == "high"
@@ -1848,6 +1869,7 @@ class CoderAgent:
                     code_path=str(experiment_dir),
                     assumptions_made=assumptions_made,
                     starter_used=starter_id,
+                    data_provenance=provenance_document,
                 )
             }
 
@@ -1923,6 +1945,7 @@ class CoderAgent:
                 assumptions_made=assumptions_made,
                 slurm_job_id=job_id,
                 starter_used=starter_id,
+                data_provenance=provenance_document,
             )
         }
 

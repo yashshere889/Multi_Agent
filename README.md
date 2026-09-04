@@ -760,6 +760,31 @@ the compute is already dedicated to this pipeline. Writes
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
 
+#### Collecting results from jobs that went to the cluster
+
+Submission is asynchronous and the pipeline is not: a run that submits a job
+records `submitted_to_slurm` and exits long before the job leaves the queue, so
+the Writer is told "no results are available" for exactly the experiments big
+enough to need a cluster. `coder-reconcile` is the other half — a separate pass
+that asks SLURM's accounting database what happened and folds finished jobs
+back into the summary they came from.
+
+```bash
+uv run research-pipeline coder-reconcile                       # everything under CODER_OUTPUT_DIR
+uv run research-pipeline coder-reconcile outputs/coder_agent_summary_<timestamp>.json
+```
+
+A job that completed has its `results.json` imported and its status becomes
+`completed` (keeping `slurm_job_id`, the only link from a result back to its
+sbatch log); one that failed, timed out or was cancelled becomes
+`slurm_job_failed`. Both go through the same data- and compute-provenance gates
+a locally-executed experiment does. Anything still queued or running is left
+untouched, and so is anything the pass can't resolve — no `sacct` on this
+machine, no accounting record left, or an experiment directory this machine
+can't see (usually cluster scratch). That makes it safe to re-run as often as
+you like: the normal workflow is to run it again tomorrow, from wherever the
+files actually are, until nothing is left pending.
+
 #### Real data instead of invented data
 
 Before generating each experiment, the agent looks up one real dataset matching

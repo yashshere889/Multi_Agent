@@ -92,3 +92,82 @@ def test_submit_job_reports_a_timeout(monkeypatch, tmp_path):
     job_id, error = slurm_submit.submit_job(tmp_path / "run.sbatch", tmp_path)
     assert job_id is None
     assert "did not return" in error
+
+
+# -- job_state ----------------------------------------------------------------------------
+
+
+def test_job_state_reports_an_error_off_cluster(monkeypatch):
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: None)
+    state, error = slurm_submit.job_state("101")
+    assert state is None
+    assert "sacct" in error
+
+
+def test_job_state_asks_only_about_the_allocation(monkeypatch):
+    """Without -X, sacct also returns a row per step, and a .batch step reading
+    COMPLETED under a CANCELLED job would have a reconcile pass import results
+    from a run that was killed."""
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen["cmd"] = cmd
+        return _completed(stdout="COMPLETED\n")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert slurm_submit.job_state("101") == ("COMPLETED", None)
+    assert "-X" in seen["cmd"]
+    assert "101" in seen["cmd"]
+
+
+def test_job_state_drops_a_trailing_state_qualifier(monkeypatch):
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        subprocess, "run", lambda *a, **k: _completed(stdout="CANCELLED by 45678\n")
+    )
+
+    state, error = slurm_submit.job_state("101")
+    assert (state, error) == ("CANCELLED", None)
+    assert slurm_submit.is_terminal(state)
+
+
+def test_job_state_reports_a_purged_or_unknown_job_as_an_error(monkeypatch):
+    # No row at all: either the id is wrong or accounting retention dropped it.
+    # Either way it is "don't know", never "the job failed".
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _completed(stdout="\n  \n"))
+
+    state, error = slurm_submit.job_state("101")
+    assert state is None
+    assert "no accounting record" in error
+
+
+def test_job_state_reports_a_failing_sacct_as_an_error(monkeypatch):
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _completed(stderr="boom", returncode=1))
+
+    state, error = slurm_submit.job_state("101")
+    assert state is None
+    assert "boom" in error
+
+
+def test_job_state_reports_a_timeout_as_an_error(monkeypatch):
+    monkeypatch.setattr(slurm_submit.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="sacct", timeout=30)
+
+    monkeypatch.setattr(subprocess, "run", timeout)
+
+    state, error = slurm_submit.job_state("101")
+    assert state is None
+    assert "did not return" in error
+
+
+def test_running_and_pending_states_are_not_terminal():
+    for state in ("PENDING", "RUNNING", "SUSPENDED", "COMPLETING", "REQUEUED"):
+        assert not slurm_submit.is_terminal(state)
+    for state in ("COMPLETED", "FAILED", "TIMEOUT", "OUT_OF_MEMORY", "PREEMPTED"):
+        assert slurm_submit.is_terminal(state)

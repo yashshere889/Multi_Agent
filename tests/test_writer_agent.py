@@ -5,7 +5,8 @@ import pytest
 
 from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index, strip_unverified_literal_citations
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
-from research_pipeline.agents.writer.writer_agent import WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers
+from research_pipeline.agents.coder.schema import VALID_STATUSES
+from research_pipeline.agents.writer.writer_agent import STATUS_MEANINGS, WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers
 
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -255,7 +256,7 @@ def _experiment(hid, status, meets=None):
     base = {"hypothesis_id": hid, "status": status, "reason": "" if status == "completed" else "needs more compute", "assumptions_made": []}
     if status == "skipped":
         return {**base, "code_path": None, "results": None}
-    if status == "code_generated_not_run":
+    if status in ("code_generated_not_run", "submitted_to_slurm", "slurm_job_failed"):
         return {**base, "code_path": f"experiments/{hid}", "results": None}
     return {**base, "code_path": f"experiments/{hid}", "results": {"metrics": {"accuracy": 0.9}, "meets_success_criteria": meets, "notes": ""}}
 
@@ -285,6 +286,22 @@ def test_compute_hypothesis_verdict_inconclusive_when_code_generated_not_run():
     verdict, reason = compute_hypothesis_verdict("H1", {"H1": _experiment("H1", "code_generated_not_run")})
     assert verdict == "inconclusive"
     assert "code_generated_not_run" in reason
+
+
+def test_compute_hypothesis_verdict_inconclusive_when_the_slurm_job_failed():
+    """reconcile.py sets this status on a job that ran on the cluster and ended
+    badly. It carries no results, so falling through to the meets_success_criteria
+    lookup below would raise rather than report inconclusive."""
+    verdict, reason = compute_hypothesis_verdict("H1", {"H1": _experiment("H1", "slurm_job_failed")})
+    assert verdict == "inconclusive"
+    assert "slurm_job_failed" in reason
+
+
+def test_every_non_completed_status_has_an_explanation_for_the_writer():
+    """STATUS_MEANINGS is what the Writer is told a status means; a status the
+    Coder can emit but this dict has never heard of gets described to the model
+    as nothing at all."""
+    assert set(VALID_STATUSES) <= set(STATUS_MEANINGS)
 
 
 def test_compute_hypothesis_verdict_inconclusive_when_no_experiment_record():

@@ -14,6 +14,7 @@ from research_pipeline.agents.coder import (
     huggingface_client,
     prompts,
     provenance,
+    reconcile,
     repair,
     sandbox,
     schema,
@@ -854,6 +855,11 @@ def test_run_marks_high_complexity_as_not_run_and_generates_sbatch(tmp_path):
     assert "high" in exp["reason"]
     assert (experiments_dir / "H2" / "run.sbatch").exists()
     assert not (experiments_dir / "H2" / "results.json").exists()  # never executed
+    # Resolved here even though nothing runs here, because this is the only
+    # machine that can: reconcile.py imports this job's results in a later
+    # process and reads this document rather than re-resolving inputs there.
+    assert exp["data_provenance"]["all_inputs_real"] is False
+    assert (experiments_dir / "H2" / "data_provenance.json").exists()
 
 
 def test_run_executes_high_complexity_synchronously_when_gpu_flag_enabled(tmp_path, monkeypatch):
@@ -4955,3 +4961,210 @@ def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):
 
     assert not any("acme/sleep-survey" in s.name for s in sources)
     assert provenance.all_real(sources) is False
+
+
+# -- reconcile ---------------------------------------------------------------------------
+
+
+def _submitted_experiment(tmp_path, hid="H1", job_id="12345", all_inputs_real=True) -> dict:
+    experiment_dir = tmp_path / hid
+    experiment_dir.mkdir(parents=True, exist_ok=True)
+    return {
+        "hypothesis_id": hid,
+        "status": "submitted_to_slurm",
+        "reason": f"needs a GPU — auto-submitted as SLURM job {job_id}.",
+        "code_path": str(experiment_dir),
+        "assumptions_made": [],
+        "results": None,
+        "fix_attempts": 0,
+        "fix_history": [],
+        "slurm_job_id": job_id,
+        "starter_used": "",
+        "data_provenance": {
+            "all_inputs_real": all_inputs_real,
+            "methodological_validity": "real data" if all_inputs_real else "synthetic surrogate",
+        },
+        "compute_provenance": {},
+    }
+
+
+def _write_cluster_results(experiment: dict, meets=True, metrics=None) -> None:
+    Path(experiment["code_path"]).joinpath("results.json").write_text(
+        json.dumps(
+            {
+                "status": "success",
+                "metrics": metrics if metrics is not None else {"accuracy": 0.91},
+                "meets_success_criteria": meets,
+                "notes": "ran on the cluster",
+                "error": None,
+            }
+        )
+    )
+
+
+def _lookup(**states):
+    """A state_lookup returning a canned sacct answer per job id."""
+
+    def lookup(job_id):
+        entry = states[job_id]
+        return (None, entry) if entry.startswith("!") else (entry, None)
+
+    return lookup
+
+
+def test_reconcile_imports_the_results_of_a_completed_job(tmp_path):
+    experiment = _submitted_experiment(tmp_path)
+    _write_cluster_results(experiment)
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert outcome.action == reconcile.ACTION_COMPLETED
+    assert outcome.changed
+    assert updated["status"] == "completed"
+    assert updated["reason"] == ""
+    assert updated["results"]["metrics"] == {"accuracy": 0.91}
+    assert updated["results"]["meets_success_criteria"] is True
+    # A cluster job runs whatever run.py was submitted, under sbatch's own
+    # --time; repair.downscale never touched it.
+    assert updated["compute_provenance"]["ran_at_full_size"] is True
+    # The link back to the sbatch log survives the status change.
+    assert updated["slurm_job_id"] == "12345"
+
+
+def test_reconcile_withholds_the_verdict_when_the_submitting_run_found_no_real_data(tmp_path):
+    """The provenance document was written on the machine that generated the
+    code; the reconcile reads it rather than re-resolving inputs on a machine
+    that may not even mount the staging directory."""
+    experiment = _submitted_experiment(tmp_path, all_inputs_real=False)
+    _write_cluster_results(experiment, meets=False)
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert outcome.action == reconcile.ACTION_COMPLETED
+    assert updated["results"]["meets_success_criteria"] == "unknown"
+    assert updated["results"]["model_reported_meets_success_criteria"] is False
+
+
+def test_reconcile_withholds_the_verdict_when_the_summary_predates_provenance(tmp_path):
+    """An absent document is not evidence the inputs were real."""
+    experiment = _submitted_experiment(tmp_path)
+    del experiment["data_provenance"]
+    _write_cluster_results(experiment, meets=True)
+
+    updated, _ = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert updated["results"]["meets_success_criteria"] == "unknown"
+    assert updated["results"]["model_reported_meets_success_criteria"] is True
+
+
+def test_reconcile_records_a_job_that_ended_badly(tmp_path):
+    experiment = _submitted_experiment(tmp_path)
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "TIMEOUT"}))
+
+    assert outcome.action == reconcile.ACTION_FAILED
+    assert updated["status"] == "slurm_job_failed"
+    assert "TIMEOUT" in updated["reason"]
+    assert updated["results"] is None
+
+
+def test_reconcile_leaves_a_queued_job_alone(tmp_path):
+    experiment = _submitted_experiment(tmp_path)
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "RUNNING"}))
+
+    assert outcome.action == reconcile.ACTION_PENDING
+    assert not outcome.changed
+    assert updated == experiment
+
+
+def test_reconcile_leaves_a_job_it_cannot_ask_about_alone(tmp_path):
+    experiment = _submitted_experiment(tmp_path)
+
+    updated, outcome = reconcile.reconcile_experiment(
+        experiment, _lookup(**{"12345": "!sacct is not on PATH"})
+    )
+
+    assert outcome.action == reconcile.ACTION_UNKNOWN
+    assert not outcome.changed
+    assert updated == experiment
+
+
+def test_a_directory_this_machine_cannot_see_is_not_a_failed_job(tmp_path):
+    """`code_path` is usually cluster scratch. Reconciling from a laptop finds
+    nothing there for a job that succeeded perfectly well, and marking that
+    'failed' would also destroy the record — a later pass on the right machine
+    would see a status that no longer says submitted_to_slurm and skip it."""
+    experiment = _submitted_experiment(tmp_path)
+    experiment["code_path"] = str(tmp_path / "not-mounted" / "H1")
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert outcome.action == reconcile.ACTION_UNKNOWN
+    assert updated["status"] == "submitted_to_slurm"
+    assert "not visible from here" in outcome.detail
+
+
+def test_a_visible_directory_with_no_results_is_a_failed_job(tmp_path):
+    # The converse of the test above: we can see the directory, run.py exited 0,
+    # and there is nothing in it. That really is a failure.
+    experiment = _submitted_experiment(tmp_path)
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert outcome.action == reconcile.ACTION_FAILED
+    assert updated["status"] == "slurm_job_failed"
+    assert "did not write results.json" in updated["reason"]
+
+
+def test_reconcile_summary_touches_only_submitted_experiments(tmp_path):
+    completed_locally = _submitted_experiment(tmp_path, hid="H0")
+    completed_locally.update(
+        status="completed",
+        reason="",
+        slurm_job_id=None,
+        results={"metrics": {"f1": 0.5}, "meets_success_criteria": True, "notes": ""},
+    )
+    pending = _submitted_experiment(tmp_path, hid="H1", job_id="1")
+    finished = _submitted_experiment(tmp_path, hid="H2", job_id="2")
+    _write_cluster_results(finished)
+
+    summary = {
+        "experiments": [completed_locally, pending, finished],
+        "shared_infrastructure_path": str(tmp_path / "_shared"),
+        "source_hypothesis_ids": ["H0", "H1", "H2"],
+        "generated_at": "2026-09-05T00:00:00+00:00",
+        "model": "test-model",
+    }
+
+    updated, outcomes = reconcile.reconcile_summary(
+        summary, _lookup(**{"1": "PENDING", "2": "COMPLETED"})
+    )
+
+    # One outcome per *submitted* experiment; the locally-completed one is not
+    # this pass's business and produces none.
+    assert [(o.hypothesis_id, o.action) for o in outcomes] == [
+        ("H1", reconcile.ACTION_PENDING),
+        ("H2", reconcile.ACTION_COMPLETED),
+    ]
+    assert [exp["status"] for exp in updated["experiments"]] == [
+        "completed",
+        "submitted_to_slurm",
+        "completed",
+    ]
+    # And the result it produces still satisfies the output contract, which is
+    # what the CLI checks before overwriting anything on disk.
+    schema.validate_output(updated, ["H0", "H1", "H2"])
+
+
+def test_reconciling_twice_changes_nothing_the_second_time(tmp_path):
+    experiment = _submitted_experiment(tmp_path)
+    _write_cluster_results(experiment)
+    lookup = _lookup(**{"12345": "COMPLETED"})
+
+    once, first = reconcile.reconcile_experiment(experiment, lookup)
+    twice, second = reconcile.reconcile_experiment(once, lookup)
+
+    assert first.action == reconcile.ACTION_COMPLETED
+    assert second is None, "an already-reconciled experiment is not this pass's business"
+    assert twice == once

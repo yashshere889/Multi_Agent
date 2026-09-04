@@ -4,7 +4,18 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-VALID_STATUSES = {"completed", "code_generated_not_run", "skipped", "submitted_to_slurm"}
+VALID_STATUSES = {
+    "completed",
+    "code_generated_not_run",
+    "skipped",
+    "submitted_to_slurm",
+    # A job that was submitted, ran, and ended badly — set only by reconcile.py,
+    # never by a run itself, since a run never sees its own jobs finish. Distinct
+    # from "code_generated_not_run" because that one means nothing ever executed;
+    # this code did execute, on the cluster, and failed there. Both read as
+    # inconclusive to the Writer, but only one of them has a log worth reading.
+    "slurm_job_failed",
+}
 
 VALID_ERROR_SOURCES = {
     # Renamed from "invalid_json" when generated code moved off the JSON
@@ -100,7 +111,7 @@ class FixAttempt(TypedDict):
 
 class ExperimentResult(TypedDict):
     hypothesis_id: str
-    status: str  # "completed" | "code_generated_not_run" | "skipped" | "submitted_to_slurm"
+    status: str  # one of VALID_STATUSES
     reason: str  # required (non-empty) for every status except "completed"
     code_path: str | None  # None only when status == "skipped"
     assumptions_made: list[str]
@@ -135,6 +146,10 @@ class CoderAgentOutput(TypedDict):
     source_hypothesis_ids: list[str]
     generated_at: str
     model: str
+    # When reconcile.py last asked SLURM what became of this run's submitted
+    # jobs. Absent until one has, which is most summaries — same
+    # "checked when present but not required" rule as the fields above.
+    reconciled_at: str
 
 
 class SchemaValidationError(ValueError):
@@ -270,7 +285,13 @@ def validate_output(data: dict, expected_hypothesis_ids: list[str] | None = None
                 errors.append(
                     f"{path}.slurm_job_id is required (non-empty string) when status is 'submitted_to_slurm'"
                 )
-        elif job_id is not None:
+        # "completed" and "slurm_job_failed" may carry one and need not: an
+        # experiment run locally has no job, and one reconcile.py resolved from
+        # the cluster keeps the id of the job that produced its numbers — which
+        # is the only link from a result back to its sbatch log. Requiring null
+        # here (as this did when submission was the end of the story) would make
+        # every reconciled experiment fail validation.
+        elif status in ("skipped", "code_generated_not_run") and job_id is not None:
             errors.append(f"{path}.slurm_job_id should be null when status is {status!r}")
 
         code_path = exp.get("code_path")

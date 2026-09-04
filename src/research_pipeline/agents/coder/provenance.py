@@ -436,6 +436,13 @@ def write(sources: list[DataSource], path: Path) -> dict[str, Any]:
     return document
 
 
+WITHHELD_BECAUSE = (
+    "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's "
+    "behaviour on generated data and say nothing about the real-world hypothesis. See "
+    "data_provenance.json."
+)
+
+
 def apply_to_results(results: dict, sources: list[DataSource]) -> dict:
     """Withhold the hypothesis verdict when any input is synthetic.
 
@@ -446,17 +453,39 @@ def apply_to_results(results: dict, sources: list[DataSource]) -> dict:
     left untouched and still reported — they describe what the pipeline did,
     which is worth reading; they just no longer carry a verdict about the world.
     """
-    if all_real(sources):
+    return apply_document_to_results(results, as_document(sources))
+
+
+def apply_document_to_results(results: dict, document: dict) -> dict:
+    """The same withholding, decided from an already-computed provenance
+    document rather than live DataSources.
+
+    Exists for `reconcile.py`: a SLURM job's results arrive in a later process
+    than the one that resolved its inputs, and re-resolving there would ask a
+    machine that may not have the staging directory mounted whether a file the
+    submitting machine could see is real. The document that run wrote is the
+    answer; this reads it. `apply_to_results` above goes through here too, so
+    there is one implementation of what withholding means.
+
+    An empty or absent document withholds. Not knowing where an experiment's
+    inputs came from is not evidence that they were real — the same reason
+    `verdict` treats an empty source list as surrogate.
+    """
+    if document.get("all_inputs_real"):
         return results
 
     stamped = dict(results)
-    stamped["model_reported_meets_success_criteria"] = results.get("meets_success_criteria")
+    # setdefault for the same reason compute_provenance uses it: both gates can
+    # fire on one result, and whichever runs first records the model's real
+    # claim before replacing it.
+    stamped.setdefault(
+        "model_reported_meets_success_criteria", results.get("meets_success_criteria")
+    )
     stamped["meets_success_criteria"] = "unknown"
-    stamped["methodological_validity"] = verdict(sources)
+    stamped["methodological_validity"] = document.get("methodological_validity", VERDICT_SURROGATE)
+    existing = stamped.get("verdict_withheld_because")
     stamped["verdict_withheld_because"] = (
-        "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's "
-        "behaviour on generated data and say nothing about the real-world hypothesis. See "
-        "data_provenance.json."
+        f"{existing} {WITHHELD_BECAUSE}" if existing else WITHHELD_BECAUSE
     )
     return stamped
 
