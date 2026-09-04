@@ -26,8 +26,9 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
-| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
+| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Owns the `PRECISION_KNOBS`/`MEASUREMENT_KNOBS` split that decides whether a downscaled run keeps its verdict. Reads no settings, same rule as `sandbox.py`. |
 | `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
+| `compute_provenance.py` | The same withholding, asked of the compute instead of the inputs: records which cost knobs `repair.downscale` had to shrink, and withholds the verdict when shrinking one changed what the experiment measures. No LLM. |
 | `prompts.py` | All prompt templates. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |

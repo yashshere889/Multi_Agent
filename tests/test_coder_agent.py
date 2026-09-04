@@ -8,6 +8,7 @@ import pytest
 from langgraph.store.memory import InMemoryStore
 
 from research_pipeline.agents.coder import (
+    compute_provenance,
     diagnose,
     fix_pattern_store,
     huggingface_client,
@@ -3446,6 +3447,159 @@ def test_downscale_halves_cost_knobs_and_leaves_other_numbers_alone():
 def test_downscale_respects_its_floors():
     shrunk, changes = repair.downscale("chains = 2\ndraws = 250\n")
     assert changes == [] and shrunk == "chains = 2\ndraws = 250\n"
+
+
+def test_the_two_knob_tables_partition_the_downscale_table():
+    """The split is what decides whether a downscaled run may still carry a
+    verdict, so a knob added to neither table — or to both — must not compile
+    away silently into "precision, verdict stands"."""
+    assert not (repair.PRECISION_KNOBS.keys() & repair.MEASUREMENT_KNOBS.keys())
+    assert (
+        repair.PRECISION_KNOBS.keys() | repair.MEASUREMENT_KNOBS.keys()
+        == repair.DOWNSCALE_KNOBS.keys()
+    )
+
+
+def test_measurement_changes_separates_truncation_from_lost_precision():
+    code = "draws = 4000\nepochs = 8\nchains = 8\n"
+    _, changes = repair.downscale(code)
+
+    assert sorted(changes) == ["chains: 8 -> 4", "draws: 4000 -> 2000", "epochs: 8 -> 4"]
+    # Only epochs changes what the experiment measures; halving draws and
+    # chains estimates the same quantity less tightly.
+    assert repair.measurement_changes(changes) == ["epochs: 8 -> 4"]
+
+
+def test_knob_name_reads_back_what_a_change_entry_wrote():
+    _, changes = repair.downscale("n_estimators = 400\n")
+    assert changes == ["n_estimators: 400 -> 200"]
+    assert repair.knob_name(changes[0]) == "n_estimators"
+
+
+def test_a_precision_only_downscale_keeps_its_verdict():
+    results = {"metrics": {"rhat": 1.01}, "meets_success_criteria": False}
+    stamped = compute_provenance.apply_to_results(results, ["draws: 4000 -> 2000"])
+
+    # Untouched, and identically so: fewer posterior draws is a wider interval,
+    # not a different experiment, so this refutation was really earned.
+    assert stamped is results
+    assert (
+        compute_provenance.verdict(["draws: 4000 -> 2000"]) == compute_provenance.VERDICT_PRECISION
+    )
+
+
+def test_a_truncated_run_cannot_report_a_refutation():
+    """The failure this whole module exists for: a timeout halves `epochs`, the
+    undertrained model loses to its baseline, and writer_agent maps that False
+    to "refuted" — publishing a refutation the run never earned."""
+    results = {"metrics": {"accuracy": 0.4}, "meets_success_criteria": False}
+    stamped = compute_provenance.apply_to_results(results, ["epochs: 8 -> 4"])
+
+    assert stamped["meets_success_criteria"] == "unknown"
+    assert stamped["model_reported_meets_success_criteria"] is False
+    assert stamped["compute_validity"] == compute_provenance.VERDICT_TRUNCATED
+    assert "compute_provenance.json" in stamped["verdict_withheld_because"]
+    # The metrics themselves still describe what the pipeline did.
+    assert stamped["metrics"] == {"accuracy": 0.4}
+    assert results["meets_success_criteria"] is False, "the input dict is not mutated"
+
+
+def test_a_truncated_run_does_not_overwrite_a_claim_the_data_gate_saved():
+    """Both gates can fire on one run. The data gate records the model's real
+    claim before replacing it, so stamping compute on top must not overwrite
+    that record with the "unknown" that replaced it — the only copy of what the
+    experiment actually reported would be lost."""
+    already_withheld = {
+        "metrics": {"accuracy": 0.4},
+        "meets_success_criteria": "unknown",
+        "model_reported_meets_success_criteria": True,
+        "verdict_withheld_because": "Synthetic inputs.",
+    }
+    stamped = compute_provenance.apply_to_results(already_withheld, ["epochs: 8 -> 4"])
+
+    assert stamped["model_reported_meets_success_criteria"] is True
+    # Both reasons survive: a reader who sees only the data one would go
+    # looking for a provenance problem that isn't the whole story.
+    assert stamped["verdict_withheld_because"].startswith("Synthetic inputs.")
+    assert "compute budget" in stamped["verdict_withheld_because"]
+
+
+def test_compute_provenance_document_records_the_split_and_the_budget():
+    document = compute_provenance.as_document(
+        ["draws: 4000 -> 2000", "epochs: 8 -> 4"], timeout_seconds=300
+    )
+    assert document["downscaled"] is True
+    assert document["ran_at_full_size"] is False
+    assert document["precision_changes"] == ["draws: 4000 -> 2000"]
+    assert document["measurement_changes"] == ["epochs: 8 -> 4"]
+    assert document["timeout_seconds"] == 300
+    assert document["compute_validity"] == compute_provenance.VERDICT_TRUNCATED
+
+
+def test_an_undownscaled_run_says_so_positively():
+    document = compute_provenance.as_document([], timeout_seconds=120)
+    assert document["downscaled"] is False
+    assert document["ran_at_full_size"] is True
+    assert document["compute_validity"] == compute_provenance.VERDICT_FULL
+
+
+def test_a_run_rescued_by_downscaling_reports_no_verdict_end_to_end(tmp_path, monkeypatch):
+    """The production shape: an experiment times out, repair.downscale halves
+    its epochs, the smaller run finishes and reports metrics that lose to the
+    baseline. Without the compute gate that False reaches the Writer as a
+    published refutation of a hypothesis whose experiment was cut short."""
+    sections = dict(GOOD_SECTIONS, configuration="epochs = 8\n")
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response(sections)})
+    experiments_dir = tmp_path / "experiments"
+    scripts_run: list[str] = []
+
+    def fake_run_experiment(python_executable, script_path, cwd, timeout_seconds):
+        scripts_run.append(script_path.name)
+        if script_path.name == "run_smoke.py":
+            return True, ""  # smoke clean — go on and run at full size
+        if scripts_run.count("run.py") == 1:
+            return False, "execution timed out after 120s"
+        (cwd / "results.json").write_text(
+            json.dumps(
+                {
+                    "status": "success",
+                    "metrics": {"accuracy": 0.4},
+                    "meets_success_criteria": False,
+                    "notes": "below the baseline",
+                    "error": None,
+                }
+            )
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    agent = CoderAgent(
+        chat_model=fake_model,
+        experiments_dir=experiments_dir,
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    # The timeout cost no fix attempt: shrinking is not a defect in the code.
+    assert exp["fix_attempts"] == 0
+    assert exp["results"]["metrics"] == {"accuracy": 0.4}
+
+    document = exp["compute_provenance"]
+    assert document["measurement_changes"] == ["epochs: 8 -> 4"]
+    assert document["compute_validity"] == compute_provenance.VERDICT_TRUNCATED
+    assert json.loads((experiments_dir / "H1" / "compute_provenance.json").read_text()) == document
+
+    # The verdict is withheld, and the model's own claim survives both gates —
+    # this fixture plan declares synthetic data, so the data gate already
+    # withheld and recorded that False before the compute gate stamped on top.
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["results"]["model_reported_meets_success_criteria"] is False
+    assert "compute budget" in exp["results"]["verdict_withheld_because"]
 
 
 def test_install_into_env_prefers_uv_and_reports_failure_without_raising(tmp_path, monkeypatch):

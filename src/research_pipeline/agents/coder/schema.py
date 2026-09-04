@@ -118,6 +118,15 @@ class ExperimentResult(TypedDict):
     # string "unknown" rather than a bool, which the Writer reads as
     # "inconclusive" instead of publishing a verdict off synthesized data.
     data_provenance: dict
+    # What this run cost to finish: which cost knobs repair.downscale had to
+    # shrink to fit the timeout, and whether shrinking them changed what the
+    # experiment measures. Optional, same rule as data_provenance. When it did
+    # — halved epochs, a smaller ensemble — results.meets_success_criteria is
+    # the string "unknown" for the same reason a surrogate input makes it one:
+    # an undertrained model's metrics lose to a baseline on their own merits,
+    # and the Writer would publish that False as a refutation. See
+    # compute_provenance.py.
+    compute_provenance: dict
 
 
 class CoderAgentOutput(TypedDict):

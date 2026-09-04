@@ -114,6 +114,7 @@ from langgraph.store.base import BaseStore
 from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    compute_provenance,
     diagnose,
     fix_pattern_store,
     huggingface_client,
@@ -1529,6 +1530,10 @@ class CoderAgent:
         # loop, which is still the right place for a genuine code defect.
         env_repairs = 0
         downscales = 0
+        # Every knob this run shrank, across all downscale rounds. Kept because
+        # the metrics alone cannot say whether they came from the experiment as
+        # generated or from a truncated one — see compute_provenance.py.
+        downscale_changes: list[str] = []
         api_patches = 0
         run_path = experiment_dir / "run.py"
 
@@ -1599,6 +1604,7 @@ class CoderAgent:
                 if changes:
                     run_path.write_text(shrunk)
                     downscales += 1
+                    downscale_changes.extend(changes)
                     logger.info(
                         "[%s] %s Reduced deterministically: %s",
                         hypothesis_id,
@@ -1668,6 +1674,25 @@ class CoderAgent:
                 provenance_document["methodological_validity"],
             )
 
+        # The same question as above asked of the compute rather than the
+        # inputs: a run that only finished because repair.downscale halved its
+        # epochs reports an undertrained model's metrics, which lose to a
+        # baseline for a reason that has nothing to do with the hypothesis.
+        # Deliberately after the data check — apply_to_results below preserves
+        # whatever claim that one already recorded instead of overwriting it.
+        compute_document = compute_provenance.write(
+            downscale_changes,
+            experiment_dir / "compute_provenance.json",
+            timeout_seconds=timeout_seconds,
+        )
+        results = compute_provenance.apply_to_results(results, downscale_changes)
+        if compute_provenance.truncated(downscale_changes):
+            logger.info(
+                "[%s] verdict withheld — %s",
+                hypothesis_id,
+                compute_document["compute_validity"],
+            )
+
         return {
             "result": self._result(
                 hypothesis_id,
@@ -1678,6 +1703,7 @@ class CoderAgent:
                 results=results,
                 starter_used=starter_id,
                 data_provenance=provenance_document,
+                compute_provenance=compute_document,
             )
         }
 
@@ -1981,6 +2007,7 @@ class CoderAgent:
         slurm_job_id: str | None = None,
         starter_used: str = "",
         data_provenance: dict | None = None,
+        compute_provenance: dict | None = None,
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -1997,6 +2024,9 @@ class CoderAgent:
             # instinct as fix_history existing at all.
             "starter_used": starter_used,
             "data_provenance": data_provenance or {},
+            # What this run cost to finish. Empty for every status that never
+            # executed anything — only a real execution can be downscaled.
+            "compute_provenance": compute_provenance or {},
         }
 
     # -- LLM calls -----------------------------------------------------------
