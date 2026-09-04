@@ -126,7 +126,8 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `invalid_json` until generated code moved off the JSON transport.)
 - **The dataset lookup happens in its own node, before generation.** `process_current_plan` sets
   up the plan; `search_hf_dataset` looks a dataset up once per plan and parks it in
-  `current_hf_dataset`; `acquire_data` fetches what can be fetched into `current_acquisitions`;
+  `current_hf_dataset`; `acquire_data` searches for the unresolved requirements
+  (`current_discoveries`) and fetches what can be fetched (`current_acquisitions`);
   `generate_experiment_code` writes the first candidate. Both results are threaded into the codegen
   *and* the fix prompt from state, so a three-attempt fix loop doesn't re-search or re-download.
   Don't fold either back into the generation call — a run whose experiments silently stopped
@@ -304,7 +305,30 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   acquired path is the third sanctioned trace alongside naming the id and declining it in
   `assumptions_made`; without it, every experiment that did exactly as instructed gets flagged
   `ignored_available_dataset`.
-- **Nothing in `acquire.py` may raise, and nothing may read settings.** Same two rules as
+- **`discover.py` may only ever answer an `unresolved` requirement.** A restricted or
+  credentialed surrogate names real data that specifically was not obtained; answering it with a
+  keyword match is the over-claim `provenance` exists to prevent. Same rule as
+  `supersede_unresolved`, enforced in `discover_sources` *and* again in `discover.apply`, so a
+  caller that hands over a stale discovery map still cannot rewrite one.
+- **A discovered input reports metrics and never a verdict.** `provenance.needs_confirmation`
+  forces `meets_success_criteria` to `"unknown"` whenever any real input carries `discovered`.
+  This is not caution for its own sake: a live sweep of five requirements returned one correct
+  dataset, two real-plausible-and-wrong ones, and two misses, and a refutation computed on the
+  wrong real data reads as defensible in a way one computed on invented data does not. `all_real`
+  stays true for these — nothing was invented — which is why the two predicates are separate and
+  why `CODER_REQUIRE_REAL_DATA`'s routing still lets such a plan through.
+- **The relevance gate is a fraction, not a count.** `RELEVANCE_FRACTION` requires a majority of
+  the requirement's content words. A flat two-word bar measured as vacuous against real
+  catalogues — 396 of 396 CKAN candidates cleared it — because the query sent to the catalogue is
+  built from those same words, so every hit shares two by construction. Ranking (best score first,
+  then URLs that look like files) reorders work; only the gate decides admission.
+- **`keywords` keeps short tokens on purpose.** `pm2`, `co2`, `no2`, `EEG`, `GDP` are the terms
+  that make a requirement specific, and the `len > 3` rule this started with dropped every one of
+  them. Length floor 3, plus letter+digit tokens and all-caps acronyms, minus pure numbers.
+- **`CKAN_PORTALS` entries store whole URLs, not a base.** `data.europa.eu` serves
+  `package_search` under its hub path rather than `/api/3/action/`, and deriving the suffix
+  silently 404'd every request to it. `catalog.data.gov` is absent because it 404s on both paths.
+- **Nothing in `acquire.py` or `discover.py` may raise, and neither may read settings.** Same two rules as
   `huggingface_client.py` and `sandbox.py` respectively: every failure degrades to `None`/`{}` and
   leaves the run exactly as it was without the module, and the cache directory and byte cap arrive
   as arguments resolved by `coder_agent._acquire_data`. The URL safety gate (https, public-address

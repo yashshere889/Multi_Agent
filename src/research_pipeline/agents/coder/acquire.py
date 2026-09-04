@@ -251,7 +251,12 @@ def _get(url: str, max_bytes: int) -> tuple[bytes, str] | None:
                 current = urljoin(current, location)
                 continue
 
-            if response.status_code != 200:
+            # Any 2xx, not 200 alone. Some open-data portals answer a download
+            # with 202 (data.qld.gov.au does), and rejecting that discards a
+            # perfectly good CSV over a status code — while `describe` below is
+            # the real arbiter of whether the body is data, which is this
+            # module's rule everywhere else too.
+            if not 200 <= response.status_code < 300:
                 logger.warning("Fetch of %s returned HTTP %s", current[:200], response.status_code)
                 return None
 
@@ -383,7 +388,11 @@ def describe(body: bytes) -> tuple[str, list[str], int, list[dict], bytes] | Non
     REJECTED_CONTENT_TYPES).
     """
     try:
-        text = body.decode("utf-8")
+        # utf-8-sig, not utf-8: government CSV exports are routinely BOM-prefixed,
+        # and a plain utf-8 decode glues \ufeff onto the first column's name. That
+        # name then goes into the prompt, so the model is told to select a column
+        # that does not exist under the name it was given.
+        text = body.decode("utf-8-sig")
     except UnicodeDecodeError:
         return None
     if not text.strip():
@@ -695,6 +704,10 @@ def apply(
                 credentials=list(source.credentials),
                 usage_verified=source.usage_verified,
                 acquired=acquired.to_dict(),
+                # Carried, not dropped: a discovered input stays marked as one
+                # after it is fetched, or the provenance document would show a
+                # keyword-search result as though a human had named it.
+                discovered=dict(source.discovered),
             )
         )
     return applied

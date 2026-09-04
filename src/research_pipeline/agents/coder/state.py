@@ -97,6 +97,13 @@ class CoderState(TypedDict, total=False):
     # rather than download it again. Plain JSON-able dict — it is checkpointed,
     # so the record holds the file's *path*, never an open handle.
     current_acquisitions: dict
+    # {requirement name: candidate record} for every input that had no named
+    # source and was found by searching open catalogues (see
+    # agents/coder/discover.py), or {} when discovery is off, there is no
+    # network, or nothing relevant was found. Threaded for the same reason as
+    # current_acquisitions — a fix attempt must not re-run four catalogue
+    # searches to reach the answer the first generation already had.
+    current_discoveries: dict
     # The id of the starters.STARTERS entry chosen for this plan by
     # starters.select_starter (a pure function of the plan's own text — no LLM
     # call), or "" for "general" (no match, no worked example shown). Set once

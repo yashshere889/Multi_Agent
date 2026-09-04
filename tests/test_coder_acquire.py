@@ -587,3 +587,46 @@ def test_local_paths_lists_every_acquired_file():
     assert acquire.local_paths({"https://a": {"path": "/x/a.csv"}}) == ["/x/a.csv"]
     assert acquire.local_paths({}) == []
     assert acquire.local_paths(None) == []
+
+
+def test_describe_strips_a_byte_order_mark():
+    """Government CSV exports are routinely BOM-prefixed. Decoding as plain
+    utf-8 glues ﻿ onto the first column name, which then reaches the model
+    as a column it is told to select and cannot find."""
+    described = acquire.describe("﻿OBJECTID,name\n1,Wigan\n".encode())
+    assert described is not None
+    assert described[1] == ["OBJECTID", "name"]
+    assert described[3][0] == {"OBJECTID": "1", "name": "Wigan"}
+
+
+def test_fetch_accepts_any_2xx_and_lets_the_body_decide(monkeypatch, tmp_path):
+    """Some open-data portals answer a CSV download with 202. `describe` is the
+    real arbiter of whether a body is data, so the status check must not be the
+    thing that discards a good file."""
+    _serve(
+        monkeypatch,
+        [
+            FakeResponse(
+                status_code=202,
+                headers={"content-type": "text/csv"},
+                body=b"year,casualties\n2020,15\n",
+            )
+        ],
+    )
+    acquired = acquire.fetch("https://portal.example/d.csv", cache_dir=tmp_path)
+    assert acquired is not None
+    assert acquired.columns == ["year", "casualties"]
+
+
+def test_a_2xx_with_a_non_data_body_is_still_rejected(monkeypatch, tmp_path):
+    _serve(
+        monkeypatch,
+        [
+            FakeResponse(
+                status_code=202,
+                headers={"content-type": "text/csv"},
+                body=b"job queued, try again later\n",
+            )
+        ],
+    )
+    assert acquire.fetch("https://portal.example/d.csv", cache_dir=tmp_path) is None

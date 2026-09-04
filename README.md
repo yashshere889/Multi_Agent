@@ -808,6 +808,47 @@ contract as the dataset lookup: every failure leaves the input a
 `real_download` that the generated code fetches exactly as it did before, so
 turning this on cannot lose an experiment that already worked.
 
+##### Finding a source nobody named
+
+`CODER_ENABLE_SOURCE_DISCOVERY=true` (default **false**, and needs the
+acquisition switch above) closes the remaining gap. `provenance.resolve` answers
+"what data is this plan entitled to use?" from hand-written tables, which is
+right for the two things a table knows and a search cannot — which sources are
+*restricted* (CMS, UK Biobank) and which need *credentials*. It is wrong for the
+ordinary case: a requirement matching no table becomes a surrogate, so the
+experiment invents its inputs, and for an arbitrary research plan that is most
+requirements.
+
+`agents/coder/discover.py` searches instead. Three connectors are tried in
+order — a URL or DOI the plan wrote down, the CKAN portals (`data.gov.uk`,
+`open.canada.ca`, `data.gov.au`, `data.europa.eu`, all speaking one
+`package_search` API), then Zenodo — and each candidate is handed to
+`acquire.fetch`, which doubles as the probe: a candidate that comes back as
+described tabular data is real, and one that does not is dropped. Adding a
+portal is one line; adding a catalogue is one function.
+
+Two deterministic gates decide what is even downloaded. A candidate must clear
+`is_relevant` — a *majority* of the requirement's content words shared with the
+catalogue record — and among those, the best-scoring candidate whose URL looks
+like a file is probed first, so a dataset's measurements are tried before its
+station list. Restricted and credentialed requirements are never searched for at
+all: those name real data that specifically was not obtained, and answering
+"CMS claims" with a municipal CSV is exactly the over-claim the provenance
+module exists to prevent.
+
+**A discovered input does not get a hypothesis verdict.** It is genuinely real
+data — on disk, checksummed, nothing invented — so it passes every
+synthetic-data test in the pipeline. What it has not passed is whether it
+answers *this* question. A live sweep of five requirements returned one clearly
+correct dataset, two that were real, plausible and wrong (a geographic reference
+table for a request about crime counts; COVID-19 case counts for one about pupil
+absence), and two honest misses. A refutation computed on the wrong real data
+reads as defensible in a way one computed on invented data does not, so
+`meets_success_criteria` becomes `"unknown"` and the experiment reports its
+metrics as "inconclusive" until a human checks the connector, query and landing
+page recorded for each discovered input in `data_provenance.json`. Staging the
+confirmed file under `CODER_DATA_DIR` is what makes the verdict reachable.
+
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags
 any `open`/`pandas.read_*`/`numpy.load` that isn't inside a `try` block, routing

@@ -46,6 +46,7 @@ class Settings:
     coder_data_dir: str
     coder_data_cache_dir: str
     coder_enable_data_acquisition: bool
+    coder_enable_source_discovery: bool
     coder_max_download_bytes: int
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
@@ -249,6 +250,17 @@ def load_settings() -> Settings:
         # failure out of the fix loop. Every failure degrades to the previous
         # behaviour, so turning it on cannot lose an experiment that worked.
         coder_enable_data_acquisition=_env_bool("CODER_ENABLE_DATA_ACQUISITION", False),
+        # A strictly larger claim than acquisition, so its own switch rather
+        # than riding on that one: acquisition fetches a source the plan (or the
+        # dataset lookup) *named*, while discovery goes and finds one for a
+        # requirement nobody named, by keyword search against open catalogues.
+        # That can turn an experiment that would have run on invented numbers
+        # into one that runs on real data — and it can also find real data that
+        # answers a slightly different question, which is why every discovered
+        # input records its query and catalogue record in data_provenance.json.
+        # Useless without CODER_ENABLE_DATA_ACQUISITION, which does the fetching.
+        # See src/research_pipeline/agents/coder/discover.py.
+        coder_enable_source_discovery=_env_bool("CODER_ENABLE_SOURCE_DISCOVERY", False),
         # Cap on a single fetched input. The right number on node-local NVMe and
         # the right number on a quota'd home directory are not the same, which
         # is why this is a setting and not the constant in acquire.py.

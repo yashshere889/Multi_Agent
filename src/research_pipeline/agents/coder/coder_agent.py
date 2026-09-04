@@ -116,6 +116,7 @@ from langgraph.types import Command, interrupt
 from research_pipeline.agents.coder import (
     acquire,
     diagnose,
+    discover,
     fix_pattern_store,
     huggingface_client,
     prompts,
@@ -778,6 +779,7 @@ class CoderAgent:
             "current_outcome": {},
             "current_hf_dataset": {},
             "current_acquisitions": {},
+            "current_discoveries": {},
             "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
@@ -812,13 +814,12 @@ class CoderAgent:
         `real_download` it was and the generated code fetching it as before —
         so a run with this on can only differ from a run with it off by having
         *more* real data, never less."""
-        return {
-            "current_acquisitions": self._acquire_data(
-                state["current_plan"],
-                state["network_available"],
-                state.get("current_hf_dataset") or {},
-            )
-        }
+        acquisitions, discoveries = self._acquire_data(
+            state["current_plan"],
+            state["network_available"],
+            state.get("current_hf_dataset") or {},
+        )
+        return {"current_acquisitions": acquisitions, "current_discoveries": discoveries}
 
     def _route_after_data_lookup(self, state: CoderState) -> str:
         """Whether this plan is worth generating code for at all.
@@ -838,6 +839,7 @@ class CoderAgent:
             state["network_available"],
             hf_dataset=state.get("current_hf_dataset") or {},
             acquisitions=state.get("current_acquisitions") or {},
+            discoveries=state.get("current_discoveries") or {},
         )
         return "generate" if provenance.all_real(sources) else "skip"
 
@@ -854,6 +856,7 @@ class CoderAgent:
             state["network_available"],
             hf_dataset=state.get("current_hf_dataset") or {},
             acquisitions=state.get("current_acquisitions") or {},
+            discoveries=state.get("current_discoveries") or {},
         )
         unresolved = [s.name for s in sources if not s.is_real]
         logger.info(
@@ -887,6 +890,7 @@ class CoderAgent:
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
                 state.get("current_acquisitions") or {},
+                state.get("current_discoveries") or {},
             )
         except CoderAgentError as exc:
             # A generation whose format can't be parsed is a per-plan failure,
@@ -918,6 +922,7 @@ class CoderAgent:
             state.get("current_starter_id", ""),
             state.get("current_hf_dataset") or {},
             state.get("current_acquisitions") or {},
+            state.get("current_discoveries") or {},
         )
 
         update: dict = {
@@ -1082,6 +1087,7 @@ class CoderAgent:
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
                 acquisitions=state.get("current_acquisitions") or {},
+                discoveries=state.get("current_discoveries") or {},
                 stuck_streak=streak,
                 previous_error_summary=previous_error_summary,
                 target_sections=target_sections,
@@ -1311,6 +1317,7 @@ class CoderAgent:
         starter_id: str = "",
         hf_dataset: dict | None = None,
         acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -1700,6 +1707,7 @@ class CoderAgent:
             hf_dataset=hf_dataset,
             run_py=run_py,
             acquisitions=acquisitions,
+            discoveries=discoveries,
         )
         provenance_document = provenance.write(sources, experiment_dir / "data_provenance.json")
         results = provenance.apply_to_results(results, sources)
@@ -2299,34 +2307,51 @@ class CoderAgent:
 
     def _acquire_data(
         self, plan: dict, network_available: bool, hf_dataset: dict
-    ) -> dict[str, dict]:
-        """Fetch this plan's fetchable inputs to disk. {} when nothing was.
+    ) -> tuple[dict[str, dict], dict[str, dict]]:
+        """Get this plan's data onto disk. Returns (acquisitions, discoveries).
+
+        Two steps, in this order and not the other. First *discovery*, for the
+        requirements no source was named for at all — those are the ones that
+        otherwise become invented numbers, and a URL found for one is a URL the
+        second step can then fetch. Then *acquisition* over the whole resolved
+        list, which pulls the named downloads and finds the discovered ones
+        already in the cache from the probe that confirmed them.
 
         Same skip-without-a-request shape as _find_hf_dataset, and the same
-        never-raise contract: `acquire.fetch` already absorbs every network and
-        parse failure, so the try/except here is only for the unexpected — a
-        cache directory that cannot be created, say. An experiment must not go
+        never-raise contract: both modules absorb every network and parse
+        failure, so the try/except here is only for the unexpected — a cache
+        directory that cannot be created, say. An experiment must not go
         ungenerated because a download did not work; that is precisely the
-        coupling this module exists to break.
+        coupling these modules exist to break.
         """
         if not network_available or not settings.coder_enable_data_acquisition:
-            return {}
-        # Resolved without acquisitions (there are none yet) — this is the list
-        # of inputs that *could* be fetched, which is what we are about to try.
+            return {}, {}
+        cache_dir = Path(settings.coder_data_cache_dir)
+        max_bytes = settings.coder_max_download_bytes
+        # Resolved with neither map (there are none yet) — this is the list of
+        # inputs as the tables alone see them, which is what we are about to
+        # improve on.
         sources = self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
         try:
-            return acquire.acquire_sources(
-                sources,
-                cache_dir=Path(settings.coder_data_cache_dir),
-                max_bytes=settings.coder_max_download_bytes,
+            discoveries: dict[str, dict] = {}
+            if settings.coder_enable_source_discovery:
+                discoveries = discover.discover_sources(
+                    sources, cache_dir=cache_dir, max_bytes=max_bytes
+                )
+                # Applied before acquiring so a discovered requirement is a
+                # real_download with a uri by the time acquire_sources runs.
+                sources = discover.apply(sources, discoveries)
+            acquisitions = acquire.acquire_sources(
+                sources, cache_dir=cache_dir, max_bytes=max_bytes
             )
+            return acquisitions, discoveries
         except Exception as exc:  # noqa: BLE001 — see the docstring
             logger.warning(
                 "Data acquisition raised for %s; generating without it: %s",
                 plan["hypothesis_id"],
                 exc,
             )
-            return {}
+            return {}, {}
 
     def _provenance_for(
         self,
@@ -2335,6 +2360,7 @@ class CoderAgent:
         hf_dataset: dict | None = None,
         run_py: str | None = None,
         acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2344,11 +2370,12 @@ class CoderAgent:
         that one is a real network call with its own cache and retry policy, and
         this is a pure function of the plan.
 
-        `acquisitions` keeps that true now that inputs can also be *fetched*:
-        the fetching happens once, in its own node, and what arrives here is the
-        record of what landed on disk. `acquire.apply` is a pure rewrite over
-        it, so this stays callable at prompt time, after generation and at
-        finalize without a second download.
+        `acquisitions` and `discoveries` keep that true now that inputs can also
+        be *fetched* and *searched for*: both happen once, in the acquire_data
+        node, and what arrives here are the records of what was found and what
+        landed on disk. `discover.apply` and `acquire.apply` are pure rewrites
+        over them, so this stays callable at prompt time, after generation and
+        at finalize without a second search or a second download.
         """
         requirements = provenance.split_requirements(
             (plan.get("data_requirements") or {}).get("source") or "",
@@ -2397,11 +2424,18 @@ class CoderAgent:
                 ),
             )
 
-        # Before verify_downloads_used, deliberately. That check asks whether
-        # the *code* went and fetched a declared download; an input this
+        # Two pure rewrites, composed, in this order. `discover.apply` gives a
+        # requirement nothing was named for the uri that was found for it;
+        # `acquire.apply` then promotes any uri whose bytes are already on disk
+        # to real_local. Discovered inputs therefore travel the same path as
+        # named ones and differ downstream only in what their `reason` says.
+        #
+        # Both run before verify_downloads_used, deliberately. That check asks
+        # whether the *code* went and fetched a declared download; an input this
         # pipeline already fetched is not a question the code text can answer,
         # and leaving it a `real_download` here would have code reading a local
         # CSV (naming no host) downgraded to a surrogate for it.
+        sources = discover.apply(sources, discoveries)
         sources = acquire.apply(sources, acquisitions)
 
         # Order matters. Confirm which declared inputs the code really reads,
@@ -2507,6 +2541,7 @@ class CoderAgent:
         hf_dataset: dict | None = None,
         starter_id: str = "",
         acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
@@ -2519,7 +2554,11 @@ class CoderAgent:
                 # `synthesize_` generator, contradicting hf_dataset_block in the
                 # very same prompt.
                 self._provenance_for(
-                    plan, network_available, hf_dataset=hf_dataset, acquisitions=acquisitions
+                    plan,
+                    network_available,
+                    hf_dataset=hf_dataset,
+                    acquisitions=acquisitions,
+                    discoveries=discoveries,
                 )
             ),
             starter_block=self._starter_block(starter_id),
@@ -2548,6 +2587,7 @@ class CoderAgent:
         hf_dataset: dict | None = None,
         starter_id: str = "",
         acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
         stuck_streak: int = 0,
         previous_error_summary: str = "",
         target_sections: list[str] | None = None,
@@ -2587,7 +2627,11 @@ class CoderAgent:
                 # described as the real input to read, not as a surrogate to
                 # replace with a `synthesize_` generator.
                 self._provenance_for(
-                    plan, network_available, hf_dataset=hf_dataset, acquisitions=acquisitions
+                    plan,
+                    network_available,
+                    hf_dataset=hf_dataset,
+                    acquisitions=acquisitions,
+                    discoveries=discoveries,
                 )
             ),
             starter_block=self._starter_block(starter_id),

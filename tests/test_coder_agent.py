@@ -5007,3 +5007,179 @@ def test_require_real_data_sees_the_fetch_before_deciding_to_skip(
     # already run when _route_after_data_lookup resolved the sources.
     inputs = result["experiments"][0]["data_provenance"]["inputs"]
     assert [entry["kind"] for entry in inputs if entry.get("acquired")] == ["real_local"]
+
+
+# ---------------------------------------------------------------------------
+# Source discovery (agents/coder/discover.py) — wired into the same node.
+#
+# discover.py's own behaviour (connectors, the relevance gate, the probe cap)
+# is covered in tests/test_coder_discover.py. These are about the wiring.
+# ---------------------------------------------------------------------------
+
+
+def _plan_needing_data(hid="H1"):
+    """A plan whose data requirement names no source — the case that becomes an
+    invented input today, and the only case discovery is allowed to answer."""
+    plan = _plan(hid)
+    plan["data_requirements"] = {
+        "source": "bicycle collision casualty records",
+        "description": "reported cycling casualties by year",
+        "preprocessing_steps": [],
+    }
+    return plan
+
+
+@pytest.fixture
+def discovery_on(monkeypatch, tmp_path, acquisition_on):
+    """Discovery enabled, with the catalogues faked to offer one relevant CSV."""
+    from research_pipeline.agents.coder import discover
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    searched = []
+
+    def fake_search(requirement):
+        searched.append(requirement)
+        return [
+            discover.Candidate(
+                name=requirement,
+                url="https://data.example/collisions.csv",
+                connector="ckan:data.gov.uk",
+                title="Reported road collisions and casualties",
+                description="Bicycle collision casualty records by year",
+                landing_page="https://www.data.gov.uk/dataset/collisions",
+            )
+        ]
+
+    monkeypatch.setattr(discover, "CONNECTORS", [("fake", fake_search)])
+    return searched
+
+
+def _collisions_csv_response():
+    class _Response:
+        status_code = 200
+        headers = {"content-type": "text/csv"}
+        is_redirect = False
+        is_permanent_redirect = False
+
+        def iter_content(self, chunk_size=65536):
+            yield b"year,casualties\n2020,15\n2021,18\n"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    return _Response()
+
+
+def test_a_discovered_source_turns_an_invented_input_into_a_real_one(
+    tmp_path, monkeypatch, discovery_on
+):
+    from research_pipeline.agents.coder import acquire
+
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    assert discovery_on == ["bicycle collision casualty records"]
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs] == ["real_local"]
+    assert result["experiments"][0]["data_provenance"]["all_inputs_real"] is True
+    # The audit trail: what was searched, by which connector, and which record.
+    assert inputs[0]["discovered"]["connector"] == "ckan:data.gov.uk"
+    assert inputs[0]["discovered"]["landing_page"] == ("https://www.data.gov.uk/dataset/collisions")
+    assert inputs[0]["acquired"]["columns"] == ["year", "casualties"]
+
+    # Real data, and still not a verdict: nobody named this dataset, so the
+    # experiment runs on it and reports its metrics while the hypothesis stays
+    # inconclusive until a human checks the landing page. A live sweep found two
+    # of five discovered datasets were real, plausible and wrong — see
+    # provenance.needs_confirmation.
+    exp = result["experiments"][0]
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["data_provenance"]["unconfirmed_discovered_inputs"] == [
+        "bicycle collision casualty records"
+    ]
+    assert "found by keyword search" in exp["results"]["verdict_withheld_because"]
+
+
+def test_the_model_is_told_the_source_was_discovered_not_named(tmp_path, monkeypatch, discovery_on):
+    from research_pipeline.agents.coder import acquire
+
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model, network_check=lambda: True).run(_planner_output([_plan_needing_data()]))
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "no source was named for this input" in prompt
+    assert "Columns: year, casualties" in prompt
+    assert "say so in assumptions_made rather than synthesizing" in prompt
+    # And it is no longer ordered to write a generator for this input.
+    block = prompt[prompt.index("RESOLVED DATA INPUTS") :]
+    assert "SURROGATE" not in block
+
+
+def test_discovery_is_skipped_without_the_setting(tmp_path, monkeypatch, acquisition_on):
+    """The default. No catalogue is searched and the input stays a surrogate."""
+    from research_pipeline.agents.coder import discover
+
+    monkeypatch.setattr(
+        discover,
+        "CONNECTORS",
+        [("fake", lambda r: pytest.fail("no catalogue may be searched with discovery off"))],
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs] == ["synthetic_surrogate"]
+    assert result["experiments"][0]["results"]["meets_success_criteria"] == "unknown"
+
+
+def test_discovery_runs_once_per_plan_not_once_per_fix_attempt(tmp_path, monkeypatch, discovery_on):
+    from research_pipeline.agents.coder import acquire
+
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS, "imports": "import ("})],
+        fix=[_codegen_response()],
+    )
+    _agent(tmp_path, model, network_check=lambda: True).run(_planner_output([_plan_needing_data()]))
+
+    assert len(model.prompts_by_kind["fix"]) == 1, "the fix loop ran"
+    assert len(discovery_on) == 1, "four catalogue searches are not repeated per attempt"
+    assert "no source was named for this input" in model.prompts_by_kind["fix"][0]
+
+
+def test_a_failing_discovery_leaves_the_input_a_surrogate(tmp_path, monkeypatch, acquisition_on):
+    """Degradation: nothing relevant found means the experiment is generated
+    exactly as it was, on a documented surrogate, with the verdict withheld."""
+    from research_pipeline.agents.coder import discover
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        discover, "CONNECTORS", [("dead", lambda r: (_ for _ in ()).throw(RuntimeError("down")))]
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert [entry["kind"] for entry in exp["data_provenance"]["inputs"]] == ["synthetic_surrogate"]
