@@ -1524,3 +1524,107 @@ def check_training_batching(
         "validation split for early stopping. If full-batch training is genuinely intended for "
         "this method, say so in assumptions_made and this will be accepted"
     ]
+
+
+# --------------------------------------------------------------------------
+# Did the training run actually finish?
+#
+# These two are the "train it properly" loop. They are deliberately blind to
+# which arm wins: `check_training_convergence` asks the same question of every
+# curve it is given, so it fires on an under-trained *baseline* exactly as
+# readily as on an under-trained treatment. That symmetry is what separates it
+# from a retry on `meets_success_criteria`, which would regenerate until the
+# hypothesis came out supported and manufacture the verdict the provenance gate
+# exists to protect. Nothing here reads a success flag or a comparison.
+# --------------------------------------------------------------------------
+
+TRAINING_HISTORY_KEY = "training_history"
+# A curve shorter than this cannot show a plateau, whatever it does.
+CONVERGENCE_MIN_EPOCHS = 10
+# Mean loss over the final quarter of training, against the quarter before it.
+# Still improving by more than this fraction means the curve was cut off on its
+# way down — the model had more to learn and the epoch budget ran out. A
+# heuristic, and about training dynamics rather than about the result.
+CONVERGENCE_IMPROVEMENT_THRESHOLD = 0.05
+
+
+def trains_with_torch_optimizer(code: str) -> bool:
+    """Whether `code` runs an iterative optimizer loop worth asking about."""
+    try:
+        return bool(_optimizer_step_calls(ast.parse(code)))
+    except SyntaxError:
+        return False
+
+
+def _curves(metrics: dict) -> dict[str, list[float]]:
+    history = metrics.get(TRAINING_HISTORY_KEY)
+    if not isinstance(history, dict):
+        return {}
+    curves = {}
+    for name, values in history.items():
+        if isinstance(values, list) and all(isinstance(v, (int, float)) for v in values):
+            curves[str(name)] = [float(v) for v in values]
+    return curves
+
+
+def check_training_diagnostics(metrics: dict, trains_with_optimizer: bool) -> list[str]:
+    """Every arm's per-epoch loss must reach results.json.
+
+    Barkla job 10424865 accumulated `baseline_losses` and `enhanced_losses`
+    every epoch and reported neither, so results.json carried four MAE/RMSE
+    numbers and no way to tell "this architecture is worse" from "this
+    architecture never trained" — which is the difference between a finding and
+    an artefact, and the gap was 18x.
+
+    A quantity the experiment computes and discards is the same defect class as
+    a constant it declares and ignores (check_unused_configuration); this one
+    just costs the reader rather than the run.
+    """
+    if not trains_with_optimizer:
+        return []
+    if not _curves(metrics):
+        return [
+            f"the experiment trains with an iterative optimizer but results.json has no "
+            f"'{TRAINING_HISTORY_KEY}' — return it from evaluate() as "
+            "{'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a "
+            "reader can tell a model that learned something worse from one that never learned"
+        ]
+    return []
+
+
+def check_training_convergence(metrics: dict, trains_with_optimizer: bool) -> list[str]:
+    """Whether each arm's loss curve had stopped improving when training ended.
+
+    Asked of every curve independently and identically — see this section's
+    header for why that symmetry is the whole safety property.
+    """
+    if not trains_with_optimizer:
+        return []
+
+    findings = []
+    for name, curve in _curves(metrics).items():
+        if len(curve) < CONVERGENCE_MIN_EPOCHS:
+            findings.append(
+                f"'{name}' trained for only {len(curve)} epoch(s), too few to show convergence"
+            )
+            continue
+        quarter = max(1, len(curve) // 4)
+        recent = sum(curve[-quarter:]) / quarter
+        previous = sum(curve[-2 * quarter : -quarter]) / quarter
+        if previous <= 0:
+            continue
+        improvement = (previous - recent) / abs(previous)
+        if improvement > CONVERGENCE_IMPROVEMENT_THRESHOLD:
+            findings.append(
+                f"'{name}' was still improving when training stopped — mean loss fell "
+                f"{improvement:.1%} over the final quarter of {len(curve)} epochs "
+                f"({previous:.4g} -> {recent:.4g}), so the epoch budget ran out before the "
+                "model converged"
+            )
+    if not findings:
+        return []
+    return findings + [
+        "Train every arm to convergence before comparing them: raise the epoch budget, and stop "
+        "on the validation split rather than at a fixed epoch count. A comparison between models "
+        "that have not converged measures the training budget, not the thing under test"
+    ]

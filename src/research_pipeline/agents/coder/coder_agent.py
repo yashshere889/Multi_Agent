@@ -174,6 +174,10 @@ _ERROR_STAGE_ORDER = [
     "run_experiment",
     "results_json",
     "implausible_results",
+    # The latest checks there are: both need a completed run *and* its metrics,
+    # so reaching either means every earlier stage passed.
+    "missing_diagnostics",
+    "not_converged",
 ]
 
 
@@ -1727,6 +1731,32 @@ class CoderAgent:
             return {
                 "error_source": "implausible_results",
                 "error_text": f"results.json's metrics look hollow: {'; '.join(plausibility_findings)}",
+            }
+
+        # "Train it properly" — the two checks that read the loss curves. Both
+        # are blind to which arm wins: convergence is asked of every curve
+        # identically, so an under-trained baseline is caught exactly as readily
+        # as an under-trained treatment. That symmetry is what makes this a
+        # repair rather than a retry on the verdict; nothing here reads
+        # meets_success_criteria, and a comparison between models that have not
+        # converged measures the epoch budget rather than the thing under test.
+        metrics = results.get("metrics") or {}
+        trains_iteratively = sandbox.trains_with_torch_optimizer(run_py)
+
+        diagnostics_findings = sandbox.check_training_diagnostics(metrics, trains_iteratively)
+        if diagnostics_findings:
+            return {
+                "error_source": "missing_diagnostics",
+                "error_text": (
+                    f"The run reports no training diagnostics: {'; '.join(diagnostics_findings)}"
+                ),
+            }
+
+        convergence_findings = sandbox.check_training_convergence(metrics, trains_iteratively)
+        if convergence_findings:
+            return {
+                "error_source": "not_converged",
+                "error_text": f"Training did not converge: {'; '.join(convergence_findings)}",
             }
 
         # The experiment ran and produced metrics. Whether those metrics are

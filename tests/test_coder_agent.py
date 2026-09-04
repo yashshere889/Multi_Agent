@@ -5629,3 +5629,101 @@ def test_neither_check_is_a_retry_on_bad_results():
         code = "\n".join(ast.unparse(node) for node in body)
         assert "meets_success_criteria" not in code
         assert "metrics" not in code
+
+
+# -- the "train it properly" checks --------------------------------------------
+#
+# From Barkla job 10424865: the run accumulated baseline_losses and
+# enhanced_losses every epoch, reported neither, and left an 18x gap that could
+# equally have been "this architecture is worse" or "this architecture never
+# trained". These two close that, without either of them being able to see which
+# arm won.
+
+
+def _falling(n=40):
+    """A curve still descending steeply when the budget ran out."""
+    return [10.0 * (0.9**i) for i in range(n)]
+
+
+def _plateaued(n=40):
+    return [10.0 * (0.5**i) if i < 10 else 0.0098 for i in range(n)]
+
+
+def test_training_diagnostics_requires_a_loss_curve_per_arm():
+    findings = sandbox.check_training_diagnostics({"mae": 0.5}, trains_with_optimizer=True)
+    assert len(findings) == 1
+    assert sandbox.TRAINING_HISTORY_KEY in findings[0]
+
+
+def test_training_diagnostics_ignores_a_run_with_no_optimizer():
+    """An sklearn fit or a statistical test has no curve to report."""
+    assert sandbox.check_training_diagnostics({"mae": 0.5}, trains_with_optimizer=False) == []
+
+
+def test_training_diagnostics_accepts_a_reported_history():
+    metrics = {"training_history": {"baseline": _plateaued(), "enhanced": _plateaued()}}
+    assert sandbox.check_training_diagnostics(metrics, trains_with_optimizer=True) == []
+
+
+def test_convergence_flags_a_curve_still_falling():
+    metrics = {"training_history": {"enhanced": _falling()}}
+    findings = sandbox.check_training_convergence(metrics, trains_with_optimizer=True)
+    assert findings and "still improving" in findings[0]
+    assert "measures the training budget" in findings[-1]
+
+
+def test_convergence_accepts_a_plateaued_curve():
+    metrics = {"training_history": {"baseline": _plateaued(), "enhanced": _plateaued()}}
+    assert sandbox.check_training_convergence(metrics, trains_with_optimizer=True) == []
+
+
+def test_convergence_flags_a_curve_too_short_to_judge():
+    metrics = {"training_history": {"baseline": [5.0, 4.0, 3.0]}}
+    findings = sandbox.check_training_convergence(metrics, trains_with_optimizer=True)
+    assert findings and "too few to show convergence" in findings[0]
+
+
+def test_convergence_is_blind_to_which_arm_is_winning():
+    """The safety property. The same curve is judged the same way whether it
+    belongs to the baseline or the treatment, and whether it is the better or
+    the worse arm — so this can fix undertraining but never favour a verdict."""
+    as_baseline = sandbox.check_training_convergence(
+        {"training_history": {"baseline": _falling(), "enhanced": _plateaued()}}, True
+    )
+    as_enhanced = sandbox.check_training_convergence(
+        {"training_history": {"baseline": _plateaued(), "enhanced": _falling()}}, True
+    )
+    assert len(as_baseline) == len(as_enhanced) == 2
+    assert as_baseline[0].replace("baseline", "X") == as_enhanced[0].replace("enhanced", "X")
+
+
+def test_convergence_ignores_a_malformed_history():
+    for history in ({"a": "not a list"}, {"a": [1, "two"]}, [], "nope", None):
+        metrics = {"training_history": history}
+        assert sandbox.check_training_convergence(metrics, trains_with_optimizer=True) == []
+
+
+def test_trains_with_torch_optimizer():
+    assert sandbox.trains_with_torch_optimizer("optimizer_baseline.step()")
+    assert not sandbox.trains_with_torch_optimizer("scheduler.step()")
+    assert not sandbox.trains_with_torch_optimizer("model.fit(X, y)")
+    assert not sandbox.trains_with_torch_optimizer("def f(")
+
+
+def test_the_convergence_loop_never_reads_the_verdict():
+    """The line this must not cross, enforced structurally rather than by
+    review: a retry keyed on meets_success_criteria would regenerate until the
+    hypothesis came out supported."""
+    import ast as _ast
+    import inspect
+    import textwrap
+
+    for fn in (sandbox.check_training_convergence, sandbox.check_training_diagnostics):
+        tree = _ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        function = tree.body[0]
+        assert isinstance(function, _ast.FunctionDef)
+        assert "meets_success_criteria" not in [a.arg for a in function.args.args]
+        body = function.body[1:] if _ast.get_docstring(function) else function.body
+        code = "\n".join(_ast.unparse(node) for node in body)
+        assert "meets_success_criteria" not in code
+        assert "success" not in code

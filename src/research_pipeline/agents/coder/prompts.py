@@ -264,6 +264,14 @@ do not write results.json yourself, the template does that:
     "meets_success_criteria": true | false | "unknown"   (use "unknown" only \
 if genuinely inconclusive given what could actually be computed here)
     "success_notes": "1-3 sentences on what happened and why"
+  If you train any model with an iterative optimizer, the returned dict must \
+ALSO include "training_history": {{"<arm name>": [mean training loss for each \
+epoch, ...]}} with one entry per arm you trained. Two things depend on it: a \
+reader can tell a model that learned something worse from one that never \
+learned, and every arm is checked for convergence — an arm whose loss is still \
+falling when the epoch budget runs out is sent back to be trained longer, \
+whichever arm it is. Train to convergence and stop on the validation split \
+rather than at a fixed epoch count.
   helpers                - optional extra helper function(s) used by the \
 functions above. Empty section if none are needed.
   readme                  - full README.md contents: which hypothesis this \

@@ -40,6 +40,15 @@ VALID_ERROR_SOURCES = {
     # tensor: as many gradient updates as epochs, which measures the training
     # budget rather than the thing under test. See sandbox.check_training_batching.
     "missing_batching",
+    # The run trains with an iterative optimizer and reports no per-arm loss
+    # curve, so nothing can tell a model that learned something worse from one
+    # that never learned. See sandbox.check_training_diagnostics.
+    "missing_diagnostics",
+    # An arm's loss was still falling when the epoch budget ran out — the
+    # comparison measures the budget rather than the thing under test. Asked of
+    # every arm identically, so it can never favour one. See
+    # sandbox.check_training_convergence.
+    "not_converged",
     "run_experiment",
     # The four below split cases off `run_experiment`, which used to absorb
     # every runtime failure regardless of kind. Each needs a different repair
