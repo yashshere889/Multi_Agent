@@ -5379,3 +5379,56 @@ def test_model_sourcing_does_not_change_the_verdict_rule(tmp_path, monkeypatch, 
     assert exp["data_provenance"]["unconfirmed_discovered_inputs"] == [
         "bicycle collision casualty records"
     ]
+
+
+# -- static_safety_check must not flag attribute calls -------------------------
+#
+# Regression for Barkla job 10423680: `\beval\s*\(` matched `model.eval()`,
+# because `.` is a word boundary. The plan spent all three fix attempts
+# regenerating correct code and was reported code_generated_not_run. A false
+# positive here is strictly worse than a missing pattern — the model cannot fix
+# a finding about code that has no defect.
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "baseline_model.eval()",
+        "enhanced_model.eval()\n    with torch.no_grad():\n        pass",
+        "self.model.eval()",
+        "cursor.exec(query)",
+        "session.exec(statement)",
+        "results = df.eval('a + b')",  # pandas.DataFrame.eval, also legitimate
+    ],
+)
+def test_static_safety_check_allows_attribute_calls(code):
+    assert sandbox.static_safety_check(code) == []
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        ("result = eval(user_input)", "eval"),
+        ("eval(payload)", "eval"),
+        ("x = 1; exec(code)", "exec"),
+        ("mod = __import__(name)", "__import__"),
+        ("value = eval  ( expr )", "eval"),
+    ],
+)
+def test_static_safety_check_still_flags_the_bare_builtins(code, expected):
+    findings = sandbox.static_safety_check(code)
+    assert findings, f"{code!r} should still be flagged"
+    assert expected in findings[0]
+
+
+def test_the_pytorch_inference_idiom_is_clean_end_to_end():
+    """The exact shape job 10423680 generated and was punished for."""
+    code = (
+        "def run_experiment(data, model):\n"
+        "    baseline_model, enhanced_model = model\n"
+        "    baseline_model.eval()\n"
+        "    enhanced_model.eval()\n"
+        "    with torch.no_grad():\n"
+        "        return {'preds': enhanced_model(data)}\n"
+    )
+    assert sandbox.static_safety_check(code) == []

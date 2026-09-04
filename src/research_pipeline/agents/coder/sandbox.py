@@ -392,10 +392,19 @@ def check_undefined_names(source: str) -> list[tuple[int, str]]:
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
+# `(?<![\w.])` rather than `\b` in front of the bare builtins below. A `.` is a
+# word boundary, so `\beval\s*\(` matches `model.eval()` — PyTorch's switch to
+# evaluation mode, which every generated inference path correctly contains. That
+# false positive cost Barkla job 10423680 its whole fix budget: three
+# regenerations, the byte-identical `eval() call` finding each time, and a plan
+# reported `code_generated_not_run` over code that was right. The model cannot
+# fix a finding about code that has no defect, which is what makes a false
+# positive here strictly worse than a missing pattern. The same shape would hit
+# `cursor.exec()` and `session.exec()`.
 DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\b__import__\s*\(", "dynamic __import__() call"),
+    (r"(?<![\w.])eval\s*\(", "eval() call"),
+    (r"(?<![\w.])exec\s*\(", "exec() call"),
+    (r"(?<![\w.])__import__\s*\(", "dynamic __import__() call"),
     (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
     (r"\bos\.system\s*\(", "os.system() call"),
     (r"\bos\.popen\s*\(", "os.popen() call"),
