@@ -317,6 +317,20 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   wrong real data reads as defensible in a way one computed on invented data does not. `all_real`
   stays true for these — nothing was invented — which is why the two predicates are separate and
   why `CODER_REQUIRE_REAL_DATA`'s routing still lets such a plan through.
+- **The model may nominate a data source; it may never confirm one.** `_choose_data_source` and
+  `_propose_data_sources` live on the agent and are *passed into* `discover.py`, which still calls
+  no model. `rank_with` validates a choice to be indices into the list the model was shown, so it
+  reorders and rejects but cannot invent; a proposed URL goes through the same safety gate, fetch
+  and parse as any other. Keep both properties when adding a third model use here.
+- **`None` and `[]` from a chooser mean different things.** `[]` is "I looked and none of these
+  fit", honoured by leaving a labelled surrogate; `None` is "no answer was obtained", which falls
+  back to keyword ordering. Collapsing them would let one bad model call throw away a requirement
+  keyword ranking would have resolved.
+- **Candidates are pooled across connectors before ranking, and `direct` is not.** A chooser asked
+  one catalogue at a time can only pick the best of four when the honest answer is "none of these,
+  but that Zenodo one". A URL the plan itself asserted needs no ranking, so it is probed
+  immediately and the catalogues are never searched if it works. The probe budget is shared across
+  both, so a dead direct link cannot hand the catalogues a fresh one.
 - **The relevance gate is a fraction, not a count.** `RELEVANCE_FRACTION` requires a majority of
   the requirement's content words. A flat two-word bar measured as vacuous against real
   catalogues — 396 of 396 CKAN candidates cleared it — because the query sent to the catalogue is

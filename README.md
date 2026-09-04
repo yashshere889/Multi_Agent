@@ -849,6 +849,37 @@ metrics as "inconclusive" until a human checks the connector, query and landing
 page recorded for each discovered input in `data_provenance.json`. Staging the
 confirmed file under `CODER_DATA_DIR` is what makes the verdict reachable.
 
+##### Letting the model take part, without letting it decide
+
+`CODER_ENABLE_MODEL_DATA_SOURCING=true` (default **false**, needs the discovery
+switch) adds the model in the two places keyword search measurably falls down.
+
+**Choosing which file holds the data.** A catalogue hit with the right title
+routinely contains files that are not the data — a station list, a geographic
+reference table, a data dictionary. Those score well on keywords and are wrong,
+and they are two of the five outcomes in the sweep above. So candidates from
+every connector are pooled, and the model is shown each one's title, *resource
+name*, description and URL, and asked which it would actually defend. Its answer
+is validated to be indices into the list it was shown, so it can reorder and
+reject but never invent one; an empty answer means "none of these", which leaves
+the requirement a labelled surrogate — the right outcome. Rejection matters as
+much as ranking: a chooser that keeps the wrong candidates in the list still
+loses when the right one fails to download, because probing falls through to the
+next.
+
+**Naming a source when no catalogue had one.** Tried last, and only after every
+catalogue has missed, because a catalogue hit is a file someone published and
+described while a proposed URL is the model's recollection of a URL shape. Each
+proposed URL goes through exactly the same gate as any other — the safety check,
+the fetch, the parse — so an invented one costs a download and can never become
+a source. That is what makes it safe to let the model guess at all.
+
+None of this changes the verdict rule. A model reading real resource names is a
+better *filter* than keyword overlap, but whether a dataset answers a research
+question is not something Python can verify, so a discovered input stays
+inconclusive whoever picked it. What the model buys is fewer wrong datasets
+reaching an experiment, and more requirements resolved rather than missed.
+
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags
 any `open`/`pandas.read_*`/`numpy.load` that isn't inside a `try` block, routing

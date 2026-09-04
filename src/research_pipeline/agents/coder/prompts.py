@@ -415,3 +415,74 @@ Return the files using EXACTLY this delimited format:
     + "\n\n"
     + SHARED_INFRA_FORMAT_RULES
 )
+
+
+# --------------------------------------------------------------------------
+# Data sourcing (agents/coder/discover.py). Both prompts ask only for short
+# structured fields, so they stay on llm_json.py rather than llm_sections.py —
+# no source code crosses either of them.
+#
+# Neither response is trusted. The selection prompt's answer is validated to be
+# indices into the list the model was shown, so it can reorder and reject but
+# never invent; the proposal prompt's URLs are fetched and parsed before
+# anything is allowed to call them a source. The model nominates, Python rules.
+# --------------------------------------------------------------------------
+
+DATA_SOURCE_SELECTION_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+An open-data catalogue search returned the candidate files below. Each is a \
+real, downloadable file — the question is not whether they exist, it is which \
+one (if any) actually contains the data described above.
+
+{candidate_block}
+
+Read the RESOURCE line especially carefully. A dataset with the right title \
+routinely contains files that are not the data itself — a station list, a \
+geographic reference table, a data dictionary, a coverage summary. Those look \
+relevant and are not.
+
+Return ONLY this JSON object:
+
+{{"ranked": [<candidate numbers, best first>], "why": "<one sentence>"}}
+
+Rules:
+- Include a candidate's number ONLY if you believe that file plausibly contains \
+the data described. Leave out anything you would not defend.
+- If none of them do, return {{"ranked": [], "why": "..."}}. That is a useful \
+answer, not a failure — the experiment will use clearly-labelled synthetic data \
+instead, which is far better than real data that answers a different question.
+- Use only the numbers shown. Do not invent candidates or URLs.
+"""
+
+DATA_SOURCE_PROPOSAL_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+No open-data catalogue had a match. Name up to {max_sources} URLs that would \
+serve this data directly.
+
+Each URL must be:
+- a direct download or a REST endpoint that returns CSV or JSON when fetched \
+with an ordinary GET — never a landing page, a search page, a documentation \
+page, or a link to a page that has a download button on it;
+- https, publicly accessible, and needing no API key, login, or signed request;
+- complete, with every query parameter already filled in. A URL with a \
+placeholder in it is worse than no URL.
+
+Prefer well-known public APIs and government or institutional open-data \
+endpoints whose URL structure you are confident about. Fewer real URLs beat \
+more guesses: every one is fetched and discarded if it does not return usable \
+data, so a plausible-looking invention costs the experiment a download and \
+gains it nothing.
+
+Return ONLY this JSON object:
+
+{{"sources": [{{"url": "<complete URL>", "name": "<what this serves>", \
+"format": "<csv|json>"}}], "why": "<one sentence>"}}
+
+If you do not know a real URL that meets these rules, return \
+{{"sources": [], "why": "..."}}. An empty list is the correct answer when you \
+would otherwise be guessing.
+"""

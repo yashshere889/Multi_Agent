@@ -46,9 +46,13 @@ Two things this module deliberately does **not** do:
   cheerful municipal CSV is precisely the over-claim `provenance` exists to
   prevent. Only `unresolved` entries are ever searched for — the same rule
   `provenance.supersede_unresolved` already applies for the same reason.
-- **Ask a model anything.** The catalogues are searched with keywords derived
-  from the requirement text, and Python decides what came back. Model-proposed
-  sources are a later step, and would arrive as another connector here.
+- **Call a model.** A model can now take part in sourcing, but only through
+  callables the caller injects: `coder_agent` owns the LLM and passes in a
+  connector that proposes URLs and a `chooser` that ranks candidates. Neither
+  is trusted — a proposed URL is fetched and parsed before it counts as
+  anything, and a chooser may only reorder and reject candidates that already
+  exist, never invent one. The model nominates, Python rules, and this module
+  stays testable without an LLM.
 
 Same two contracts as the rest of `agents/coder/`: nothing raises (every failure
 degrades to no candidates, leaving the requirement the surrogate it already
@@ -115,6 +119,10 @@ ZENODO_RECORDS_URL = "https://zenodo.org/api/records"
 # download, so the second number is the one that costs wall clock.
 MAX_HITS_PER_CONNECTOR = 10
 MAX_CANDIDATES_PROBED = 6
+# How many candidates a chooser is shown. Bounds the prompt: a live search
+# returned 396 admitted candidates, and a model asked to rank all of them would
+# spend more tokens on the list than on the experiment.
+MAX_CANDIDATES_SHOWN = 20
 
 # Share of a requirement's content words a candidate must match. See
 # `is_relevant` for why this is a fraction rather than a fixed count.
@@ -143,6 +151,12 @@ _STOPWORDS = frozenset(
     real public open historical recent daily monthly yearly annual
     """.split()
 )
+
+
+# Injected by `coder_agent`, never constructed here. Given the requirement and
+# the candidates, returns the indices it would probe, best first — a subset, so
+# an empty list means "none of these", which is a legitimate and useful answer.
+Chooser = Callable[[str, list["Candidate"]], "list[int] | None"]
 
 
 @dataclass
@@ -458,12 +472,76 @@ CONNECTORS: list[tuple[str, Callable[[str], list[Candidate]]]] = [
 # --------------------------------------------------------------------------
 
 
+def rank_with(
+    requirement: str, candidates: list[Candidate], chooser: Chooser | None
+) -> list[Candidate]:
+    """Order the admitted candidates, and drop any the chooser rejects.
+
+    Without a chooser this is Phase 2's ordering exactly: best keyword score
+    first, and among equal scores a URL that looks like a file before one that
+    does not.
+
+    With one, the model gets to say which of these files actually contains the
+    data — the question keyword overlap cannot answer, and the one a measured
+    sweep got wrong twice in five (a geographic reference table returned for a
+    request about crime counts; COVID-19 case counts for one about pupil
+    absence). Its answer is validated to be indices into the list it was shown,
+    so it can reorder and reject but never invent; an empty answer means "none
+    of these", which leaves the requirement a labelled surrogate — the right
+    outcome, and better than real data answering a different question.
+
+    Rejection matters as much as ordering, and a live run showed why: a chooser
+    that ranks the right file first but keeps the wrong ones in the list still
+    loses when the right one fails to download, because probing falls straight
+    through to a candidate it merely ranked lower. That is why
+    DATA_SOURCE_SELECTION_PROMPT asks for a candidate's number only if the
+    model would defend it, rather than for a ranking of everything.
+
+    A chooser that raises or returns nothing usable falls back to the keyword
+    ordering rather than losing the requirement.
+    """
+    by_score = sorted(
+        candidates,
+        key=lambda c: (
+            relevance_score(requirement, c),
+            urlparse(c.url).path.lower().endswith(TABULAR_EXTENSIONS),
+        ),
+        reverse=True,
+    )
+    if chooser is None or len(by_score) < 2:
+        return by_score
+
+    shown = by_score[:MAX_CANDIDATES_SHOWN]
+    try:
+        ranked = chooser(requirement, shown)
+    except Exception as exc:  # noqa: BLE001 — a broken chooser is not fatal
+        logger.warning("Candidate chooser raised for %r: %s", requirement[:80], exc)
+        return by_score
+
+    if ranked is None:
+        return by_score
+    seen: set[int] = set()
+    chosen: list[Candidate] = []
+    for index in ranked:
+        if isinstance(index, int) and 0 <= index < len(shown) and index not in seen:
+            seen.add(index)
+            chosen.append(shown[index])
+    if not chosen:
+        logger.info(
+            "Chooser rejected all %d candidates for %r — leaving it a surrogate",
+            len(shown),
+            requirement[:80],
+        )
+    return chosen
+
+
 def find_source(
     requirement: str,
     *,
     cache_dir: Path,
     max_bytes: int = acquire.DEFAULT_MAX_BYTES,
     connectors: list[tuple[str, Callable[[str], list[Candidate]]]] | None = None,
+    chooser: Chooser | None = None,
 ) -> Candidate | None:
     """One real, fetched, relevant source for `requirement`, or None.
 
@@ -474,10 +552,37 @@ def find_source(
     candidate and acquiring it are one download, not two.
     """
     try:
-        return _find_source(requirement, cache_dir, max_bytes, connectors or CONNECTORS)
+        return _find_source(requirement, cache_dir, max_bytes, connectors or CONNECTORS, chooser)
     except Exception as exc:  # noqa: BLE001 — never raise; a miss is a surrogate
         logger.warning("Source discovery for %r failed unexpectedly: %s", requirement[:120], exc)
         return None
+
+
+def _probe(
+    requirement: str, candidates: list[Candidate], cache_dir: Path, max_bytes: int, budget: int
+) -> tuple[Candidate | None, int]:
+    """Fetch candidates in order until one is real data. Returns (hit, budget left)."""
+    for candidate in candidates:
+        if budget <= 0:
+            logger.info("Out of probe budget for %r", requirement[:80])
+            return None, 0
+        budget -= 1
+        acquired = acquire.fetch(
+            candidate.url, cache_dir=cache_dir, label=requirement, max_bytes=max_bytes
+        )
+        if acquired is None:
+            continue
+        logger.info(
+            "Discovered a source for %r via %s: %s / %s (%d rows) from %s",
+            requirement[:80],
+            candidate.connector,
+            candidate.title[:60] or candidate.url[:60],
+            candidate.resource[:60],
+            acquired.row_count,
+            candidate.landing_page[:120],
+        )
+        return candidate, budget
+    return None, budget
 
 
 def _find_source(
@@ -485,56 +590,41 @@ def _find_source(
     cache_dir: Path,
     max_bytes: int,
     connectors: list[tuple[str, Callable[[str], list[Candidate]]]],
+    chooser: Chooser | None = None,
 ) -> Candidate | None:
-    probed = 0
+    """Direct links first, then everything else pooled and ranked together.
+
+    The pooling is what a chooser needs: asked one catalogue at a time, a model
+    can only say "the best of these four", where the honest answer is often
+    "none of these, but that Zenodo one". `direct` stays outside the pool and is
+    probed as soon as it is found — a URL the plan itself asserted needs no
+    ranking, and searching four catalogues to second-guess it is waste.
+    """
+    budget = MAX_CANDIDATES_PROBED
+    gathered: list[Candidate] = []
+
     for connector_name, search in connectors:
         try:
             candidates = search(requirement)
         except Exception as exc:  # noqa: BLE001 — one broken catalogue is not fatal
             logger.warning("Connector %s raised for %r: %s", connector_name, requirement[:80], exc)
             continue
+        if connector_name == "direct":
+            # Exempt from the relevance gate too: the planner asserted this URL,
+            # and a keyword test would reject a bare link that carries no prose.
+            found, budget = _probe(requirement, candidates, cache_dir, max_bytes, budget)
+            if found is not None:
+                return found
+        else:
+            gathered.extend(candidates)
 
-        # Best-scoring first, and among equal scores a URL that looks like a
-        # file before one that does not: a dataset's measurements get probed
-        # before its station list, and a real CSV before the "Data Query Tool"
-        # landing page a catalogue happily declares to be CSV. Ranking only —
-        # the gate below still decides admission, so this reorders work but
-        # never lets anything new through.
-        if connector_name != "direct":
-            candidates = sorted(
-                candidates,
-                key=lambda c: (
-                    relevance_score(requirement, c),
-                    urlparse(c.url).path.lower().endswith(TABULAR_EXTENSIONS),
-                ),
-                reverse=True,
-            )
-
-        for candidate in candidates:
-            # `direct` is exempt: a URL the plan itself names is not a search
-            # result that has to argue for its relevance — the planner asserted
-            # it, and a keyword gate would reject a bare link with no prose.
-            if candidate.connector != "direct" and not is_relevant(requirement, candidate):
-                continue
-            if probed >= MAX_CANDIDATES_PROBED:
-                logger.info("Gave up on %r after probing %d candidates", requirement[:80], probed)
-                return None
-            probed += 1
-            acquired = acquire.fetch(
-                candidate.url, cache_dir=cache_dir, label=requirement, max_bytes=max_bytes
-            )
-            if acquired is None:
-                continue
-            logger.info(
-                "Discovered a source for %r via %s: %s (%d rows) from %s",
-                requirement[:80],
-                candidate.connector,
-                candidate.title[:80] or candidate.url[:80],
-                acquired.row_count,
-                candidate.landing_page[:120],
-            )
-            return candidate
-    return None
+    admitted = [c for c in gathered if is_relevant(requirement, c)]
+    if not admitted:
+        return None
+    found, _ = _probe(
+        requirement, rank_with(requirement, admitted, chooser), cache_dir, max_bytes, budget
+    )
+    return found
 
 
 def discover_sources(
@@ -543,6 +633,7 @@ def discover_sources(
     cache_dir: Path,
     max_bytes: int = acquire.DEFAULT_MAX_BYTES,
     connectors: list[tuple[str, Callable[[str], list[Candidate]]]] | None = None,
+    chooser: Chooser | None = None,
 ) -> dict[str, dict]:
     """Search for every requirement nothing could be resolved for. {name: record}.
 
@@ -559,7 +650,11 @@ def discover_sources(
         if source.name in discoveries:
             continue
         candidate = find_source(
-            source.name, cache_dir=cache_dir, max_bytes=max_bytes, connectors=connectors
+            source.name,
+            cache_dir=cache_dir,
+            max_bytes=max_bytes,
+            connectors=connectors,
+            chooser=chooser,
         )
         if candidate is not None:
             discoveries[source.name] = {**candidate.to_dict(), "query": query_for(source.name)}

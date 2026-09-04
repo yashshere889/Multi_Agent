@@ -631,3 +631,156 @@ def test_a_run_with_no_discovery_writes_the_document_it_always_did():
     document = provenance.as_document([staged])
     assert document["unconfirmed_discovered_inputs"] == []
     assert "discovered" not in document["inputs"][0]
+
+
+# --------------------------------------------------------------------------
+# The chooser: a model may reorder and reject, never invent
+# --------------------------------------------------------------------------
+
+
+def _scored(title, resource, url):
+    c = _candidate(title=title, url=url)
+    c.resource = resource
+    return c
+
+
+def test_rank_with_falls_back_to_keyword_order_without_a_chooser():
+    a = _scored("Air quality", "Sensor locations", "https://x.example/loc.csv")
+    b = _scored("Air quality", "Hourly PM2.5 measurements", "https://x.example/hourly.csv")
+    assert discover.rank_with("hourly PM2.5 measurements", [a, b], None) == [b, a]
+
+
+def test_rank_with_follows_the_choosers_order():
+    a = _scored("Air quality", "Hourly PM2.5 measurements", "https://x.example/hourly.csv")
+    b = _scored("Air quality", "Sensor locations", "https://x.example/loc.csv")
+    assert discover.rank_with("air quality", [a, b], lambda r, c: [1, 0]) == [b, a]
+
+
+def test_rank_with_drops_candidates_the_chooser_leaves_out():
+    """Rejecting is the point: the file with the right title is routinely a
+    station list or a data dictionary, not the data."""
+    a = _scored("Air quality", "Hourly PM2.5", "https://x.example/hourly.csv")
+    b = _scored("Air quality", "Geographic reference table", "https://x.example/ref.csv")
+    assert discover.rank_with("air quality", [a, b], lambda r, c: [0]) == [a]
+
+
+def test_an_empty_choice_means_none_of_these_and_is_honoured():
+    a = _scored("Livestock", "Sheep counts", "https://x.example/a.csv")
+    b = _scored("Livestock", "Cattle counts", "https://x.example/b.csv")
+    assert discover.rank_with("air quality", [a, b], lambda r, c: []) == []
+
+
+def test_a_chooser_cannot_invent_a_candidate():
+    a = _scored("Air quality", "Hourly PM2.5", "https://x.example/a.csv")
+    b = _scored("Air quality", "Sensor locations", "https://x.example/b.csv")
+    # Out of range, negative, duplicated, and the wrong type — all dropped.
+    ranked = discover.rank_with("air quality", [a, b], lambda r, c: [99, -1, 1, 1, "0", None])
+    assert ranked == [b]
+
+
+def test_a_raising_chooser_falls_back_to_keyword_order():
+    a = _scored("Air quality", "Sensor locations", "https://x.example/loc.csv")
+    b = _scored("Air quality", "Hourly PM2.5 measurements", "https://x.example/hourly.csv")
+
+    def boom(requirement, candidates):
+        raise RuntimeError("model is down")
+
+    assert discover.rank_with("hourly PM2.5 measurements", [a, b], boom) == [b, a]
+
+
+def test_a_chooser_returning_none_falls_back_rather_than_rejecting_everything():
+    """None and [] must not mean the same thing: [] is "I looked and none fit",
+    None is "no answer was obtained"."""
+    a = _scored("Air quality", "Hourly PM2.5", "https://x.example/a.csv")
+    b = _scored("Air quality", "Sensor locations", "https://x.example/b.csv")
+    assert discover.rank_with("air quality", [a, b], lambda r, c: None) == [a, b]
+
+
+def test_the_chooser_is_not_called_for_a_single_candidate(monkeypatch):
+    only = _scored("Air quality", "Hourly PM2.5", "https://x.example/a.csv")
+
+    def never(requirement, candidates):
+        pytest.fail("no model call is worth making to rank one candidate")
+
+    assert discover.rank_with("air quality", [only], never) == [only]
+
+
+def test_the_chooser_sees_at_most_the_shown_cap():
+    many = [_scored("Air quality", f"file {i}", f"https://x.example/{i}.csv") for i in range(50)]
+    seen = {}
+    discover.rank_with("air quality", many, lambda r, c: seen.setdefault("n", len(c)) and [])
+    assert seen["n"] == discover.MAX_CANDIDATES_SHOWN
+
+
+# --------------------------------------------------------------------------
+# Pooling across connectors, and where `direct` sits
+# --------------------------------------------------------------------------
+
+
+def test_candidates_are_pooled_across_connectors_before_ranking(monkeypatch, tmp_path):
+    """Asked one catalogue at a time, a chooser can only pick the best of four
+    when the honest answer is "none of these, but that Zenodo one"."""
+    # Both clear the relevance gate — this test is about pooling, not the gate.
+    ckan = _scored("Air quality hourly measurements", "Station list", "https://x.example/ckan.csv")
+    zenodo = _scored(
+        "Air quality hourly measurements", "Hourly readings", "https://x.example/zenodo.csv"
+    )
+    _fake_acquire(monkeypatch, succeeds_for={"https://x.example/zenodo.csv"})
+
+    pools = []
+    found = discover.find_source(
+        "air quality hourly measurements",
+        cache_dir=tmp_path,
+        connectors=[_connector("ckan", [ckan]), _connector("zenodo", [zenodo])],
+        chooser=lambda r, c: pools.append([x.url for x in c]) or [1],
+    )
+    assert pools == [["https://x.example/ckan.csv", "https://x.example/zenodo.csv"]]
+    assert found is not None and found.url == "https://x.example/zenodo.csv"
+
+
+def test_a_directly_named_url_short_circuits_the_catalogues(monkeypatch, tmp_path):
+    """Searching four catalogues to second-guess a URL the plan asserted is waste."""
+    named = discover.Candidate(name="req", url="https://x.example/named.csv", connector="direct")
+    _fake_acquire(monkeypatch, succeeds_for={"https://x.example/named.csv"})
+
+    found = discover.find_source(
+        "air quality",
+        cache_dir=tmp_path,
+        connectors=[
+            _connector("direct", [named]),
+            ("ckan", lambda r: pytest.fail("no catalogue search once a named URL worked")),
+        ],
+    )
+    assert found is not None and found.url == "https://x.example/named.csv"
+
+
+def test_a_dead_direct_url_falls_through_to_the_catalogues(monkeypatch, tmp_path):
+    named = discover.Candidate(name="req", url="https://x.example/dead.csv", connector="direct")
+    live = _scored("Air quality monitoring", "Hourly readings", "https://x.example/live.csv")
+    _fake_acquire(monkeypatch, succeeds_for={"https://x.example/live.csv"})
+
+    found = discover.find_source(
+        "air quality monitoring",
+        cache_dir=tmp_path,
+        connectors=[_connector("direct", [named]), _connector("ckan", [live])],
+    )
+    assert found is not None and found.url == "https://x.example/live.csv"
+
+
+def test_the_probe_budget_is_shared_across_connectors(monkeypatch, tmp_path):
+    """A direct link that fails must not hand the catalogues a fresh budget."""
+    direct = [
+        discover.Candidate(name="r", url=f"https://x.example/d{i}.csv", connector="direct")
+        for i in range(4)
+    ]
+    catalogue = [
+        _scored("Air quality monitoring", "readings", f"https://x.example/c{i}.csv")
+        for i in range(6)
+    ]
+    probed = _fake_acquire(monkeypatch, succeeds_for=set())
+    discover.find_source(
+        "air quality monitoring",
+        cache_dir=tmp_path,
+        connectors=[_connector("direct", direct), _connector("ckan", catalogue)],
+    )
+    assert len(probed) == discover.MAX_CANDIDATES_PROBED

@@ -5183,3 +5183,199 @@ def test_a_failing_discovery_leaves_the_input_a_surrogate(tmp_path, monkeypatch,
     exp = result["experiments"][0]
     assert exp["status"] == "completed"
     assert [entry["kind"] for entry in exp["data_provenance"]["inputs"]] == ["synthetic_surrogate"]
+
+
+# ---------------------------------------------------------------------------
+# Model-assisted data sourcing (Phase 3). The model nominates; Python rules.
+#
+# discover.py's side of this (rank_with's validation, pooling, the probe budget)
+# is covered in tests/test_coder_discover.py. These cover the two model calls
+# themselves: what they send, what they accept back, and that every failure mode
+# degrades to the keyword behaviour rather than losing the requirement.
+# ---------------------------------------------------------------------------
+
+
+def _sourcing_agent(tmp_path, model):
+    return _agent(tmp_path, model, network_check=lambda: True)
+
+
+def _cands():
+    from research_pipeline.agents.coder import discover
+
+    good = discover.Candidate(
+        name="r",
+        url="https://x.example/hourly.csv",
+        connector="ckan:data.gov.uk",
+        title="Air quality",
+        description="Monitoring",
+        resource="Hourly PM2.5 readings",
+    )
+    bad = discover.Candidate(
+        name="r",
+        url="https://x.example/ref.csv",
+        connector="ckan:data.gov.uk",
+        title="Air quality",
+        description="Monitoring",
+        resource="Geographic reference table",
+    )
+    return [good, bad]
+
+
+def test_the_chooser_prompt_shows_the_resource_name_of_each_candidate(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [0], "why": "hourly readings"}'})
+    chosen = _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5 hourly", _cands())
+
+    assert chosen == [0]
+    prompt = model.calls[0][-1][1]
+    # The resource line is the whole point: a dataset with the right title
+    # routinely contains a station list rather than the data.
+    assert "RESOURCE: Hourly PM2.5 readings" in prompt
+    assert "RESOURCE: Geographic reference table" in prompt
+    assert "0." in prompt and "1." in prompt
+
+
+def test_the_chooser_passes_through_an_empty_rejection(tmp_path):
+    """[] is a real answer — "I looked and none of these fit" — and must reach
+    discover.rank_with, which honours it by leaving a labelled surrogate."""
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [], "why": "none hold the measurements"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) == []
+
+
+def test_the_chooser_returns_none_when_the_model_fails(tmp_path):
+    """None, not [] — no answer was obtained, so the keyword ordering stands
+    rather than the requirement being rejected outright."""
+    model = FakeChatModel({"RESOURCE:": "not json at all, and not on the retry either"})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) is None
+
+
+def test_the_chooser_returns_none_for_a_malformed_shape(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": "the first one"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) is None
+
+
+def test_the_chooser_drops_non_integer_entries(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [0, "1", null, 1], "why": "w"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) == [0, 1]
+
+
+def test_proposed_sources_become_candidates(tmp_path):
+    model = FakeChatModel(
+        {
+            "Name up to": (
+                '{"sources": [{"url": "https://api.example/v1/pm25.csv", "name": "PM2.5 hourly",'
+                ' "format": "csv"}], "why": "public API"}'
+            )
+        }
+    )
+    proposed = _sourcing_agent(tmp_path, model)._propose_data_sources("PM2.5 hourly readings")
+
+    assert [c.url for c in proposed] == ["https://api.example/v1/pm25.csv"]
+    assert proposed[0].connector == "model"
+    assert proposed[0].resource == "PM2.5 hourly"
+
+
+def test_proposed_sources_are_capped(tmp_path):
+    from research_pipeline.agents.coder.coder_agent import _MAX_PROPOSED_SOURCES
+
+    sources = ", ".join(
+        f'{{"url": "https://api.example/{i}.csv", "name": "n{i}"}}' for i in range(12)
+    )
+    model = FakeChatModel({"Name up to": f'{{"sources": [{sources}], "why": "w"}}'})
+    proposed = _sourcing_agent(tmp_path, model)._propose_data_sources("anything")
+    assert len(proposed) == _MAX_PROPOSED_SOURCES
+
+
+def test_a_proposal_with_no_usable_urls_yields_nothing(tmp_path):
+    for payload in (
+        '{"sources": [], "why": "I do not know a real URL"}',
+        '{"sources": [{"name": "no url here"}], "why": "w"}',
+        '{"sources": "not a list"}',
+        "not json at all, and not on the retry either",
+    ):
+        model = FakeChatModel({"Name up to": payload})
+        assert _sourcing_agent(tmp_path, model)._propose_data_sources("anything") == []
+
+
+def test_the_model_connector_is_last_and_only_when_enabled(tmp_path, monkeypatch):
+    """A catalogue hit is a file someone published and described; a proposed URL
+    is the model's recollection of a URL shape. Try the first one first."""
+    agent = _agent(tmp_path, FakeChatModel({}))
+    assert [name for name, _ in agent._data_connectors()] == ["direct", "ckan", "zenodo"]
+
+    _patch_settings(monkeypatch, coder_enable_model_data_sourcing=True)
+    assert [name for name, _ in agent._data_connectors()][-1] == "model"
+
+
+def test_a_model_proposed_url_still_has_to_fetch_and_parse(tmp_path, monkeypatch):
+    """The reason the model is allowed to guess at all: an invented URL costs a
+    download and can never become a source."""
+    from research_pipeline.agents.coder import acquire, discover
+
+    _patch_settings(monkeypatch, coder_enable_model_data_sourcing=True)
+    monkeypatch.setattr(
+        acquire.requests,
+        "get",
+        lambda url, **kw: _hallucinated_404(),
+    )
+    model = FakeChatModel(
+        {
+            "Name up to": (
+                '{"sources": [{"url": "https://invented.example/does-not-exist.csv",'
+                ' "name": "n"}], "why": "w"}'
+            )
+        }
+    )
+    agent = _agent(tmp_path, model, network_check=lambda: True)
+    found = discover.find_source(
+        "some requirement nothing has",
+        cache_dir=tmp_path / "cache",
+        connectors=[("model", agent._propose_data_sources)],
+    )
+    assert found is None
+
+
+def _hallucinated_404():
+    class _Response:
+        status_code = 404
+        headers = {}
+        is_redirect = False
+        is_permanent_redirect = False
+
+        def iter_content(self, chunk_size=65536):
+            yield b""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    return _Response()
+
+
+def test_model_sourcing_does_not_change_the_verdict_rule(tmp_path, monkeypatch, discovery_on):
+    """A model picking the dataset improves the hit rate, not the epistemic
+    status: whether real data answers a research question is not something
+    Python can verify, so a discovered input stays inconclusive whoever chose
+    it."""
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_enable_model_data_sourcing=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["data_provenance"]["all_inputs_real"] is True
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["data_provenance"]["unconfirmed_discovered_inputs"] == [
+        "bicycle collision casualty records"
+    ]

@@ -219,6 +219,11 @@ _STEPS_PER_PLAN = 6  # process_current_plan, search_hf_dataset, acquire_data, ge
 # limit is derived from is unchanged.
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
 
+# URLs the model may name for one requirement when no catalogue had a match.
+# Small on purpose: each is a real download that is discarded unless it parses,
+# and a model that cannot recall one correct URL will not recall a sixth.
+_MAX_PROPOSED_SOURCES = 4
+
 
 # Inputs to _bounded_max_tokens, which stops a long prompt plus a fixed
 # max_tokens from overrunning the model's context window.
@@ -2305,6 +2310,121 @@ class CoderAgent:
             return {}
         return dataset or {}
 
+    # ---------------------------------------------------------------
+    # Model-assisted data sourcing. Both methods are handed to discover.py
+    # rather than called by it: that module stays model-free and testable
+    # without an LLM, and this one owns every model call the agent makes.
+    # Neither answer is trusted — the chooser may only reorder and reject
+    # candidates that already exist, and a proposed URL is fetched and parsed
+    # before anything calls it a source.
+    # ---------------------------------------------------------------
+
+    def _choose_data_source(self, requirement: str, candidates: list) -> list[int] | None:
+        """Which of these catalogue files actually holds the data? None on failure.
+
+        The question keyword overlap cannot answer, and the one a measured sweep
+        got wrong twice in five: a dataset with the right title routinely
+        contains files that are not the data — a station list, a geographic
+        reference table, a data dictionary. Those score well and are wrong.
+
+        Returning None (not []) on any failure matters: [] means the model
+        looked and rejected them all, which discover.rank_with honours by
+        leaving the requirement a labelled surrogate. None means no answer was
+        obtained, and the keyword ordering is used instead.
+        """
+        block = "\n\n".join(
+            f"{index}. TITLE: {candidate.title[:160] or '(untitled)'}\n"
+            f"   RESOURCE: {candidate.resource[:160] or '(unnamed file)'}\n"
+            f"   ABOUT: {candidate.description[:300] or '(no description)'}\n"
+            f"   URL: {candidate.url[:200]}"
+            for index, candidate in enumerate(candidates)
+        )
+        user_prompt = prompts.DATA_SOURCE_SELECTION_PROMPT.format(
+            requirement=requirement, candidate_block=block
+        )
+        try:
+            payload = invoke_json(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                max_tokens=self._bounded_max_tokens(user_prompt),
+            )
+        except Exception as exc:  # noqa: BLE001 — LLMJSONError included; sourcing is never fatal
+            logger.warning("Data-source selection failed for %r: %s", requirement[:80], exc)
+            return None
+        ranked = payload.get("ranked")
+        if not isinstance(ranked, list):
+            return None
+        logger.info(
+            "Model ranked %d of %d candidates for %r: %s",
+            len(ranked),
+            len(candidates),
+            requirement[:60],
+            str(payload.get("why", ""))[:160],
+        )
+        # Validated in discover.rank_with against the list the model was shown,
+        # so a hallucinated index is dropped rather than followed.
+        return [entry for entry in ranked if isinstance(entry, int)]
+
+    def _propose_data_sources(self, requirement: str) -> list:
+        """The model as a connector of last resort: name URLs that serve this.
+
+        Reached only when no catalogue had a match, which a measured sweep put
+        at two requirements in five. Every URL comes back through
+        `acquire.fetch` — the safety gate, the fetch and the parse — so an
+        invented one costs a download and yields nothing, and cannot become a
+        source. That is the whole reason this is allowed to guess at all.
+        """
+        user_prompt = prompts.DATA_SOURCE_PROPOSAL_PROMPT.format(
+            requirement=requirement, max_sources=_MAX_PROPOSED_SOURCES
+        )
+        try:
+            payload = invoke_json(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                max_tokens=self._bounded_max_tokens(user_prompt),
+            )
+        except Exception as exc:  # noqa: BLE001 — LLMJSONError included; sourcing is never fatal
+            logger.warning("Data-source proposal failed for %r: %s", requirement[:80], exc)
+            return []
+        proposed = payload.get("sources")
+        if not isinstance(proposed, list):
+            return []
+        candidates = []
+        for entry in proposed[:_MAX_PROPOSED_SOURCES]:
+            if not isinstance(entry, dict):
+                continue
+            url = str(entry.get("url") or "")
+            if not url:
+                continue
+            candidates.append(
+                discover.Candidate(
+                    name=requirement,
+                    url=url,
+                    connector="model",
+                    title=str(entry.get("name") or requirement),
+                    description=str(payload.get("why") or ""),
+                    landing_page=url,
+                    resource=str(entry.get("name") or ""),
+                )
+            )
+        logger.info("Model proposed %d source(s) for %r", len(candidates), requirement[:80])
+        return candidates
+
+    def _data_connectors(self) -> list:
+        """The connector list for this run, model proposal last.
+
+        Last on purpose. A catalogue hit is a file someone published and
+        described; a proposed URL is the model's recollection of a URL shape.
+        The first is worth trying before the second, and when the first
+        succeeds the second is never called at all.
+        """
+        connectors = list(discover.CONNECTORS)
+        if settings.coder_enable_model_data_sourcing:
+            connectors.append(("model", self._propose_data_sources))
+        return connectors
+
     def _acquire_data(
         self, plan: dict, network_available: bool, hf_dataset: dict
     ) -> tuple[dict[str, dict], dict[str, dict]]:
@@ -2336,7 +2456,15 @@ class CoderAgent:
             discoveries: dict[str, dict] = {}
             if settings.coder_enable_source_discovery:
                 discoveries = discover.discover_sources(
-                    sources, cache_dir=cache_dir, max_bytes=max_bytes
+                    sources,
+                    cache_dir=cache_dir,
+                    max_bytes=max_bytes,
+                    connectors=self._data_connectors(),
+                    chooser=(
+                        self._choose_data_source
+                        if settings.coder_enable_model_data_sourcing
+                        else None
+                    ),
                 )
                 # Applied before acquiring so a discovered requirement is a
                 # real_download with a uri by the time acquire_sources runs.

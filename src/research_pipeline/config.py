@@ -47,6 +47,7 @@ class Settings:
     coder_data_cache_dir: str
     coder_enable_data_acquisition: bool
     coder_enable_source_discovery: bool
+    coder_enable_model_data_sourcing: bool
     coder_max_download_bytes: int
     coder_venv_root: str
     coder_enable_hf_dataset_search: bool
@@ -261,6 +262,16 @@ def load_settings() -> Settings:
         # Useless without CODER_ENABLE_DATA_ACQUISITION, which does the fetching.
         # See src/research_pipeline/agents/coder/discover.py.
         coder_enable_source_discovery=_env_bool("CODER_ENABLE_SOURCE_DISCOVERY", False),
+        # Lets the model take part in sourcing, in the two places keyword search
+        # measurably falls down: choosing *which file* in a catalogue hit holds
+        # the data (a live sweep picked a geographic reference table for a
+        # request about crime counts), and naming URLs when no catalogue had a
+        # match at all (two of five requirements). Neither answer is trusted —
+        # the chooser may only reorder and reject candidates that already exist,
+        # and a proposed URL is fetched and parsed before it counts as anything.
+        # Needs CODER_ENABLE_SOURCE_DISCOVERY, and does not change the verdict
+        # rule: a discovered input stays inconclusive whoever picked it.
+        coder_enable_model_data_sourcing=_env_bool("CODER_ENABLE_MODEL_DATA_SOURCING", False),
         # Cap on a single fetched input. The right number on node-local NVMe and
         # the right number on a quota'd home directory are not the same, which
         # is why this is a setting and not the constant in acquire.py.
