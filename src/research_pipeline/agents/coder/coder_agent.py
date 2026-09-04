@@ -158,6 +158,8 @@ _ERROR_STAGE_ORDER = [
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
+    "unused_configuration",
+    "missing_batching",
     "self_review",
     # The execution-failure kinds sit where run_experiment always did: they are
     # all detected at the same point (a non-zero exit), just told apart by what
@@ -1496,6 +1498,33 @@ class CoderAgent:
             return {
                 "error_source": "ignored_available_dataset",
                 "error_text": f"A real dataset was offered but not used: {'; '.join(dataset_usage_findings)}",
+            }
+
+        # Two checks on whether the program does what its own configuration
+        # says. Both are properties of the code, not of how good the results
+        # are: the fix loop retries failures, and a retry keyed on
+        # meets_success_criteria would regenerate until the hypothesis came out
+        # supported, which manufactures the verdict the provenance gate exists
+        # to protect. See Barkla job 10424488 for what both of these missed.
+        unused_config_findings = sandbox.check_unused_configuration(
+            sections.get("configuration", ""), run_py
+        )
+        if unused_config_findings:
+            return {
+                "error_source": "unused_configuration",
+                "error_text": (
+                    "Configuration declares settings the program never uses: "
+                    f"{'; '.join(unused_config_findings)}"
+                ),
+            }
+
+        batching_findings = sandbox.check_training_batching(
+            sections.get("run_experiment_function", ""), run_py, assumptions_made
+        )
+        if batching_findings:
+            return {
+                "error_source": "missing_batching",
+                "error_text": f"The training loop is not batched: {'; '.join(batching_findings)}",
             }
 
         complexity = plan["estimated_complexity"]

@@ -1388,3 +1388,139 @@ def section_for_line(spans: dict[str, tuple[int, int]], lineno: int) -> str | No
         if start <= lineno <= end:
             return section
     return None
+
+
+# Names a batch loop is built out of. `DataLoader`/`TensorDataset` cover the
+# torch idiom; the range-with-step and slicing forms cover hand-rolled batching,
+# which generated code writes about as often.
+_BATCHING_NAMES = ("DataLoader", "TensorDataset", "batch_iter", "minibatch", "next_batch")
+
+
+def _assigned_constants(configuration_source: str) -> dict[str, int]:
+    """{NAME: lineno} for every module-level ALL_CAPS assignment in `configuration`.
+
+    Upper-case only, and only bare `NAME = ...` targets. A lower-case module
+    global is as likely to be scratch as a knob, and tuple-unpacking targets are
+    skipped rather than guessed at — this check's value depends entirely on not
+    crying wolf.
+    """
+    try:
+        tree = ast.parse(configuration_source)
+    except SyntaxError:
+        return {}
+    found: dict[str, int] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id.isupper() and len(target.id) > 2:
+                found.setdefault(target.id, node.lineno)
+    return found
+
+
+def check_unused_configuration(configuration_source: str, rendered_code: str) -> list[str]:
+    """Constants the program declares in `configuration` and then never reads.
+
+    A declared-and-ignored knob is the config lying about what the experiment
+    does, and it is a defect whichever way the numbers came out — which is what
+    makes it checkable here rather than a matter of taste about the results.
+
+    Barkla job 10424488 is the case: `BATCH_SIZE = 32` sat in configuration while
+    `run_experiment` passed the whole training tensor to one optimizer step per
+    epoch, and `CSV_DATA_PATH` named a file the code never opened. Both read as
+    deliberate settings to anyone auditing the run, and neither was doing
+    anything. The metrics that came out of that were reported as a refutation.
+
+    Counted over the *rendered* run.py, not the model's sections, so a constant
+    the fixed template consumes is not miscounted as dead. A name that appears
+    only once — its own assignment — is unused.
+    """
+    findings = []
+    for name, lineno in _assigned_constants(configuration_source).items():
+        # \b so BATCH_SIZE does not match BATCH_SIZE_LIMIT, and a plain count so
+        # a use inside configuration itself (A = 1; B = A * 2) still counts.
+        if len(re.findall(rf"\b{re.escape(name)}\b", rendered_code)) <= 1:
+            findings.append(
+                f"line {lineno}: {name} is declared in configuration and never used anywhere "
+                "else in the program. Either use it where it belongs, or delete it — a constant "
+                "that looks like a setting but does nothing misrepresents what the experiment did"
+            )
+    return findings
+
+
+def _optimizer_step_calls(tree: ast.AST) -> list[ast.Call]:
+    """`<something>.step()` calls whose receiver name looks like an optimizer."""
+    steps = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr != "step":
+            continue
+        receiver = node.func.value
+        name = receiver.id if isinstance(receiver, ast.Name) else getattr(receiver, "attr", "")
+        # `scheduler.step()` is a real thing and is not the training step.
+        if "optim" in str(name).lower():
+            steps.append(node)
+    return steps
+
+
+def check_training_batching(
+    run_experiment_source: str, rendered_code: str, assumptions_made: list[str]
+) -> list[str]:
+    """Whether a torch training loop takes more than one step per epoch.
+
+    Barkla job 10424488 trained both arms with `for epoch in range(50)`, one
+    forward pass over the entire training tensor and one `optimizer.step()` per
+    epoch — fifty gradient updates in total, on an LSTM. The comparison was
+    *fair* (identical epochs, lr and optimizer on both arms) and still
+    uninterpretable: the enhanced arm carried a DCT block and an attention head,
+    so under a fifty-step budget the larger model is systematically further from
+    convergence, and "enhanced is worse" measures the budget rather than the
+    architecture. That result was reported as a refutation.
+
+    This is deliberately *not* a check on how good the numbers are. The fix loop
+    retries failures, and a retry keyed on `meets_success_criteria` would have
+    the agent regenerate until the hypothesis came out supported, which
+    manufactures the verdict the whole provenance gate exists to protect. What
+    is checked is a property of the program: it declares an epoch loop and never
+    batches inside it.
+
+    Escape hatch, matching `check_hf_dataset_usage`: full-batch really is right
+    for a small dataset or a second-order optimizer, so saying so in
+    `assumptions_made` is accepted. The point is that the choice be deliberate
+    and recorded, not that mini-batching be mandatory.
+    """
+    try:
+        tree = ast.parse(run_experiment_source)
+    except SyntaxError:
+        # compile_check on the whole rendered run.py reports syntax errors with
+        # proper line numbers; not this check's job. Same rule as
+        # check_data_fallback.
+        return []
+
+    steps = _optimizer_step_calls(tree)
+    if not steps:
+        # No torch-style optimizer loop at all — an sklearn `.fit()`, a
+        # closed-form estimator, a statistical test. Nothing to say.
+        return []
+
+    if any(name in rendered_code for name in _BATCHING_NAMES):
+        return []
+    # Hand-rolled batching: `for i in range(0, len(X), BATCH_SIZE)` or an
+    # explicit slice of the training tensor inside the loop.
+    if re.search(r"range\s*\(\s*0\s*,\s*len\s*\(", rendered_code):
+        return []
+
+    if any(
+        "full-batch" in note.lower() or "full batch" in note.lower() for note in assumptions_made
+    ):
+        return []
+
+    return [
+        f"line {steps[0].lineno}: the training loop calls optimizer.step() once per epoch over "
+        "the whole training tensor — there is no mini-batching anywhere, so the model gets as "
+        "many gradient updates as there are epochs. Iterate over mini-batches inside the epoch "
+        "loop (torch.utils.data.DataLoader, or slices of the training tensor), and use the "
+        "validation split for early stopping. If full-batch training is genuinely intended for "
+        "this method, say so in assumptions_made and this will be accepted"
+    ]

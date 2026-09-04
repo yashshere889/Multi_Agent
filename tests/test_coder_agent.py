@@ -5499,3 +5499,133 @@ def test_an_acquired_dataset_the_code_reads_is_a_real_input(tmp_path, monkeypatc
     assert hub[0].kind == provenance.KIND_REAL_LOCAL
     assert hub[0].local_path == path
     assert provenance.verdict(sources) != provenance.VERDICT_SURROGATE
+
+
+# -- sandbox.check_unused_configuration ---------------------------------------
+#
+# From Barkla job 10424488: BATCH_SIZE = 32 sat in configuration while the
+# training loop passed the whole tensor to one optimizer step per epoch, and
+# CSV_DATA_PATH named a file the code never opened. Both read as deliberate
+# settings to anyone auditing the run and neither did anything.
+
+
+def test_unused_configuration_flags_a_declared_but_unread_constant():
+    config = "BATCH_SIZE = 32\nWINDOW_SIZE = 60\n"
+    code = f"{config}\ndef f(x):\n    return x[:WINDOW_SIZE]\n"
+    findings = sandbox.check_unused_configuration(config, code)
+    assert len(findings) == 1
+    assert "BATCH_SIZE" in findings[0]
+
+
+def test_unused_configuration_counts_a_use_inside_configuration_itself():
+    config = "WINDOW = 60\nSTRIDE = WINDOW // 2\n"
+    code = f"{config}\ndef f(x):\n    return x[:STRIDE]\n"
+    assert sandbox.check_unused_configuration(config, code) == []
+
+
+def test_unused_configuration_does_not_match_a_longer_name():
+    """BATCH_SIZE must not be counted as used by BATCH_SIZE_LIMIT."""
+    config = "BATCH_SIZE = 32\n"
+    code = "BATCH_SIZE = 32\nBATCH_SIZE_LIMIT = 64\nprint(BATCH_SIZE_LIMIT)\n"
+    assert [f for f in sandbox.check_unused_configuration(config, code) if "BATCH_SIZE " in f]
+
+
+def test_unused_configuration_ignores_lowercase_and_short_names():
+    config = "df = None\nN = 5\nlr = 0.1\n"
+    assert sandbox.check_unused_configuration(config, config) == []
+
+
+def test_unused_configuration_survives_a_syntax_error():
+    assert sandbox.check_unused_configuration("BATCH = (", "BATCH = (") == []
+
+
+# -- sandbox.check_training_batching -------------------------------------------
+
+_UNBATCHED = (
+    "def run_experiment(data, model):\n"
+    "    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)\n"
+    "    for epoch in range(NUM_EPOCHS):\n"
+    "        optimizer.zero_grad()\n"
+    "        loss = criterion(model(X_train_tensor), y_train_tensor)\n"
+    "        loss.backward()\n"
+    "        optimizer.step()\n"
+    "    return {}\n"
+)
+
+
+def test_training_batching_flags_one_step_per_epoch():
+    findings = sandbox.check_training_batching(_UNBATCHED, _UNBATCHED, [])
+    assert len(findings) == 1
+    assert "mini-batching" in findings[0]
+
+
+def test_training_batching_accepts_a_dataloader():
+    code = _UNBATCHED.replace(
+        "    for epoch in range(NUM_EPOCHS):",
+        "    loader = DataLoader(TensorDataset(X, y), batch_size=32)\n"
+        "    for epoch in range(NUM_EPOCHS):\n        for xb, yb in loader:",
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_accepts_hand_rolled_slicing():
+    code = _UNBATCHED.replace(
+        "        optimizer.zero_grad()",
+        "        for i in range(0, len(X_train_tensor), BATCH_SIZE):\n            optimizer.zero_grad()",
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_ignores_code_with_no_torch_optimizer():
+    """An sklearn fit, a closed-form estimator or a statistical test has no
+    training loop to be wrong about."""
+    code = "def run_experiment(data, model):\n    model.fit(data['X'], data['y'])\n    return {}\n"
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_ignores_a_scheduler_step():
+    code = (
+        "def run_experiment(data, model):\n"
+        "    for epoch in range(10):\n"
+        "        scheduler.step()\n"
+        "    return {}\n"
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_accepts_a_declared_full_batch_choice():
+    """Same sanctioned escape as check_hf_dataset_usage: full-batch is right for
+    a small dataset or a second-order optimizer. The point is that the choice be
+    deliberate and recorded, not that mini-batching be mandatory."""
+    assert (
+        sandbox.check_training_batching(
+            _UNBATCHED, _UNBATCHED, ["Full-batch training: the dataset is 300 rows"]
+        )
+        == []
+    )
+
+
+def test_training_batching_survives_a_syntax_error():
+    assert sandbox.check_training_batching("def run_experiment(", "", []) == []
+
+
+def test_neither_check_is_a_retry_on_bad_results():
+    """The line this pair must not cross. Both are properties of the program;
+    neither reads a metric. A retry keyed on meets_success_criteria would have
+    the agent regenerate until the hypothesis came out supported."""
+    import ast
+    import inspect
+    import textwrap
+
+    for fn in (sandbox.check_unused_configuration, sandbox.check_training_batching):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        function = tree.body[0]
+        assert isinstance(function, ast.FunctionDef)
+        # No parameter carries a result into either check...
+        parameters = [a.arg for a in function.args.args]
+        assert not any(p in parameters for p in ("results", "metrics", "meets_success_criteria"))
+        # ...and neither does the executable body, docstring excluded, mention one.
+        body = function.body[1:] if ast.get_docstring(function) else function.body
+        code = "\n".join(ast.unparse(node) for node in body)
+        assert "meets_success_criteria" not in code
+        assert "metrics" not in code
