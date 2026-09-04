@@ -2604,8 +2604,10 @@ def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
         _planner_output([_plan("H1")])
     )
 
-    # Queried with the plan's own data description, not the objective.
-    assert queries == ["d"]
+    # Queried with the plan's own data_requirements, not the objective, and
+    # `source` first: it names the dataset while `description` is prose about
+    # what it contains, and the Hub matches on names. Stops at the first hit.
+    assert queries == ["synthetic"]
     prompt = model.prompts_by_kind["codegen"][0]
     assert "acme/sleep-survey" in prompt
     assert "hours_slept (float32)" in prompt  # real column names and dtypes
@@ -2623,7 +2625,8 @@ def test_no_dataset_block_when_nothing_matched(tmp_path):
         _planner_output([_plan("H1")])
     )
 
-    assert queries == ["d"]
+    # Both fields tried before giving up — see the previous test for why.
+    assert queries == ["synthetic", "d"]
     assert result["experiments"][0]["status"] == "completed"
     # The prompt reads exactly as it did before this lookup existed.
     assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
@@ -5808,3 +5811,33 @@ def test_a_model_proposed_archive_is_not_probed(tmp_path):
     )
     proposed = _agent(tmp_path, model)._propose_data_sources("CoNLL-2003 dataset")
     assert [c.url for c in proposed] == ["https://x.example/train.csv"]
+
+
+def test_hf_lookup_tries_the_source_field_before_the_description(tmp_path):
+    """Barkla 10426431 and 10427224 both reported "no viewer-servable dataset"
+    for CoNLL-2003 — which is on the Hub — because the lookup only ever saw the
+    prose description, and the Hub matches on names."""
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)  # nothing matches: both are tried
+    plan = _plan("H1")
+    plan["data_requirements"] = {
+        "source": "CoNLL-2003 dataset",
+        "description": "A widely used benchmark for NER with annotated sentences.",
+        "preprocessing_steps": [],
+    }
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+    assert queries[0] == "CoNLL-2003 dataset"
+    assert queries[1].startswith("A widely used benchmark")
+
+
+def test_hf_lookup_falls_back_to_the_objective_when_requirements_are_empty(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    plan = _plan("H1")
+    plan["data_requirements"] = {"source": "", "description": "", "preprocessing_steps": []}
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+    assert queries == [plan["objective"]]

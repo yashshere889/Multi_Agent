@@ -2343,9 +2343,26 @@ class CoderAgent:
         """
         if not network_available or not settings.coder_enable_hf_dataset_search:
             return {}
-        description = (plan.get("data_requirements") or {}).get("description") or plan["objective"]
+        # `source` first, then `description`. The two fields say different
+        # things: `source` names the dataset ("CoNLL-2003 dataset") while
+        # `description` is prose about what it contains ("a widely used
+        # benchmark dataset for NER containing annotated sentences..."). The Hub
+        # matches on *names*, so searching only the prose asks it the one
+        # question it cannot answer — Barkla 10426431 and 10427224 both reported
+        # "no viewer-servable dataset" for a benchmark that is on the Hub, and
+        # both fell through to a model-proposed URL that 404s.
+        requirements = plan.get("data_requirements") or {}
+        queries = [
+            str(text).strip()
+            for text in (requirements.get("source"), requirements.get("description"))
+            if str(text or "").strip()
+        ] or [str(plan["objective"])]
         try:
-            dataset = self.huggingface_lookup(str(description))
+            dataset = None
+            for query in dict.fromkeys(queries):
+                dataset = self.huggingface_lookup(query)
+                if dataset:
+                    break
         except Exception as exc:  # noqa: BLE001 — see the docstring
             logger.warning(
                 "Hugging Face dataset lookup raised for %s; generating without it: %s",
