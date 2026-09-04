@@ -2534,8 +2534,14 @@ class CoderAgent:
         # dataset still had its verdict withheld as though it had invented the
         # data. The one path that makes a real verdict reachable was closed.
         dataset_id = (hf_dataset or {}).get("dataset_id")
+        # The third trace, and the one this pipeline now produces most often:
+        # when acquire.py fetched the dataset, the code reads a local path and
+        # never names the id at all. See _reads_dataset.
+        acquired_path = str(
+            ((acquisitions or {}).get(self._rows_url(hf_dataset or {})) or {}).get("path") or ""
+        )
         named = run_py is None or (
-            bool(dataset_id) and self._reads_dataset(str(dataset_id), run_py)
+            bool(dataset_id) and self._reads_dataset(str(dataset_id), run_py, acquired_path)
         )
         if dataset_id and named:
             sources.insert(
@@ -2575,16 +2581,40 @@ class CoderAgent:
         return sources
 
     @staticmethod
-    def _reads_dataset(dataset_id: str, code: str) -> bool:
+    def _reads_dataset(dataset_id: str, code: str, acquired_path: str = "") -> bool:
         """Whether `code` shows a trace of reading `dataset_id`.
 
         Matches the raw id and the percent-encoded form, because a rows URL
         encodes the namespace slash — a plain `dataset_id in code` test misses
-        exactly the case the prompt hands over, which is the URL. The same two
-        forms sandbox.check_hf_dataset_usage already checks; the two must agree,
-        or a dataset that clears that gate can still be scored a surrogate here.
+        exactly the case the prompt hands over, which is the URL. The same forms
+        sandbox.check_hf_dataset_usage already checks; the two must agree, or a
+        dataset that clears that gate can still be scored a surrogate here.
+
+        `acquired_path` is the third form, and once acquisition is on it is the
+        common one: the prompt hands over a *local file* and tells the model not
+        to make an HTTP request, so correct code names neither the id nor the
+        URL. The cached filename cannot stand in for the id either —
+        `acquire._safe_label` sanitises the namespace slash, so
+        `chuyin0321/timeseries-daily-stocks` is on disk as
+        `..._chuyin0321_timeseries-daily-stocks.jsonl` and matches neither form
+        above.
+
+        Barkla job 10424136 is the recorded cost: `load_data` read the acquired
+        JSONL and computed real metrics from it, and because the id appeared
+        nowhere in run.py the dataset was left out of data_provenance.json
+        entirely — the document named a staged CSV the code never opened. It was
+        cosmetic there only because that staged file independently made the run
+        real. With nothing staged, the experiment's one real input disappears
+        and the verdict is withheld from a run that earned it, which is the same
+        failure mode as the `dataset`/`dataset_id` key bug this branch already
+        fixed once. sandbox.check_hf_dataset_usage got `acquired_paths` for this
+        exact reason in the same change that introduced the problem here.
         """
-        return bool(code) and (dataset_id in code or quote(dataset_id, safe="") in code)
+        if not code:
+            return False
+        if dataset_id in code or quote(dataset_id, safe="") in code:
+            return True
+        return bool(acquired_path) and acquired_path in code
 
     @staticmethod
     def _rows_url(hf_dataset: dict) -> str:

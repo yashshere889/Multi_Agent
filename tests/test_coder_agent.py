@@ -5432,3 +5432,70 @@ def test_the_pytorch_inference_idiom_is_clean_end_to_end():
         "        return {'preds': enhanced_model(data)}\n"
     )
     assert sandbox.static_safety_check(code) == []
+
+
+# -- an acquired dataset must be recorded as the input it is --------------------
+#
+# Regression for Barkla job 10424136: load_data read the acquired JSONL and
+# computed real metrics from it, but because acquire._safe_label sanitises the
+# namespace slash the cached filename matches neither the raw dataset id nor its
+# percent-encoded form, so _reads_dataset said no and the dataset was left out of
+# data_provenance.json — which named a staged CSV the code never opened. Cosmetic
+# there only because that staged file independently made the run real; with
+# nothing staged, the experiment's one real input vanishes and the verdict is
+# withheld from a run that earned it.
+
+
+def test_reads_dataset_accepts_the_acquired_local_path():
+    dataset_id = "chuyin0321/timeseries-daily-stocks"
+    # The real cached path from job 10424136 — note the sanitised slash.
+    path = (
+        "/mnt/fastscratch/users/sgyshere/coder-data-cache/37f0c4d9d9e16f7b/"
+        "hugging_face_dataset_chuyin0321_timeseries-daily-stocks.jsonl"
+    )
+    code = f'df_hf = pd.read_json("{path}", lines=True)'
+
+    assert dataset_id not in code, "the sanitised filename must not contain the raw id"
+    assert not CoderAgent._reads_dataset(dataset_id, code)
+    assert CoderAgent._reads_dataset(dataset_id, code, path)
+
+
+def test_reads_dataset_still_matches_the_id_and_url_forms():
+    dataset_id = "acme/sleep-survey"
+    assert CoderAgent._reads_dataset(dataset_id, "load('acme/sleep-survey')", "/tmp/x.jsonl")
+    assert CoderAgent._reads_dataset(dataset_id, "url='...dataset=acme%2Fsleep-survey'")
+    assert not CoderAgent._reads_dataset(dataset_id, "load('other/thing')", "/tmp/x.jsonl")
+
+
+def test_an_acquired_dataset_the_code_reads_is_a_real_input(tmp_path, monkeypatch):
+    """End to end through _provenance_for: the acquired file is recorded, so a
+    run with nothing staged still reaches a real verdict."""
+    _patch_settings(monkeypatch, coder_data_dir="")  # nothing staged
+    agent = _agent(tmp_path, FakeChatModel({}))
+    rows_url = CoderAgent._rows_url(HF_DATASET_MATCH)
+    path = str(tmp_path / "cache" / "hugging_face_dataset_acme_sleep-survey.jsonl")
+    acquisitions = {
+        rows_url: {
+            "url": rows_url,
+            "path": path,
+            "sha256": "d" * 64,
+            "byte_count": 10,
+            "data_format": "jsonl",
+            "columns": ["hours_slept", "score"],
+            "row_count": 100,
+        }
+    }
+    run_py = f'df = pd.read_json("{path}", lines=True)'
+
+    sources = agent._provenance_for(
+        _plan("H1"),
+        network_available=True,
+        hf_dataset=HF_DATASET_MATCH,
+        run_py=run_py,
+        acquisitions=acquisitions,
+    )
+    hub = [s for s in sources if "acme/sleep-survey" in s.name]
+    assert hub, "the acquired dataset must appear as an input"
+    assert hub[0].kind == provenance.KIND_REAL_LOCAL
+    assert hub[0].local_path == path
+    assert provenance.verdict(sources) != provenance.VERDICT_SURROGATE
