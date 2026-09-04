@@ -93,6 +93,16 @@ cd "$PROJECT_DIR"
 # job anyway, so nothing worth keeping lives there (Barkla §5.1.7).
 export CODER_VENV_ROOT="${CODER_VENV_ROOT:-/tmp/users/$USER/coder-venvs-${SLURM_JOB_ID}}"
 mkdir -p "$CODER_VENV_ROOT"
+# CODER_VENV_ROOT keeps the venvs off home; this keeps the *wheels* off it too.
+# uv caches downloads under ~/.cache by default, and home carries an inode quota
+# (Barkla: 150k soft / 200k hard) that a few hundred experiment venvs will
+# exhaust — 2026-09-04 it stood at 198k files with ~/.cache/uv alone at 15 GB.
+# Hitting it makes sandbox.ensure_experiment_env fail, and env-provisioning
+# failures are deliberately never retried, so it ends a plan outright instead of
+# costing a fix attempt (job 10426356: "Disk quota exceeded (os error 122)").
+# Node-local scratch has no quota and is cleared automatically.
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/users/$USER/uv-cache-${SLURM_JOB_ID}}"
+mkdir -p "$UV_CACHE_DIR"
 
 export LLM_BASE_URL="http://localhost:${PORT}/v1"
 export LLM_MODEL="$MODEL"
