@@ -2443,6 +2443,13 @@ class CoderAgent:
             url = str(entry.get("url") or "")
             if not url:
                 continue
+            # The same filter the catalogue connectors apply to their resources.
+            # Without it a model-proposed archive is fetched and discarded:
+            # Barkla 10426431 spent a probe on a conll2003.zip that
+            # acquire.describe could never have read.
+            if not discover._is_tabular(url, str(entry.get("format") or "")):
+                logger.info("Skipping proposed non-tabular source: %s", url[:120])
+                continue
             candidates.append(
                 discover.Candidate(
                     name=requirement,

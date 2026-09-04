@@ -5737,3 +5737,74 @@ def test_parse_requirements_drops_comments_and_blanks():
 def test_parse_requirements_survives_a_placeholder_mixed_with_real_packages():
     """The costly shape: one bad line must not discard the good ones."""
     assert sandbox.parse_requirements_lines("<empty>\nnumpy\ntorch\n") == ["numpy", "torch"]
+
+
+# -- Hub query construction keeps benchmark names intact -----------------------
+#
+# Barkla 10426431: the Planner asked for "CoNLL-2003 dataset", the tokenizer
+# produced ["conll", "2003", "dataset"], the year was dropped as a bare number,
+# and the query became "conll" — for which the Hub returns conll2000, conll2002
+# and a non-servable conll2003, spending all three probes. The query "conll2003"
+# returns Davlan/conll2003_noMISC, which the viewer serves. The run went to
+# synthetic data over one dropped token.
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_first"),
+    [
+        ("CoNLL-2003 dataset", "conll2003"),
+        ("CIFAR-10 images", "cifar10"),
+        ("MNIST_10k digits", "mnist10"),
+        ("SQuAD 2.0 questions", "squad2"),
+    ],
+)
+def test_keyword_queries_tries_the_benchmark_name_first(description, expected_first):
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries(description)[0] == expected_first
+
+
+def test_keyword_queries_still_drops_an_unattached_number():
+    """A number not joined to a name really does crowd out the words that match."""
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries("500 students survey") == ["students survey"]
+
+
+def test_keyword_queries_keeps_the_plain_query_as_a_fallback():
+    """The compound is speculative — 'survey 2024' merges to something that
+    matches nothing — so it is an extra query, never a replacement."""
+    from research_pipeline.agents.coder import huggingface_client
+
+    queries = huggingface_client._keyword_queries("survey 2024 responses")
+    assert queries[0] == "survey2024"
+    assert "survey responses" in queries
+
+
+def test_keyword_queries_unchanged_for_prose_with_no_benchmark_name():
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries(
+        "a survey of 500 undergraduate students measuring sleep quality"
+    ) == ["survey undergraduate students measuring", "survey undergraduate"]
+
+
+def test_a_model_proposed_archive_is_not_probed(tmp_path):
+    """Barkla 10426431 spent one of four probes fetching a conll2003.zip that
+    acquire.describe could never have read. The catalogue connectors already
+    apply this filter to their resources; the model connector did not."""
+    model = FakeChatModel(
+        {
+            "Name up to": json.dumps(
+                {
+                    "sources": [
+                        {"url": "https://x.example/conll2003.zip", "name": "conll"},
+                        {"url": "https://x.example/train.csv", "name": "conll csv"},
+                    ],
+                    "why": "w",
+                }
+            )
+        }
+    )
+    proposed = _agent(tmp_path, model)._propose_data_sources("CoNLL-2003 dataset")
+    assert [c.url for c in proposed] == ["https://x.example/train.csv"]
