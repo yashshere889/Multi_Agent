@@ -1,5 +1,6 @@
 import dataclasses
 import json
+import re
 import signal
 import subprocess
 import sys
@@ -6656,3 +6657,198 @@ def test_hf_lookup_falls_back_to_the_objective_when_requirements_are_empty(tmp_p
         _planner_output([plan])
     )
     assert queries == [plan["objective"]]
+
+
+# -- budget vs convergence -----------------------------------------------------------------
+
+
+def test_upscale_doubles_the_training_knobs_and_leaves_the_rest_alone():
+    code = "epochs = 50\nmax_iter = 200\nn_rows = 1000\nchains = 4\nYEAR = 2020\n"
+    raised, changes = repair.upscale(code)
+
+    assert "epochs = 100" in raised
+    assert "max_iter = 400" in raised
+    # More data does not make an optimizer converge — it makes each epoch cost
+    # more, which is the opposite of what a run out of epochs needs.
+    assert "n_rows = 1000" in raised
+    assert "chains = 4" in raised, "a precision knob is not a training budget"
+    assert "YEAR = 2020" in raised
+    assert sorted(changes) == ["epochs: 50 -> 100", "max_iter: 200 -> 400"]
+
+
+def test_upscale_stops_at_its_ceiling():
+    at_ceiling = f"epochs = {repair.UPSCALE_CEILINGS['epochs']}\n"
+    assert repair.upscale(at_ceiling) == (at_ceiling, [])
+    # And clamps rather than overshooting.
+    _, changes = repair.upscale("epochs = 900\n")
+    assert changes == ["epochs: 900 -> 1000"]
+
+
+def test_the_knob_table_sees_the_constant_names_the_prompt_asks_for():
+    """The codegen prompt asks for module-level constants, so the model writes
+    NUM_EPOCHS, not epochs. A case-sensitive \\bepochs\\b matched none of those,
+    which made the whole knob table silently do nothing to its own knobs —
+    Barkla job 10431703 case 06 was `NUM_EPOCHS: int = 100`."""
+    _, up = repair.upscale("NUM_EPOCHS: int = 100\n")
+    assert up == ["epochs: 100 -> 200"]
+    _, down = repair.downscale("MAX_ITER = 400\n")
+    assert down == ["max_iter: 400 -> 200"]
+    # But one word of prefix only: a differently-named quantity is still safe.
+    assert repair.upscale("EPOCHS_BETWEEN_EVAL = 5\n") == ("EPOCHS_BETWEEN_EVAL = 5\n", [])
+
+
+def test_a_run_that_never_converged_cannot_report_a_verdict():
+    findings = ["'baseline' was still improving when training stopped"]
+    results = {"metrics": {"accuracy": 0.4}, "meets_success_criteria": False}
+    stamped = compute_provenance.apply_to_results(results, [], findings)
+
+    assert stamped["meets_success_criteria"] == "unknown"
+    assert stamped["model_reported_meets_success_criteria"] is False
+    assert stamped["compute_validity"] == compute_provenance.VERDICT_UNCONVERGED
+    assert "did not converge" in stamped["verdict_withheld_because"]
+    # Withheld even though nothing was downscaled: the two roads to "these
+    # metrics are not the experiment as designed" are independent.
+    assert compute_provenance.truncated([], findings) is True
+
+
+def test_the_compute_document_records_why_convergence_failed():
+    document = compute_provenance.as_document([], 1800, ["'transformer' was still improving"])
+    assert document["converged"] is False
+    assert document["convergence_findings"] == ["'transformer' was still improving"]
+    assert document["compute_validity"] == compute_provenance.VERDICT_UNCONVERGED
+    # A converged run says so positively.
+    assert compute_provenance.as_document([], 1800)["converged"] is True
+
+
+# A generated experiment whose optimizer loop the convergence check recognises.
+_TRAINING_SECTIONS = {
+    "configuration": "EPOCHS: int = 8\nBATCH_SIZE: int = 8\n",
+    "run_experiment_function": (
+        "def run_experiment(data, model):\n"
+        "    optimizer = model\n"
+        "    rows = list(range(32))\n"
+        "    losses = []\n"
+        "    for epoch in range(EPOCHS):\n"
+        "        total = 0.0\n"
+        # Real mini-batching: check_training_batching rejects one optimizer
+        # step per epoch over the whole tensor, and rightly so.
+        "        for start in range(0, len(rows), BATCH_SIZE):\n"
+        "            optimizer.step()\n"
+        "            total += 1.0 / (epoch + 1)\n"
+        "        losses.append(total / 4.0)\n"
+        "    return {'losses': losses}\n"
+    ),
+    "build_model_function": (
+        "def build_model(data):\n"
+        "    class _Opt:\n"
+        "        def step(self):\n"
+        "            return None\n"
+        "    return _Opt()\n"
+    ),
+    "evaluate_function": (
+        "def evaluate(experiment_output):\n"
+        "    losses = experiment_output['losses']\n"
+        "    return {\n"
+        "        'training_history': {'baseline': losses},\n"
+        "        'final_loss': losses[-1],\n"
+        "        'meets_success_criteria': True,\n"
+        "        'success_notes': 'ok',\n"
+        "    }\n"
+    ),
+}
+
+
+def test_a_non_converging_run_is_escalated_then_reported_without_a_verdict(tmp_path, monkeypatch):
+    """The production shape (Barkla 10431703 case 06): a real training run whose
+    loss is still falling. It used to spend four fix attempts producing four
+    identical curves and then be discarded entirely, having trained a real model
+    on real data. Now the epoch budget is raised deterministically, and if that
+    still does not converge the run is reported with the verdict withheld."""
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS, **_TRAINING_SECTIONS})]
+    )
+    seen: list[str] = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        source = Path(run_script).read_text()
+        seen.append(source)
+        # A curve that is always still improving, however many epochs it gets.
+        epochs = int(re.search(r"EPOCHS: int = (\d+)", source).group(1))
+        losses = [1.0 / (i + 1) for i in range(epochs)]
+        (Path(cwd) / "results.json").write_text(
+            json.dumps(
+                {
+                    "status": "success",
+                    "metrics": {"training_history": {"baseline": losses}, "final_loss": losses[-1]},
+                    "meets_success_criteria": True,
+                    "notes": "",
+                    "error": None,
+                }
+            )
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed", exp["reason"]
+    # No fix attempt was spent: the generated source was never wrong.
+    assert exp["fix_attempts"] == 0
+    assert model.prompts_by_kind.get("fix", []) == []
+    # The epochs really were raised, twice, before it gave up on converging.
+    epoch_counts = [int(re.search(r"EPOCHS: int = (\d+)", s).group(1)) for s in seen]
+    assert epoch_counts[-1] > epoch_counts[0]
+    # And the run is reported, with its curves, and no verdict.
+    assert exp["results"]["metrics"]["training_history"]["baseline"]
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["compute_provenance"]["converged"] is False
+    assert (tmp_path / "experiments" / "H1" / "compute_provenance.json").exists()
+
+
+def test_upscaling_and_downscaling_never_chase_each_other(tmp_path, monkeypatch):
+    """Halving what doubling just raised would spend the whole wall-clock budget
+    on one knob oscillating between two values, so a run that has been upscaled
+    reports a later resource failure instead of shrinking back."""
+    training = _codegen_response({**GOOD_SECTIONS, **_TRAINING_SECTIONS})
+    # A fix response is configured because reaching the fix loop is the *correct*
+    # outcome here: once a run has been upscaled, a later resource failure is
+    # reported to the model rather than silently shrunk back.
+    model = RecordingScriptedChatModel(codegen=[training], fix=[training] * 4)
+    calls: list[str] = []
+
+    def fake_run_experiment(python_executable, run_script, cwd, timeout_seconds):
+        source = Path(run_script).read_text()
+        if Path(run_script).name == "run_smoke.py":
+            return True, ""
+        epochs = int(re.search(r"EPOCHS: int = (\d+)", source).group(1))
+        calls.append(source)
+        if epochs > 8:
+            # The bigger run no longer fits its budget.
+            return False, "execution timed out after 120s"
+        losses = [1.0 / (i + 1) for i in range(epochs)]
+        (Path(cwd) / "results.json").write_text(
+            json.dumps(
+                {
+                    "status": "success",
+                    "metrics": {"training_history": {"baseline": losses}},
+                    "meets_success_criteria": True,
+                    "notes": "",
+                    "error": None,
+                }
+            )
+        )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+    _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    epoch_counts = [int(re.search(r"EPOCHS: int = (\d+)", s).group(1)) for s in calls]
+    # Within each attempt the count only ever rises. A downscale would show up
+    # as a drop *without* an intervening regeneration, which is the oscillation
+    # scale_direction exists to prevent — each fix attempt legitimately starts
+    # again from the model's own 8.
+    assert set(epoch_counts) == {8, 16}, epoch_counts
+    assert epoch_counts[0] == 8 and 16 in epoch_counts, "the upscale never happened"
+    # And the failure the model is shown says why the run got bigger.
+    assert "epoch budget was raised" in model.prompts_by_kind["fix"][0]

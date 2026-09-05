@@ -106,6 +106,20 @@ Key shared modules at the top level:
   **false**) goes further and is a policy choice rather than a repair — it skips a plan whose every
   input would be a surrogate before any code is generated, which is right for a sweep collecting
   only interpretable results and wrong whenever the generated code is itself the artefact.
+- **A run that never converged is reported without a verdict, not regenerated and not
+  discarded.** The compute budget and the convergence requirement pull against each other — the
+  prompt names the seconds an experiment gets, and `sandbox.check_training_convergence` demands
+  every arm be trained to a plateau — and for a real model those can be incompatible. The
+  resolution follows the same rule as every other repair here: classify first, and do not ask the
+  model what a deterministic step can answer. `not_converged` raises the training knobs
+  (`repair.upscale`) and re-runs, spending no fix attempt because the source was never wrong; if
+  raising them as far as the budget allows still does not converge, `compute_provenance` withholds
+  the verdict and the run is reported with its curves intact. Case 06 of Barkla job 10431703 is
+  what that replaces: four fix attempts, four identical still-improving curves, a real transformer
+  trained on real data, and `code_generated_not_run` at the end. The prompt was also part of the
+  conflict and is fixed at the same time — it now says the budget is a ceiling and that a training
+  loop must stop on a validation split rather than at a fixed epoch count, where it used to say
+  "size the experiment to fill that budget".
 - **Neither can a run that was truncated to fit its budget.** The same rule as above, asked of the
   compute instead of the inputs. `repair.downscale` rescues a run that blew its timeout by halving
   its cost knobs, and `agents/coder/compute_provenance.py` decides what that cost: the knob table is

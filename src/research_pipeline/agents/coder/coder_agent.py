@@ -303,6 +303,13 @@ _MAX_API_PATCHES = 1
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
 
+# How many times a run that has not converged may have its training knobs
+# doubled before the result is accepted as-is with the verdict withheld. Two,
+# so `epochs` can quadruple — enough to clear a budget that was merely short,
+# and short of turning one plan into an unbounded search for a number that
+# converges. See the not_converged branch in _attempt_once.
+_MAX_UPSCALES = 2
+
 
 def _estimate_tokens(text: str) -> int:
     return len(text) // _CHARS_PER_TOKEN_ESTIMATE
@@ -614,8 +621,16 @@ def _compute_budget_text(complexity: str) -> str:
     text = (
         f"estimated_complexity is {complexity!r}, so this gets {budget} "
         f"({seconds}s) of wall clock and is killed at that point — code that cannot "
-        "finish within it produces no result at all. Size the experiment to fill that "
-        "budget rather than to finish well inside it."
+        "finish within it produces no result at all. Treat that as a ceiling, not a "
+        "target: use as much of it as the experiment genuinely needs, and do not "
+        "shrink the design to finish well inside it.\n"
+        "If the experiment trains a model, do NOT pick a fixed epoch count to fill "
+        "the budget. A fixed count has no relationship to whether the model has "
+        "finished learning, and a comparison between models that have not converged "
+        "measures the epoch count rather than the thing under test. Train until the "
+        "loss stops improving on a validation split — an early-stopping patience — "
+        "with a generous epoch cap as the backstop, and report the per-epoch losses "
+        "so convergence is visible in the results."
     )
     if complexity == "high":
         text += (
@@ -1647,6 +1662,13 @@ class CoderAgent:
         # the metrics alone cannot say whether they came from the experiment as
         # generated or from a truncated one — see compute_provenance.py.
         downscale_changes: list[str] = []
+        upscales = 0
+        upscale_changes: list[str] = []
+        # Which way this attempt has already scaled, or "" for not yet. The two
+        # repairs must never alternate: downscale halves what upscale doubled and
+        # the pair would chase each other inside one attempt, spending the whole
+        # wall-clock budget on a knob oscillating between two values.
+        scale_direction = ""
         api_patches = 0
         run_path = experiment_dir / "run.py"
 
@@ -1712,11 +1734,16 @@ class CoderAgent:
                     "error_text": f"{failure.summary} {detail}",
                 }
 
-            if failure.route == diagnose.ROUTE_DOWNSCALE and downscales < _MAX_DOWNSCALES:
+            if (
+                failure.route == diagnose.ROUTE_DOWNSCALE
+                and downscales < _MAX_DOWNSCALES
+                and scale_direction != "up"
+            ):
                 shrunk, changes = repair.downscale(run_path.read_text())
                 if changes:
                     run_path.write_text(shrunk)
                     downscales += 1
+                    scale_direction = "down"
                     downscale_changes.extend(changes)
                     logger.info(
                         "[%s] %s Reduced deterministically: %s",
@@ -1788,12 +1815,75 @@ class CoderAgent:
                 ),
             }
 
+        # Non-convergence is a budget problem before it is a code problem, and
+        # the check's own advice says so: "raise the epoch budget". So raise it,
+        # here, deterministically — rather than asking the model to and watching
+        # it write the same number again. Barkla job 10431703 case 06 spent four
+        # fix attempts on four identical still-improving curves, and produced
+        # nothing at all, having trained a real transformer on real data.
+        #
+        # Costs no fix attempt for the same reason installing a missing package
+        # costs none: the generated source was not wrong. It reached the end,
+        # reported its curves, and simply had not been given enough epochs.
         convergence_findings = sandbox.check_training_convergence(metrics, trains_iteratively)
+        while convergence_findings and upscales < _MAX_UPSCALES and scale_direction != "down":
+            raised, changes = repair.upscale(run_path.read_text())
+            if not changes:
+                break  # every training knob is already at its ceiling
+            run_path.write_text(raised)
+            upscales += 1
+            scale_direction = "up"
+            upscale_changes.extend(changes)
+            logger.info(
+                "[%s] %s Raised deterministically: %s",
+                hypothesis_id,
+                convergence_findings[0],
+                "; ".join(changes),
+            )
+            succeeded, message = sandbox.run_experiment(
+                python_executable, run_path, experiment_dir, timeout_seconds
+            )
+            if not succeeded:
+                # The larger run no longer fits its budget. Deliberately not
+                # downscaled back: that is the oscillation scale_direction
+                # exists to prevent, and "this experiment cannot both converge
+                # and fit the budget" is a real finding the model should see.
+                failure = diagnose.classify_execution_failure(message)
+                return {
+                    "error_source": failure.error_source,
+                    "error_text": (
+                        f"{failure.summary} The epoch budget was raised ({'; '.join(changes)}) "
+                        "because training had not converged, and the larger run no longer fits. "
+                        "Make the training loop cheaper per epoch, or stop on a validation split "
+                        "instead of running a fixed number of epochs."
+                    ),
+                }
+            results, diagnosis = sandbox.read_results_json_for_diagnosis(experiment_dir)
+            if results is None:
+                return {
+                    "error_source": "results_json",
+                    "error_text": (
+                        "run.py exited successfully after the epoch budget was raised but did not "
+                        f"produce a valid results.json: {diagnosis}"
+                    ),
+                }
+            metrics = results.get("metrics") or {}
+            convergence_findings = sandbox.check_training_convergence(metrics, trains_iteratively)
+
         if convergence_findings:
-            return {
-                "error_source": "not_converged",
-                "error_text": f"Training did not converge: {'; '.join(convergence_findings)}",
-            }
+            # Raising it as far as the compute budget allows did not reach
+            # convergence. The run is still real — real data, real curves, real
+            # metrics — so it is reported rather than discarded, with the
+            # verdict withheld by compute_provenance below. Discarding it is
+            # what the fix loop used to do, and it threw away the only
+            # experiment in the corpus that trained anything on a GPU.
+            logger.info(
+                "[%s] still not converged after %d upscale(s) — reporting the run with the "
+                "verdict withheld: %s",
+                hypothesis_id,
+                upscales,
+                "; ".join(convergence_findings[:1]),
+            )
 
         # The experiment ran and produced metrics. Whether those metrics are
         # allowed to carry a verdict about the hypothesis depends on where their
@@ -1824,13 +1914,18 @@ class CoderAgent:
         # baseline for a reason that has nothing to do with the hypothesis.
         # Deliberately after the data check — apply_to_results below preserves
         # whatever claim that one already recorded instead of overwriting it.
+        # Both directions are recorded: what had to be shrunk to fit the budget,
+        # and what had to be raised to reach convergence. Either can be why the
+        # metrics describe something other than the experiment as designed.
+        scale_changes = downscale_changes + upscale_changes
         compute_document = compute_provenance.write(
-            downscale_changes,
+            scale_changes,
             experiment_dir / "compute_provenance.json",
             timeout_seconds=timeout_seconds,
+            convergence_findings=convergence_findings,
         )
-        results = compute_provenance.apply_to_results(results, downscale_changes)
-        if compute_provenance.truncated(downscale_changes):
+        results = compute_provenance.apply_to_results(results, scale_changes, convergence_findings)
+        if compute_provenance.truncated(scale_changes, convergence_findings):
             logger.info(
                 "[%s] verdict withheld — %s",
                 hypothesis_id,

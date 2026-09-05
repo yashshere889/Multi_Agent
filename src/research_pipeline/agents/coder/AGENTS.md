@@ -27,7 +27,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `slurm_submit.py` | `squeue`/`sbatch`/`sacct` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `reconcile.py` | The other half of submission: asks `sacct` what became of the jobs a previous run recorded, and imports a finished job's `results.json` back into its summary (`submitted_to_slurm` -> `completed`/`slurm_job_failed`). A separate pass, not a wait — see its module docstring. No LLM. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
-| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Owns the `PRECISION_KNOBS`/`MEASUREMENT_KNOBS` split that decides whether a downscaled run keeps its verdict. Reads no settings, same rule as `sandbox.py`. |
+| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `upscale` (double the training knobs when a run has not converged), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Owns the `PRECISION_KNOBS`/`MEASUREMENT_KNOBS` split that decides whether a downscaled run keeps its verdict, and `_knob_pattern`, which is why the table sees `NUM_EPOCHS` and not just `epochs`. Reads no settings, same rule as `sandbox.py`. |
 | `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
 | `compute_provenance.py` | The same withholding, asked of the compute instead of the inputs: records which cost knobs `repair.downscale` had to shrink, and withholds the verdict when shrinking one changed what the experiment measures. No LLM. |
 | `prompts.py` | All prompt templates. |
@@ -119,6 +119,15 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   compiles, defines the right name, passes every other check, and only dies on a TypeError once
   a venv has been provisioned. Extra parameters with defaults and `*args` pass — the question is
   "can the orchestration call this", not "does the signature match exactly".
+- **`not_converged` never reaches the model, and never discards the run.** It is a budget
+  problem before it is a code problem — the check's own advice is "raise the epoch budget" — so
+  `_attempt_once` raises it (`repair.upscale`, bounded by `_MAX_UPSCALES`) and re-runs, costing no
+  fix attempt because the generated source was not wrong. If that still does not converge, the run
+  is *reported* with the verdict withheld by `compute_provenance`, not thrown away: Barkla job
+  10431703 case 06 spent four fix attempts on four identical still-improving curves and produced
+  nothing, having trained a real transformer on real data. Upscale and downscale must never
+  alternate — `scale_direction` fixes the direction for the whole attempt, or the two chase each
+  other over one knob until the wall clock runs out.
 - **`interpretable`, not `completed`, is the number a change is judged on.** `benchmark.py`
   counts an experiment as interpretable only when it ran *and* kept a real bool verdict — a run
   whose verdict was withheld by `provenance.py` or `compute_provenance.py` produced nothing a

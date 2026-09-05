@@ -111,6 +111,29 @@ def measurement_changes(changes: list[str]) -> list[str]:
     return [change for change in changes if knob_name(change) in MEASUREMENT_KNOBS]
 
 
+def _knob_pattern(knob: str) -> re.Pattern[str]:
+    """Match an assignment to `knob`, however the model spelled the name.
+
+    Case-insensitive, and tolerant of a single leading word: the codegen prompt
+    asks for "module-level constants for tunable parameters", so the model
+    writes `NUM_EPOCHS = 100` or `N_EPOCHS`/`MAX_EPOCHS` far more often than a
+    bare lowercase `epochs`. A case-sensitive `\bepochs\b` matches none of
+    those — `\b` fails against the underscore in `NUM_EPOCHS` — which meant the
+    whole knob table silently did nothing to the most common way its own knobs
+    get written. Barkla job 10431703 case 06 is the shape: `NUM_EPOCHS: int =
+    100`, four fix attempts spent on an epoch budget that no deterministic
+    repair could see.
+
+    The optional prefix is one word, not `.*`, so `EPOCHS_BETWEEN_EVAL` (a
+    different quantity entirely) still does not match — the trailing `\b` is
+    what refuses it.
+    """
+    return re.compile(
+        rf"(?P<prefix>\b(?:[A-Za-z]+_)?{re.escape(knob)}\b\s*(?::\s*[A-Za-z_][\w.\[\]]*\s*)?=\s*)(?P<value>\d+)",
+        re.IGNORECASE,
+    )
+
+
 def downscale(code: str) -> tuple[str, list[str]]:
     """Halve the known cost knobs. Returns (new_code, human-readable changes).
 
@@ -123,7 +146,7 @@ def downscale(code: str) -> tuple[str, list[str]]:
     result = code
 
     for knob, floor in DOWNSCALE_KNOBS.items():
-        pattern = re.compile(rf"(?P<prefix>\b{re.escape(knob)}\b\s*=\s*)(?P<value>\d+)")
+        pattern = _knob_pattern(knob)
 
         def shrink(match: re.Match[str], knob: str = knob, floor: int = floor) -> str:
             current = int(match.group("value"))
@@ -134,6 +157,58 @@ def downscale(code: str) -> tuple[str, list[str]]:
             return f"{match.group('prefix')}{reduced}"
 
         result = pattern.sub(shrink, result)
+
+    return result, changes
+
+
+# The subset of MEASUREMENT_KNOBS that controls *how much training happens*,
+# with a ceiling each. Raising one of these is the deterministic answer to
+# `not_converged`, whose own advice is "raise the epoch budget" — so this raises
+# it, rather than asking the model to and watching it write the same number
+# again (Barkla job 10431703 case 06: four fix attempts, four identical
+# still-improving curves).
+#
+# Deliberately not the whole table. `n_rows`/`sample_size` also change what is
+# measured, but more data does not make an optimizer converge — it makes each
+# epoch cost more, which is the opposite of what a run that ran out of epochs
+# needs. And the precision knobs are not here for the same reason they are not
+# in MEASUREMENT_KNOBS: more posterior draws is not more training.
+UPSCALE_CEILINGS: dict[str, int] = {
+    "epochs": 1000,
+    "n_iter": 5000,
+    "max_iter": 5000,
+    "n_estimators": 2000,
+}
+
+
+def upscale(code: str) -> tuple[str, list[str]]:
+    """Double the knobs that control how much training happens. Returns
+    (new_code, human-readable changes); an empty change list means there was
+    nothing left to raise — every knob is already at its ceiling, or the code
+    has none of them.
+
+    The exact mirror of `downscale`, and it shares that function's contract so
+    the caller can tell "already at the ceiling" from "raised it" the same way.
+    What it does *not* share is a caller that may alternate between them: a run
+    that has been upscaled must not then be downscaled by the resource repair,
+    or the two chase each other inside one attempt. See _attempt_once, which
+    fixes a direction the first time it scales anything.
+    """
+    changes: list[str] = []
+    result = code
+
+    for knob, ceiling in UPSCALE_CEILINGS.items():
+        pattern = _knob_pattern(knob)
+
+        def raise_(match: re.Match[str], knob: str = knob, ceiling: int = ceiling) -> str:
+            current = int(match.group("value"))
+            if current >= ceiling:
+                return match.group(0)
+            raised = min(ceiling, max(current * 2, 1))
+            changes.append(_change(knob, current, raised))
+            return f"{match.group('prefix')}{raised}"
+
+        result = pattern.sub(raise_, result)
 
     return result, changes
 
@@ -155,7 +230,7 @@ def smoke_variant(code: str) -> tuple[str, list[str]]:
     result = code
 
     for knob, floor in DOWNSCALE_KNOBS.items():
-        pattern = re.compile(rf"(?P<prefix>\b{re.escape(knob)}\b\s*=\s*)(?P<value>\d+)")
+        pattern = _knob_pattern(knob)
 
         def pin(match: re.Match[str], knob: str = knob, floor: int = floor) -> str:
             current = int(match.group("value"))

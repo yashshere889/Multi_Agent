@@ -51,10 +51,22 @@ VERDICT_PRECISION = (
     "resampling was reduced to fit the compute budget — the estimates are less precise but "
     "measure the same quantity, so findings remain interpretable as evidence"
 )
+VERDICT_UNCONVERGED = (
+    "training stopped before the model converged and no epoch budget within the compute budget "
+    "reached it — the metrics describe an undertrained model rather than the method as designed, "
+    "and are NOT interpretable as evidence for or against the hypothesis"
+)
 VERDICT_TRUNCATED = (
     "the run was truncated to fit the compute budget — the metrics describe a smaller or "
     "undertrained model rather than the experiment as designed, and are NOT interpretable as "
     "evidence for or against the hypothesis"
+)
+
+WITHHELD_UNCONVERGED = (
+    "Training did not converge, and raising the epoch budget as far as the compute budget allows "
+    "did not reach convergence either. The run is real and its loss curves are reported, but a "
+    "comparison between models that have not converged measures the training budget rather than "
+    "the thing under test, so the verdict is withheld. See compute_provenance.json."
 )
 
 WITHHELD_BECAUSE = (
@@ -65,49 +77,75 @@ WITHHELD_BECAUSE = (
 )
 
 
-def truncated(changes: list[str]) -> bool:
-    """Whether any downscale changed what this experiment measures."""
-    return bool(repair.measurement_changes(changes))
+def truncated(changes: list[str], convergence_findings: list[str] | None = None) -> bool:
+    """Whether this experiment's metrics describe something other than the
+    experiment as designed — either because a downscale changed what is
+    measured, or because training never converged.
+
+    The two arrive by different roads and mean the same thing for a verdict: the
+    numbers came from a model that did not get the compute the design called
+    for. A downscale is that happening to the knobs; non-convergence is it
+    happening to the answer.
+    """
+    return bool(convergence_findings) or bool(repair.measurement_changes(changes))
 
 
-def verdict(changes: list[str]) -> str:
+def verdict(changes: list[str], convergence_findings: list[str] | None = None) -> str:
     """The compute-validity stamp — computed, never asked of the model."""
+    if convergence_findings:
+        return VERDICT_UNCONVERGED
     if not changes:
         return VERDICT_FULL
-    return VERDICT_TRUNCATED if truncated(changes) else VERDICT_PRECISION
+    return VERDICT_TRUNCATED if repair.measurement_changes(changes) else VERDICT_PRECISION
 
 
-def as_document(changes: list[str], timeout_seconds: int | None = None) -> dict[str, Any]:
+def as_document(
+    changes: list[str],
+    timeout_seconds: int | None = None,
+    convergence_findings: list[str] | None = None,
+) -> dict[str, Any]:
     measurement = repair.measurement_changes(changes)
     precision = [change for change in changes if change not in measurement]
     return {
         "downscaled": bool(changes),
         "changes": list(changes),
+        # Empty means every arm's loss curve had flattened by the end. A
+        # non-empty list is why the verdict is withheld even when nothing was
+        # downscaled at all.
+        "converged": not convergence_findings,
+        "convergence_findings": list(convergence_findings or []),
         # Split rather than merely labelled, because these are the two entries
         # a reader actually acts on: one explains a wider credible interval,
         # the other explains why there is no verdict at all.
         "measurement_changes": measurement,
         "precision_changes": precision,
         "timeout_seconds": timeout_seconds,
-        "compute_validity": verdict(changes),
+        "compute_validity": verdict(changes, convergence_findings),
         "ran_at_full_size": not changes,
     }
 
 
-def write(changes: list[str], path: Path, timeout_seconds: int | None = None) -> dict[str, Any]:
-    document = as_document(changes, timeout_seconds)
+def write(
+    changes: list[str],
+    path: Path,
+    timeout_seconds: int | None = None,
+    convergence_findings: list[str] | None = None,
+) -> dict[str, Any]:
+    document = as_document(changes, timeout_seconds, convergence_findings)
     path.write_text(json.dumps(document, indent=2))
     return document
 
 
-def apply_to_results(results: dict, changes: list[str]) -> dict:
+def apply_to_results(
+    results: dict, changes: list[str], convergence_findings: list[str] | None = None
+) -> dict:
     """Withhold the hypothesis verdict when the run was truncated to fit its
-    budget.
+    budget, or when training never converged.
 
     A precision-only downscale returns `results` untouched: fewer posterior
     draws is a wider interval, not a different experiment.
     """
-    if not truncated(changes):
+    if not truncated(changes, convergence_findings):
         return results
 
     stamped = dict(results)
@@ -120,12 +158,11 @@ def apply_to_results(results: dict, changes: list[str]) -> dict:
         "model_reported_meets_success_criteria", results.get("meets_success_criteria")
     )
     stamped["meets_success_criteria"] = "unknown"
-    stamped["compute_validity"] = verdict(changes)
+    stamped["compute_validity"] = verdict(changes, convergence_findings)
     # Both withholding reasons can be true at once, and a reader who sees only
     # the data one would go looking for a provenance problem that isn't the
     # whole story.
+    reason = WITHHELD_UNCONVERGED if convergence_findings else WITHHELD_BECAUSE
     existing = stamped.get("verdict_withheld_because")
-    stamped["verdict_withheld_because"] = (
-        f"{existing} {WITHHELD_BECAUSE}" if existing else WITHHELD_BECAUSE
-    )
+    stamped["verdict_withheld_because"] = f"{existing} {reason}" if existing else reason
     return stamped
