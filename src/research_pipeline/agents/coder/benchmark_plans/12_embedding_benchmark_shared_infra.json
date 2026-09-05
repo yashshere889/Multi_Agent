@@ -1,0 +1,86 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H112",
+      "feasible": true,
+      "feasibility_notes": "Uses a shared preprocessing module across conditions; CPU-only feature comparison.",
+      "objective": "Test whether TF-IDF weighting improves nearest-neighbour retrieval precision over raw term counts.",
+      "variables": {
+        "independent": [
+          "term weighting scheme"
+        ],
+        "dependent": [
+          "precision at 5",
+          "mean reciprocal rank"
+        ]
+      },
+      "design": "Comparative benchmark: identical retrieval procedure, two weighting schemes.",
+      "data_requirements": {
+        "source": "Hugging Face public dataset",
+        "description": "A labelled text corpus where documents sharing a label count as relevant to each other.",
+        "preprocessing_steps": [
+          "Load documents and labels",
+          "Tokenize consistently across both conditions",
+          "Build the document-term matrix"
+        ]
+      },
+      "methods": [
+        {
+          "name": "raw term-count vectors",
+          "description": "Cosine similarity over unweighted counts.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "TF-IDF weighting",
+          "description": "Inverse-document-frequency weighting before cosine similarity.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "precision_at_5",
+          "mrr"
+        ],
+        "baseline": "Retrieval over raw term-count vectors.",
+        "success_criteria": "TF-IDF improves precision at 5 by at least 0.05 over raw counts."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and tokenize the corpus"
+        },
+        {
+          "step": 2,
+          "description": "Build both representations"
+        },
+        {
+          "step": 3,
+          "description": "Run retrieval for every query document"
+        },
+        {
+          "step": 4,
+          "description": "Compare precision at 5 and MRR"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "A corpus with very few labels makes every document trivially relevant."
+      ]
+    }
+  ],
+  "shared_infrastructure": [
+    "A tokenization and document-term-matrix module used by both conditions in H112"
+  ],
+  "priority_order": [
+    {
+      "hypothesis_id": "H112",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H112"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

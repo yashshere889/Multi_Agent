@@ -1,0 +1,86 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H106",
+      "feasible": true,
+      "feasibility_notes": "Needs a GPU for the training run; deferred to a batch script where none is present.",
+      "objective": "Test whether a small transformer outperforms a bag-of-embeddings baseline on topic classification.",
+      "variables": {
+        "independent": [
+          "model architecture"
+        ],
+        "dependent": [
+          "test accuracy",
+          "training wall-clock"
+        ]
+      },
+      "design": "Comparative benchmark of two neural architectures trained to convergence on the same split.",
+      "data_requirements": {
+        "source": "Hugging Face public dataset",
+        "description": "A labelled multi-class topic classification corpus of short news texts.",
+        "preprocessing_steps": [
+          "Load and tokenize the corpus",
+          "Build a vocabulary from the training split",
+          "Pad or truncate to a fixed sequence length"
+        ]
+      },
+      "methods": [
+        {
+          "name": "bag-of-embeddings classifier",
+          "description": "Mean-pooled embedding layer followed by a linear classifier.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "small transformer encoder",
+          "description": "Two-layer transformer encoder with learned positional embeddings.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy",
+          "macro_f1",
+          "train_seconds"
+        ],
+        "baseline": "The bag-of-embeddings classifier trained on the same data for the same number of epochs.",
+        "success_criteria": "The transformer improves test accuracy by at least 0.03 over the bag-of-embeddings baseline."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and encode the corpus"
+        },
+        {
+          "step": 2,
+          "description": "Train the baseline to convergence"
+        },
+        {
+          "step": 3,
+          "description": "Train the transformer to convergence"
+        },
+        {
+          "step": 4,
+          "description": "Compare accuracy and cost"
+        }
+      ],
+      "estimated_complexity": "high",
+      "risks": [
+        "The transformer may overfit without enough data.",
+        "Training time may exceed the job's limit without checkpointing."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H106",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

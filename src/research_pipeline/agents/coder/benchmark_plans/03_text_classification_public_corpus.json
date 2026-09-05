@@ -1,0 +1,79 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H103",
+      "feasible": true,
+      "feasibility_notes": "Public text corpus, bag-of-words model, CPU only.",
+      "objective": "Test whether bigram features improve sentiment classification accuracy over unigrams alone.",
+      "variables": {
+        "independent": [
+          "n-gram order used for features"
+        ],
+        "dependent": [
+          "classification accuracy",
+          "macro F1"
+        ]
+      },
+      "design": "Ablation: identical classifier, unigram features vs unigram+bigram features.",
+      "data_requirements": {
+        "source": "Hugging Face public dataset",
+        "description": "A labelled English movie-review sentiment corpus with a text field and a binary label field.",
+        "preprocessing_steps": [
+          "Load the review text and labels",
+          "Lowercase and tokenize on whitespace",
+          "Hold out a test split"
+        ]
+      },
+      "methods": [
+        {
+          "name": "naive bayes",
+          "description": "Multinomial naive Bayes with Laplace smoothing over token counts.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy",
+          "macro_f1"
+        ],
+        "baseline": "Unigram naive Bayes on the same split.",
+        "success_criteria": "Adding bigrams improves accuracy by at least 0.02 on the held-out split."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the corpus"
+        },
+        {
+          "step": 2,
+          "description": "Build unigram features and classify"
+        },
+        {
+          "step": 3,
+          "description": "Build unigram+bigram features and classify"
+        },
+        {
+          "step": 4,
+          "description": "Compare accuracy and macro F1"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Bigram vocabulary may be too sparse on a small sample."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H103",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H103"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

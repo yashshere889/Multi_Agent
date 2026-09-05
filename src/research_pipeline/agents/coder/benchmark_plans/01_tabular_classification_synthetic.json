@@ -1,0 +1,81 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H101",
+      "feasible": true,
+      "feasibility_notes": "Small synthetic dataset, standard classifier, fits comfortably in one CPU job.",
+      "objective": "Test whether class-weighted logistic regression improves minority-class recall over an unweighted baseline on imbalanced tabular data.",
+      "variables": {
+        "independent": [
+          "class weighting scheme"
+        ],
+        "dependent": [
+          "minority-class recall",
+          "overall accuracy"
+        ]
+      },
+      "design": "Controlled comparison: identical model and split, weighting on vs off.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "Imbalanced binary tabular dataset, roughly 10% positive class, 8 numeric features.",
+        "preprocessing_steps": [
+          "Generate the imbalanced dataset with a fixed seed",
+          "Stratified 75/25 train/test split",
+          "Standardize features on the training split only"
+        ]
+      },
+      "methods": [
+        {
+          "name": "logistic regression",
+          "description": "Gradient-descent logistic regression with optional per-class weights.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "recall",
+          "precision",
+          "f1",
+          "accuracy"
+        ],
+        "baseline": "Unweighted logistic regression on the same split.",
+        "success_criteria": "Weighted model improves minority-class recall by at least 0.05 without losing more than 0.03 accuracy."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate and split the data"
+        },
+        {
+          "step": 2,
+          "description": "Train the unweighted baseline"
+        },
+        {
+          "step": 3,
+          "description": "Train the class-weighted variant"
+        },
+        {
+          "step": 4,
+          "description": "Compare both on the held-out split"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "The synthetic dataset may be too easy to separate the two conditions."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H101",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H101"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

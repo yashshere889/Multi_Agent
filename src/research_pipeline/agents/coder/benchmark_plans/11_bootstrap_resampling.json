@@ -1,0 +1,76 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H111",
+      "feasible": true,
+      "feasibility_notes": "Small dataset, resampling only, trivially cheap.",
+      "objective": "Test whether the bootstrap confidence interval for a median achieves nominal coverage on skewed data.",
+      "variables": {
+        "independent": [
+          "distribution skewness"
+        ],
+        "dependent": [
+          "empirical interval coverage"
+        ]
+      },
+      "design": "Simulation study: repeated sampling from known distributions, bootstrap interval per sample.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "Samples drawn from distributions of varying skewness with known medians.",
+        "preprocessing_steps": [
+          "Draw samples at each skewness level with a fixed seed"
+        ]
+      },
+      "methods": [
+        {
+          "name": "percentile bootstrap",
+          "description": "Resample with replacement and take percentiles of the bootstrap distribution.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "coverage",
+          "mean_interval_width"
+        ],
+        "baseline": "The nominal 95% coverage the interval claims.",
+        "success_criteria": "Empirical coverage stays within 0.03 of nominal at every skewness level."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Draw the samples"
+        },
+        {
+          "step": 2,
+          "description": "Compute bootstrap intervals per sample"
+        },
+        {
+          "step": 3,
+          "description": "Measure empirical coverage against the known median"
+        },
+        {
+          "step": 4,
+          "description": "Compare across skewness levels"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Coverage estimates are themselves noisy with few replicates."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H111",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H111"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

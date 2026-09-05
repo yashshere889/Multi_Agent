@@ -797,6 +797,56 @@ last checkpoint is kept, an `interrupted` line goes into `progress.jsonl`, and
 the process exits non-zero — a partial result that looks like a finished one is
 worse than no result at all.
 
+#### Measuring whether a change to the Coder Agent actually helped
+
+```bash
+uv run research-pipeline coder-benchmark run runs/bench-before      # needs a model
+uv run research-pipeline coder-benchmark score outputs              # or grade runs you already have
+uv run research-pipeline coder-benchmark compare runs/bench-before runs/bench-after
+```
+
+`benchmark run` replays twelve frozen Experiment Planner outputs
+([`benchmark_plans/`](src/research_pipeline/agents/coder/benchmark_plans/))
+chosen to cover every route through the agent: each starter archetype, the
+general no-starter prompt, both sbatch deferrals, the infeasible-plan path, a
+restricted data source, and a plan declaring shared infrastructure. Each case
+runs in its own directory so per-run state can't make one case's outcome depend
+on the ones before it.
+
+The headline metric is **interpretable**, not completed:
+
+```
+  interpretable      3/12 (25%)   <- ran AND carries a verdict
+  completed          6/12 (50%)
+```
+
+An experiment that finished and had its verdict withheld — synthetic inputs, or
+a run truncated to fit its budget — produced nothing the paper can state.
+Optimising `completed` alone gets you a pipeline that always finishes and never
+concludes anything.
+
+`compare` prints per-case moves alongside the aggregate deltas, and says what
+one case is worth as a percentage, because a twelve-case corpus turns a single
+flaky run into eight points:
+
+```
+  interpretable             3 ->    6   +3
+  fix attempts (total)     11 ->    7   -4
+
+  One case is 8% of this corpus. A delta of ±1 is one experiment, not a trend —
+  read the per-case changes below before concluding anything from the numbers above.
+
+    + H105: code_generated_not_run -> interpretable
+    + H110: code_generated_not_run -> interpretable
+```
+
+Scoring is a pure function of `coder_agent_summary_*.json`, so `score` and
+`compare` work against any output directory — including a finished Barkla sweep,
+with no benchmark run needed. It complements
+[`scripts/analyze_coder_fix_history.py`](scripts/analyze_coder_fix_history.py),
+which aggregates whatever runs happen to exist; this replays a set that doesn't
+move under you.
+
 #### One environment per requirement set, not per experiment
 
 Each experiment used to provision its own `uv venv`. That is fine for a handful

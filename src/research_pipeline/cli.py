@@ -24,7 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from research_pipeline import batch
-from research_pipeline.agents.coder import reconcile, run_coder_agent
+from research_pipeline.agents.coder import benchmark, reconcile, run_coder_agent
+from research_pipeline.agents.coder.coder_agent import CoderAgent
 from research_pipeline.agents.coder.schema import SchemaValidationError, validate_output
 from research_pipeline.config import settings
 from research_pipeline.agents.experiment_planner import run_experiment_planner_agent
@@ -180,6 +181,60 @@ def run_coder_agent_cli(args: argparse.Namespace) -> None:
             )
 
     print(f"\nShared infrastructure: {result['shared_infrastructure_path']}")
+
+
+def run_coder_benchmark_cli(args: argparse.Namespace) -> None:
+    """Run / score / compare the frozen Coder Agent benchmark corpus.
+
+    `score` and `compare` are pure functions of coder summaries on disk, so they
+    work just as well against an ordinary sweep's output directory as against a
+    benchmark run — which is the point: the numbers you compare a change against
+    can come from runs you already have.
+    """
+    if args.mode == "score":
+        result = benchmark.score(Path(args.target))
+        print(benchmark.format_score(result, title=f"Coder benchmark — {args.target}"))
+        return
+
+    if args.mode == "compare":
+        baseline = benchmark.score(Path(args.target))
+        candidate = benchmark.score(Path(args.against))
+        print(benchmark.format_comparison(baseline, candidate))
+        return
+
+    # run
+    run_dir = Path(args.target)
+    cases = benchmark.corpus_cases()
+    if not cases:
+        print("No benchmark plans found.")
+        return
+    run_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Running {len(cases)} benchmark case(s) into {run_dir}\n")
+
+    for case in cases:
+        planner_output = json.loads(case.read_text())
+        # Each case gets its own experiments and output directory. Isolated on
+        # purpose: a per-run counter like CODER_MAX_SLURM_JOBS_PER_RUN would
+        # otherwise make a case's outcome depend on which cases ran before it,
+        # and a benchmark whose cases interfere is not measuring the cases.
+        case_dir = run_dir / case.stem
+        try:
+            # CoderAgent directly rather than run_coder_agent: the corpus needs
+            # a per-case experiments_dir, which only the class takes. Keeping
+            # that off the module-level entry point leaves it the stable,
+            # minimal call the pipeline uses.
+            CoderAgent(
+                experiments_dir=case_dir / "experiments", output_dir=case_dir
+            ).run(planner_output)
+            print(f"  ok    {case.stem}")
+        except Exception as exc:  # noqa: BLE001
+            # One case must not end the sweep — the same rule batch.py follows,
+            # and for the same reason: a benchmark that stops at the first
+            # failure measures nothing after it.
+            print(f"  FAIL  {case.stem}: {exc}")
+
+    print()
+    print(benchmark.format_score(benchmark.score(run_dir), title=f"Coder benchmark — {run_dir}"))
 
 
 def run_coder_reconcile_cli(args: argparse.Namespace) -> None:
@@ -488,6 +543,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     coder.set_defaults(func=run_coder_agent_cli)
+
+    coder_benchmark = subparsers.add_parser(
+        "coder-benchmark",
+        help="run, score, or compare the Coder Agent's frozen benchmark corpus",
+    )
+    coder_benchmark.add_argument(
+        "mode",
+        choices=["run", "score", "compare"],
+        help=(
+            "run: execute every corpus case into a fresh run directory (needs a model). "
+            "score: report the numbers for any directory of coder summaries — a benchmark "
+            "run or an ordinary sweep's outputs. compare: diff two of those."
+        ),
+    )
+    coder_benchmark.add_argument(
+        "target", help="the run directory to write (run) or read (score/compare baseline)"
+    )
+    coder_benchmark.add_argument(
+        "against", nargs="?", default=None, help="compare only: the candidate run directory"
+    )
+    coder_benchmark.set_defaults(func=run_coder_benchmark_cli)
 
     coder_reconcile = subparsers.add_parser(
         "coder-reconcile",

@@ -1,0 +1,73 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H108",
+      "feasible": false,
+      "feasibility_notes": "Requires pretraining a multi-billion-parameter model from scratch, which is far outside the compute available to this pipeline.",
+      "objective": "Test whether pretraining a 7B-parameter language model on domain-specific text improves downstream clinical QA accuracy.",
+      "variables": {
+        "independent": [
+          "pretraining corpus domain"
+        ],
+        "dependent": [
+          "downstream QA accuracy"
+        ]
+      },
+      "design": "Pretrain two models from scratch and compare downstream fine-tuned performance.",
+      "data_requirements": {
+        "source": "proprietary clinical corpus",
+        "description": "Several hundred billion tokens of domain text, plus a licensed clinical QA benchmark.",
+        "preprocessing_steps": [
+          "Deduplicate and shard the pretraining corpus",
+          "Tokenize with a domain vocabulary"
+        ]
+      },
+      "methods": [
+        {
+          "name": "decoder-only transformer pretraining",
+          "description": "Standard autoregressive pretraining at 7B scale.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "downstream_accuracy",
+          "perplexity"
+        ],
+        "baseline": "A general-domain model of the same size.",
+        "success_criteria": "Domain pretraining improves downstream QA accuracy by at least 2 points."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Assemble the corpus"
+        },
+        {
+          "step": 2,
+          "description": "Pretrain both models"
+        },
+        {
+          "step": 3,
+          "description": "Fine-tune and evaluate on the QA benchmark"
+        }
+      ],
+      "estimated_complexity": "high",
+      "risks": [
+        "Compute requirement is several orders of magnitude beyond what is available."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H108",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H108"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

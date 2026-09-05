@@ -1,0 +1,83 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H110",
+      "feasible": true,
+      "feasibility_notes": "Pure simulation, no external data, bounded by the number of draws.",
+      "objective": "Test whether a hierarchical estimator has lower variance than a pooled estimator under group heterogeneity.",
+      "variables": {
+        "independent": [
+          "between-group variance"
+        ],
+        "dependent": [
+          "estimator variance",
+          "coverage of the interval"
+        ]
+      },
+      "design": "Monte Carlo simulation across heterogeneity levels, comparing two estimators per replicate.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "Simulated grouped observations with configurable between-group and within-group variance.",
+        "preprocessing_steps": [
+          "Generate replicates at each heterogeneity level with a fixed seed"
+        ]
+      },
+      "methods": [
+        {
+          "name": "pooled mean estimator",
+          "description": "Ignore group structure and average everything.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "shrinkage estimator",
+          "description": "Shrink group means toward the grand mean by a variance-ratio factor.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "estimator_variance",
+          "bias",
+          "interval_coverage"
+        ],
+        "baseline": "The pooled estimator at the same heterogeneity level.",
+        "success_criteria": "The shrinkage estimator has lower variance at every heterogeneity level without coverage dropping below 0.90."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Simulate replicates per level"
+        },
+        {
+          "step": 2,
+          "description": "Compute both estimators per replicate"
+        },
+        {
+          "step": 3,
+          "description": "Summarize variance, bias and coverage"
+        },
+        {
+          "step": 4,
+          "description": "Compare across levels"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "Too few replicates would make the variance comparison itself noisy."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H110",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H110"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

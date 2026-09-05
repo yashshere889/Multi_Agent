@@ -31,6 +31,8 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
 | `compute_provenance.py` | The same withholding, asked of the compute instead of the inputs: records which cost knobs `repair.downscale` had to shrink, and withholds the verdict when shrinking one changed what the experiment measures. No LLM. |
 | `prompts.py` | All prompt templates. |
+| `benchmark.py` | Scores a directory of `coder_agent_summary_*.json` into comparable numbers, and diffs two such runs. Pure — no model, no agent imports — so it grades an ordinary sweep's outputs as readily as a benchmark run. |
+| `benchmark_plans/` | The frozen plan corpus, one Experiment Planner output per case. Hand-written, never model-generated; see its README before adding one. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata, the runtime-support block (`logger`, `log_progress`, `begin_checkpoint`/`finish_checkpoint`/`resume_checkpoint`, the SIGTERM handler) and the orchestration footer that writes `results.json`. Not model-generated. |
 | `templates/run.sbatch.template` | Barkla-shaped SLURM script — `--requeue`, `--open-mode=append`, and `python run.py --resume`, so a preempted job continues rather than restarting. |
@@ -117,6 +119,11 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   compiles, defines the right name, passes every other check, and only dies on a TypeError once
   a venv has been provisioned. Extra parameters with defaults and `*args` pass — the question is
   "can the orchestration call this", not "does the signature match exactly".
+- **`interpretable`, not `completed`, is the number a change is judged on.** `benchmark.py`
+  counts an experiment as interpretable only when it ran *and* kept a real bool verdict — a run
+  whose verdict was withheld by `provenance.py` or `compute_provenance.py` produced nothing a
+  paper can state. Optimising `completed` alone is how you get a pipeline that always finishes
+  and never concludes anything. When adding a metric, ask which of those two it is.
 - **Venvs are keyed by what is in them, not by who asked for them.** `venv_key` hashes the
   resolved requirement set and `_venv_dir_for` puts the venv under `_venvs/<key>/` (or under
   `CODER_VENV_ROOT`), so twenty plans wanting numpy/pandas provision one environment. Two
