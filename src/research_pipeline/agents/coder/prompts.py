@@ -185,6 +185,32 @@ raw and unescaped — real line breaks, real backslashes, real quotes — becaus
 it is read verbatim, not decoded.
 """
 
+# The materialized-dataset counterpart of HF_DATASET_USAGE_NOTE below, used when
+# the agent has already downloaded the dataset to a local JSONL. `.format(path=)`
+# rather than an f-string at import: the path is per-experiment. It has no
+# literal braces to escape, unlike the note below it.
+HF_DATASET_LOCAL_NOTE = """Read it with the standard library — one JSON object per \
+line, no third-party package needed and nothing to download:
+
+  import json
+  with open({path}, encoding="utf-8") as fh:
+      records = [json.loads(line) for line in fh]
+
+Because it is already local, use as much of it as the experiment actually needs \
+— this is not a sample to be kept small, it is the dataset. Take a subset only \
+where the design calls for one (a train/test split, a stratified sample), and \
+say so in "assumptions_made" if you do.
+
+Use this dataset ONLY if it genuinely fits the plan's data_requirements. If it \
+doesn't, ignore it completely, generate/synthesize the data the plan describes, \
+and say in assumptions_made that you did and why.
+
+Guard the read either way: wrap it in try/except and fall back to a small \
+synthesized stand-in dataset in the same shape if the file is missing (the \
+experiment may be run somewhere the cache is not mounted), recording that \
+fallback in assumptions_made and the README.
+"""
+
 # Appended after the concrete dataset facts by CoderAgent._hf_dataset_block. Kept
 # out of .format() reach on purpose: it contains literal JSON braces describing
 # the API's response shape, which would have to be doubled in a format template

@@ -6,6 +6,7 @@ the actual execution mechanics are unit-testable without a live model.
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import json
 import logging
@@ -751,6 +752,29 @@ def check_nontrivial_function_bodies(sections: dict[str, str]) -> list[str]:
     return findings
 
 
+def dataset_traces(hf_dataset: dict) -> tuple[str, ...]:
+    """Every string whose presence in generated code proves the offered dataset
+    was actually used.
+
+    The raw id, the percent-encoded form the rows URL carries, and — when the
+    dataset was materialized to a local JSONL — that path, which is what the
+    code reads instead of any URL. One definition because two callers ask the
+    same question and must not disagree: `check_hf_dataset_usage` below decides
+    whether an attempt goes back to the fix loop, and
+    `coder_agent._reads_dataset` decides whether the dataset counts as a real
+    input. A dataset that clears one and fails the other would be routed to the
+    Writer as an experiment that read real data and invented it at the same time.
+    """
+    dataset_id = str(hf_dataset.get("dataset_id") or "")
+    if not dataset_id:
+        return ()
+    traces = [dataset_id, quote(dataset_id, safe="")]
+    local_path = hf_dataset.get("local_path")
+    if local_path:
+        traces.append(str(local_path))
+    return tuple(traces)
+
+
 def check_hf_dataset_usage(
     configuration_source: str,
     load_data_source: str,
@@ -780,13 +804,12 @@ def check_hf_dataset_usage(
     trace consistent with how the prompt hands the dataset over — the model
     can build the actual read call in more shapes than are worth enumerating.
     """
-    dataset_id = hf_dataset.get("dataset_id")
-    if not dataset_id:
+    traces = dataset_traces(hf_dataset)
+    if not traces:
         return []
-    dataset_id = str(dataset_id)
-    quoted_id = quote(dataset_id, safe="")
+    dataset_id = str(hf_dataset.get("dataset_id"))
     code = f"{configuration_source}\n{load_data_source}"
-    if dataset_id in code or quoted_id in code:
+    if any(trace in code for trace in traces):
         return []
     if any(dataset_id in note for note in assumptions_made):
         return []
@@ -965,12 +988,90 @@ def check_results_plausibility(metrics: dict) -> list[str]:
     return findings
 
 
+# Where a shared venv lives, under whichever root is in play. Named so a human
+# listing the directory can tell these apart from an experiment's own output,
+# and so `.build-*` debris is obviously debris.
+SHARED_VENV_DIR_NAME = "_venvs"
+
+
+def venv_key(requirements: list[str]) -> str:
+    """A short, stable name for the environment a requirement set needs.
+
+    Order- and duplicate-insensitive, because ["numpy", "pandas"] and
+    ["pandas", "numpy", "numpy"] describe the same environment and provisioning
+    two of them would defeat the point. Truncated: this is a cache key for
+    directory names, not a security boundary, and a collision between two
+    different requirement sets 64 bits apart is not a thing that happens.
+    """
+    canonical = "\n".join(sorted({line.strip() for line in requirements if line.strip()}))
+    return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
+
+def _venv_dir_for(
+    experiment_dir: Path, requirements: list[str], venv_root: Path | None, share: bool
+) -> Path:
+    """The directory this experiment's interpreter should live in.
+
+    Unshared, it is exactly where it always was — beside the experiment, or
+    under venv_root keyed by the experiment's own name. Shared, it is keyed by
+    what is *in* it instead of by who asked for it, under a common parent so
+    other experiments can find the same one: venv_root when set (which is the
+    point of that setting — keeping thousands of small files off a quota'd
+    filesystem), else `_venvs/` beside the experiment directories, next to the
+    `_shared/` infrastructure directory that already lives there.
+    """
+    if not share:
+        return (
+            (venv_root / experiment_dir.name / ".venv") if venv_root else experiment_dir / ".venv"
+        )
+    root = venv_root or experiment_dir.parent / SHARED_VENV_DIR_NAME
+    return root / venv_key(requirements) / ".venv"
+
+
+def _publish_venv(build_dir: Path, venv_dir: Path) -> Path:
+    """Move a fully-built venv to the name other experiments will look it up
+    under, and return the interpreter to use.
+
+    Losing the race is a normal outcome, not an error: another process in the
+    same sweep needed the same requirements and finished first. Its venv is
+    equivalent to ours by construction — the name is a hash of the requirement
+    set both were built from — so ours is discarded and its interpreter is
+    returned. `os.replace` will not overwrite a non-empty directory, which is
+    what makes "did someone beat me to it" observable at all rather than a
+    silent clobber of an environment another experiment is running out of.
+    """
+    try:
+        venv_dir.parent.mkdir(parents=True, exist_ok=True)
+        if venv_dir.exists() and not (venv_dir / "bin" / "python").exists():
+            # Debris from a build that was interrupted between creating the
+            # directory and finishing the install. It was never a usable venv,
+            # so nothing can be running out of it and removing it is safe —
+            # whereas leaving it would block the rename forever and every later
+            # attempt would fall back to an unshared build directory. This is
+            # the guarantee the unconditional rmtree used to provide, narrowed
+            # to the only case where it is not destructive.
+            shutil.rmtree(venv_dir, ignore_errors=True)
+        os.replace(build_dir, venv_dir)
+    except OSError:
+        if (venv_dir / "bin" / "python").exists():
+            logger.info("Another process published %s first — reusing it.", venv_dir)
+            shutil.rmtree(build_dir, ignore_errors=True)
+        else:
+            # Not a race: the move itself failed (a cross-device rename, a
+            # read-only parent). Keep using the build directory, which is a
+            # perfectly good venv that simply never got a shareable name.
+            logger.warning("Could not publish %s to %s — using it in place.", build_dir, venv_dir)
+            return build_dir / "bin" / "python"
+    return venv_dir / "bin" / "python"
+
+
 def ensure_experiment_env(
     experiment_dir: Path,
     requirements_path: Path,
     network_available: bool,
     extra_requirements: list[str] | None = None,
     venv_root: Path | None = None,
+    share_venvs: bool = False,
 ) -> tuple[Path | None, str | None]:
     """Ensures a Python interpreter with the experiment's requirements
     installed. Returns (python_executable, error_message) — exactly one is
@@ -988,6 +1089,11 @@ def ensure_experiment_env(
     none and is node-local NVMe besides. The venv is disposable and the results
     are not, so they need not share a filesystem. Defaults to the experiment
     directory, which is right on a laptop.
+
+    `share_venvs` keys the venv by the requirement set it holds instead of by
+    which experiment asked for it, so experiments needing the same packages
+    share one. Defaults to False here — sandbox.py reads no settings, so the
+    caller decides — and coder_agent passes settings.coder_share_venvs.
 
     `extra_requirements` is for packages the model never had a reason to put
     in requirements.txt — namely what experiments/_shared/ itself imports
@@ -1022,6 +1128,9 @@ def ensure_experiment_env(
     # point, not earlier: missing_packages above checks *importability*, which is
     # keyed on the import name, so rewriting sooner would ask whether
     # `scikit-learn` is importable and always conclude it is missing.
+    # Built unconditionally now, not only when it differs: `merged` is the
+    # resolved requirement set, which is also what a shared venv is keyed by, so
+    # it has to exist on every path rather than just the rewrite path below.
     merged = [
         installable_name(line)
         for line in dict.fromkeys(requirements + list(extra_requirements or []))
@@ -1032,26 +1141,45 @@ def ensure_experiment_env(
     else:
         install_requirements_path = requirements_path
 
-    venv_dir = (
-        (venv_root / experiment_dir.name / ".venv") if venv_root else experiment_dir / ".venv"
-    )
+    venv_dir = _venv_dir_for(experiment_dir, merged, venv_root, share=share_venvs)
     venv_dir.parent.mkdir(parents=True, exist_ok=True)
     venv_python = venv_dir / "bin" / "python"
+
+    # A shared venv that is already there is already right: its directory name
+    # is a hash of this exact resolved requirement set, and it only ever got
+    # that name by being renamed into place fully built (see below). Reusing it
+    # is the whole point — a sweep of twenty plans wanting the same packages
+    # provisions once, not twenty times, which for anything torch-shaped is the
+    # difference between minutes and hours and between thousands of inodes and
+    # tens of thousands.
+    if share_venvs and venv_python.exists():
+        return venv_python, None
+
     use_uv = shutil.which("uv") is not None
     tool = "uv" if use_uv else "pip"
-    # A prior fix attempt can get partway through provisioning (venv created,
-    # then the pip/uv install step fails or times out) and leave venv_dir
-    # behind. Both `uv venv` and the stdlib `venv` module refuse to
-    # (re)populate an existing directory, so without this every subsequent
-    # fix attempt would fail on venv creation itself with the same
-    # "already exists" error, regardless of what changed in the generated
-    # code — the fix loop could never actually recover.
-    if venv_dir.exists():
-        shutil.rmtree(venv_dir, ignore_errors=True)
+
+    # Built somewhere private and moved into place at the end, never built in
+    # place. Three things fall out of that, and the third is why it replaced an
+    # unconditional rmtree of venv_dir:
+    #   - a prior fix attempt that got partway through (venv created, install
+    #     then failed or timed out) leaves its debris under a name nothing will
+    #     ever look up, instead of at venv_dir where `uv venv` and the stdlib
+    #     venv module would both refuse to repopulate it — which used to mean
+    #     every later fix attempt failed on venv creation itself, whatever had
+    #     changed in the generated code;
+    #   - a half-installed environment is never visible under the final name, so
+    #     the reuse check above cannot hand one out;
+    #   - and rmtree'ing venv_dir is now a *destructive* act, because with
+    #     sharing on that directory may be in use by other experiments in this
+    #     sweep. The pid in the build name is what keeps two concurrent batch
+    #     processes from building over each other.
+    build_dir = venv_dir.parent / f".build-{venv_dir.parent.name}-{os.getpid()}"
+    shutil.rmtree(build_dir, ignore_errors=True)
+    build_python = build_dir / "bin" / "python"
     try:
         if use_uv:
             subprocess.run(
-                ["uv", "venv", str(venv_dir)],
+                ["uv", "venv", str(build_dir)],
                 check=True,
                 capture_output=True,
                 text=True,
@@ -1063,7 +1191,7 @@ def ensure_experiment_env(
                     "pip",
                     "install",
                     "--python",
-                    str(venv_python),
+                    str(build_python),
                     "-r",
                     str(install_requirements_path),
                 ],
@@ -1074,26 +1202,28 @@ def ensure_experiment_env(
             )
         else:
             subprocess.run(
-                [sys.executable, "-m", "venv", str(venv_dir)],
+                [sys.executable, "-m", "venv", str(build_dir)],
                 check=True,
                 capture_output=True,
                 text=True,
                 timeout=120,
             )
             subprocess.run(
-                [str(venv_python), "-m", "pip", "install", "-r", str(install_requirements_path)],
+                [str(build_python), "-m", "pip", "install", "-r", str(install_requirements_path)],
                 check=True,
                 capture_output=True,
                 text=True,
                 timeout=600,
             )
     except subprocess.CalledProcessError as exc:
+        shutil.rmtree(build_dir, ignore_errors=True)
         detail = (exc.stderr or str(exc))[-500:]
         return (
             None,
             f"failed to provision an isolated environment for {missing} via {tool}: {detail}",
         )
     except subprocess.TimeoutExpired:
+        shutil.rmtree(build_dir, ignore_errors=True)
         return None, f"provisioning an isolated environment for {missing} via {tool} timed out"
 
     # A zero-exit-code `uv venv`/`pip install` isn't proof the interpreter is
@@ -1108,14 +1238,19 @@ def ensure_experiment_env(
     # FileNotFoundError that crashes the whole orchestrator run instead of
     # degrading to the already-handled "couldn't provision an environment"
     # result every other failure in this function produces.
-    if not venv_python.exists():
+    # Checked against the build directory, before publishing: an environment
+    # with no interpreter in it must never be renamed to the name other
+    # experiments look a shared venv up under.
+    if not build_python.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
         return (
             None,
             f"{tool} reported success provisioning {missing}, but no interpreter exists at "
-            f"{venv_python} afterward — the venv directory may not be usable on this filesystem",
+            f"{build_python} afterward (destined for {venv_dir}) — the venv directory may not "
+            "be usable on this filesystem",
         )
 
-    return venv_python, None
+    return _publish_venv(build_dir, venv_dir), None
 
 
 def _interpreter_path(python_executable: Path) -> str:

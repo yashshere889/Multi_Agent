@@ -45,6 +45,9 @@ class Settings:
     coder_max_structural_retries: int
     coder_data_dir: str
     coder_venv_root: str
+    coder_share_venvs: bool
+    coder_dataset_cache_dir: str
+    coder_dataset_max_rows: int
     coder_enable_hf_dataset_search: bool
     coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
@@ -238,6 +241,34 @@ def load_settings() -> Settings:
         # cleared automatically. The venv is rebuilt per job either way, so
         # nothing is lost by keeping it off the shared filesystem.
         coder_venv_root=os.environ.get("CODER_VENV_ROOT", ""),
+        # On by default. Experiment venvs are keyed by the requirements they
+        # hold rather than by which experiment asked for them, so a sweep of
+        # twenty plans that all want numpy/pandas/scikit-learn provisions one
+        # venv instead of twenty. That is a large amount of wall clock and, on
+        # a quota'd cluster home, an enormous number of inodes — a single torch
+        # install is thousands of files, and re-doing it per experiment is what
+        # makes a torch-dependent sweep impossible rather than merely slow.
+        # The switch exists for a run that wants a guaranteed-pristine
+        # environment per experiment, not because sharing is risky: the key is
+        # the resolved requirement set, so a shared venv is always a superset of
+        # what the experiment asked for.
+        coder_share_venvs=_env_bool("CODER_SHARE_VENVS", True),
+        # Empty (the default) keeps the long-standing behaviour: a matched Hub
+        # dataset is handed to the model as a Dataset Viewer REST URL and read
+        # ~100 rows at a time. Set it to a directory and the agent instead
+        # downloads the dataset once, to one JSONL file there, and hands the
+        # generated code that local path — which is the difference between an
+        # experiment that samples a dataset and one that can train on it.
+        # One file per dataset, deliberately: a Hugging Face cache directory is
+        # thousands of small files, and Barkla's scratch inode quotas are the
+        # binding constraint long before disk space is. Shared across every
+        # experiment and every run pointed at the same directory.
+        coder_dataset_cache_dir=os.environ.get("CODER_DATASET_CACHE_DIR", ""),
+        # The cap on that download, in rows. Only read when the cache directory
+        # above is set. Bounded rather than unbounded because the rows endpoint
+        # pages 100 at a time, so this is also a request count: the default is
+        # 500 requests, a few minutes once, then free for every later run.
+        coder_dataset_max_rows=int(os.environ.get("CODER_DATASET_MAX_ROWS", "50000")),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

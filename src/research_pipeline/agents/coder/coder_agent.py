@@ -1534,6 +1534,7 @@ class CoderAgent:
             network_available,
             extra_requirements,
             venv_root=Path(settings.coder_venv_root) if settings.coder_venv_root else None,
+            share_venvs=settings.coder_share_venvs,
         )
         # Checked as `is None` rather than `if env_error` so the interpreter is
         # narrowed to a Path for the run below; ensure_experiment_env's contract
@@ -2350,7 +2351,30 @@ class CoderAgent:
                 exc,
             )
             return {}
-        return dataset or {}
+        return self._materialize(dataset or {})
+
+    def _materialize(self, dataset: dict) -> dict:
+        """Download a matched dataset to the shared cache, when one is
+        configured, and record where it landed.
+
+        Adds `local_path`/`local_rows` to the dataset dict; everything
+        downstream — the prompt block, the usage check, the provenance record —
+        keys off whether those are present. Absent (no cache directory, or the
+        download failed) leaves the dict exactly as the lookup returned it, and
+        the model is handed the REST URL as it always was. Same rule as the
+        lookup itself: this is an enhancement, never a precondition.
+        """
+        if not dataset or not settings.coder_dataset_cache_dir:
+            return dataset
+        materialized = huggingface_client.materialize_dataset(
+            dataset,
+            Path(settings.coder_dataset_cache_dir),
+            settings.coder_dataset_max_rows,
+        )
+        if materialized is None:
+            return dataset
+        path, rows = materialized
+        return {**dataset, "local_path": str(path), "local_rows": rows}
 
     def _provenance_for(
         self,
@@ -2397,16 +2421,28 @@ class CoderAgent:
         # data. The one path that makes a real verdict reachable was closed.
         dataset_id = (hf_dataset or {}).get("dataset_id")
         named = run_py is None or (
-            bool(dataset_id) and self._reads_dataset(str(dataset_id), run_py)
+            bool(dataset_id) and self._reads_dataset(hf_dataset or {}, run_py)
         )
+        local_path = (hf_dataset or {}).get("local_path")
         if dataset_id and named:
             sources.insert(
                 0,
                 provenance.DataSource(
                     name=f"Hugging Face dataset {dataset_id}",
-                    kind=provenance.KIND_REAL_DOWNLOAD,
-                    uri=self._rows_url(hf_dataset or {}),
-                    reason="found by the Hugging Face lookup and read by the generated code",
+                    # A materialized dataset is a real file on disk, which is
+                    # exactly what KIND_REAL_LOCAL means — and what the code
+                    # reads, since there is no longer a URL in it for
+                    # verify_downloads_used to match a host against.
+                    kind=(
+                        provenance.KIND_REAL_LOCAL if local_path else provenance.KIND_REAL_DOWNLOAD
+                    ),
+                    uri=str(local_path) if local_path else self._rows_url(hf_dataset or {}),
+                    reason=(
+                        f"downloaded to {local_path} by the Hugging Face lookup and read by the "
+                        "generated code"
+                        if local_path
+                        else "found by the Hugging Face lookup and read by the generated code"
+                    ),
                     # Reached only when run_py named the dataset (or at prompt
                     # time, when there is no code to check), so its use is
                     # already established more strongly than a URL-host match.
@@ -2423,16 +2459,18 @@ class CoderAgent:
         return sources
 
     @staticmethod
-    def _reads_dataset(dataset_id: str, code: str) -> bool:
-        """Whether `code` shows a trace of reading `dataset_id`.
+    def _reads_dataset(hf_dataset: dict, code: str) -> bool:
+        """Whether `code` shows a trace of reading the offered dataset.
 
-        Matches the raw id and the percent-encoded form, because a rows URL
-        encodes the namespace slash — a plain `dataset_id in code` test misses
-        exactly the case the prompt hands over, which is the URL. The same two
-        forms sandbox.check_hf_dataset_usage already checks; the two must agree,
-        or a dataset that clears that gate can still be scored a surrogate here.
+        Delegates to sandbox.dataset_traces rather than re-deriving the forms:
+        the raw id, the percent-encoded one a rows URL carries, and the local
+        path when the dataset was materialized. That function's docstring
+        explains why this must not have its own opinion — a dataset that clears
+        check_hf_dataset_usage and is scored a surrogate here would reach the
+        Writer as an experiment that read real data and invented it at once.
         """
-        return bool(code) and (dataset_id in code or quote(dataset_id, safe="") in code)
+        traces = sandbox.dataset_traces(hf_dataset)
+        return bool(code) and any(trace in code for trace in traces)
 
     @staticmethod
     def _rows_url(hf_dataset: dict) -> str:
@@ -2475,8 +2513,7 @@ class CoderAgent:
         )
         config = str(hf_dataset.get("config") or "default")
         split = str(hf_dataset.get("split") or "train")
-        rows_url = CoderAgent._rows_url(hf_dataset)
-        return (
+        header = (
             "A real, public dataset matching this experiment's data requirements was found and "
             "verified as servable by the Hugging Face Dataset Viewer:\n"
             f"  dataset: {dataset_id}\n"
@@ -2484,9 +2521,21 @@ class CoderAgent:
             f"  split: {split}\n"
             f"  columns: {columns or '(unknown)'}\n"
             f"  first rows: {_compact_json(hf_dataset.get('sample_rows') or [])}\n\n"
-            "Read it over HTTP with `requests` (already available — do NOT add the `datasets` "
-            "package, and do not download the dataset):\n"
-            f"  {rows_url}\n\n" + prompts.HF_DATASET_USAGE_NOTE
+        )
+        local_path = hf_dataset.get("local_path")
+        if local_path:
+            # Already on disk, so the experiment is not limited to whatever a
+            # few HTTP requests can pull — this is the whole difference between
+            # sampling a dataset and training on one.
+            return (
+                header
+                + f"It has already been downloaded for you: {hf_dataset.get('local_rows', 0)} rows "
+                f"at\n  {local_path}\n\n" + prompts.HF_DATASET_LOCAL_NOTE.format(path=local_path)
+            )
+        return (
+            header + "Read it over HTTP with `requests` (already available — do NOT add the "
+            "`datasets` package, and do not download the dataset):\n"
+            f"  {CoderAgent._rows_url(hf_dataset)}\n\n" + prompts.HF_DATASET_USAGE_NOTE
         )
 
     def _generate_experiment_files(

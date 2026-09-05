@@ -330,6 +330,25 @@ def test_a_relative_interpreter_path_is_still_made_absolute(tmp_path, monkeypatc
     assert "experiments/H1/experiments" not in seen[0]
 
 
+def _materialize_venv(cmd) -> None:
+    """Create `bin/python` wherever a venv-creation command was told to build.
+
+    Provisioning builds in a private directory and renames it into place, so a
+    fake that hard-codes `tmp_path/.venv` tests the mechanism rather than the
+    outcome — and fails the moment the caller picks a different build location.
+    This reads the destination out of the command it is given, exactly as `uv
+    venv` and `python -m venv` do.
+    """
+    if cmd[0] == "uv" and len(cmd) > 2 and cmd[1] == "venv":
+        target = Path(cmd[2])
+    elif "-m" in cmd and "venv" in cmd:
+        target = Path(cmd[-1])
+    else:
+        return  # an install command, which creates no interpreter
+    (target / "bin").mkdir(parents=True, exist_ok=True)
+    (target / "bin" / "python").touch()
+
+
 def test_ensure_experiment_env_returns_current_interpreter_when_nothing_missing(tmp_path):
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("os\n")  # stdlib, never "missing"
@@ -377,8 +396,7 @@ def test_ensure_experiment_env_falls_back_to_venv_when_bare_interpreter_import_f
             return SimpleNamespace(
                 returncode=1, stdout="", stderr="ImportError: no module named os"
             )
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -425,8 +443,7 @@ def test_ensure_experiment_env_provisions_for_extra_requirements_not_in_requirem
 
     def fake_run(cmd, **kwargs):
         recorded_cmds.append(cmd)
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -468,15 +485,13 @@ def test_ensure_experiment_env_prefers_uv_when_available(tmp_path, monkeypatch):
     requirements.write_text("definitely_not_a_real_package_xyz\n")
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
     recorded_cmds = []
-    venv_python = tmp_path / ".venv" / "bin" / "python"
 
     def fake_run(cmd, **kwargs):
         recorded_cmds.append(cmd)
         # A real `uv venv` materializes the interpreter; simulate that so this
         # test exercises the code path the existence check now guards, same
         # as it would on a real filesystem.
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -494,14 +509,13 @@ def test_ensure_experiment_env_falls_back_to_pip_when_uv_missing(tmp_path, monke
     requirements.write_text("definitely_not_a_real_package_xyz\n")
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: None)
     recorded_cmds = []
-    venv_python = tmp_path / ".venv" / "bin" / "python"
 
     def fake_run(cmd, **kwargs):
         recorded_cmds.append(cmd)
-        # A real `venv` module materializes the interpreter; simulate that so
-        # this test exercises the code path the existence check now guards.
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        # A real `venv` module materializes the interpreter in whatever
+        # directory it was told to build in; simulate that faithfully rather
+        # than hard-coding the destination, which the caller now chooses.
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -510,11 +524,11 @@ def test_ensure_experiment_env_falls_back_to_pip_when_uv_missing(tmp_path, monke
         tmp_path, requirements, network_available=True
     )
     assert error is None
-    assert python_exec == venv_python
-    assert recorded_cmds == [
-        [sys.executable, "-m", "venv", str(tmp_path / ".venv")],
-        [str(venv_python), "-m", "pip", "install", "-r", str(requirements)],
-    ]
+    # Published to the unshared location, whatever it was built in.
+    assert python_exec == tmp_path / ".venv" / "bin" / "python"
+    assert python_exec.exists()
+    assert recorded_cmds[0][:3] == [sys.executable, "-m", "venv"]
+    assert recorded_cmds[1][1:] == ["-m", "pip", "install", "-r", str(requirements)]
     assert not any("uv" in cmd for cmd in recorded_cmds)
 
 
@@ -569,15 +583,21 @@ def test_ensure_experiment_env_reports_error_when_interpreter_is_missing_after_a
     assert python_exec is None
     assert error is not None
     assert "no interpreter exists" in error
-    assert str(tmp_path / ".venv" / "bin" / "python") in error
+    # Names where it actually looked, and where that was destined for. An
+    # environment with no interpreter in it is never published, so the check
+    # runs against the build directory rather than the final name.
+    assert "bin/python" in error
+    assert str(tmp_path / ".venv") in error
+    assert not (tmp_path / ".venv").exists()
 
 
-def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, monkeypatch):
+def test_ensure_experiment_env_replaces_debris_from_an_interrupted_build(tmp_path, monkeypatch):
     # Regression test: a prior fix attempt can leave a partial .venv behind
-    # (e.g. venv created but the install step failed), and both `uv venv` and
-    # the stdlib `venv` module refuse to populate an existing directory. Without
-    # clearing it first, every subsequent fix attempt would fail on venv
-    # creation itself regardless of what changed in the generated code.
+    # (venv created, install then failed), and it must not block every later
+    # attempt. Provisioning now builds elsewhere and renames into place, so the
+    # guarantee is that publishing steps over a directory that never held an
+    # interpreter — narrowly, because with shared venvs an unconditional rmtree
+    # of that path could destroy an environment other experiments are using.
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("definitely_not_a_real_package_xyz\n")
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
@@ -586,12 +606,7 @@ def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, mon
     (venv_dir / "stale_marker").write_text("left behind by a previous fix attempt\n")
 
     def fake_run(cmd, **kwargs):
-        # Simulates a real `uv venv` recreating the directory from scratch —
-        # if the stale one wasn't actually cleared first, stale_marker would
-        # still be sitting alongside this.
-        venv_python = venv_dir / "bin" / "python"
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -600,10 +615,12 @@ def test_ensure_experiment_env_clears_stale_venv_before_recreating(tmp_path, mon
         tmp_path, requirements, network_available=True
     )
     assert error is None
-    # The stale marker is gone even though the directory itself now exists
-    # again (recreated by the mocked provisioning call) — proving the stale
-    # one was cleared rather than reused.
+    assert python_exec == venv_dir / "bin" / "python"
+    assert python_exec.exists()
+    # The debris is gone, replaced wholesale rather than built on top of.
     assert not (venv_dir / "stale_marker").exists()
+    # And nothing was left lying around under a build name.
+    assert not list(tmp_path.glob(".build-*"))
 
 
 def test_run_experiment_success(tmp_path):
@@ -4044,13 +4061,11 @@ def test_extracted_imports_reach_the_installer_as_distribution_names(tmp_path, m
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("")  # the model declared nothing, as in job 10279165
     monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
-    venv_python = tmp_path / ".venv" / "bin" / "python"
 
     def fake_run(cmd, **kwargs):
         if "-c" in cmd:
             return SimpleNamespace(returncode=1, stdout="", stderr="ImportError")
-        venv_python.parent.mkdir(parents=True, exist_ok=True)
-        venv_python.touch()
+        _materialize_venv(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
@@ -4886,9 +4901,24 @@ def test_a_restricted_source_is_never_superseded():
 def test_reads_dataset_matches_the_percent_encoded_form():
     # The prompt hands over a rows URL, which encodes the namespace slash — a
     # plain `id in code` test misses exactly the form the model is given.
-    assert CoderAgent._reads_dataset("acme/sleep-survey", "url = '...dataset=acme%2Fsleep-survey'")
-    assert CoderAgent._reads_dataset("acme/sleep-survey", "load('acme/sleep-survey')")
-    assert not CoderAgent._reads_dataset("acme/sleep-survey", "load('other/thing')")
+    offered = {"dataset_id": "acme/sleep-survey"}
+    assert CoderAgent._reads_dataset(offered, "url = '...dataset=acme%2Fsleep-survey'")
+    assert CoderAgent._reads_dataset(offered, "load('acme/sleep-survey')")
+    assert not CoderAgent._reads_dataset(offered, "load('other/thing')")
+
+
+def test_reads_dataset_matches_a_materialized_local_path():
+    """A downloaded dataset is read by path, and the code need never name the
+    dataset id at all — without this the provenance gate would score an
+    experiment reading real local data as having invented it."""
+    offered = {"dataset_id": "acme/sleep-survey", "local_path": "/cache/acme__sleep-survey.jsonl"}
+    assert CoderAgent._reads_dataset(offered, "open('/cache/acme__sleep-survey.jsonl')")
+    assert not CoderAgent._reads_dataset(offered, "open('/cache/something-else.jsonl')")
+    # And the two gates agree, which is the invariant dataset_traces exists for.
+    assert (
+        sandbox.check_hf_dataset_usage("", "open('/cache/acme__sleep-survey.jsonl')", [], offered)
+        == []
+    )
 
 
 def test_an_offered_dataset_is_described_to_the_model_as_real_not_as_a_surrogate(tmp_path):
@@ -5453,3 +5483,309 @@ def test_the_high_complexity_budget_mentions_the_cluster_path():
     text = coder_agent_module._compute_budget_text("high")
     assert "24-hour" in text
     assert "checkpoint" in text
+
+
+# -- shared, content-addressed venvs -------------------------------------------------------
+
+
+def _provision(experiment_dir, packages, monkeypatch, recorded=None, **kwargs):
+    experiment_dir.mkdir(parents=True, exist_ok=True)
+    requirements = experiment_dir / "requirements.txt"
+    requirements.write_text("\n".join(packages) + "\n")
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+
+    def fake_run(cmd, **_kwargs):
+        if recorded is not None:
+            recorded.append(cmd)
+        _materialize_venv(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    return sandbox.ensure_experiment_env(
+        experiment_dir, requirements, network_available=True, **kwargs
+    )
+
+
+def test_experiments_wanting_the_same_packages_share_one_venv(tmp_path, monkeypatch):
+    """The point of the whole thing: a sweep of plans that all want
+    numpy/pandas provisions once, not once per plan. For anything torch-shaped
+    that is the difference between minutes and hours, and between thousands of
+    inodes and tens of thousands on a quota'd cluster filesystem."""
+    experiments = tmp_path / "experiments"
+    builds: list = []
+
+    first, error = _provision(
+        experiments / "H1", ["definitely_not_real_a"], monkeypatch, builds, share_venvs=True
+    )
+    assert error is None
+    venv_creations = [cmd for cmd in builds if cmd[:2] == ["uv", "venv"]]
+    assert len(venv_creations) == 1
+
+    second, error = _provision(
+        experiments / "H2", ["definitely_not_real_a"], monkeypatch, builds, share_venvs=True
+    )
+    assert error is None
+    assert second == first, "the second experiment should reuse the first's environment"
+    # And it did not provision again to get there.
+    assert len([cmd for cmd in builds if cmd[:2] == ["uv", "venv"]]) == 1
+    assert sandbox.SHARED_VENV_DIR_NAME in first.parts
+
+
+def test_experiments_wanting_different_packages_do_not_share(tmp_path, monkeypatch):
+    experiments = tmp_path / "experiments"
+    first, _ = _provision(experiments / "H1", ["not_real_a"], monkeypatch, share_venvs=True)
+    second, _ = _provision(experiments / "H2", ["not_real_b"], monkeypatch, share_venvs=True)
+    assert first != second
+
+
+def test_the_venv_key_ignores_order_and_duplicates():
+    # Two spellings of the same environment must not provision two of them.
+    assert sandbox.venv_key(["numpy", "pandas"]) == sandbox.venv_key(["pandas", "numpy", "numpy"])
+    assert sandbox.venv_key(["numpy"]) != sandbox.venv_key(["numpy", "pandas"])
+
+
+def test_sharing_off_keeps_the_venv_beside_its_own_experiment(tmp_path, monkeypatch):
+    experiments = tmp_path / "experiments"
+    python_exec, error = _provision(
+        experiments / "H1", ["not_real_a"], monkeypatch, share_venvs=False
+    )
+    assert error is None
+    assert python_exec == experiments / "H1" / ".venv" / "bin" / "python"
+
+
+def test_sharing_honours_the_venv_root(tmp_path, monkeypatch):
+    """CODER_VENV_ROOT exists to keep thousands of small files off a quota'd
+    filesystem; sharing must not quietly move them back onto it."""
+    root = tmp_path / "localscratch"
+    python_exec, error = _provision(
+        tmp_path / "experiments" / "H1",
+        ["not_real_a"],
+        monkeypatch,
+        share_venvs=True,
+        venv_root=root,
+    )
+    assert error is None
+    assert root in python_exec.parents
+
+
+def test_losing_the_publish_race_reuses_the_winner_and_discards_our_build(tmp_path, monkeypatch):
+    """Two batch processes needing the same packages can build concurrently.
+    Whichever renames into place first wins; the other's environment is
+    equivalent by construction (same requirement hash), so it is discarded
+    rather than clobbering an environment another experiment may be running."""
+    experiments = tmp_path / "experiments"
+    experiment_dir = experiments / "H1"
+    experiment_dir.mkdir(parents=True)
+    requirements = experiment_dir / "requirements.txt"
+    requirements.write_text("not_real_a\n")
+
+    shared = experiments / sandbox.SHARED_VENV_DIR_NAME / sandbox.venv_key(["not_real_a"]) / ".venv"
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name: "/usr/bin/uv")
+
+    def fake_run(cmd, **_kwargs):
+        _materialize_venv(cmd)
+        if cmd[:3] == ["uv", "pip", "install"]:
+            # The other process finishes and publishes here: after our build
+            # started, before our own rename. Anything earlier and the reuse
+            # check at the top of ensure_experiment_env would catch it instead,
+            # which is a different path.
+            (shared / "bin").mkdir(parents=True, exist_ok=True)
+            (shared / "bin" / "python").touch()
+            (shared / "winner_marker").write_text("built by the other process\n")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    assert not shared.exists(), "the destination must be free when provisioning starts"
+
+    python_exec, error = sandbox.ensure_experiment_env(
+        experiment_dir, requirements, network_available=True, share_venvs=True
+    )
+    assert error is None
+    assert python_exec == shared / "bin" / "python"
+    # The winner's environment is intact — never overwritten.
+    assert (shared / "winner_marker").exists()
+    # And our own half is not left lying around.
+    assert not list((experiments / sandbox.SHARED_VENV_DIR_NAME).glob(".build-*"))
+
+
+# -- materializing a dataset to the shared cache -------------------------------------------
+
+
+_MATCH = {"dataset_id": "acme/sleep-survey", "config": "default", "split": "train"}
+
+
+def _paged_rows(total: int):
+    """A fake /rows endpoint over a split of `total` rows."""
+    calls = []
+
+    def get_json(url, params):
+        calls.append(params)
+        offset, length = params["offset"], params["length"]
+        rows = [
+            {"row": {"idx": i, "text": f"row {i}"}}
+            for i in range(offset, min(offset + length, total))
+        ]
+        return {"num_rows_total": total, "rows": rows}
+
+    return get_json, calls
+
+
+def test_materialize_downloads_the_whole_split_to_one_file(tmp_path, monkeypatch):
+    """One file, not a Hugging Face cache directory: Barkla's scratch inode
+    quotas bind long before disk space does."""
+    get_json, calls = _paged_rows(250)
+    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+
+    result = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
+
+    assert result is not None
+    path, rows = result
+    assert rows == 250
+    assert len(list(tmp_path.iterdir())) == 1
+    records = [json.loads(line) for line in path.read_text().splitlines()]
+    assert len(records) == 250
+    assert records[0] == {"idx": 0, "text": "row 0"}
+    # Paged at the endpoint's own cap, and stopped when the split ran out.
+    assert [c["offset"] for c in calls] == [0, 100, 200]
+
+
+def test_materialize_stops_at_the_row_cap(tmp_path, monkeypatch):
+    get_json, calls = _paged_rows(10_000)
+    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+
+    path, rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=150)
+
+    assert rows == 150
+    assert len(path.read_text().splitlines()) == 150
+    # Never asks for more than the cap allows, so the last page is a short one.
+    assert [c["length"] for c in calls] == [100, 50]
+
+
+def test_materialize_reuses_an_existing_download(tmp_path, monkeypatch):
+    """The cache is shared across experiments and runs: the first plan in a
+    sweep pays for the download and every later one gets it free."""
+    get_json, calls = _paged_rows(120)
+    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+
+    first_path, _ = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
+    requests_made = len(calls)
+    second_path, rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
+
+    assert second_path == first_path
+    assert rows == 120
+    assert len(calls) == requests_made, "the second call should not hit the network at all"
+
+
+def test_a_raised_row_cap_downloads_again_rather_than_reusing_a_smaller_file(tmp_path, monkeypatch):
+    get_json, _ = _paged_rows(500)
+    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+
+    small, small_rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100)
+    large, large_rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=400)
+
+    assert (small_rows, large_rows) == (100, 400)
+    assert small != large, "the cap is part of the cache key"
+
+
+def test_an_interrupted_download_is_not_readable_as_a_complete_dataset(tmp_path, monkeypatch):
+    """No separate 'done' marker: the final name existing *is* the marker, so a
+    process killed mid-download cannot leave a truncated file that every later
+    run then trains on believing it is the whole dataset."""
+
+    def dies_partway(url, params):
+        if params["offset"] == 0:
+            return {"rows": [{"row": {"idx": i}} for i in range(100)]}
+        raise KeyboardInterrupt("killed mid-download")
+
+    monkeypatch.setattr(huggingface_client, "_get_json", dies_partway)
+
+    with pytest.raises(KeyboardInterrupt):
+        huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
+
+    assert not list(tmp_path.glob("*.jsonl")), "no complete-looking file may be left behind"
+
+
+def test_materialize_degrades_to_none_when_the_endpoint_gives_nothing(tmp_path, monkeypatch):
+    # The caller falls back to handing over the REST URL, exactly as before.
+    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: None)
+    assert huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100) is None
+    assert not list(tmp_path.iterdir())
+
+
+def test_materialize_never_raises_on_an_unexpected_payload(tmp_path, monkeypatch):
+    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: {"rows": "not a list"})
+    assert huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100) is None
+
+
+def test_a_materialized_dataset_is_offered_as_a_local_path_not_a_url(tmp_path, monkeypatch):
+    block = CoderAgent._hf_dataset_block(
+        {
+            **_MATCH,
+            "columns": [],
+            "sample_rows": [],
+            "local_path": "/cache/x.jsonl",
+            "local_rows": 5000,
+        }
+    )
+    assert "/cache/x.jsonl" in block
+    assert "5000 rows" in block
+    assert "datasets-server" not in block, "the REST URL is not the read path any more"
+    assert "it is the dataset" in block
+
+
+def test_an_unmaterialized_dataset_is_still_offered_as_a_rows_url():
+    block = CoderAgent._hf_dataset_block({**_MATCH, "columns": [], "sample_rows": []})
+    assert "datasets-server" in block
+
+
+def test_a_materialized_dataset_is_recorded_as_real_local_data(tmp_path, monkeypatch):
+    """It is a file on disk, which is what KIND_REAL_LOCAL means — and there is
+    no longer a URL in the code for verify_downloads_used to match a host on."""
+    _patch_settings(monkeypatch, coder_data_dir="")
+    agent = _agent(tmp_path, FakeChatModel({}))
+    sources = agent._provenance_for(
+        _plan("H1"),
+        network_available=True,
+        hf_dataset={**_MATCH, "local_path": "/cache/x.jsonl"},
+        run_py="records = open('/cache/x.jsonl')",
+    )
+    dataset_source = sources[0]
+    assert dataset_source.kind == provenance.KIND_REAL_LOCAL
+    assert dataset_source.uri == "/cache/x.jsonl"
+    assert dataset_source.is_real
+
+
+def test_the_cache_directory_setting_is_what_turns_materialization_on(tmp_path, monkeypatch):
+    """Empty (the default) keeps the long-standing REST-URL behaviour exactly,
+    so an existing run is unaffected until the directory is configured."""
+    lookup, _ = _recording_lookup(dict(_MATCH))
+    agent = _agent(
+        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
+    )
+
+    _patch_settings(monkeypatch, coder_dataset_cache_dir="")
+    assert "local_path" not in agent._find_hf_dataset(_plan("H1"), network_available=True)
+
+    cache = tmp_path / "datasets"
+    _patch_settings(monkeypatch, coder_dataset_cache_dir=str(cache), coder_dataset_max_rows=150)
+    get_json, _ = _paged_rows(1000)
+    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+
+    dataset = agent._find_hf_dataset(_plan("H1"), network_available=True)
+    assert dataset["local_rows"] == 150
+    assert Path(dataset["local_path"]).exists()
+
+
+def test_a_failed_download_falls_back_to_generating_exactly_as_before(tmp_path, monkeypatch):
+    """Same rule as the lookup itself: this is an enhancement to a prompt, never
+    a precondition for generating code."""
+    lookup, _ = _recording_lookup(dict(_MATCH))
+    agent = _agent(
+        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
+    )
+    _patch_settings(monkeypatch, coder_dataset_cache_dir=str(tmp_path / "datasets"))
+    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: None)
+
+    dataset = agent._find_hf_dataset(_plan("H1"), network_available=True)
+    assert dataset["dataset_id"] == "acme/sleep-survey"
+    assert "local_path" not in dataset

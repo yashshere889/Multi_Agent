@@ -797,6 +797,25 @@ last checkpoint is kept, an `interrupted` line goes into `progress.jsonl`, and
 the process exits non-zero — a partial result that looks like a finished one is
 worse than no result at all.
 
+#### One environment per requirement set, not per experiment
+
+Each experiment used to provision its own `uv venv`. That is fine for a handful
+of sklearn plans and impossible for anything torch-shaped: a single torch
+install is thousands of files, and repeating it per experiment exhausts a
+quota'd cluster home long before it exhausts the disk. Venvs are now keyed by a
+hash of the resolved requirement set, so twenty plans that all want
+numpy/pandas/scikit-learn provision one environment between them, and the second
+torch experiment in a sweep starts instantly.
+
+They live under `CODER_VENV_ROOT` when it is set (which is what that setting is
+for — keeping thousands of small files off a quota'd filesystem) and under
+`experiments/_venvs/` otherwise. Provisioning builds in a private directory and
+renames it into place, because a shared venv may be in use by another experiment
+and because a half-installed environment must never be visible under the name
+others look it up by. Two batch processes needing the same packages can race;
+whichever renames first wins and the other reuses it. `CODER_SHARE_VENVS=false`
+restores a private venv per experiment.
+
 #### Collecting results from jobs that went to the cluster
 
 Submission is asynchronous and the pipeline is not: a run that submits a job
@@ -835,11 +854,22 @@ venv, and no dataset cache on shared scratch. The model is told to ignore the
 dataset if it doesn't genuinely fit the plan, and to say so in
 `assumptions_made`.
 
+Set `CODER_DATASET_CACHE_DIR` and the agent instead downloads that dataset
+**once**, paging the same endpoint into a single JSONL file, and hands the
+generated code the local path — which is the difference between an experiment
+that samples a dataset and one that can train on it. `CODER_DATASET_MAX_ROWS`
+(default 50,000) bounds it. Deliberately one file rather than the thousands a
+Hugging Face cache directory creates: Barkla's scratch inode quotas bind long
+before disk space does. The cache is shared across every experiment and every
+run pointed at the same directory, so the first plan in a sweep pays for the
+download and the rest get it free, and a materialized dataset is recorded as
+real *local* data in `data_provenance.json`.
+
 This is an enhancement to a prompt, never a dependency: it's only attempted when
 the runtime network probe succeeds, and every failure (no network, rate limit, a
-dataset the viewer can't serve) degrades silently to generating exactly as
-before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it off for fully offline or
-reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
+dataset the viewer can't serve, a download that dies part-way) degrades silently
+to generating exactly as before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it
+off for fully offline or reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
 limits.
 
 Whether or not a dataset was found, `load_data()` must not *assume* its data is

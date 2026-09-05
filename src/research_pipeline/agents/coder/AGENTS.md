@@ -23,7 +23,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
 | `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `check_undefined_names`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering (`render_experiment_with_spans` and its line map). No LLM calls, no settings reads — unit-testable anywhere. |
-| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
+| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data, plus `materialize_dataset` — the same endpoint paged to one local JSONL when `CODER_DATASET_CACHE_DIR` is set. Every failure degrades to `None`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch`/`sacct` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `reconcile.py` | The other half of submission: asks `sacct` what became of the jobs a previous run recorded, and imports a finished job's `results.json` back into its summary (`submitted_to_slurm` -> `completed`/`slurm_job_failed`). A separate pass, not a wait — see its module docstring. No LLM. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
@@ -117,6 +117,21 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   compiles, defines the right name, passes every other check, and only dies on a TypeError once
   a venv has been provisioned. Extra parameters with defaults and `*args` pass — the question is
   "can the orchestration call this", not "does the signature match exactly".
+- **Venvs are keyed by what is in them, not by who asked for them.** `venv_key` hashes the
+  resolved requirement set and `_venv_dir_for` puts the venv under `_venvs/<key>/` (or under
+  `CODER_VENV_ROOT`), so twenty plans wanting numpy/pandas provision one environment. Two
+  consequences to keep in mind before touching `ensure_experiment_env`: the old unconditional
+  `shutil.rmtree(venv_dir)` is now **destructive** — that directory may be in use by other
+  experiments — which is why provisioning builds in `.build-<key>-<pid>` and `_publish_venv`
+  renames it into place; and losing that rename is a normal outcome (another batch process got
+  there first with an environment equivalent by construction), not an error. `_publish_venv`
+  clears the destination only when it holds no interpreter, which is debris from an interrupted
+  build and cannot be in use.
+- **A matched dataset may be a URL or a local file, and `dataset_traces` is the only place that
+  knows the difference.** `check_hf_dataset_usage` and `coder_agent._reads_dataset` both go
+  through it. They must agree: one decides whether an attempt goes back to the fix loop and the
+  other whether the dataset counts as a real input, so a dataset clearing one and failing the
+  other reaches the Writer as an experiment that read real data and invented it at once.
 - **Three static checks run on the rendered `run.py`, in order, and they answer
   different questions.** `lenient_compile_check` asks "does it parse";
   `check_undefined_names` asks "does it bind every name it uses" (pyflakes, not a
