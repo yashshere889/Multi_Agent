@@ -61,8 +61,11 @@ if TYPE_CHECKING:  # avoids a circular import — coder_agent imports this modul
 # level would re-execute generated code or re-provision a venv — this module's
 # whole point is that the loop is sequential and each step's effects are real
 # (and CLAUDE.md is explicit that env-provisioning failures are not retried).
-# `probe_environment` and `search_hf_dataset` are best-effort probes that
-# already degrade gracefully, so a retry buys nothing.
+# `probe_environment`, `search_hf_dataset` and `acquire_data` are best-effort
+# probes that already degrade gracefully, so a retry buys nothing — and
+# `acquire_data` writes files, which a node-level retry would redo for every
+# input that had already succeeded (the same reason `download_papers` is
+# excluded in the literature graph).
 _RETRY = RetryPolicy(max_attempts=2)
 
 
@@ -95,6 +98,7 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_node("start_plan_loop", agent._node_start_plan_loop)
     graph.add_node("process_current_plan", agent._node_process_current_plan)
     graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
+    graph.add_node("acquire_data", agent._node_acquire_data)
     graph.add_node("skip_no_real_data", agent._node_skip_no_real_data)
     graph.add_node(
         "generate_experiment_code",
@@ -131,7 +135,7 @@ def build_coder_graph(agent: CoderAgent):
         {"search_hf_dataset": "search_hf_dataset", **_plan_loop_targets},
     )
 
-    # The dataset lookup is its own step, ahead of the first generation, because
+    # The dataset lookup is the first of the two data steps, ahead of the first generation, because
     # what it finds goes *into* the codegen prompt — and because "did this
     # experiment get offered real data?" should be visible in a trace rather than
     # buried inside the generation call. A miss is an empty dict and generation
@@ -139,9 +143,15 @@ def build_coder_graph(agent: CoderAgent):
     # default, which skips a plan whose data would all be synthetic. The lookup
     # is the last thing that can turn a surrogate into a real input, which is why
     # that decision is made after it rather than before.
+    # Then the fetch, ahead of the same routing decision. Its own node rather
+    # than a line inside the lookup for the reason every step here is a node: "did
+    # this experiment's data get downloaded, or is the generated code still being
+    # asked to download it?" is a real fork with real consequences for the fix
+    # loop, and a trace should answer it without log archaeology.
+    graph.add_edge("search_hf_dataset", "acquire_data")
     graph.add_conditional_edges(
-        "search_hf_dataset",
-        agent._route_after_search_hf_dataset,
+        "acquire_data",
+        agent._route_after_data_lookup,
         {"generate": "generate_experiment_code", "skip": "skip_no_real_data"},
     )
     # The skip is a per-plan exit like finalize/give_up: record and move on.

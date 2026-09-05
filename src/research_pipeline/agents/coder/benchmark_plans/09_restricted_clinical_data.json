@@ -1,0 +1,79 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H109",
+      "feasible": true,
+      "feasibility_notes": "Method is straightforward; the data is the obstacle, since the named source is not openly available.",
+      "objective": "Test whether length of stay predicts 30-day readmission independently of admission diagnosis.",
+      "variables": {
+        "independent": [
+          "length of stay"
+        ],
+        "dependent": [
+          "30-day readmission indicator"
+        ]
+      },
+      "design": "Retrospective observational analysis with diagnosis as a covariate.",
+      "data_requirements": {
+        "source": "MIMIC-III critical care database",
+        "description": "Patient-level admission records including length of stay, primary diagnosis, and readmission within 30 days.",
+        "preprocessing_steps": [
+          "Restrict to index admissions",
+          "Derive the 30-day readmission flag",
+          "Group rare diagnoses into an other category"
+        ]
+      },
+      "methods": [
+        {
+          "name": "multivariable logistic regression",
+          "description": "Readmission regressed on length of stay adjusted for diagnosis group.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "odds_ratio",
+          "auc",
+          "calibration_slope"
+        ],
+        "baseline": "A model using admission diagnosis alone.",
+        "success_criteria": "Length of stay remains associated with readmission after adjustment, improving AUC by at least 0.02."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Assemble the cohort"
+        },
+        {
+          "step": 2,
+          "description": "Fit the diagnosis-only baseline"
+        },
+        {
+          "step": 3,
+          "description": "Add length of stay and refit"
+        },
+        {
+          "step": 4,
+          "description": "Compare discrimination"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "MIMIC requires credentialing, so the real cohort may not be obtainable here."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H109",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H109"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

@@ -23,15 +23,19 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `state.py` | `CoderState` TypedDict. Its docstring documents what is deliberately *not* in state. |
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
 | `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `check_undefined_names`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering (`render_experiment_with_spans` and its line map). No LLM calls, no settings reads — unit-testable anywhere. |
-| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Every failure degrades to `None`; never raises. |
-| `slurm_submit.py` | `squeue`/`sbatch` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
+| `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Finds and describes only — every download in this package belongs to `acquire.py`. Every failure degrades to `None`; never raises. |
+| `slurm_submit.py` | `squeue`/`sbatch`/`sacct` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
+| `reconcile.py` | The other half of submission: asks `sacct` what became of the jobs a previous run recorded, and imports a finished job's `results.json` back into its summary (`submitted_to_slurm` -> `completed`/`slurm_job_failed`). A separate pass, not a wait — see its module docstring. No LLM. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
-| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Reads no settings, same rule as `sandbox.py`. |
+| `repair.py` | The repairs that need no model call: `downscale` (halve cost knobs), `upscale` (double the training knobs when a run has not converged), `smoke_variant` (pin them to the floor for the pre-run) and `install_for` (install a missing import). Owns the `PRECISION_KNOBS`/`MEASUREMENT_KNOBS` split that decides whether a downscaled run keeps its verdict, and `_knob_pattern`, which is why the table sees `NUM_EPOCHS` and not just `epochs`. Reads no settings, same rule as `sandbox.py`. |
 | `provenance.py` | Resolves each declared data input to real/surrogate, and withholds the hypothesis verdict when any is synthetic. No LLM. |
+| `compute_provenance.py` | The same withholding, asked of the compute instead of the inputs: records which cost knobs `repair.downscale` had to shrink, and withholds the verdict when shrinking one changed what the experiment measures. No LLM. |
 | `prompts.py` | All prompt templates. |
+| `benchmark.py` | Scores a directory of `coder_agent_summary_*.json` into comparable numbers, and diffs two such runs. Pure — no model, no agent imports — so it grades an ordinary sweep's outputs as readily as a benchmark run. |
+| `benchmark_plans/` | The frozen plan corpus, one Experiment Planner output per case. Hand-written, never model-generated; see its README before adding one. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
-| `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |
-| `templates/run.sbatch.template` | Barkla-shaped SLURM script. |
+| `templates/run.py.template` | The fixed experiment scaffold — metadata, the runtime-support block (`logger`, `log_progress`, `begin_checkpoint`/`finish_checkpoint`/`resume_checkpoint`, the SIGTERM handler) and the orchestration footer that writes `results.json`. Not model-generated. |
+| `templates/run.sbatch.template` | Barkla-shaped SLURM script — `--requeue`, `--open-mode=append`, and `python run.py --resume`, so a preempted job continues rather than restarting. |
 | `templates/starters/*.sections` | The starter library's content, one `.sections` file per archetype, in `llm_sections.py`'s own delimited format — parsed by the same `parse_sections` the model's responses are parsed by. |
 
 ## Conventions
@@ -98,6 +102,52 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   delimiter shapes have no braces at all (that's one less thing to get wrong than the JSON
   examples they replaced), and `HF_DATASET_USAGE_NOTE` keeps its literal JSON braces *unescaped*
   precisely because it is appended by `_hf_dataset_block` and never passed through `.format()`.
+- **The template hands generated code four things it must not reimplement.**
+  `log_progress(**fields)` (one flushed JSON line per epoch into `progress.jsonl` — the only
+  trace a killed job leaves, since `results.json` is deliberately never written for an
+  incomplete run), and `begin_checkpoint()`/`finish_checkpoint(tmp)`/`resume_checkpoint()`.
+  The checkpoint trio is split three ways for a reason: only the generated code knows how to
+  serialize its own model (torch.save, np.save, joblib), and only the template can guarantee a
+  job killed mid-write doesn't destroy the last good checkpoint — so the template hands out a
+  `.tmp` path and does the `os.replace`. It cannot use `pickle` itself: `pickle.loads?` is in
+  `DANGEROUS_PATTERNS` and `static_safety_check` runs over the whole *rendered* run.py, template
+  included, so a pickling template would fail its own safety gate on every experiment.
+  `resume_checkpoint()` returns None unless `--resume` was passed *and* a checkpoint exists,
+  which is what makes `python run.py --resume` correct as the only line in `run.sbatch`.
+- **`build_model` takes the data.** `REQUIRED_FUNCTIONS` in `sandbox.py` carries an arity
+  alongside each name and `_accepts_positional` enforces it, because `def build_model():`
+  compiles, defines the right name, passes every other check, and only dies on a TypeError once
+  a venv has been provisioned. Extra parameters with defaults and `*args` pass — the question is
+  "can the orchestration call this", not "does the signature match exactly".
+- **`not_converged` never reaches the model, and never discards the run.** It is a budget
+  problem before it is a code problem — the check's own advice is "raise the epoch budget" — so
+  `_attempt_once` raises it (`repair.upscale`, bounded by `_MAX_UPSCALES`) and re-runs, costing no
+  fix attempt because the generated source was not wrong. If that still does not converge, the run
+  is *reported* with the verdict withheld by `compute_provenance`, not thrown away: Barkla job
+  10431703 case 06 spent four fix attempts on four identical still-improving curves and produced
+  nothing, having trained a real transformer on real data. Upscale and downscale must never
+  alternate — `scale_direction` fixes the direction for the whole attempt, or the two chase each
+  other over one knob until the wall clock runs out.
+- **`interpretable`, not `completed`, is the number a change is judged on.** `benchmark.py`
+  counts an experiment as interpretable only when it ran *and* kept a real bool verdict — a run
+  whose verdict was withheld by `provenance.py` or `compute_provenance.py` produced nothing a
+  paper can state. Optimising `completed` alone is how you get a pipeline that always finishes
+  and never concludes anything. When adding a metric, ask which of those two it is.
+- **Venvs are keyed by what is in them, not by who asked for them.** `venv_key` hashes the
+  resolved requirement set and `_venv_dir_for` puts the venv under `_venvs/<key>/` (or under
+  `CODER_VENV_ROOT`), so twenty plans wanting numpy/pandas provision one environment. Two
+  consequences to keep in mind before touching `ensure_experiment_env`: the old unconditional
+  `shutil.rmtree(venv_dir)` is now **destructive** — that directory may be in use by other
+  experiments — which is why provisioning builds in `.build-<key>-<pid>` and `_publish_venv`
+  renames it into place; and losing that rename is a normal outcome (another batch process got
+  there first with an environment equivalent by construction), not an error. `_publish_venv`
+  clears the destination only when it holds no interpreter, which is debris from an interrupted
+  build and cannot be in use.
+- **A matched dataset may be a URL or a local file, and `dataset_traces` is the only place that
+  knows the difference.** `check_hf_dataset_usage` and `coder_agent._reads_dataset` both go
+  through it. They must agree: one decides whether an attempt goes back to the fix loop and the
+  other whether the dataset counts as a real input, so a dataset clearing one and failing the
+  other reaches the Writer as an experiment that read real data and invented it at once.
 - **Three static checks run on the rendered `run.py`, in order, and they answer
   different questions.** `lenient_compile_check` asks "does it parse";
   `check_undefined_names` asks "does it bind every name it uses" (pyflakes, not a
@@ -126,10 +176,12 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   `invalid_json` until generated code moved off the JSON transport.)
 - **The dataset lookup happens in its own node, before generation.** `process_current_plan` sets
   up the plan; `search_hf_dataset` looks a dataset up once per plan and parks it in
-  `current_hf_dataset`; `generate_experiment_code` writes the first candidate. The result is
-  threaded into both the codegen *and* the fix prompt from state, so a three-attempt fix loop
-  doesn't re-search. Don't fold the lookup back into the generation call — a run whose
-  experiments silently stopped getting real data should be visible in the trace.
+  `current_hf_dataset`; `acquire_data` searches for the unresolved requirements
+  (`current_discoveries`) and fetches what can be fetched (`current_acquisitions`);
+  `generate_experiment_code` writes the first candidate. Both results are threaded into the codegen
+  *and* the fix prompt from state, so a three-attempt fix loop doesn't re-search or re-download.
+  Don't fold either back into the generation call — a run whose experiments silently stopped
+  getting real data should be visible in the trace.
 - **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
   real network call with its own cache/retry policy), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside
@@ -287,10 +339,65 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   really did fetch.
 - **`CODER_REQUIRE_REAL_DATA` (default false) is a policy gate, not a repair.** It skips a plan whose
   every input would be a surrogate before any codegen call, rather than generating, running and
-  reporting it inconclusive. Routed after `search_hf_dataset` because the lookup is the last thing
-  that can turn a surrogate into a real input, and `skip_no_real_data` is a per-plan exit like
-  `finalize`/`give_up` — it costs fewer super-steps than the path it replaces, so the recursion
-  limit is unchanged.
+  reporting it inconclusive. Routed after `acquire_data` because the lookup and the fetch are the
+  last two things that can turn a surrogate into a real input, and `skip_no_real_data` is a per-plan
+  exit like `finalize`/`give_up` — it costs fewer super-steps than the path it replaces, so the
+  recursion limit is unchanged.
+- **`acquire.apply` runs *before* `verify_downloads_used`, and that order is load-bearing.**
+  `verify_downloads_used` asks whether the generated *code* fetched a declared download, by matching
+  the URI's host against the code text. An input this pipeline already fetched is not a question the
+  code can answer: it reads a local file and names no host, so leaving it a `real_download` there
+  would downgrade correct code to a surrogate and withhold a verdict that was earned. Promote first,
+  then verify what is still a download.
+- **A fetched dataset is handed over as a path, so `check_hf_dataset_usage` needs `acquired_paths`.**
+  Once `acquire_data` has the rows, `_hf_dataset_block` tells the model to read a local file and
+  *not* to make an HTTP request — so the dataset id never appears in correct code. Reading an
+  acquired path is the third sanctioned trace alongside naming the id and declining it in
+  `assumptions_made`; without it, every experiment that did exactly as instructed gets flagged
+  `ignored_available_dataset`.
+- **`discover.py` may only ever answer an `unresolved` requirement.** A restricted or
+  credentialed surrogate names real data that specifically was not obtained; answering it with a
+  keyword match is the over-claim `provenance` exists to prevent. Same rule as
+  `supersede_unresolved`, enforced in `discover_sources` *and* again in `discover.apply`, so a
+  caller that hands over a stale discovery map still cannot rewrite one.
+- **A discovered input reports metrics and never a verdict.** `provenance.needs_confirmation`
+  forces `meets_success_criteria` to `"unknown"` whenever any real input carries `discovered`.
+  This is not caution for its own sake: a live sweep of five requirements returned one correct
+  dataset, two real-plausible-and-wrong ones, and two misses, and a refutation computed on the
+  wrong real data reads as defensible in a way one computed on invented data does not. `all_real`
+  stays true for these — nothing was invented — which is why the two predicates are separate and
+  why `CODER_REQUIRE_REAL_DATA`'s routing still lets such a plan through.
+- **The model may nominate a data source; it may never confirm one.** `_choose_data_source` and
+  `_propose_data_sources` live on the agent and are *passed into* `discover.py`, which still calls
+  no model. `rank_with` validates a choice to be indices into the list the model was shown, so it
+  reorders and rejects but cannot invent; a proposed URL goes through the same safety gate, fetch
+  and parse as any other. Keep both properties when adding a third model use here.
+- **`None` and `[]` from a chooser mean different things.** `[]` is "I looked and none of these
+  fit", honoured by leaving a labelled surrogate; `None` is "no answer was obtained", which falls
+  back to keyword ordering. Collapsing them would let one bad model call throw away a requirement
+  keyword ranking would have resolved.
+- **Candidates are pooled across connectors before ranking, and `direct` is not.** A chooser asked
+  one catalogue at a time can only pick the best of four when the honest answer is "none of these,
+  but that Zenodo one". A URL the plan itself asserted needs no ranking, so it is probed
+  immediately and the catalogues are never searched if it works. The probe budget is shared across
+  both, so a dead direct link cannot hand the catalogues a fresh one.
+- **The relevance gate is a fraction, not a count.** `RELEVANCE_FRACTION` requires a majority of
+  the requirement's content words. A flat two-word bar measured as vacuous against real
+  catalogues — 396 of 396 CKAN candidates cleared it — because the query sent to the catalogue is
+  built from those same words, so every hit shares two by construction. Ranking (best score first,
+  then URLs that look like files) reorders work; only the gate decides admission.
+- **`keywords` keeps short tokens on purpose.** `pm2`, `co2`, `no2`, `EEG`, `GDP` are the terms
+  that make a requirement specific, and the `len > 3` rule this started with dropped every one of
+  them. Length floor 3, plus letter+digit tokens and all-caps acronyms, minus pure numbers.
+- **`CKAN_PORTALS` entries store whole URLs, not a base.** `data.europa.eu` serves
+  `package_search` under its hub path rather than `/api/3/action/`, and deriving the suffix
+  silently 404'd every request to it. `catalog.data.gov` is absent because it 404s on both paths.
+- **Nothing in `acquire.py` or `discover.py` may raise, and neither may read settings.** Same two rules as
+  `huggingface_client.py` and `sandbox.py` respectively: every failure degrades to `None`/`{}` and
+  leaves the run exactly as it was without the module, and the cache directory and byte cap arrive
+  as arguments resolved by `coder_agent._acquire_data`. The URL safety gate (https, public-address
+  hosts, hand-followed redirects, streamed byte cap, HTML rejection) applies per hop and must stay
+  that way — a URL reaching that module is table-matched today and may be model-suggested later.
 - **`VALID_ERROR_SOURCES` (`schema.py`) and `_ERROR_STAGE_ORDER` (`coder_agent.py`) must stay in
   sync.** Same seventeen members; the list additionally encodes check *order*, which
   `_cleared_previous_error` uses to decide whether a regeneration made progress — and which

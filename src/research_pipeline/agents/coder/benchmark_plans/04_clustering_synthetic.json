@@ -1,0 +1,78 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H104",
+      "feasible": true,
+      "feasibility_notes": "Synthetic point cloud, k-means, trivially cheap.",
+      "objective": "Test whether k-means recovers known cluster structure better than random assignment at increasing overlap.",
+      "variables": {
+        "independent": [
+          "cluster separation"
+        ],
+        "dependent": [
+          "adjusted Rand index",
+          "within-cluster inertia"
+        ]
+      },
+      "design": "Cluster analysis across three separation levels, each compared to a random-assignment control.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "Three Gaussian blobs in two dimensions with configurable separation and known ground-truth labels.",
+        "preprocessing_steps": [
+          "Generate blobs at each separation level with a fixed seed",
+          "Center the coordinates"
+        ]
+      },
+      "methods": [
+        {
+          "name": "k-means clustering",
+          "description": "Lloyd's algorithm with k fixed to the known number of clusters.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "adjusted_rand_index",
+          "inertia"
+        ],
+        "baseline": "Random assignment of points to the same number of clusters.",
+        "success_criteria": "k-means beats random assignment on adjusted Rand index at every separation level tested."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate the three datasets"
+        },
+        {
+          "step": 2,
+          "description": "Cluster each with k-means"
+        },
+        {
+          "step": 3,
+          "description": "Score the random-assignment control"
+        },
+        {
+          "step": 4,
+          "description": "Compare across separation levels"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "At the lowest separation the clusters may be genuinely unrecoverable."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H104",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H104"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

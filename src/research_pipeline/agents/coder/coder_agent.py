@@ -114,7 +114,10 @@ from langgraph.store.base import BaseStore
 from langgraph.types import Command, interrupt
 
 from research_pipeline.agents.coder import (
+    acquire,
+    compute_provenance,
     diagnose,
+    discover,
     fix_pattern_store,
     huggingface_client,
     prompts,
@@ -156,6 +159,7 @@ _ERROR_STAGE_ORDER = [
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
+    "missing_batching",
     "self_review",
     # The execution-failure kinds sit where run_experiment always did: they are
     # all detected at the same point (a non-zero exit), just told apart by what
@@ -170,6 +174,10 @@ _ERROR_STAGE_ORDER = [
     "run_experiment",
     "results_json",
     "implausible_results",
+    # The latest checks there are: both need a completed run *and* its metrics,
+    # so reaching either means every earlier stage passed.
+    "missing_diagnostics",
+    "not_converged",
 ]
 
 
@@ -210,12 +218,17 @@ _STRUCTURAL_ERROR_SOURCES = frozenset(
 # the fix budget is. Derived per run from those two numbers rather than guessed —
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
-_STEPS_PER_PLAN = 5  # process_current_plan, search_hf_dataset, generate_experiment_code, the first attempt, finalize/give_up
+_STEPS_PER_PLAN = 6  # process_current_plan, search_hf_dataset, acquire_data, generate_experiment_code, the first attempt, finalize/give_up
 # skip_no_real_data (CODER_REQUIRE_REAL_DATA) is deliberately absent from the
 # count: it *replaces* generate/attempt/finalize rather than adding to them, so
-# a skipped plan costs 3 steps where a generated one costs 5. The worst case the
+# a skipped plan costs 4 steps where a generated one costs 6. The worst case the
 # limit is derived from is unchanged.
 _STEPS_PER_FIX_ATTEMPT = 2  # snapshot_and_regenerate, then the attempt it feeds
+
+# URLs the model may name for one requirement when no catalogue had a match.
+# Small on purpose: each is a real download that is discarded unless it parses,
+# and a model that cannot recall one correct URL will not recall a sixth.
+_MAX_PROPOSED_SOURCES = 4
 
 
 # Inputs to _bounded_max_tokens, which stops a long prompt plus a fixed
@@ -289,6 +302,13 @@ _MAX_API_PATCHES = 1
 # to tell "slightly over budget" from "the wrong shape of computation" — past
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
+
+# How many times a run that has not converged may have its training knobs
+# doubled before the result is accepted as-is with the verdict withheld. Two,
+# so `epochs` can quadruple — enough to clear a budget that was merely short,
+# and short of turning one plan into an unbounded search for a number that
+# converges. See the not_converged branch in _attempt_once.
+_MAX_UPSCALES = 2
 
 
 def _estimate_tokens(text: str) -> int:
@@ -576,6 +596,52 @@ class CoderAgentError(RuntimeError):
     """Raised when the agent can't produce schema-valid output, even after retries."""
 
 
+def _timeout_for(complexity: str) -> int:
+    """The wall-clock budget _attempt_once will actually enforce for a plan of
+    this complexity. One definition, read by both the executor and the prompt —
+    a prompt that names a different number than the killer uses is how an
+    experiment ends up written to be tiny under a budget it had far more of."""
+    if complexity == "high":
+        return settings.coder_high_complexity_timeout_seconds
+    if complexity == "medium":
+        return settings.coder_medium_complexity_timeout_seconds
+    return settings.coder_low_complexity_timeout_seconds
+
+
+def _compute_budget_text(complexity: str) -> str:
+    """What the codegen prompt is told about the compute this experiment gets.
+
+    Deliberately concrete. The instruction it replaced told the model to prefer
+    "a deliberately small default (a data subsample, few iterations/epochs)"
+    with no number attached, which is advice to write a toy regardless of what
+    the experiment was actually given.
+    """
+    seconds = _timeout_for(complexity)
+    budget = f"about {seconds // 60} minutes" if seconds >= 120 else f"about {seconds} seconds"
+    text = (
+        f"estimated_complexity is {complexity!r}, so this gets {budget} "
+        f"({seconds}s) of wall clock and is killed at that point — code that cannot "
+        "finish within it produces no result at all. Treat that as a ceiling, not a "
+        "target: use as much of it as the experiment genuinely needs, and do not "
+        "shrink the design to finish well inside it.\n"
+        "If the experiment trains a model, do NOT pick a fixed epoch count to fill "
+        "the budget. A fixed count has no relationship to whether the model has "
+        "finished learning, and a comparison between models that have not converged "
+        "measures the epoch count rather than the thing under test. Train until the "
+        "loss stops improving on a validation split — an early-stopping patience — "
+        "with a generous epoch cap as the backstop, and report the per-epoch losses "
+        "so convergence is visible in the results."
+    )
+    if complexity == "high":
+        text += (
+            " If you report needs_gpu: true and no GPU is present where this was "
+            "generated, it is written out as a cluster job with a 24-hour limit "
+            "instead — so a training loop that checkpoints (see below) can use far "
+            "more time than the number above, while one that does not is capped by it."
+        )
+    return text
+
+
 class CoderAgent:
     def __init__(
         self,
@@ -776,6 +842,8 @@ class CoderAgent:
             "current_structural_retries": 0,
             "current_outcome": {},
             "current_hf_dataset": {},
+            "current_acquisitions": {},
+            "current_discoveries": {},
             "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
@@ -794,14 +862,37 @@ class CoderAgent:
             )
         }
 
-    def _route_after_search_hf_dataset(self, state: CoderState) -> str:
+    def _node_acquire_data(self, state: CoderState) -> dict:
+        """Fetch this plan's real inputs to disk before any code is generated.
+
+        Its own node, after the dataset lookup and before the routing decision
+        below, for two reasons. The lookup is what produces the one URL most
+        plans have, so there is nothing to fetch until it has run; and
+        acquisition can turn a `real_download` into a `real_local`, which is a
+        change CODER_REQUIRE_REAL_DATA's skip decision must see rather than
+        pre-empt.
+
+        Off unless CODER_ENABLE_DATA_ACQUISITION is set, and skipped without a
+        request when the network probe already failed. Every failure inside
+        `acquire` degrades to an empty map, which leaves every input exactly the
+        `real_download` it was and the generated code fetching it as before —
+        so a run with this on can only differ from a run with it off by having
+        *more* real data, never less."""
+        acquisitions, discoveries = self._acquire_data(
+            state["current_plan"],
+            state["network_available"],
+            state.get("current_hf_dataset") or {},
+        )
+        return {"current_acquisitions": acquisitions, "current_discoveries": discoveries}
+
+    def _route_after_data_lookup(self, state: CoderState) -> str:
         """Whether this plan is worth generating code for at all.
 
         Only ever diverts when CODER_REQUIRE_REAL_DATA is set — otherwise this
         returns "generate" without resolving anything, so the graph reads
         exactly as it did before the setting existed. Placed after the dataset
-        lookup, not before it, because the lookup is the last thing that can
-        turn a surrogate into a real input.
+        lookup and the fetch, not before them, because those are the last two
+        things that can turn a surrogate into a real input.
 
         _provenance_for reads settings.coder_data_dir through self, not state.
         """
@@ -811,6 +902,8 @@ class CoderAgent:
             state["current_plan"],
             state["network_available"],
             hf_dataset=state.get("current_hf_dataset") or {},
+            acquisitions=state.get("current_acquisitions") or {},
+            discoveries=state.get("current_discoveries") or {},
         )
         return "generate" if provenance.all_real(sources) else "skip"
 
@@ -823,7 +916,11 @@ class CoderAgent:
         plan = state["current_plan"]
         hypothesis_id = plan["hypothesis_id"]
         sources = self._provenance_for(
-            plan, state["network_available"], hf_dataset=state.get("current_hf_dataset") or {}
+            plan,
+            state["network_available"],
+            hf_dataset=state.get("current_hf_dataset") or {},
+            acquisitions=state.get("current_acquisitions") or {},
+            discoveries=state.get("current_discoveries") or {},
         )
         unresolved = [s.name for s in sources if not s.is_real]
         logger.info(
@@ -856,6 +953,8 @@ class CoderAgent:
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
+                state.get("current_acquisitions") or {},
+                state.get("current_discoveries") or {},
             )
         except CoderAgentError as exc:
             # A generation whose format can't be parsed is a per-plan failure,
@@ -886,6 +985,8 @@ class CoderAgent:
             state["shared_files"],
             state.get("current_starter_id", ""),
             state.get("current_hf_dataset") or {},
+            state.get("current_acquisitions") or {},
+            state.get("current_discoveries") or {},
         )
 
         update: dict = {
@@ -1049,6 +1150,8 @@ class CoderAgent:
                 state.get("shared_infra_warning", ""),
                 state.get("current_hf_dataset") or {},
                 state.get("current_starter_id", ""),
+                acquisitions=state.get("current_acquisitions") or {},
+                discoveries=state.get("current_discoveries") or {},
                 stuck_streak=streak,
                 previous_error_summary=previous_error_summary,
                 target_sections=target_sections,
@@ -1277,6 +1380,8 @@ class CoderAgent:
         shared_files: dict[str, str],
         starter_id: str = "",
         hf_dataset: dict | None = None,
+        acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -1441,11 +1546,29 @@ class CoderAgent:
             sections["load_data_function"],
             assumptions_made,
             hf_dataset or {},
+            # When the dataset was fetched here, the code was told to read a
+            # local file and never sees the dataset id — reading that path is
+            # the same "engaged with the offer" the id used to evidence.
+            acquire.local_paths(acquisitions),
         )
         if dataset_usage_findings:
             return {
                 "error_source": "ignored_available_dataset",
                 "error_text": f"A real dataset was offered but not used: {'; '.join(dataset_usage_findings)}",
+            }
+
+        # A property of the code, not of how good the results are: the fix loop
+        # retries failures, and a retry keyed on meets_success_criteria would
+        # regenerate until the hypothesis came out supported, which manufactures
+        # the verdict the provenance gate exists to protect. See Barkla job
+        # 10424488 for the fifty-gradient-step comparison this catches.
+        batching_findings = sandbox.check_training_batching(
+            sections.get("run_experiment_function", ""), run_py, assumptions_made
+        )
+        if batching_findings:
+            return {
+                "error_source": "missing_batching",
+                "error_text": f"The training loop is not batched: {'; '.join(batching_findings)}",
             }
 
         complexity = plan["estimated_complexity"]
@@ -1458,7 +1581,15 @@ class CoderAgent:
         )
         if (needs_gpu and not gpu_available) or (complexity == "high" and not run_high_locally):
             return self._handle_unrunnable_locally(
-                plan, generation, run_py, experiment_dir, requirements_path, complexity, starter_id
+                plan,
+                generation,
+                run_py,
+                experiment_dir,
+                requirements_path,
+                complexity,
+                starter_id,
+                network_available=network_available,
+                hf_dataset=hf_dataset,
             )
 
         # Both experiments/_shared/ and this experiment's own run_py can import a
@@ -1487,6 +1618,7 @@ class CoderAgent:
             network_available,
             extra_requirements,
             venv_root=Path(settings.coder_venv_root) if settings.coder_venv_root else None,
+            share_venvs=settings.coder_share_venvs,
         )
         # Checked as `is None` rather than `if env_error` so the interpreter is
         # narrowed to a Path for the run below; ensure_experiment_env's contract
@@ -1506,14 +1638,11 @@ class CoderAgent:
                 )
             }
 
-        # All three timeouts are settings-driven and read here rather than in
-        # sandbox.py, which deliberately reads no settings at all.
-        if complexity == "high":
-            timeout_seconds = settings.coder_high_complexity_timeout_seconds
-        elif complexity == "medium":
-            timeout_seconds = settings.coder_medium_complexity_timeout_seconds
-        else:
-            timeout_seconds = settings.coder_low_complexity_timeout_seconds
+        # Settings-driven and resolved here rather than in sandbox.py, which
+        # deliberately reads no settings at all. Shared with the codegen prompt
+        # via _timeout_for, so the budget the model is told about is the budget
+        # this line enforces.
+        timeout_seconds = _timeout_for(complexity)
         # Execution, plus the repairs that don't need the model.
         #
         # A failure is classified by *kind* before anything is decided about it
@@ -1529,6 +1658,17 @@ class CoderAgent:
         # loop, which is still the right place for a genuine code defect.
         env_repairs = 0
         downscales = 0
+        # Every knob this run shrank, across all downscale rounds. Kept because
+        # the metrics alone cannot say whether they came from the experiment as
+        # generated or from a truncated one — see compute_provenance.py.
+        downscale_changes: list[str] = []
+        upscales = 0
+        upscale_changes: list[str] = []
+        # Which way this attempt has already scaled, or "" for not yet. The two
+        # repairs must never alternate: downscale halves what upscale doubled and
+        # the pair would chase each other inside one attempt, spending the whole
+        # wall-clock budget on a knob oscillating between two values.
+        scale_direction = ""
         api_patches = 0
         run_path = experiment_dir / "run.py"
 
@@ -1594,11 +1734,17 @@ class CoderAgent:
                     "error_text": f"{failure.summary} {detail}",
                 }
 
-            if failure.route == diagnose.ROUTE_DOWNSCALE and downscales < _MAX_DOWNSCALES:
+            if (
+                failure.route == diagnose.ROUTE_DOWNSCALE
+                and downscales < _MAX_DOWNSCALES
+                and scale_direction != "up"
+            ):
                 shrunk, changes = repair.downscale(run_path.read_text())
                 if changes:
                     run_path.write_text(shrunk)
                     downscales += 1
+                    scale_direction = "down"
+                    downscale_changes.extend(changes)
                     logger.info(
                         "[%s] %s Reduced deterministically: %s",
                         hypothesis_id,
@@ -1650,6 +1796,95 @@ class CoderAgent:
                 "error_text": f"results.json's metrics look hollow: {'; '.join(plausibility_findings)}",
             }
 
+        # "Train it properly" — the two checks that read the loss curves. Both
+        # are blind to which arm wins: convergence is asked of every curve
+        # identically, so an under-trained baseline is caught exactly as readily
+        # as an under-trained treatment. That symmetry is what makes this a
+        # repair rather than a retry on the verdict; nothing here reads
+        # meets_success_criteria, and a comparison between models that have not
+        # converged measures the epoch budget rather than the thing under test.
+        metrics = results.get("metrics") or {}
+        trains_iteratively = sandbox.trains_with_torch_optimizer(run_py)
+
+        diagnostics_findings = sandbox.check_training_diagnostics(metrics, trains_iteratively)
+        if diagnostics_findings:
+            return {
+                "error_source": "missing_diagnostics",
+                "error_text": (
+                    f"The run reports no training diagnostics: {'; '.join(diagnostics_findings)}"
+                ),
+            }
+
+        # Non-convergence is a budget problem before it is a code problem, and
+        # the check's own advice says so: "raise the epoch budget". So raise it,
+        # here, deterministically — rather than asking the model to and watching
+        # it write the same number again. Barkla job 10431703 case 06 spent four
+        # fix attempts on four identical still-improving curves, and produced
+        # nothing at all, having trained a real transformer on real data.
+        #
+        # Costs no fix attempt for the same reason installing a missing package
+        # costs none: the generated source was not wrong. It reached the end,
+        # reported its curves, and simply had not been given enough epochs.
+        convergence_findings = sandbox.check_training_convergence(metrics, trains_iteratively)
+        while convergence_findings and upscales < _MAX_UPSCALES and scale_direction != "down":
+            raised, changes = repair.upscale(run_path.read_text())
+            if not changes:
+                break  # every training knob is already at its ceiling
+            run_path.write_text(raised)
+            upscales += 1
+            scale_direction = "up"
+            upscale_changes.extend(changes)
+            logger.info(
+                "[%s] %s Raised deterministically: %s",
+                hypothesis_id,
+                convergence_findings[0],
+                "; ".join(changes),
+            )
+            succeeded, message = sandbox.run_experiment(
+                python_executable, run_path, experiment_dir, timeout_seconds
+            )
+            if not succeeded:
+                # The larger run no longer fits its budget. Deliberately not
+                # downscaled back: that is the oscillation scale_direction
+                # exists to prevent, and "this experiment cannot both converge
+                # and fit the budget" is a real finding the model should see.
+                failure = diagnose.classify_execution_failure(message)
+                return {
+                    "error_source": failure.error_source,
+                    "error_text": (
+                        f"{failure.summary} The epoch budget was raised ({'; '.join(changes)}) "
+                        "because training had not converged, and the larger run no longer fits. "
+                        "Make the training loop cheaper per epoch, or stop on a validation split "
+                        "instead of running a fixed number of epochs."
+                    ),
+                }
+            results, diagnosis = sandbox.read_results_json_for_diagnosis(experiment_dir)
+            if results is None:
+                return {
+                    "error_source": "results_json",
+                    "error_text": (
+                        "run.py exited successfully after the epoch budget was raised but did not "
+                        f"produce a valid results.json: {diagnosis}"
+                    ),
+                }
+            metrics = results.get("metrics") or {}
+            convergence_findings = sandbox.check_training_convergence(metrics, trains_iteratively)
+
+        if convergence_findings:
+            # Raising it as far as the compute budget allows did not reach
+            # convergence. The run is still real — real data, real curves, real
+            # metrics — so it is reported rather than discarded, with the
+            # verdict withheld by compute_provenance below. Discarding it is
+            # what the fix loop used to do, and it threw away the only
+            # experiment in the corpus that trained anything on a GPU.
+            logger.info(
+                "[%s] still not converged after %d upscale(s) — reporting the run with the "
+                "verdict withheld: %s",
+                hypothesis_id,
+                upscales,
+                "; ".join(convergence_findings[:1]),
+            )
+
         # The experiment ran and produced metrics. Whether those metrics are
         # allowed to carry a verdict about the hypothesis depends on where their
         # inputs came from, which is decided here in Python rather than left to
@@ -1657,7 +1892,12 @@ class CoderAgent:
         # string "unknown", which the Writer reads as "inconclusive". Returning
         # False instead would have it publish a *refutation* off generated data.
         sources = self._provenance_for(
-            plan, network_available, hf_dataset=hf_dataset, run_py=run_py
+            plan,
+            network_available,
+            hf_dataset=hf_dataset,
+            run_py=run_py,
+            acquisitions=acquisitions,
+            discoveries=discoveries,
         )
         provenance_document = provenance.write(sources, experiment_dir / "data_provenance.json")
         results = provenance.apply_to_results(results, sources)
@@ -1666,6 +1906,30 @@ class CoderAgent:
                 "[%s] verdict withheld — %s",
                 hypothesis_id,
                 provenance_document["methodological_validity"],
+            )
+
+        # The same question as above asked of the compute rather than the
+        # inputs: a run that only finished because repair.downscale halved its
+        # epochs reports an undertrained model's metrics, which lose to a
+        # baseline for a reason that has nothing to do with the hypothesis.
+        # Deliberately after the data check — apply_to_results below preserves
+        # whatever claim that one already recorded instead of overwriting it.
+        # Both directions are recorded: what had to be shrunk to fit the budget,
+        # and what had to be raised to reach convergence. Either can be why the
+        # metrics describe something other than the experiment as designed.
+        scale_changes = downscale_changes + upscale_changes
+        compute_document = compute_provenance.write(
+            scale_changes,
+            experiment_dir / "compute_provenance.json",
+            timeout_seconds=timeout_seconds,
+            convergence_findings=convergence_findings,
+        )
+        results = compute_provenance.apply_to_results(results, scale_changes, convergence_findings)
+        if compute_provenance.truncated(scale_changes, convergence_findings):
+            logger.info(
+                "[%s] verdict withheld — %s",
+                hypothesis_id,
+                compute_document["compute_validity"],
             )
 
         return {
@@ -1678,6 +1942,7 @@ class CoderAgent:
                 results=results,
                 starter_used=starter_id,
                 data_provenance=provenance_document,
+                compute_provenance=compute_document,
             )
         }
 
@@ -1734,12 +1999,21 @@ class CoderAgent:
             )
         finally:
             smoke_path.unlink(missing_ok=True)
-            # The smoke copy writes results.json into the experiment directory
-            # exactly as the real run does, and those numbers came from a run
-            # shrunk past the point of meaning anything. Removed rather than
-            # left for read_results_json_for_diagnosis — or a human reading the
-            # experiment directory — to mistake for the experiment's result.
-            (experiment_dir / "results.json").unlink(missing_ok=True)
+            # The smoke copy writes into the experiment directory exactly as the
+            # real run does, and everything it wrote came from a run shrunk past
+            # the point of meaning anything. Removed rather than left for
+            # read_results_json_for_diagnosis — or a human reading the experiment
+            # directory — to mistake for the experiment's own output. The
+            # checkpoint matters as much as the results here: a real run started
+            # with --resume would otherwise resume the *smoke* run's first epoch
+            # and report the experiment as having trained from there.
+            for leftover in (
+                "results.json",
+                "progress.jsonl",
+                "checkpoint.pt",
+                "checkpoint.pt.tmp",
+            ):
+                (experiment_dir / leftover).unlink(missing_ok=True)
 
         if succeeded:
             logger.info(
@@ -1795,6 +2069,8 @@ class CoderAgent:
         requirements_path: Path,
         complexity: str,
         starter_id: str = "",
+        network_available: bool = False,
+        hf_dataset: dict | None = None,
     ) -> dict:
         """Plans that can't run here: too heavy, or they need a GPU this
         machine doesn't have. Always writes run.sbatch. Whether it also gets
@@ -1802,6 +2078,17 @@ class CoderAgent:
         submits it, since nothing has ever executed this code."""
         hypothesis_id = plan["hypothesis_id"]
         assumptions_made = generation.get("assumptions_made", [])
+        # Resolved here, on the machine that generated the code, because this is
+        # the only place that can: reconcile.py imports this job's results in a
+        # later process which may not mount the staging directory, and would
+        # answer "is this input real?" wrongly if it re-resolved there. Written
+        # to disk and carried on the result for it to read back. Without this a
+        # reconciled cluster job would publish a verdict off inputs nobody ever
+        # checked — the exact failure provenance.py exists to prevent.
+        provenance_document = provenance.write(
+            self._provenance_for(plan, network_available, hf_dataset=hf_dataset, run_py=run_py),
+            experiment_dir / "data_provenance.json",
+        )
         why_unrunnable = (
             "estimated_complexity is 'high'"
             if complexity == "high"
@@ -1822,6 +2109,7 @@ class CoderAgent:
                     code_path=str(experiment_dir),
                     assumptions_made=assumptions_made,
                     starter_used=starter_id,
+                    data_provenance=provenance_document,
                 )
             }
 
@@ -1897,6 +2185,7 @@ class CoderAgent:
                 assumptions_made=assumptions_made,
                 slurm_job_id=job_id,
                 starter_used=starter_id,
+                data_provenance=provenance_document,
             )
         }
 
@@ -1981,6 +2270,7 @@ class CoderAgent:
         slurm_job_id: str | None = None,
         starter_used: str = "",
         data_provenance: dict | None = None,
+        compute_provenance: dict | None = None,
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -1997,6 +2287,9 @@ class CoderAgent:
             # instinct as fix_history existing at all.
             "starter_used": starter_used,
             "data_provenance": data_provenance or {},
+            # What this run cost to finish. Empty for every status that never
+            # executed anything — only a real execution can be downscaled.
+            "compute_provenance": compute_provenance or {},
         }
 
     # -- LLM calls -----------------------------------------------------------
@@ -2243,9 +2536,26 @@ class CoderAgent:
         """
         if not network_available or not settings.coder_enable_hf_dataset_search:
             return {}
-        description = (plan.get("data_requirements") or {}).get("description") or plan["objective"]
+        # `source` first, then `description`. The two fields say different
+        # things: `source` names the dataset ("CoNLL-2003 dataset") while
+        # `description` is prose about what it contains ("a widely used
+        # benchmark dataset for NER containing annotated sentences..."). The Hub
+        # matches on *names*, so searching only the prose asks it the one
+        # question it cannot answer — Barkla 10426431 and 10427224 both reported
+        # "no viewer-servable dataset" for a benchmark that is on the Hub, and
+        # both fell through to a model-proposed URL that 404s.
+        requirements = plan.get("data_requirements") or {}
+        queries = [
+            str(text).strip()
+            for text in (requirements.get("source"), requirements.get("description"))
+            if str(text or "").strip()
+        ] or [str(plan["objective"])]
         try:
-            dataset = self.huggingface_lookup(str(description))
+            dataset = None
+            for query in dict.fromkeys(queries):
+                dataset = self.huggingface_lookup(query)
+                if dataset:
+                    break
         except Exception as exc:  # noqa: BLE001 — see the docstring
             logger.warning(
                 "Hugging Face dataset lookup raised for %s; generating without it: %s",
@@ -2255,12 +2565,192 @@ class CoderAgent:
             return {}
         return dataset or {}
 
+    # ---------------------------------------------------------------
+    # Model-assisted data sourcing. Both methods are handed to discover.py
+    # rather than called by it: that module stays model-free and testable
+    # without an LLM, and this one owns every model call the agent makes.
+    # Neither answer is trusted — the chooser may only reorder and reject
+    # candidates that already exist, and a proposed URL is fetched and parsed
+    # before anything calls it a source.
+    # ---------------------------------------------------------------
+
+    def _choose_data_source(self, requirement: str, candidates: list) -> list[int] | None:
+        """Which of these catalogue files actually holds the data? None on failure.
+
+        The question keyword overlap cannot answer, and the one a measured sweep
+        got wrong twice in five: a dataset with the right title routinely
+        contains files that are not the data — a station list, a geographic
+        reference table, a data dictionary. Those score well and are wrong.
+
+        Returning None (not []) on any failure matters: [] means the model
+        looked and rejected them all, which discover.rank_with honours by
+        leaving the requirement a labelled surrogate. None means no answer was
+        obtained, and the keyword ordering is used instead.
+        """
+        block = "\n\n".join(
+            f"{index}. TITLE: {candidate.title[:160] or '(untitled)'}\n"
+            f"   RESOURCE: {candidate.resource[:160] or '(unnamed file)'}\n"
+            f"   ABOUT: {candidate.description[:300] or '(no description)'}\n"
+            f"   URL: {candidate.url[:200]}"
+            for index, candidate in enumerate(candidates)
+        )
+        user_prompt = prompts.DATA_SOURCE_SELECTION_PROMPT.format(
+            requirement=requirement, candidate_block=block
+        )
+        try:
+            payload = invoke_json(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                max_tokens=self._bounded_max_tokens(user_prompt),
+            )
+        except Exception as exc:  # noqa: BLE001 — LLMJSONError included; sourcing is never fatal
+            logger.warning("Data-source selection failed for %r: %s", requirement[:80], exc)
+            return None
+        ranked = payload.get("ranked")
+        if not isinstance(ranked, list):
+            return None
+        logger.info(
+            "Model ranked %d of %d candidates for %r: %s",
+            len(ranked),
+            len(candidates),
+            requirement[:60],
+            str(payload.get("why", ""))[:160],
+        )
+        # Validated in discover.rank_with against the list the model was shown,
+        # so a hallucinated index is dropped rather than followed.
+        return [entry for entry in ranked if isinstance(entry, int)]
+
+    def _propose_data_sources(self, requirement: str) -> list:
+        """The model as a connector of last resort: name URLs that serve this.
+
+        Reached only when no catalogue had a match, which a measured sweep put
+        at two requirements in five. Every URL comes back through
+        `acquire.fetch` — the safety gate, the fetch and the parse — so an
+        invented one costs a download and yields nothing, and cannot become a
+        source. That is the whole reason this is allowed to guess at all.
+        """
+        user_prompt = prompts.DATA_SOURCE_PROPOSAL_PROMPT.format(
+            requirement=requirement, max_sources=_MAX_PROPOSED_SOURCES
+        )
+        try:
+            payload = invoke_json(
+                self.chat_model,
+                prompts.SYSTEM_PROMPT,
+                user_prompt,
+                max_tokens=self._bounded_max_tokens(user_prompt),
+            )
+        except Exception as exc:  # noqa: BLE001 — LLMJSONError included; sourcing is never fatal
+            logger.warning("Data-source proposal failed for %r: %s", requirement[:80], exc)
+            return []
+        proposed = payload.get("sources")
+        if not isinstance(proposed, list):
+            return []
+        candidates = []
+        for entry in proposed[:_MAX_PROPOSED_SOURCES]:
+            if not isinstance(entry, dict):
+                continue
+            url = str(entry.get("url") or "")
+            if not url:
+                continue
+            # The same filter the catalogue connectors apply to their resources.
+            # Without it a model-proposed archive is fetched and discarded:
+            # Barkla 10426431 spent a probe on a conll2003.zip that
+            # acquire.describe could never have read.
+            if not discover._is_tabular(url, str(entry.get("format") or "")):
+                logger.info("Skipping proposed non-tabular source: %s", url[:120])
+                continue
+            candidates.append(
+                discover.Candidate(
+                    name=requirement,
+                    url=url,
+                    connector="model",
+                    title=str(entry.get("name") or requirement),
+                    description=str(payload.get("why") or ""),
+                    landing_page=url,
+                    resource=str(entry.get("name") or ""),
+                )
+            )
+        logger.info("Model proposed %d source(s) for %r", len(candidates), requirement[:80])
+        return candidates
+
+    def _data_connectors(self) -> list:
+        """The connector list for this run, model proposal last.
+
+        Last on purpose. A catalogue hit is a file someone published and
+        described; a proposed URL is the model's recollection of a URL shape.
+        The first is worth trying before the second, and when the first
+        succeeds the second is never called at all.
+        """
+        connectors = list(discover.CONNECTORS)
+        if settings.coder_enable_model_data_sourcing:
+            connectors.append(("model", self._propose_data_sources))
+        return connectors
+
+    def _acquire_data(
+        self, plan: dict, network_available: bool, hf_dataset: dict
+    ) -> tuple[dict[str, dict], dict[str, dict]]:
+        """Get this plan's data onto disk. Returns (acquisitions, discoveries).
+
+        Two steps, in this order and not the other. First *discovery*, for the
+        requirements no source was named for at all — those are the ones that
+        otherwise become invented numbers, and a URL found for one is a URL the
+        second step can then fetch. Then *acquisition* over the whole resolved
+        list, which pulls the named downloads and finds the discovered ones
+        already in the cache from the probe that confirmed them.
+
+        Same skip-without-a-request shape as _find_hf_dataset, and the same
+        never-raise contract: both modules absorb every network and parse
+        failure, so the try/except here is only for the unexpected — a cache
+        directory that cannot be created, say. An experiment must not go
+        ungenerated because a download did not work; that is precisely the
+        coupling these modules exist to break.
+        """
+        if not network_available or not settings.coder_enable_data_acquisition:
+            return {}, {}
+        cache_dir = Path(settings.coder_data_cache_dir)
+        max_bytes = settings.coder_max_download_bytes
+        # Resolved with neither map (there are none yet) — this is the list of
+        # inputs as the tables alone see them, which is what we are about to
+        # improve on.
+        sources = self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+        try:
+            discoveries: dict[str, dict] = {}
+            if settings.coder_enable_source_discovery:
+                discoveries = discover.discover_sources(
+                    sources,
+                    cache_dir=cache_dir,
+                    max_bytes=max_bytes,
+                    connectors=self._data_connectors(),
+                    chooser=(
+                        self._choose_data_source
+                        if settings.coder_enable_model_data_sourcing
+                        else None
+                    ),
+                )
+                # Applied before acquiring so a discovered requirement is a
+                # real_download with a uri by the time acquire_sources runs.
+                sources = discover.apply(sources, discoveries)
+            acquisitions = acquire.acquire_sources(
+                sources, cache_dir=cache_dir, max_bytes=max_bytes
+            )
+            return acquisitions, discoveries
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            logger.warning(
+                "Data acquisition raised for %s; generating without it: %s",
+                plan["hypothesis_id"],
+                exc,
+            )
+            return {}, {}
+
     def _provenance_for(
         self,
         plan: dict,
         network_available: bool,
         hf_dataset: dict | None = None,
         run_py: str | None = None,
+        acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2269,6 +2759,13 @@ class CoderAgent:
         rather than threaded through graph state like the Hugging Face lookup —
         that one is a real network call with its own cache and retry policy, and
         this is a pure function of the plan.
+
+        `acquisitions` and `discoveries` keep that true now that inputs can also
+        be *fetched* and *searched for*: both happen once, in the acquire_data
+        node, and what arrives here are the records of what was found and what
+        landed on disk. `discover.apply` and `acquire.apply` are pure rewrites
+        over them, so this stays callable at prompt time, after generation and
+        at finalize without a second search or a second download.
         """
         requirements = provenance.split_requirements(
             (plan.get("data_requirements") or {}).get("source") or "",
@@ -2299,14 +2796,25 @@ class CoderAgent:
         # dataset still had its verdict withheld as though it had invented the
         # data. The one path that makes a real verdict reachable was closed.
         dataset_id = (hf_dataset or {}).get("dataset_id")
+        # The third trace, and the one this pipeline now produces most often:
+        # when acquire.py fetched the dataset, the code reads a local path and
+        # never names the id at all. See _reads_dataset.
+        acquired_path = str(
+            ((acquisitions or {}).get(self._rows_url(hf_dataset or {})) or {}).get("path") or ""
+        )
         named = run_py is None or (
-            bool(dataset_id) and self._reads_dataset(str(dataset_id), run_py)
+            bool(dataset_id) and self._reads_dataset(hf_dataset or {}, run_py, [acquired_path])
         )
         if dataset_id and named:
             sources.insert(
                 0,
                 provenance.DataSource(
                     name=f"Hugging Face dataset {dataset_id}",
+                    # Recorded as a download, not a local file, even once
+                    # acquire.py has fetched it: `acquire.apply` is what rewrites
+                    # an input to real_local, and it does so from the acquisition
+                    # record rather than from a guess made here. One place
+                    # decides that, or the two disagree about the same input.
                     kind=provenance.KIND_REAL_DOWNLOAD,
                     uri=self._rows_url(hf_dataset or {}),
                     reason="found by the Hugging Face lookup and read by the generated code",
@@ -2317,6 +2825,20 @@ class CoderAgent:
                 ),
             )
 
+        # Two pure rewrites, composed, in this order. `discover.apply` gives a
+        # requirement nothing was named for the uri that was found for it;
+        # `acquire.apply` then promotes any uri whose bytes are already on disk
+        # to real_local. Discovered inputs therefore travel the same path as
+        # named ones and differ downstream only in what their `reason` says.
+        #
+        # Both run before verify_downloads_used, deliberately. That check asks
+        # whether the *code* went and fetched a declared download; an input this
+        # pipeline already fetched is not a question the code text can answer,
+        # and leaving it a `real_download` here would have code reading a local
+        # CSV (naming no host) downgraded to a surrogate for it.
+        sources = discover.apply(sources, discoveries)
+        sources = acquire.apply(sources, acquisitions)
+
         # Order matters. Confirm which declared inputs the code really reads,
         # *then* let those answer requirements nothing could resolve —
         # superseding first would let an unfetched declaration stand in for one.
@@ -2326,16 +2848,32 @@ class CoderAgent:
         return sources
 
     @staticmethod
-    def _reads_dataset(dataset_id: str, code: str) -> bool:
-        """Whether `code` shows a trace of reading `dataset_id`.
+    def _reads_dataset(
+        hf_dataset: dict, code: str, acquired_paths: Sequence[str] | None = None
+    ) -> bool:
+        """Whether `code` shows a trace of reading the offered dataset.
 
-        Matches the raw id and the percent-encoded form, because a rows URL
-        encodes the namespace slash — a plain `dataset_id in code` test misses
-        exactly the case the prompt hands over, which is the URL. The same two
-        forms sandbox.check_hf_dataset_usage already checks; the two must agree,
-        or a dataset that clears that gate can still be scored a surrogate here.
+        Delegates to sandbox.dataset_traces rather than re-deriving the forms —
+        the raw id, the percent-encoded one a rows URL carries, and any file
+        acquire.py downloaded for this experiment. That function's docstring
+        explains why this must not have its own opinion: a dataset that clears
+        check_hf_dataset_usage and is scored a surrogate here reaches the Writer
+        as an experiment that read real data and invented it at once.
+
+        The acquired path is the trace this pipeline now produces most often.
+        Once acquisition is on, the prompt hands the model a *local file* and
+        tells it not to make an HTTP request, so correct code names neither the
+        id nor the URL — and the cached filename cannot stand in for the id
+        either, since acquire._safe_label sanitises the namespace slash
+        (`chuyin0321/timeseries-daily-stocks` lands as
+        `..._chuyin0321_timeseries-daily-stocks.jsonl`, matching neither form).
+        Barkla job 10424136 is the recorded cost: load_data read the acquired
+        JSONL and computed real metrics from it, and because the id appeared
+        nowhere in run.py the dataset was left out of data_provenance.json
+        entirely.
         """
-        return bool(code) and (dataset_id in code or quote(dataset_id, safe="") in code)
+        traces = sandbox.dataset_traces(hf_dataset, acquired_paths)
+        return bool(code) and any(trace in code for trace in traces)
 
     @staticmethod
     def _rows_url(hf_dataset: dict) -> str:
@@ -2364,7 +2902,7 @@ class CoderAgent:
         )
 
     @staticmethod
-    def _hf_dataset_block(hf_dataset: dict) -> str:
+    def _hf_dataset_block(hf_dataset: dict, acquisitions: dict[str, dict] | None = None) -> str:
         """Renders a matched dataset for the codegen/fix prompt: what it is, its
         real column names and a few real rows, and the exact REST URL to read it
         from. Empty string when nothing matched, so a prompt with no dataset
@@ -2379,6 +2917,28 @@ class CoderAgent:
         config = str(hf_dataset.get("config") or "default")
         split = str(hf_dataset.get("split") or "train")
         rows_url = CoderAgent._rows_url(hf_dataset)
+        fetched = (acquisitions or {}).get(rows_url)
+        if fetched:
+            # The rows are already on disk, so the model is told to read them
+            # rather than to build a REST call. This removes the single most
+            # common way an experiment lost its real data: getting that URL
+            # subtly wrong and falling back to synthesizing. The provenance
+            # block carries the columns and first rows read off the file, so
+            # they are not repeated here.
+            return (
+                "A real, public dataset matching this experiment's data requirements was found, "
+                "verified by the Hugging Face Dataset Viewer, and **already downloaded for "
+                "you**:\n"
+                f"  dataset: {dataset_id} (config={config}, split={split})\n"
+                f"  local file: {fetched.get('path', '')}\n"
+                f"  rows: {fetched.get('row_count', 0)}\n"
+                f"  format: {fetched.get('read_hint') or fetched.get('data_format', '')}\n\n"
+                "Read that file from disk. Do NOT make any HTTP request for this dataset and do "
+                "NOT add the `datasets` package.\n\n" + prompts.HF_DATASET_USAGE_NOTE
+            )
+        # Nothing fetched it, so the model builds the REST call itself — the
+        # path this took before acquire.py existed, and still the fallback
+        # whenever acquisition is off or the fetch failed.
         return (
             "A real, public dataset matching this experiment's data requirements was found and "
             "verified as servable by the Hugging Face Dataset Viewer:\n"
@@ -2400,20 +2960,29 @@ class CoderAgent:
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
         starter_id: str = "",
+        acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
-            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
             provenance_block=provenance.prompt_block(
                 # hf_dataset passed so an accepted dataset is described as the
                 # real input the model is being asked to read. Without it this
                 # block called that same dataset a surrogate and ordered a
                 # `synthesize_` generator, contradicting hf_dataset_block in the
                 # very same prompt.
-                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+                self._provenance_for(
+                    plan,
+                    network_available,
+                    hf_dataset=hf_dataset,
+                    acquisitions=acquisitions,
+                    discoveries=discoveries,
+                )
             ),
             starter_block=self._starter_block(starter_id),
+            compute_budget=_compute_budget_text(plan["estimated_complexity"]),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",
@@ -2438,6 +3007,8 @@ class CoderAgent:
         shared_infra_warning: str = "",
         hf_dataset: dict | None = None,
         starter_id: str = "",
+        acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
         stuck_streak: int = 0,
         previous_error_summary: str = "",
         target_sections: list[str] | None = None,
@@ -2467,7 +3038,7 @@ class CoderAgent:
             # three more HTTP calls to learn the same thing. Same reasoning for
             # the starter block — it stays grounded in the same worked example
             # across every fix attempt instead of drifting.
-            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}),
+            hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
             # Same block the codegen prompt was given. A fix attempt that no
             # longer knows which inputs are surrogates is free to "fix" a
             # failure by quietly inventing data, which is the outcome the
@@ -2476,7 +3047,13 @@ class CoderAgent:
                 # Same reason as the codegen prompt: an accepted dataset must be
                 # described as the real input to read, not as a surrogate to
                 # replace with a `synthesize_` generator.
-                self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
+                self._provenance_for(
+                    plan,
+                    network_available,
+                    hf_dataset=hf_dataset,
+                    acquisitions=acquisitions,
+                    discoveries=discoveries,
+                )
             ),
             starter_block=self._starter_block(starter_id),
             # Looked up fresh every fix call, unlike the starter/dataset blocks

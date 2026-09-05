@@ -6,6 +6,12 @@ smaller when it ran out of time or memory. Both re-run source that was never
 wrong, which is why neither should consume the fix-attempt budget —
 `max_fix_attempts` exists to bound bad code.
 
+Shrinking is not free, though, and the knob table below is split by what it
+costs: a smaller `draws` estimates the same quantity less precisely, but a
+smaller `epochs` fits a different, worse model. Metrics of the second kind
+describe an experiment nobody chose to run, so `compute_provenance.py` turns
+that distinction into a withheld verdict.
+
 `smoke_variant` is the same shrinking machinery pointed at a different problem:
 not rescuing a run that already failed, but making the *first* run cheap enough
 that a defect is found in seconds instead of after the full timeout.
@@ -26,18 +32,44 @@ import re
 
 from . import diagnose, sandbox
 
-# Knobs that make a run smaller without changing what it measures. Halving
-# `draws` costs posterior precision; it does not turn the experiment into a
-# different experiment — which is what makes this a legitimate automatic repair
-# where editing, say, the model formula would not be.
+# Knobs that make a run smaller, split by what shrinking one actually costs.
+# The split is not cosmetic: it decides whether the metrics that come back may
+# still carry a verdict about the hypothesis — see compute_provenance.py.
 #
 # Each has a floor: `chains` halved to 0 would not sample at all.
-DOWNSCALE_KNOBS: dict[str, int] = {
+
+# Shrinking these costs precision and nothing else. They control how many times
+# the same estimator is resampled, so a smaller value estimates the same
+# quantity less tightly. Halving `draws` costs posterior precision; it does not
+# turn the experiment into a different experiment — which is what makes this a
+# legitimate automatic repair where editing, say, the model formula would not
+# be.
+PRECISION_KNOBS: dict[str, int] = {
     "draws": 250,
     "tune": 250,
     "chains": 2,
     "iter_sampling": 250,
     "iter_warmup": 250,
+    "n_boot": 100,
+    "bootstrap_samples": 100,
+    "n_permutations": 100,
+}
+
+# Shrinking these changes what is measured. They control how far the model is
+# fit, how big it is, or how much data it sees, so a smaller value fits a
+# different — worse — model. That matters because an undertrained model loses
+# to its baseline for a reason that has nothing to do with the hypothesis, and
+# `writer_agent` maps that losing `meets_success_criteria: False` to
+# **"refuted"**: a timeout would publish a refutation the run never earned.
+# Shrinking them is still the right repair (a truncated run beats no run at
+# all); it just costs the verdict, which compute_provenance.py withholds.
+#
+# `n_samples`/`num_samples` sit here rather than above because the name is
+# genuinely ambiguous — posterior draws in PyMC, dataset size in
+# `make_classification` — and the two mistakes are not equally bad. Withholding
+# wrongly yields an "inconclusive" that was really conclusive; not withholding
+# wrongly publishes a false refutation. The ambiguous case takes the safe side.
+MEASUREMENT_KNOBS: dict[str, int] = {
     "n_samples": 500,
     "num_samples": 500,
     "n_iter": 100,
@@ -48,10 +80,58 @@ DOWNSCALE_KNOBS: dict[str, int] = {
     "n_rows": 1000,
     "sample_size": 1000,
     "max_rows": 1000,
-    "n_boot": 100,
-    "bootstrap_samples": 100,
-    "n_permutations": 100,
 }
+
+# What both shrinking passes below iterate. The two tables are disjoint and the
+# substitutions are per-knob and independent, so merge order changes nothing
+# about the result.
+DOWNSCALE_KNOBS: dict[str, int] = {**PRECISION_KNOBS, **MEASUREMENT_KNOBS}
+
+
+def _change(knob: str, current: int, reduced: int) -> str:
+    """The one place a change entry's text is built. `knob_name` reads it back."""
+    return f"{knob}: {current} -> {reduced}"
+
+
+def knob_name(change: str) -> str:
+    """Which knob a `downscale`/`smoke_variant` change entry refers to.
+
+    Reads back what `_change` above wrote — they sit three lines apart so the
+    format cannot drift between writer and reader, and keeping the entries
+    plain strings is what lets every existing caller go on doing
+    `"; ".join(changes)`.
+    """
+    return change.split(":", 1)[0]
+
+
+def measurement_changes(changes: list[str]) -> list[str]:
+    """The subset of `changes` that shrank a knob in MEASUREMENT_KNOBS, i.e.
+    the ones that make the resulting metrics describe a different experiment
+    than the one that was generated."""
+    return [change for change in changes if knob_name(change) in MEASUREMENT_KNOBS]
+
+
+def _knob_pattern(knob: str) -> re.Pattern[str]:
+    """Match an assignment to `knob`, however the model spelled the name.
+
+    Case-insensitive, and tolerant of a single leading word: the codegen prompt
+    asks for "module-level constants for tunable parameters", so the model
+    writes `NUM_EPOCHS = 100` or `N_EPOCHS`/`MAX_EPOCHS` far more often than a
+    bare lowercase `epochs`. A case-sensitive `\bepochs\b` matches none of
+    those — `\b` fails against the underscore in `NUM_EPOCHS` — which meant the
+    whole knob table silently did nothing to the most common way its own knobs
+    get written. Barkla job 10431703 case 06 is the shape: `NUM_EPOCHS: int =
+    100`, four fix attempts spent on an epoch budget that no deterministic
+    repair could see.
+
+    The optional prefix is one word, not `.*`, so `EPOCHS_BETWEEN_EVAL` (a
+    different quantity entirely) still does not match — the trailing `\b` is
+    what refuses it.
+    """
+    return re.compile(
+        rf"(?P<prefix>\b(?:[A-Za-z]+_)?{re.escape(knob)}\b\s*(?::\s*[A-Za-z_][\w.\[\]]*\s*)?=\s*)(?P<value>\d+)",
+        re.IGNORECASE,
+    )
 
 
 def downscale(code: str) -> tuple[str, list[str]]:
@@ -66,17 +146,69 @@ def downscale(code: str) -> tuple[str, list[str]]:
     result = code
 
     for knob, floor in DOWNSCALE_KNOBS.items():
-        pattern = re.compile(rf"(?P<prefix>\b{re.escape(knob)}\b\s*=\s*)(?P<value>\d+)")
+        pattern = _knob_pattern(knob)
 
         def shrink(match: re.Match[str], knob: str = knob, floor: int = floor) -> str:
             current = int(match.group("value"))
             reduced = max(floor, current // 2)
             if reduced >= current:
                 return match.group(0)
-            changes.append(f"{knob}: {current} -> {reduced}")
+            changes.append(_change(knob, current, reduced))
             return f"{match.group('prefix')}{reduced}"
 
         result = pattern.sub(shrink, result)
+
+    return result, changes
+
+
+# The subset of MEASUREMENT_KNOBS that controls *how much training happens*,
+# with a ceiling each. Raising one of these is the deterministic answer to
+# `not_converged`, whose own advice is "raise the epoch budget" — so this raises
+# it, rather than asking the model to and watching it write the same number
+# again (Barkla job 10431703 case 06: four fix attempts, four identical
+# still-improving curves).
+#
+# Deliberately not the whole table. `n_rows`/`sample_size` also change what is
+# measured, but more data does not make an optimizer converge — it makes each
+# epoch cost more, which is the opposite of what a run that ran out of epochs
+# needs. And the precision knobs are not here for the same reason they are not
+# in MEASUREMENT_KNOBS: more posterior draws is not more training.
+UPSCALE_CEILINGS: dict[str, int] = {
+    "epochs": 1000,
+    "n_iter": 5000,
+    "max_iter": 5000,
+    "n_estimators": 2000,
+}
+
+
+def upscale(code: str) -> tuple[str, list[str]]:
+    """Double the knobs that control how much training happens. Returns
+    (new_code, human-readable changes); an empty change list means there was
+    nothing left to raise — every knob is already at its ceiling, or the code
+    has none of them.
+
+    The exact mirror of `downscale`, and it shares that function's contract so
+    the caller can tell "already at the ceiling" from "raised it" the same way.
+    What it does *not* share is a caller that may alternate between them: a run
+    that has been upscaled must not then be downscaled by the resource repair,
+    or the two chase each other inside one attempt. See _attempt_once, which
+    fixes a direction the first time it scales anything.
+    """
+    changes: list[str] = []
+    result = code
+
+    for knob, ceiling in UPSCALE_CEILINGS.items():
+        pattern = _knob_pattern(knob)
+
+        def raise_(match: re.Match[str], knob: str = knob, ceiling: int = ceiling) -> str:
+            current = int(match.group("value"))
+            if current >= ceiling:
+                return match.group(0)
+            raised = min(ceiling, max(current * 2, 1))
+            changes.append(_change(knob, current, raised))
+            return f"{match.group('prefix')}{raised}"
+
+        result = pattern.sub(raise_, result)
 
     return result, changes
 
@@ -98,13 +230,13 @@ def smoke_variant(code: str) -> tuple[str, list[str]]:
     result = code
 
     for knob, floor in DOWNSCALE_KNOBS.items():
-        pattern = re.compile(rf"(?P<prefix>\b{re.escape(knob)}\b\s*=\s*)(?P<value>\d+)")
+        pattern = _knob_pattern(knob)
 
         def pin(match: re.Match[str], knob: str = knob, floor: int = floor) -> str:
             current = int(match.group("value"))
             if current <= floor:
                 return match.group(0)
-            changes.append(f"{knob}: {current} -> {floor}")
+            changes.append(_change(knob, current, floor))
             return f"{match.group('prefix')}{floor}"
 
         result = pattern.sub(pin, result)

@@ -6,6 +6,12 @@ commands only exist on a cluster login/compute node.
 Submission is off by default (`CODER_AUTO_SUBMIT_SLURM`). When it is on, the
 caller is responsible for checking the safety lint and the job caps first —
 see CoderAgent._handle_unrunnable_locally.
+
+`job_state` is the other half of that: submission is asynchronous, so the run
+that submits a job cannot know how it ended. Asking `sacct` afterwards is what
+lets `reconcile.py` turn a `submitted_to_slurm` experiment into a real result
+instead of the permanent "no results are available" the Writer would otherwise
+print.
 """
 
 from __future__ import annotations
@@ -21,6 +27,32 @@ logger = logging.getLogger(__name__)
 
 SUBMIT_TIMEOUT_SECONDS = 30
 QUEUE_TIMEOUT_SECONDS = 30
+ACCOUNTING_TIMEOUT_SECONDS = 30
+
+# A job in one of these will never change state again, so a reconcile pass can
+# stop asking about it and record what happened. Anything else (PENDING,
+# RUNNING, SUSPENDED, COMPLETING, REQUEUED) means "ask again later".
+#
+# PREEMPTED belongs here even though SLURM may requeue the job: on a requeue
+# the *new* attempt gets its own accounting row, and `-X` below reports the
+# latest one, so a requeued job reads as PENDING/RUNNING again rather than
+# staying stuck on the preempted attempt. That matters on Barkla, whose free
+# GPU partitions (gpu-a100-lowbig, gpu-a-lowsmall) preempt by design.
+TERMINAL_STATES = frozenset(
+    {
+        "COMPLETED",
+        "FAILED",
+        "TIMEOUT",
+        "CANCELLED",
+        "OUT_OF_MEMORY",
+        "NODE_FAIL",
+        "BOOT_FAIL",
+        "DEADLINE",
+        "PREEMPTED",
+        "REVOKED",
+        "SPECIAL_EXIT",
+    }
+)
 
 _JOB_ID_RE = re.compile(r"Submitted batch job (\d+)")
 
@@ -99,3 +131,61 @@ def submit_job(sbatch_path: Path, cwd: Path) -> tuple[str | None, str | None]:
         )
 
     return match.group(1), None
+
+
+def accounting_available() -> bool:
+    return shutil.which("sacct") is not None
+
+
+def job_state(job_id: str) -> tuple[str | None, str | None]:
+    """What SLURM's accounting database says became of one job. Returns
+    (state, error) — exactly one is set.
+
+    `-X` asks for the job allocation only. Without it sacct also returns a row
+    per step (`<id>.batch`, `<id>.extern`), and those carry their own states —
+    a `.batch` step reading COMPLETED under a job that was CANCELLED is exactly
+    the kind of disagreement that would have a reconcile pass import results
+    from a run that was killed.
+
+    A state can carry a trailing qualifier ("CANCELLED by 123456"), so only the
+    first word is returned; TERMINAL_STATES is written against that form.
+
+    Two different "don't know"s, both reported as an error rather than a state,
+    because the caller's only safe response to either is to leave the
+    experiment as it was and ask again later:
+      - sacct isn't installed (we're not on a cluster, or not on a node that
+        can see the accounting database);
+      - the job has no accounting row at all, which means either the id is
+        wrong or SLURM's accounting retention has already purged it.
+    """
+    if not accounting_available():
+        return None, "sacct is not on PATH — cannot ask what became of this job"
+
+    try:
+        proc = subprocess.run(
+            ["sacct", "-j", str(job_id), "-X", "--format=State", "--noheader", "--parsable2"],
+            capture_output=True,
+            text=True,
+            timeout=ACCOUNTING_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return None, f"sacct did not return within {ACCOUNTING_TIMEOUT_SECONDS}s"
+    except OSError as exc:
+        return None, f"could not run sacct: {exc}"
+
+    if proc.returncode != 0:
+        return (
+            None,
+            f"sacct exited with code {proc.returncode}: "
+            f"{(proc.stderr or proc.stdout or '').strip()[-500:]}",
+        )
+
+    lines = [line.strip() for line in (proc.stdout or "").splitlines() if line.strip()]
+    if not lines:
+        return None, f"SLURM has no accounting record for job {job_id}"
+
+    return lines[0].split()[0], None
+
+
+def is_terminal(state: str) -> bool:
+    return state in TERMINAL_STATES

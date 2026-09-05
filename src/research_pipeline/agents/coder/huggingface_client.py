@@ -15,11 +15,16 @@ Two APIs, both plain HTTP (see https://huggingface.co/docs/dataset-viewer/index)
 - the Dataset Viewer API (`datasets-server.huggingface.co`) to confirm a
   candidate is actually servable and to read its schema and first rows.
 
-Deliberately **not** the `datasets` Python library. Generated experiments run in
-their own throwaway venv, so every extra dependency is a fresh multi-hundred-MB
-install (and a local dataset cache) per experiment on shared HPC scratch;
-`requests` is already a pipeline dependency and the viewer's `/rows` endpoint
-returns paginated JSON that generated code can read directly.
+Deliberately **not** the `datasets` Python library, in either mode below.
+Generated experiments run in their own throwaway venv, so every extra dependency
+is a fresh multi-hundred-MB install (and a local dataset cache) per experiment on
+shared HPC scratch; `requests` is already a pipeline dependency and the viewer's
+`/rows` endpoint returns paginated JSON.
+
+When `acquire.py` has already fetched the rows this lookup pointed at, the
+model is handed that local file instead of the URL — see its module docstring.
+That module owns every download in this package; this one only ever finds and
+describes.
 
 Nothing here ever raises. This lookup is an enhancement to a prompt, never a
 precondition for generating code: every failure — no network, a 503, a rate
@@ -164,14 +169,35 @@ def _keyword_queries(description: str) -> list[str]:
     the model is told it may ignore is still more useful than no dataset, and one
     extra HTTP call is cheap next to a codegen round-trip.
     """
-    # Bare numbers ("500 students", "2024") are dropped along with stopwords:
-    # they never help match a dataset *name*, and they crowd out the words that do.
+    # A number joined to a name is part of the name — CoNLL-2003, CIFAR-10,
+    # MNIST_10k — and the Hub matches on names. Tokenizing "CoNLL-2003 dataset"
+    # gave ["conll", "2003", "dataset"], the year was dropped as a bare number,
+    # and the query became "conll": the Hub answers that with conll2000,
+    # conll2002 and a non-servable conll2003, all three probes are spent, and the
+    # lookup reports no match — while "conll2003" returns
+    # Davlan/conll2003_noMISC, which the viewer serves. Barkla 10426431 went to
+    # synthetic data over that one dropped token.
+    #
+    # Added as an extra query rather than by rewriting the tokens, because the
+    # merge cannot be done safely in general: "survey 2024 responses" would
+    # become "survey2024", which matches nothing. The caller tries queries in
+    # order and stops at the first that yields a servable dataset, so a
+    # speculative compound costs one HTTP call when it is wrong and rescues the
+    # lookup when it is right.
+    lowered = description.lower()
+    compounds = [
+        re.sub(r"[-_ ]", "", match) for match in re.findall(r"[a-z]{3,}[-_ ]?[0-9]+", lowered)
+    ]
+    # Bare numbers ("500 students", "2024") are still dropped along with
+    # stopwords: unattached to a name they never help match one, and they crowd
+    # out the words that do.
     words = [
         word
-        for word in re.findall(r"[a-z0-9]+", description.lower())
+        for word in re.findall(r"[a-z0-9]+", lowered)
         if len(word) > 2 and not word.isdigit() and word not in _QUERY_STOPWORDS
     ]
-    queries = []
+    # Most specific first: an exact benchmark name beats a bag of keywords.
+    queries = list(dict.fromkeys(compounds[:2]))
     for count in (4, 2):
         candidate = " ".join(words[:count])
         if candidate and candidate not in queries:

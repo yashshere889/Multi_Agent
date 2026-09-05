@@ -21,6 +21,11 @@
 #SBATCH --nodes=1
 #SBATCH --time=24:00:00            # TODO: adjust to a realistic bound for this experiment
 #SBATCH --output=run_%j.log
+# Requeue this job if it is preempted or the node fails, and append to the log
+# rather than truncating it, so the requeued attempt does not erase the record
+# of the one it is continuing. A requeued job keeps its id, hence the same file.
+#SBATCH --requeue
+#SBATCH --open-mode=append
 
 # Deliberately no --cpus-per-task / --mem: on Barkla both are allocated
 # automatically from the number of GPUs requested.
@@ -31,4 +36,11 @@ module load python                 # TODO: match an available `module avail pyth
                                    # (the default system python is 3.9.21)
 
 cd "$(dirname "$0")"
-{venv_activation}python run.py
+# --resume continues from the last checkpoint run.py wrote, and does nothing at
+# all on the first attempt (there is no checkpoint to find yet). That is what
+# makes it correct as the only command here: a job preempted off one of the
+# low-priority partitions above is requeued and picks up where it stopped,
+# instead of starting the experiment over and usually never finishing. An
+# experiment with no training loop simply never writes a checkpoint and reruns
+# from the top, exactly as it would have without the flag.
+{venv_activation}python run.py --resume

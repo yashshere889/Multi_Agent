@@ -1,0 +1,85 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H102",
+      "feasible": true,
+      "feasibility_notes": "Openly downloadable dataset, small enough to fit in memory.",
+      "objective": "Test whether adding interaction terms to a linear model reduces prediction error on housing prices.",
+      "variables": {
+        "independent": [
+          "presence of pairwise interaction terms"
+        ],
+        "dependent": [
+          "RMSE",
+          "R-squared"
+        ]
+      },
+      "design": "Comparative benchmark of two regression specifications on one train/test split.",
+      "data_requirements": {
+        "source": "UCI Machine Learning Repository",
+        "description": "A public tabular regression dataset of housing prices with numeric predictors, downloadable over HTTP.",
+        "preprocessing_steps": [
+          "Download the dataset",
+          "Drop rows with missing targets",
+          "80/20 train/test split"
+        ]
+      },
+      "methods": [
+        {
+          "name": "linear regression",
+          "description": "Ordinary least squares fitted by gradient descent.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "polynomial interaction expansion",
+          "description": "Add all pairwise products of numeric predictors before fitting.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "rmse",
+          "mae",
+          "r2"
+        ],
+        "baseline": "Linear regression on the raw predictors.",
+        "success_criteria": "The interaction model reduces test RMSE by at least 5% relative to the baseline."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Fetch the dataset"
+        },
+        {
+          "step": 2,
+          "description": "Fit the baseline model"
+        },
+        {
+          "step": 3,
+          "description": "Expand features and refit"
+        },
+        {
+          "step": 4,
+          "description": "Compare test error"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "Interaction expansion may overfit on a small sample."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H102",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H102"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

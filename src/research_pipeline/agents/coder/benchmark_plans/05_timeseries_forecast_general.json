@@ -1,0 +1,82 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H105",
+      "feasible": true,
+      "feasibility_notes": "Small synthetic series, closed-form estimators, no external dependencies needed.",
+      "objective": "Test whether seasonal differencing improves one-step forecast error on a series with known seasonality.",
+      "variables": {
+        "independent": [
+          "seasonal differencing applied or not"
+        ],
+        "dependent": [
+          "one-step-ahead MAE"
+        ]
+      },
+      "design": "Rolling-origin evaluation over the final quarter of the series.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "A univariate series with linear trend, a fixed seasonal period, and Gaussian noise.",
+        "preprocessing_steps": [
+          "Generate the series with a fixed seed",
+          "Reserve the final 25% for rolling evaluation"
+        ]
+      },
+      "methods": [
+        {
+          "name": "seasonal differencing",
+          "description": "Subtract the value one seasonal period earlier before fitting.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "naive persistence forecast",
+          "description": "Predict the previous observation.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "mae",
+          "rmse"
+        ],
+        "baseline": "Persistence forecast on the undifferenced series.",
+        "success_criteria": "Seasonal differencing reduces one-step MAE by at least 10% against persistence."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate the series"
+        },
+        {
+          "step": 2,
+          "description": "Evaluate persistence on the holdout"
+        },
+        {
+          "step": 3,
+          "description": "Apply seasonal differencing and re-evaluate"
+        },
+        {
+          "step": 4,
+          "description": "Compare rolling MAE"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "A misspecified seasonal period would make differencing actively harmful."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H105",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H105"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

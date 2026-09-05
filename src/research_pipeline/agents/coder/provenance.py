@@ -49,6 +49,11 @@ VERDICT_MIXED = (
     "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the "
     "synthetic inputs are listed in data_provenance.json"
 )
+VERDICT_UNCONFIRMED = (
+    "real data, but from a source nobody named — it was found by keyword search and has not "
+    "been confirmed to answer this question, so the findings are NOT interpretable as evidence "
+    "until a human checks the discovered sources listed in data_provenance.json"
+)
 
 # Sources that are real but categorically not openly downloadable. Naming them
 # is the difference between "I could not obtain CMS claims, here is why" and an
@@ -152,13 +157,30 @@ class DataSource:
     # downloaded local copy, or from a URL built some way other than the one
     # handed over in the prompt.
     usage_verified: bool = False
+    # Set by `acquire.apply` when this pipeline fetched the input itself: the
+    # url it came from, a sha256 of the bytes, the format written, and the real
+    # columns and first rows read off it. Empty for a staged file (nothing was
+    # fetched) and for an input the generated code is still expected to fetch.
+    # Carried on the DataSource rather than as five more fields because it is
+    # one indivisible fact — "these exact bytes, from there, at that time" — and
+    # because it lands verbatim in data_provenance.json, which is the record
+    # someone re-running this experiment reads.
+    acquired: dict[str, Any] = field(default_factory=dict)
+    # Set by `discover.apply` when no source was *named* for this requirement
+    # and one was searched for: the connector, the query run, the catalogue
+    # record chosen and its landing page. Kept distinct from `acquired` because
+    # the two answer different questions — `acquired` says these bytes are real
+    # and here, `discovered` says nobody asked for this particular dataset by
+    # name, so whether it answers the question is a judgment a human still has
+    # to make. See discover.py's module docstring on the relevance gate.
+    discovered: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_real(self) -> bool:
         return self.kind in REAL_KINDS
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        document: dict[str, Any] = {
             "name": self.name,
             "kind": self.kind,
             "uri": self.uri,
@@ -166,6 +188,13 @@ class DataSource:
             "reason": self.reason,
             "credentials": self.credentials,
         }
+        # Additive: an input nobody fetched produces exactly the document this
+        # wrote before acquisition existed.
+        if self.acquired:
+            document["acquired"] = self.acquired
+        if self.discovered:
+            document["discovered"] = self.discovered
+        return document
 
 
 def split_requirements(source: str, description: str = "") -> list[str]:
@@ -410,6 +439,34 @@ def all_real(sources: list[DataSource]) -> bool:
     return bool(sources) and all(s.is_real for s in sources)
 
 
+def needs_confirmation(sources: list[DataSource]) -> bool:
+    """Whether any input is real but was *found* rather than named.
+
+    A separate question from `all_real`, and the reason the two exist side by
+    side. A discovered input is genuinely real data — it is on disk, it has a
+    checksum, nothing was invented — so it passes every synthetic-data test in
+    this module. What it has not passed is the question of whether it answers
+    *this* question, and `discover.is_relevant` is a keyword floor, not an
+    answer to that.
+
+    Measured, not assumed: a live sweep of five requirements against the open
+    catalogues returned one clearly correct dataset, two that were real and
+    plausible and wrong (a geographic reference table for a request about crime
+    counts; COVID-19 case counts for one about pupil absence), and two honest
+    misses. Granting a verdict on the middle two would be worse than the
+    surrogate they replaced — a refutation computed on the wrong real data
+    reads as defensible in a way one computed on invented data does not, which
+    inverts this module's entire purpose.
+
+    So the metrics are still reported and the experiment still runs on real,
+    messy, genuinely useful data; the verdict simply waits for a human to look
+    at the landing page recorded for each discovered input and say yes. Staging
+    the confirmed file under CODER_DATA_DIR is what turns it into a `real_local`
+    nobody has to second-guess.
+    """
+    return any(s.is_real and s.discovered for s in sources)
+
+
 def verdict(sources: list[DataSource]) -> str:
     """The methodological validity stamp — computed, never asked of the model."""
     if not sources:
@@ -417,7 +474,7 @@ def verdict(sources: list[DataSource]) -> str:
         # let a plan with an unparseable data_requirements block claim support.
         return VERDICT_SURROGATE
     if all_real(sources):
-        return VERDICT_EVIDENCE
+        return VERDICT_UNCONFIRMED if needs_confirmation(sources) else VERDICT_EVIDENCE
     return VERDICT_MIXED if any(s.is_real for s in sources) else VERDICT_SURROGATE
 
 
@@ -427,6 +484,9 @@ def as_document(sources: list[DataSource]) -> dict[str, Any]:
         "methodological_validity": verdict(sources),
         "all_inputs_real": all_real(sources),
         "surrogate_count": sum(1 for s in sources if s.kind == KIND_SURROGATE),
+        # Separate from all_inputs_real on purpose: these inputs *are* real. What
+        # is missing is a human confirming that they answer the question asked.
+        "unconfirmed_discovered_inputs": [s.name for s in sources if s.is_real and s.discovered],
     }
 
 
@@ -436,8 +496,28 @@ def write(sources: list[DataSource], path: Path) -> dict[str, Any]:
     return document
 
 
+WITHHELD_SURROGATE = (
+    "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's "
+    "behaviour on generated data and say nothing about the real-world hypothesis. See "
+    "data_provenance.json."
+)
+
+WITHHELD_UNCONFIRMED = (
+    "One or more inputs are real data found by keyword search rather than named by the plan, and "
+    "nothing has confirmed they answer this question. The experiment ran on real data and its "
+    "metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the "
+    "landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes "
+    "the verdict reachable."
+)
+
+# Kept as the old name so anything importing it still works; the surrogate case
+# is what it always meant.
+WITHHELD_BECAUSE = WITHHELD_SURROGATE
+
+
 def apply_to_results(results: dict, sources: list[DataSource]) -> dict:
-    """Withhold the hypothesis verdict when any input is synthetic.
+    """Withhold the hypothesis verdict when any input is synthetic, or real but
+    unconfirmed.
 
     `meets_success_criteria` becomes the string "unknown" rather than False.
     That distinction is the whole point: `writer_agent` maps False to "refuted"
@@ -446,19 +526,98 @@ def apply_to_results(results: dict, sources: list[DataSource]) -> dict:
     left untouched and still reported — they describe what the pipeline did,
     which is worth reading; they just no longer carry a verdict about the world.
     """
-    if all_real(sources):
+    return apply_document_to_results(results, as_document(sources))
+
+
+def apply_document_to_results(results: dict, document: dict) -> dict:
+    """The same withholding, decided from an already-computed provenance
+    document rather than live DataSources.
+
+    Exists for `reconcile.py`: a SLURM job's results arrive in a later process
+    than the one that resolved its inputs, and re-resolving there would ask a
+    machine that may not have the staging directory mounted whether a file the
+    submitting machine could see is real. The document that run wrote is the
+    answer; this reads it. `apply_to_results` above goes through here too, so
+    there is one implementation of what withholding means — including the
+    unconfirmed-discovery case, which the document carries as
+    `unconfirmed_discovered_inputs` precisely so it survives being written to
+    disk and read back in another process.
+
+    An empty or absent document withholds. Not knowing where an experiment's
+    inputs came from is not evidence that they were real — the same reason
+    `verdict` treats an empty source list as surrogate.
+    """
+    all_inputs_real = bool(document.get("all_inputs_real"))
+    unconfirmed = bool(document.get("unconfirmed_discovered_inputs"))
+    if all_inputs_real and not unconfirmed:
         return results
 
     stamped = dict(results)
-    stamped["model_reported_meets_success_criteria"] = results.get("meets_success_criteria")
-    stamped["meets_success_criteria"] = "unknown"
-    stamped["methodological_validity"] = verdict(sources)
-    stamped["verdict_withheld_because"] = (
-        "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's "
-        "behaviour on generated data and say nothing about the real-world hypothesis. See "
-        "data_provenance.json."
+    # setdefault for the same reason compute_provenance uses it: both gates can
+    # fire on one result, and whichever runs first records the model's real
+    # claim before replacing it.
+    stamped.setdefault(
+        "model_reported_meets_success_criteria", results.get("meets_success_criteria")
     )
+    stamped["meets_success_criteria"] = "unknown"
+    stamped["methodological_validity"] = document.get("methodological_validity", VERDICT_SURROGATE)
+    # Real-but-unconfirmed is a different problem from synthetic, and says a
+    # different thing about what would make the verdict reachable — one needs a
+    # human to confirm the dataset, the other needs real data to exist at all.
+    # A surrogate anywhere is the more serious of the two, so it wins when both
+    # are true.
+    reason = WITHHELD_UNCONFIRMED if all_inputs_real else WITHHELD_SURROGATE
+    existing = stamped.get("verdict_withheld_because")
+    stamped["verdict_withheld_because"] = f"{existing} {reason}" if existing else reason
     return stamped
+
+
+def _acquired_lines(source: DataSource) -> list[str]:
+    """What the model is told about a file this pipeline fetched for it.
+
+    The columns and first rows are the part that matters: before acquisition
+    the model wrote `load_data` against a schema it had only been told about in
+    prose, and guessed column names accordingly. These were read off the actual
+    bytes now on disk.
+    """
+    acquired = source.acquired
+    if not acquired:
+        return []
+    lines = [
+        f"   Fetched by the pipeline from {acquired.get('url', '')} — "
+        f"{acquired.get('row_count', 0)} rows, "
+        f"sha256 {str(acquired.get('sha256', ''))[:12]}.",
+        f"   Format: {acquired.get('read_hint') or acquired.get('data_format', '')}",
+    ]
+    columns = acquired.get("columns") or []
+    if columns:
+        lines.append(f"   Columns: {', '.join(str(column) for column in columns)}")
+    sample = acquired.get("sample_rows") or []
+    if sample:
+        lines.append(f"   First rows: {json.dumps(sample, default=str)[:1200]}")
+    return lines
+
+
+def _discovered_lines(source: DataSource) -> list[str]:
+    """Told to the model because a discovered dataset can be real and wrong.
+
+    Nobody named this file: it was found by keyword search against a catalogue.
+    The columns are real, so the model must work with the columns it is given
+    rather than the ones the plan imagined — and where the fit is poor, saying
+    so in assumptions_made is the honest outcome, not quietly synthesizing
+    something that matches the plan better.
+    """
+    if not source.discovered:
+        return []
+    return [
+        f"   NOTE: no source was named for this input. It was found by searching "
+        f"{source.discovered.get('connector', 'a catalogue')} for "
+        f"{source.discovered.get('query', '')!r} "
+        f"(record: {source.discovered.get('landing_page') or 'n/a'}).",
+        "   Use the columns it actually has, not the ones the plan assumed. If it does not "
+        "fit the experiment, say so in assumptions_made rather than synthesizing a "
+        "replacement.",
+    ]
 
 
 def prompt_block(sources: list[DataSource]) -> str:
@@ -479,6 +638,8 @@ def prompt_block(sources: list[DataSource]) -> str:
         lines.append(f"\n{index}. {source.name}")
         if source.kind == KIND_REAL_LOCAL:
             lines.append(f"   REAL, already on disk at: {source.local_path}")
+            lines.extend(_acquired_lines(source))
+            lines.extend(_discovered_lines(source))
             lines.append("   Read it directly. Do not download anything for this input.")
         elif source.kind == KIND_REAL_DOWNLOAD:
             lines.append(f"   REAL, fetch from: {source.uri}")

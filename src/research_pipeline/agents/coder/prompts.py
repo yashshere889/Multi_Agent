@@ -30,7 +30,7 @@ EXPERIMENT_SECTION_PLACEHOLDERS: list[tuple[str, str]] = [
     ("imports", "<extra import lines — leave this section empty if none are needed>"),
     ("configuration", "<module-level constants — leave this section empty if none are needed>"),
     ("load_data_function", "<the complete `def load_data() -> Any:` function>"),
-    ("build_model_function", "<the complete `def build_model() -> Any:` function>"),
+    ("build_model_function", "<the complete `def build_model(data: Any) -> Any:` function>"),
     (
         "run_experiment_function",
         "<the complete `def run_experiment(data: Any, model: Any) -> dict[str, Any]:` function>",
@@ -164,10 +164,20 @@ wasn't needed.
 novel/experimental code and say so in a comment and the README — don't \
 present it as an established method.
 - Compute assumption: this runs on a shared university HPC cluster (SLURM, \
-shared GPU nodes). Code must be able to run well under the stated timeout on \
-modest hardware (a few CPU cores, at most one GPU) — prefer a deliberately \
-small default (a data subsample, few iterations/epochs) over code that will \
-time out, and note in the README how to scale it up for a full run.
+shared GPU nodes) with a few CPU cores and at most one GPU. Size the \
+experiment to the compute budget you are given below — not smaller. A run \
+deliberately shrunk below what the design needs does not answer the question \
+faster, it answers a different question: a model trained for a fraction of the \
+epochs it needs loses to its baseline for reasons that have nothing to do with \
+the hypothesis, and the result is thrown away rather than reported. If the \
+design genuinely cannot fit the budget, implement the largest version that \
+does, and say plainly in "assumptions_made" and the README what you cut and \
+what it costs.
+- If the experiment has a training loop or any other long, incremental \
+computation, make it resumable using the checkpoint primitives described \
+below. A job on a shared cluster gets preempted; one that checkpoints \
+continues where it left off, and one that does not starts over and usually \
+never finishes.
 - Return ONLY the answer, in EXACTLY the output format the user prompt \
 specifies, with no markdown fences and no commentary before or after it. When \
 that format is a delimited section format, write the content of each section \
@@ -219,6 +229,8 @@ Experiment plan (JSON):
 Environment notes for wherever this will actually run:
 - Network access: {network_status}. {network_note}
 
+Compute budget: {compute_budget}
+
 The template you are filling in for hypothesis {hypothesis_id} already \
 defines (you do NOT write these — they're fixed and will run exactly as \
 described):
@@ -226,10 +238,28 @@ described):
 ("{objective}"), DESCRIPTION, BASELINE, SUCCESS_CRITERIA, OUTPUT_DIR, and a \
 `logger` you can use.
   - An orchestrator that calls, in order: `data = load_data()`, \
-`model = build_model()`, `experiment_output = run_experiment(data, model)`, \
+`model = build_model(data)`, `experiment_output = run_experiment(data, model)`, \
 `eval_output = evaluate(experiment_output)` — timing each phase, catching any \
 exception, and writing the result to results.json. This is exactly what runs \
-as `python run.py`, with this experiment's own directory as the working directory.
+as `python run.py`, with this experiment's own directory as the working directory. \
+Note that build_model receives the loaded data, so read the shapes it needs \
+(feature count, number of classes, vocabulary size) off `data` rather than \
+hard-coding them.
+  - `log_progress(**fields)` — appends one JSON line to progress.jsonl and logs \
+it, flushed immediately. Call it once per epoch/fold/trial, e.g. \
+`log_progress(epoch=epoch, train_loss=loss)`. It is the only trace a job that \
+gets killed leaves behind, so use it for anything long-running.
+  - `begin_checkpoint()` / `finish_checkpoint(tmp_path)` / `resume_checkpoint()` \
+— resumable checkpointing, for training loops and any other long incremental \
+computation. Save with `tmp = begin_checkpoint()`, write your state to `tmp` \
+however your library does it (torch.save, np.save, json.dump — the template \
+cannot import your library, which is why it hands you a path instead), then \
+`finish_checkpoint(tmp)` to move it into place atomically. To restart, call \
+`resume_checkpoint()` at the top of your loop: it returns a Path to load, or \
+None to start from scratch. It is always safe to call — it returns None unless \
+this process was actually started with --resume and a checkpoint exists. Do NOT \
+write your own checkpoint paths or use os.replace yourself; these three exist so \
+a job killed mid-write cannot destroy the last good checkpoint.
 
 You fill in these pieces:
   imports              - extra import lines beyond what the template already \
@@ -243,10 +273,12 @@ functions below. Empty section if nothing is needed.
 data_requirements and applies every step in preprocessing_steps. Return \
 value can be any structure; it's passed straight into build_model/run_experiment.
   build_model_function    - the COMPLETE function, starting with \
-`def build_model() -> Any:` — instantiates/configures the method(s) from \
-"methods" that this experiment's design needs. If no model/algorithm object \
-makes sense for this experiment (e.g. a pure data-analysis experiment), \
-return None and say why in a comment.
+`def build_model(data: Any) -> Any:` — instantiates/configures the method(s) \
+from "methods" that this experiment's design needs, sized to whatever \
+`data` (exactly what load_data returned) says it must be. It MUST take that \
+one parameter even if it ignores it. If no model/algorithm object makes sense \
+for this experiment (e.g. a pure data-analysis experiment), return None and \
+say why in a comment.
   run_experiment_function  - the COMPLETE function, starting with \
 `def run_experiment(data: Any, model: Any) -> dict[str, Any]:` — executes the \
 design (e.g. control vs treatment, ablation, comparative benchmark, \
@@ -264,6 +296,14 @@ do not write results.json yourself, the template does that:
     "meets_success_criteria": true | false | "unknown"   (use "unknown" only \
 if genuinely inconclusive given what could actually be computed here)
     "success_notes": "1-3 sentences on what happened and why"
+  If you train any model with an iterative optimizer, the returned dict must \
+ALSO include "training_history": {{"<arm name>": [mean training loss for each \
+epoch, ...]}} with one entry per arm you trained. Two things depend on it: a \
+reader can tell a model that learned something worse from one that never \
+learned, and every arm is checked for convergence — an arm whose loss is still \
+falling when the epoch budget runs out is sent back to be trained longer, \
+whichever arm it is. Train to convergence and stop on the validation split \
+rather than at a fixed epoch count.
   helpers                - optional extra helper function(s) used by the \
 functions above. Empty section if none are needed.
   readme                  - full README.md contents: which hypothesis this \
@@ -415,3 +455,74 @@ Return the files using EXACTLY this delimited format:
     + "\n\n"
     + SHARED_INFRA_FORMAT_RULES
 )
+
+
+# --------------------------------------------------------------------------
+# Data sourcing (agents/coder/discover.py). Both prompts ask only for short
+# structured fields, so they stay on llm_json.py rather than llm_sections.py —
+# no source code crosses either of them.
+#
+# Neither response is trusted. The selection prompt's answer is validated to be
+# indices into the list the model was shown, so it can reorder and reject but
+# never invent; the proposal prompt's URLs are fetched and parsed before
+# anything is allowed to call them a source. The model nominates, Python rules.
+# --------------------------------------------------------------------------
+
+DATA_SOURCE_SELECTION_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+An open-data catalogue search returned the candidate files below. Each is a \
+real, downloadable file — the question is not whether they exist, it is which \
+one (if any) actually contains the data described above.
+
+{candidate_block}
+
+Read the RESOURCE line especially carefully. A dataset with the right title \
+routinely contains files that are not the data itself — a station list, a \
+geographic reference table, a data dictionary, a coverage summary. Those look \
+relevant and are not.
+
+Return ONLY this JSON object:
+
+{{"ranked": [<candidate numbers, best first>], "why": "<one sentence>"}}
+
+Rules:
+- Include a candidate's number ONLY if you believe that file plausibly contains \
+the data described. Leave out anything you would not defend.
+- If none of them do, return {{"ranked": [], "why": "..."}}. That is a useful \
+answer, not a failure — the experiment will use clearly-labelled synthetic data \
+instead, which is far better than real data that answers a different question.
+- Use only the numbers shown. Do not invent candidates or URLs.
+"""
+
+DATA_SOURCE_PROPOSAL_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+No open-data catalogue had a match. Name up to {max_sources} URLs that would \
+serve this data directly.
+
+Each URL must be:
+- a direct download or a REST endpoint that returns CSV or JSON when fetched \
+with an ordinary GET — never a landing page, a search page, a documentation \
+page, or a link to a page that has a download button on it;
+- https, publicly accessible, and needing no API key, login, or signed request;
+- complete, with every query parameter already filled in. A URL with a \
+placeholder in it is worse than no URL.
+
+Prefer well-known public APIs and government or institutional open-data \
+endpoints whose URL structure you are confident about. Fewer real URLs beat \
+more guesses: every one is fetched and discarded if it does not return usable \
+data, so a plausible-looking invention costs the experiment a download and \
+gains it nothing.
+
+Return ONLY this JSON object:
+
+{{"sources": [{{"url": "<complete URL>", "name": "<what this serves>", \
+"format": "<csv|json>"}}], "why": "<one sentence>"}}
+
+If you do not know a real URL that meets these rules, return \
+{{"sources": [], "why": "..."}}. An empty list is the correct answer when you \
+would otherwise be guessing.
+"""

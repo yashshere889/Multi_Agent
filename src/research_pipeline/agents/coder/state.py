@@ -89,6 +89,21 @@ class CoderState(TypedDict, total=False):
     # fix attempt doesn't re-search for the same answer. Plain JSON-able dict,
     # like everything else here — it's checkpointed.
     current_hf_dataset: dict
+    # {url: record} for every input this pipeline fetched to disk for this plan
+    # (see agents/coder/acquire.py), or {} when none were — nothing fetchable,
+    # no network, or CODER_ENABLE_DATA_ACQUISITION off. Threaded rather than
+    # recomputed for the same reason as current_hf_dataset: the fetch is a real
+    # network call, and a fix attempt must reuse what the first generation read
+    # rather than download it again. Plain JSON-able dict — it is checkpointed,
+    # so the record holds the file's *path*, never an open handle.
+    current_acquisitions: dict
+    # {requirement name: candidate record} for every input that had no named
+    # source and was found by searching open catalogues (see
+    # agents/coder/discover.py), or {} when discovery is off, there is no
+    # network, or nothing relevant was found. Threaded for the same reason as
+    # current_acquisitions — a fix attempt must not re-run four catalogue
+    # searches to reach the answer the first generation already had.
+    current_discoveries: dict
     # The id of the starters.STARTERS entry chosen for this plan by
     # starters.select_starter (a pure function of the plan's own text — no LLM
     # call), or "" for "general" (no match, no worked example shown). Set once

@@ -1,0 +1,78 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H107",
+      "feasible": true,
+      "feasibility_notes": "No GPU needed, but the parameter sweep is large enough to warrant a batch job.",
+      "objective": "Test whether ensemble size has diminishing returns for tabular classification accuracy.",
+      "variables": {
+        "independent": [
+          "number of estimators in the ensemble"
+        ],
+        "dependent": [
+          "test accuracy",
+          "fit time"
+        ]
+      },
+      "design": "Parameter sweep over ensemble sizes, five seeds each, on one fixed dataset.",
+      "data_requirements": {
+        "source": "synthetic",
+        "description": "A moderately sized synthetic tabular classification dataset with informative and noise features.",
+        "preprocessing_steps": [
+          "Generate the dataset once with a fixed seed",
+          "Hold out a fixed test split reused across all runs"
+        ]
+      },
+      "methods": [
+        {
+          "name": "bagged decision stumps",
+          "description": "Bootstrap-aggregated depth-one trees, majority vote.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy",
+          "fit_seconds"
+        ],
+        "baseline": "A single decision stump on the same split.",
+        "success_criteria": "Accuracy gains fall below 0.005 per doubling beyond some ensemble size, and that size is identified."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate the dataset"
+        },
+        {
+          "step": 2,
+          "description": "Sweep ensemble sizes across five seeds each"
+        },
+        {
+          "step": 3,
+          "description": "Record accuracy and fit time per configuration"
+        },
+        {
+          "step": 4,
+          "description": "Identify the point of diminishing returns"
+        }
+      ],
+      "estimated_complexity": "high",
+      "risks": [
+        "The sweep may be dominated by seed variance rather than ensemble size."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H107",
+      "rank": 1,
+      "justification": "the only plan in this benchmark case"
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H107"
+  ],
+  "generated_at": "2026-09-05T00:00:00+00:00",
+  "model": "benchmark-corpus (hand-written, never model-generated)"
+}

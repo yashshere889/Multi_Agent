@@ -11,15 +11,22 @@ Description: __DESCRIPTION_TEXT__
 Baseline: __BASELINE_TEXT__
 Success criteria: __SUCCESS_CRITERIA_TEXT__
 
-Everything below "ORCHESTRATION" is a fixed template, not model-generated —
-it's what actually runs load_data -> build_model -> run_experiment -> evaluate,
-times it, catches any exception, and writes results.json. The four functions
-above it (plus imports/configuration/helpers) are the model-generated part.
+Two parts of this file are a fixed template, not model-generated: "RUNTIME
+SUPPORT" below (logging, the progress log, and the checkpoint/resume
+primitives) and "ORCHESTRATION" at the bottom, which runs
+load_data -> build_model -> run_experiment -> evaluate, times it, catches any
+exception, and writes results.json. Everything between them — the four
+functions plus imports/configuration/helpers — is the model-generated part.
+
+Run it with `python run.py`. `python run.py --resume` continues from the last
+checkpoint instead of starting over, which is what a requeued cluster job does.
 ================================================================================
 """
 
 import json
 import logging
+import os
+import signal
 import sys
 import time
 import traceback
@@ -43,6 +50,111 @@ SUCCESS_CRITERIA: str = __SUCCESS_CRITERIA_TEXT__
 AUTHOR: str = "coder-agent"
 
 OUTPUT_DIR: Path = Path(".")
+
+# True when this process was started with --resume, i.e. it is continuing a run
+# that was interrupted rather than beginning a new one. Only resume_checkpoint()
+# below reads it; generated code should ask that instead of checking this flag.
+RESUME: bool = "--resume" in sys.argv[1:]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RUNTIME SUPPORT (fixed — available to every function below; not model-generated)
+# ══════════════════════════════════════════════════════════════════════════════
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+logger = logging.getLogger(EXPERIMENT_ID)
+
+PROGRESS_PATH: Path = OUTPUT_DIR / "progress.jsonl"
+
+
+def log_progress(**fields: Any) -> None:
+    """Append one line to progress.jsonl, and log it.
+
+    Written and flushed immediately, one self-contained JSON object per line,
+    so a run that is killed part-way still leaves a readable record of how far
+    it got. That is the only trace a preempted job leaves behind — results.json
+    is deliberately never written for an incomplete run, because a partial
+    result that looks like a finished one is worse than no result at all.
+
+    Call it once per epoch (or per fold, per trial, per condition) with
+    whatever describes progress: log_progress(epoch=3, train_loss=0.21).
+    """
+    record = {"timestamp_utc": datetime.now(timezone.utc).isoformat(), **fields}
+    with open(PROGRESS_PATH, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, default=str) + "\n")
+        fh.flush()
+    logger.info("progress %s", record)
+
+
+def begin_checkpoint(name: str = "checkpoint.pt") -> Path:
+    """A temporary path to write the next checkpoint to. Pair it with
+    finish_checkpoint().
+
+    Two steps rather than one because only the code being generated knows how
+    to serialize its own model — torch.save, np.save, joblib.dump, a plain
+    json.dump — and this template cannot import any of those. What it does own
+    is the part that is easy to get wrong: writing somewhere temporary first so
+    that a job killed mid-write cannot destroy the last good checkpoint.
+
+        tmp = begin_checkpoint()
+        torch.save({"epoch": epoch, "model": model.state_dict()}, tmp)
+        finish_checkpoint(tmp)
+    """
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return OUTPUT_DIR / (name + ".tmp")
+
+
+def finish_checkpoint(tmp_path: Path) -> Path:
+    """Atomically move a checkpoint written to `begin_checkpoint()`'s path into
+    its final place, replacing any previous one. Returns the final path."""
+    tmp_path = Path(tmp_path)
+    final_path = tmp_path.with_suffix("") if tmp_path.suffix == ".tmp" else tmp_path
+    os.replace(tmp_path, final_path)
+    return final_path
+
+
+def resume_checkpoint(name: str = "checkpoint.pt") -> Path | None:
+    """The checkpoint to resume from, or None to start from scratch.
+
+    Safe to call unconditionally: it returns None unless this process was
+    started with --resume AND a checkpoint from a previous attempt is actually
+    there. That is what makes `python run.py --resume` correct as the *only*
+    command a job script needs — on the first attempt there is nothing to
+    resume from and it simply starts fresh.
+    """
+    if not RESUME:
+        return None
+    candidate = OUTPUT_DIR / name
+    if not candidate.exists():
+        logger.info("--resume given but no %s yet — starting from scratch.", name)
+        return None
+    logger.info("Resuming from %s", candidate)
+    return candidate
+
+
+def _on_terminate(signum: int, _frame: Any) -> None:
+    """SLURM sends SIGTERM before killing a preempted or over-time job.
+
+    Deliberately does NOT write results.json. An interrupted run has no result,
+    and inventing one — even a "failed" one — would put a number in front of
+    the Writer that no experiment produced. What it does instead is leave the
+    last checkpoint intact and say so, so a requeued attempt started with
+    --resume carries on from there. SystemExit rather than an ordinary
+    exception so the orchestration's `except Exception` cannot swallow it.
+    """
+    logger.warning("Received signal %d — stopping. Last checkpoint is kept.", signum)
+    try:
+        log_progress(event="interrupted", signal=signum)
+    except OSError:  # nothing useful to do about a failed final write
+        pass
+    raise SystemExit(128 + signum)
+
+
+signal.signal(signal.SIGTERM, _on_terminate)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -91,13 +203,6 @@ __AGENT_HELPERS__
 # ORCHESTRATION (fixed — this is what actually runs; not model-generated)
 # ══════════════════════════════════════════════════════════════════════════════
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
-logger = logging.getLogger(EXPERIMENT_ID)
-
 # evaluate() returns a plain dict: real metric keys, plus these two reserved
 # keys that this orchestration promotes into the result envelope rather than
 # treating as a metric.
@@ -122,6 +227,7 @@ def _build_result_envelope(status: str, eval_output: dict | None, error: str | N
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "status": status,  # "success" | "failure"
         "elapsed_seconds": round(elapsed, 4),
+        "resumed": RESUME,
         "metrics": metrics,
         "meets_success_criteria": meets_success_criteria,
         "notes": notes,
@@ -145,6 +251,8 @@ def _print_summary(results: dict[str, Any], out_path: Path) -> None:
     print(f"  STATUS     : {results['status'].upper()}")
     print(f"  ELAPSED    : {results['elapsed_seconds']} s")
     print(f"  SAVED TO   : {out_path}")
+    if PROGRESS_PATH.exists():
+        print(f"  PROGRESS   : {PROGRESS_PATH}")
     print(sep)
     if results["metrics"]:
         print("  METRICS")
@@ -169,7 +277,7 @@ def run() -> dict[str, Any]:
         data = load_data()
 
         logger.info("Phase 2/4 — Building model...")
-        model = build_model()
+        model = build_model(data)
 
         logger.info("Phase 3/4 — Running experiment...")
         experiment_output = run_experiment(data, model)

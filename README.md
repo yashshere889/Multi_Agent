@@ -760,6 +760,137 @@ the compute is already dedicated to this pipeline. Writes
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
 
+#### What a generated experiment is written against
+
+The model does not write a whole file. It fills seven sections into
+[`run.py.template`](src/research_pipeline/agents/coder/templates/run.py.template),
+whose fixed parts call, in order, `data = load_data()`,
+`model = build_model(data)`, `experiment_output = run_experiment(data, model)`,
+`eval_output = evaluate(experiment_output)`. `build_model` receives the loaded
+data so shapes that depend on the dataset — feature count, number of classes,
+vocabulary size — are read off it rather than hard-coded; a section that writes
+`def build_model():` is caught by `check_required_function_names` before a venv
+is ever provisioned.
+
+The template also hands the generated code a small runtime it must not
+reimplement:
+
+| Call | What it does |
+|---|---|
+| `log_progress(**fields)` | Appends one flushed JSON line to `progress.jsonl` and logs it. Call it per epoch/fold/trial. |
+| `begin_checkpoint()` | A temporary path to write the next checkpoint to. |
+| `finish_checkpoint(tmp)` | Atomically moves it into place, replacing the previous one. |
+| `resume_checkpoint()` | The checkpoint to resume from, or `None` to start fresh. |
+
+Checkpointing is split into three calls because only the generated code knows
+how to serialize its own model (`torch.save`, `np.save`, `joblib.dump` — the
+template cannot import any of them) and only the template can guarantee that a
+job killed mid-write doesn't destroy the last good checkpoint. `run.sbatch` is
+generated with `--requeue`, `--open-mode=append` and `python run.py --resume`,
+so a job preempted off one of Barkla's free low-priority GPU partitions is
+requeued and continues instead of starting the experiment over. `--resume` is a
+no-op on a first attempt, which is what makes it safe as the only command in
+the script.
+
+An interrupted run writes **no** `results.json`. SLURM's SIGTERM is caught, the
+last checkpoint is kept, an `interrupted` line goes into `progress.jsonl`, and
+the process exits non-zero — a partial result that looks like a finished one is
+worse than no result at all.
+
+#### Measuring whether a change to the Coder Agent actually helped
+
+```bash
+uv run research-pipeline coder-benchmark run runs/bench-before      # needs a model
+uv run research-pipeline coder-benchmark score outputs              # or grade runs you already have
+uv run research-pipeline coder-benchmark compare runs/bench-before runs/bench-after
+```
+
+`benchmark run` replays twelve frozen Experiment Planner outputs
+([`benchmark_plans/`](src/research_pipeline/agents/coder/benchmark_plans/))
+chosen to cover every route through the agent: each starter archetype, the
+general no-starter prompt, both sbatch deferrals, the infeasible-plan path, a
+restricted data source, and a plan declaring shared infrastructure. Each case
+runs in its own directory so per-run state can't make one case's outcome depend
+on the ones before it.
+
+The headline metric is **interpretable**, not completed:
+
+```
+  interpretable      3/12 (25%)   <- ran AND carries a verdict
+  completed          6/12 (50%)
+```
+
+An experiment that finished and had its verdict withheld — synthetic inputs, or
+a run truncated to fit its budget — produced nothing the paper can state.
+Optimising `completed` alone gets you a pipeline that always finishes and never
+concludes anything.
+
+`compare` prints per-case moves alongside the aggregate deltas, and says what
+one case is worth as a percentage, because a twelve-case corpus turns a single
+flaky run into eight points:
+
+```
+  interpretable             3 ->    6   +3
+  fix attempts (total)     11 ->    7   -4
+
+  One case is 8% of this corpus. A delta of ±1 is one experiment, not a trend —
+  read the per-case changes below before concluding anything from the numbers above.
+
+    + H105: code_generated_not_run -> interpretable
+    + H110: code_generated_not_run -> interpretable
+```
+
+Scoring is a pure function of `coder_agent_summary_*.json`, so `score` and
+`compare` work against any output directory — including a finished Barkla sweep,
+with no benchmark run needed. It complements
+[`scripts/analyze_coder_fix_history.py`](scripts/analyze_coder_fix_history.py),
+which aggregates whatever runs happen to exist; this replays a set that doesn't
+move under you.
+
+#### One environment per requirement set, not per experiment
+
+Each experiment used to provision its own `uv venv`. That is fine for a handful
+of sklearn plans and impossible for anything torch-shaped: a single torch
+install is thousands of files, and repeating it per experiment exhausts a
+quota'd cluster home long before it exhausts the disk. Venvs are now keyed by a
+hash of the resolved requirement set, so twenty plans that all want
+numpy/pandas/scikit-learn provision one environment between them, and the second
+torch experiment in a sweep starts instantly.
+
+They live under `CODER_VENV_ROOT` when it is set (which is what that setting is
+for — keeping thousands of small files off a quota'd filesystem) and under
+`experiments/_venvs/` otherwise. Provisioning builds in a private directory and
+renames it into place, because a shared venv may be in use by another experiment
+and because a half-installed environment must never be visible under the name
+others look it up by. Two batch processes needing the same packages can race;
+whichever renames first wins and the other reuses it. `CODER_SHARE_VENVS=false`
+restores a private venv per experiment.
+
+#### Collecting results from jobs that went to the cluster
+
+Submission is asynchronous and the pipeline is not: a run that submits a job
+records `submitted_to_slurm` and exits long before the job leaves the queue, so
+the Writer is told "no results are available" for exactly the experiments big
+enough to need a cluster. `coder-reconcile` is the other half — a separate pass
+that asks SLURM's accounting database what happened and folds finished jobs
+back into the summary they came from.
+
+```bash
+uv run research-pipeline coder-reconcile                       # everything under CODER_OUTPUT_DIR
+uv run research-pipeline coder-reconcile outputs/coder_agent_summary_<timestamp>.json
+```
+
+A job that completed has its `results.json` imported and its status becomes
+`completed` (keeping `slurm_job_id`, the only link from a result back to its
+sbatch log); one that failed, timed out or was cancelled becomes
+`slurm_job_failed`. Both go through the same data- and compute-provenance gates
+a locally-executed experiment does. Anything still queued or running is left
+untouched, and so is anything the pass can't resolve — no `sacct` on this
+machine, no accounting record left, or an experiment directory this machine
+can't see (usually cluster scratch). That makes it safe to re-run as often as
+you like: the normal workflow is to run it again tomorrow, from wherever the
+files actually are, until nothing is left pending.
+
 #### Real data instead of invented data
 
 Before generating each experiment, the agent looks up one real dataset matching
@@ -775,10 +906,110 @@ dataset if it doesn't genuinely fit the plan, and to say so in
 
 This is an enhancement to a prompt, never a dependency: it's only attempted when
 the runtime network probe succeeds, and every failure (no network, rate limit, a
-dataset the viewer can't serve) degrades silently to generating exactly as
-before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it off for fully offline or
-reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
+dataset the viewer can't serve, a download that dies part-way) degrades silently
+to generating exactly as before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it
+off for fully offline or reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
 limits.
+
+##### Fetching the data here, not in the generated code
+
+`CODER_ENABLE_DATA_ACQUISITION=true` (default **false**) goes one step further:
+instead of handing the model a URL and asking `load_data()` to fetch it,
+`agents/coder/acquire.py` fetches it in the pipeline, validates what came back,
+writes it under `CODER_DATA_CACHE_DIR` (content-addressed on the URL, so a
+100-question sweep downloads each dataset once), and hands the model a **local
+file path plus the real column names and first rows** read off the bytes on
+disk. The input is then recorded as `real_local` rather than `real_download`,
+with the origin URL and a sha256 kept in `data_provenance.json`.
+
+The reason is failure attribution. A fetch that 404s or returns an HTML
+interstitial is, to the fix loop, indistinguishable from a defect in the
+generated source, so it spends `CODER_MAX_FIX_ATTEMPTS` on code that was never
+wrong — Barkla job 10411308 is the recorded case. Moving the fetch out of the
+generated program takes that whole class of failure out of the fix budget, and
+removes the need to *infer* afterwards whether the code fetched anything.
+
+Because a URL reaching this module may one day be model-suggested rather than
+table-matched, the fetch is guarded: https only, the host must resolve to a
+public address (no loopback, RFC1918 or link-local — the SSRF guard), redirects
+are followed by hand and re-checked on every hop, the body is streamed and
+abandoned past `CODER_MAX_DOWNLOAD_BYTES`, an HTML body is rejected rather than
+saved, and nothing downloaded is ever executed or unpacked. Same degradation
+contract as the dataset lookup: every failure leaves the input a
+`real_download` that the generated code fetches exactly as it did before, so
+turning this on cannot lose an experiment that already worked.
+
+##### Finding a source nobody named
+
+`CODER_ENABLE_SOURCE_DISCOVERY=true` (default **false**, and needs the
+acquisition switch above) closes the remaining gap. `provenance.resolve` answers
+"what data is this plan entitled to use?" from hand-written tables, which is
+right for the two things a table knows and a search cannot — which sources are
+*restricted* (CMS, UK Biobank) and which need *credentials*. It is wrong for the
+ordinary case: a requirement matching no table becomes a surrogate, so the
+experiment invents its inputs, and for an arbitrary research plan that is most
+requirements.
+
+`agents/coder/discover.py` searches instead. Three connectors are tried in
+order — a URL or DOI the plan wrote down, the CKAN portals (`data.gov.uk`,
+`open.canada.ca`, `data.gov.au`, `data.europa.eu`, all speaking one
+`package_search` API), then Zenodo — and each candidate is handed to
+`acquire.fetch`, which doubles as the probe: a candidate that comes back as
+described tabular data is real, and one that does not is dropped. Adding a
+portal is one line; adding a catalogue is one function.
+
+Two deterministic gates decide what is even downloaded. A candidate must clear
+`is_relevant` — a *majority* of the requirement's content words shared with the
+catalogue record — and among those, the best-scoring candidate whose URL looks
+like a file is probed first, so a dataset's measurements are tried before its
+station list. Restricted and credentialed requirements are never searched for at
+all: those name real data that specifically was not obtained, and answering
+"CMS claims" with a municipal CSV is exactly the over-claim the provenance
+module exists to prevent.
+
+**A discovered input does not get a hypothesis verdict.** It is genuinely real
+data — on disk, checksummed, nothing invented — so it passes every
+synthetic-data test in the pipeline. What it has not passed is whether it
+answers *this* question. A live sweep of five requirements returned one clearly
+correct dataset, two that were real, plausible and wrong (a geographic reference
+table for a request about crime counts; COVID-19 case counts for one about pupil
+absence), and two honest misses. A refutation computed on the wrong real data
+reads as defensible in a way one computed on invented data does not, so
+`meets_success_criteria` becomes `"unknown"` and the experiment reports its
+metrics as "inconclusive" until a human checks the connector, query and landing
+page recorded for each discovered input in `data_provenance.json`. Staging the
+confirmed file under `CODER_DATA_DIR` is what makes the verdict reachable.
+
+##### Letting the model take part, without letting it decide
+
+`CODER_ENABLE_MODEL_DATA_SOURCING=true` (default **false**, needs the discovery
+switch) adds the model in the two places keyword search measurably falls down.
+
+**Choosing which file holds the data.** A catalogue hit with the right title
+routinely contains files that are not the data — a station list, a geographic
+reference table, a data dictionary. Those score well on keywords and are wrong,
+and they are two of the five outcomes in the sweep above. So candidates from
+every connector are pooled, and the model is shown each one's title, *resource
+name*, description and URL, and asked which it would actually defend. Its answer
+is validated to be indices into the list it was shown, so it can reorder and
+reject but never invent one; an empty answer means "none of these", which leaves
+the requirement a labelled surrogate — the right outcome. Rejection matters as
+much as ranking: a chooser that keeps the wrong candidates in the list still
+loses when the right one fails to download, because probing falls through to the
+next.
+
+**Naming a source when no catalogue had one.** Tried last, and only after every
+catalogue has missed, because a catalogue hit is a file someone published and
+described while a proposed URL is the model's recollection of a URL shape. Each
+proposed URL goes through exactly the same gate as any other — the safety check,
+the fetch, the parse — so an invented one costs a download and can never become
+a source. That is what makes it safe to let the model guess at all.
+
+None of this changes the verdict rule. A model reading real resource names is a
+better *filter* than keyword overlap, but whether a dataset answers a research
+question is not something Python can verify, so a discovered input stays
+inconclusive whoever picked it. What the model buys is fewer wrong datasets
+reaching an experiment, and more requirements resolved rather than missed.
 
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags

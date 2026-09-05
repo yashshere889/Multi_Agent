@@ -9,6 +9,7 @@ N_SAMPLES: int = 240
 TEST_FRACTION: float = 0.25
 LEARNING_RATE: float = 0.05
 N_EPOCHS: int = 400
+CHECKPOINT_EVERY: int = 100
 ===END configuration===
 
 ===BEGIN load_data_function===
@@ -39,17 +40,26 @@ def load_data() -> Any:
 ===END load_data_function===
 
 ===BEGIN build_model_function===
-def build_model() -> Any:
+def build_model(data: Any) -> Any:
     """Returns the untrained model's hyperparameters; the weights themselves
     are learned inside run_experiment(), which is where the training loop
-    belongs."""
-    return {"learning_rate": LEARNING_RATE, "n_epochs": N_EPOCHS}
+    belongs. The feature count is read off `data` rather than hard-coded —
+    that is what build_model receives load_data's output for."""
+    return {
+        "learning_rate": LEARNING_RATE,
+        "n_epochs": N_EPOCHS,
+        "n_features": len(data["X_train"][0]),
+    }
 ===END build_model_function===
 
 ===BEGIN run_experiment_function===
 def run_experiment(data: Any, model: Any) -> dict[str, Any]:
     weights, bias = _train_linear_regression(
-        data["X_train"], data["y_train"], model["learning_rate"], model["n_epochs"]
+        data["X_train"],
+        data["y_train"],
+        model["learning_rate"],
+        model["n_epochs"],
+        model["n_features"],
     )
     y_pred = [_predict(weights, bias, row) for row in data["X_test"]]
     return {"y_true": data["y_test"], "y_pred": y_pred}
@@ -75,13 +85,30 @@ def _predict(weights: list[float], bias: float, row: list[float]) -> float:
 
 
 def _train_linear_regression(
-    X: list[list[float]], y: list[float], learning_rate: float, n_epochs: int
+    X: list[list[float]], y: list[float], learning_rate: float, n_epochs: int, n_features: int
 ) -> tuple[list[float], float]:
-    n_features = len(X[0])
+    """Gradient descent, written so that being killed part-way costs only the
+    epochs since the last checkpoint.
+
+    The resume/checkpoint/progress calls matter as much as the arithmetic: on a
+    shared cluster a long training loop is preempted sooner or later, and one
+    that starts over each time usually never finishes. The state is saved as
+    JSON here because this starter is standard-library only — real code should
+    use whatever its own library provides (torch.save, np.save, joblib.dump),
+    written to the path begin_checkpoint() hands it.
+    """
     weights = [0.0] * n_features
     bias = 0.0
+    start_epoch = 0
+
+    resume_from = resume_checkpoint()
+    if resume_from is not None:
+        with open(resume_from, encoding="utf-8") as fh:
+            state = json.load(fh)
+        weights, bias, start_epoch = state["weights"], state["bias"], state["epoch"]
+
     n = len(X)
-    for _ in range(n_epochs):
+    for epoch in range(start_epoch, n_epochs):
         grad_w = [0.0] * n_features
         grad_b = 0.0
         for row, target in zip(X, y):
@@ -91,6 +118,15 @@ def _train_linear_regression(
             grad_b += error
         weights = [w - learning_rate * (gw / n) for w, gw in zip(weights, grad_w)]
         bias -= learning_rate * (grad_b / n)
+
+        if (epoch + 1) % CHECKPOINT_EVERY == 0 or epoch + 1 == n_epochs:
+            mse = sum((_predict(weights, bias, row) - t) ** 2 for row, t in zip(X, y)) / n
+            log_progress(epoch=epoch + 1, train_mse=round(mse, 6))
+            tmp = begin_checkpoint()
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump({"epoch": epoch + 1, "weights": weights, "bias": bias}, fh)
+            finish_checkpoint(tmp)
+
     return weights, bias
 
 

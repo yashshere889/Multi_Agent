@@ -44,7 +44,13 @@ class Settings:
     coder_max_env_repairs: int
     coder_max_structural_retries: int
     coder_data_dir: str
+    coder_data_cache_dir: str
+    coder_enable_data_acquisition: bool
+    coder_enable_source_discovery: bool
+    coder_enable_model_data_sourcing: bool
+    coder_max_download_bytes: int
     coder_venv_root: str
+    coder_share_venvs: bool
     coder_enable_hf_dataset_search: bool
     coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
@@ -230,6 +236,49 @@ def load_settings() -> Settings:
         # Inputs matched here resolve as real, which is what lets a run report a
         # hypothesis verdict at all; see agents/coder/provenance.py.
         coder_data_dir=os.environ.get("CODER_DATA_DIR", ""),
+        # Where the pipeline writes data it fetched for an experiment itself.
+        # Deliberately NOT CODER_DATA_DIR: that one is a human's staging
+        # directory, walked by provenance._staged_file, and dropping fetched
+        # files into it would have them keyword-matched as "staged locally" for
+        # unrelated requirements — a provenance record that says the wrong
+        # thing about where data came from, which is the one thing that module
+        # exists to get right.
+        coder_data_cache_dir=os.environ.get("CODER_DATA_CACHE_DIR", "data_cache"),
+        # Off by default while it earns trust, same as every other switch here
+        # that changes what reaches the model. When on, an input the pipeline
+        # can fetch is fetched here and handed over as a local file with its
+        # real columns, instead of as a URL for the generated code to request —
+        # see agents/coder/acquire.py for why that moves a whole class of
+        # failure out of the fix loop. Every failure degrades to the previous
+        # behaviour, so turning it on cannot lose an experiment that worked.
+        coder_enable_data_acquisition=_env_bool("CODER_ENABLE_DATA_ACQUISITION", False),
+        # A strictly larger claim than acquisition, so its own switch rather
+        # than riding on that one: acquisition fetches a source the plan (or the
+        # dataset lookup) *named*, while discovery goes and finds one for a
+        # requirement nobody named, by keyword search against open catalogues.
+        # That can turn an experiment that would have run on invented numbers
+        # into one that runs on real data — and it can also find real data that
+        # answers a slightly different question, which is why every discovered
+        # input records its query and catalogue record in data_provenance.json.
+        # Useless without CODER_ENABLE_DATA_ACQUISITION, which does the fetching.
+        # See src/research_pipeline/agents/coder/discover.py.
+        coder_enable_source_discovery=_env_bool("CODER_ENABLE_SOURCE_DISCOVERY", False),
+        # Lets the model take part in sourcing, in the two places keyword search
+        # measurably falls down: choosing *which file* in a catalogue hit holds
+        # the data (a live sweep picked a geographic reference table for a
+        # request about crime counts), and naming URLs when no catalogue had a
+        # match at all (two of five requirements). Neither answer is trusted —
+        # the chooser may only reorder and reject candidates that already exist,
+        # and a proposed URL is fetched and parsed before it counts as anything.
+        # Needs CODER_ENABLE_SOURCE_DISCOVERY, and does not change the verdict
+        # rule: a discovered input stays inconclusive whoever picked it.
+        coder_enable_model_data_sourcing=_env_bool("CODER_ENABLE_MODEL_DATA_SOURCING", False),
+        # Cap on a single fetched input. The right number on node-local NVMe and
+        # the right number on a quota'd home directory are not the same, which
+        # is why this is a setting and not the constant in acquire.py.
+        coder_max_download_bytes=int(
+            os.environ.get("CODER_MAX_DOWNLOAD_BYTES", str(64 * 1024 * 1024))
+        ),
         # Where each experiment's throwaway venv is created. Empty means "beside
         # the results", which is right on a laptop. On Barkla it should point at
         # localscratch (/tmp/users/$USER): a venv is thousands of small files,
@@ -238,6 +287,18 @@ def load_settings() -> Settings:
         # cleared automatically. The venv is rebuilt per job either way, so
         # nothing is lost by keeping it off the shared filesystem.
         coder_venv_root=os.environ.get("CODER_VENV_ROOT", ""),
+        # On by default. Experiment venvs are keyed by the requirements they
+        # hold rather than by which experiment asked for them, so a sweep of
+        # twenty plans that all want numpy/pandas/scikit-learn provisions one
+        # venv instead of twenty. That is a large amount of wall clock and, on
+        # a quota'd cluster home, an enormous number of inodes — a single torch
+        # install is thousands of files, and re-doing it per experiment is what
+        # makes a torch-dependent sweep impossible rather than merely slow.
+        # The switch exists for a run that wants a guaranteed-pristine
+        # environment per experiment, not because sharing is risky: the key is
+        # the resolved requirement set, so a shared venv is always a superset of
+        # what the experiment asked for.
+        coder_share_venvs=_env_bool("CODER_SHARE_VENVS", True),
         # On by default: looking up a real Hugging Face dataset for a plan's data
         # requirements is what stops a generated experiment inventing numbers or
         # assuming some CSV is already on disk. It's still only ever attempted

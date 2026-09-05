@@ -4,7 +4,18 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-VALID_STATUSES = {"completed", "code_generated_not_run", "skipped", "submitted_to_slurm"}
+VALID_STATUSES = {
+    "completed",
+    "code_generated_not_run",
+    "skipped",
+    "submitted_to_slurm",
+    # A job that was submitted, ran, and ended badly — set only by reconcile.py,
+    # never by a run itself, since a run never sees its own jobs finish. Distinct
+    # from "code_generated_not_run" because that one means nothing ever executed;
+    # this code did execute, on the cluster, and failed there. Both read as
+    # inconclusive to the Writer, but only one of them has a log worth reading.
+    "slurm_job_failed",
+}
 
 VALID_ERROR_SOURCES = {
     # Renamed from "invalid_json" when generated code moved off the JSON
@@ -32,6 +43,19 @@ VALID_ERROR_SOURCES = {
     # using it, and it wasn't declined in assumptions_made either — see
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
+    # A torch training loop takes one optimizer step per epoch over the whole
+    # tensor: as many gradient updates as epochs, which measures the training
+    # budget rather than the thing under test. See sandbox.check_training_batching.
+    "missing_batching",
+    # The run trains with an iterative optimizer and reports no per-arm loss
+    # curve, so nothing can tell a model that learned something worse from one
+    # that never learned. See sandbox.check_training_diagnostics.
+    "missing_diagnostics",
+    # An arm's loss was still falling when the epoch budget ran out — the
+    # comparison measures the budget rather than the thing under test. Asked of
+    # every arm identically, so it can never favour one. See
+    # sandbox.check_training_convergence.
+    "not_converged",
     "run_experiment",
     # The four below split cases off `run_experiment`, which used to absorb
     # every runtime failure regardless of kind. Each needs a different repair
@@ -100,7 +124,7 @@ class FixAttempt(TypedDict):
 
 class ExperimentResult(TypedDict):
     hypothesis_id: str
-    status: str  # "completed" | "code_generated_not_run" | "skipped" | "submitted_to_slurm"
+    status: str  # one of VALID_STATUSES
     reason: str  # required (non-empty) for every status except "completed"
     code_path: str | None  # None only when status == "skipped"
     assumptions_made: list[str]
@@ -118,6 +142,15 @@ class ExperimentResult(TypedDict):
     # string "unknown" rather than a bool, which the Writer reads as
     # "inconclusive" instead of publishing a verdict off synthesized data.
     data_provenance: dict
+    # What this run cost to finish: which cost knobs repair.downscale had to
+    # shrink to fit the timeout, and whether shrinking them changed what the
+    # experiment measures. Optional, same rule as data_provenance. When it did
+    # — halved epochs, a smaller ensemble — results.meets_success_criteria is
+    # the string "unknown" for the same reason a surrogate input makes it one:
+    # an undertrained model's metrics lose to a baseline on their own merits,
+    # and the Writer would publish that False as a refutation. See
+    # compute_provenance.py.
+    compute_provenance: dict
 
 
 class CoderAgentOutput(TypedDict):
@@ -126,6 +159,10 @@ class CoderAgentOutput(TypedDict):
     source_hypothesis_ids: list[str]
     generated_at: str
     model: str
+    # When reconcile.py last asked SLURM what became of this run's submitted
+    # jobs. Absent until one has, which is most summaries — same
+    # "checked when present but not required" rule as the fields above.
+    reconciled_at: str
 
 
 class SchemaValidationError(ValueError):
@@ -261,7 +298,13 @@ def validate_output(data: dict, expected_hypothesis_ids: list[str] | None = None
                 errors.append(
                     f"{path}.slurm_job_id is required (non-empty string) when status is 'submitted_to_slurm'"
                 )
-        elif job_id is not None:
+        # "completed" and "slurm_job_failed" may carry one and need not: an
+        # experiment run locally has no job, and one reconcile.py resolved from
+        # the cluster keeps the id of the job that produced its numbers — which
+        # is the only link from a result back to its sbatch log. Requiring null
+        # here (as this did when submission was the end of the story) would make
+        # every reconciled experiment fail validation.
+        elif status in ("skipped", "code_generated_not_run") and job_id is not None:
             errors.append(f"{path}.slurm_job_id should be null when status is {status!r}")
 
         code_path = exp.get("code_path")
