@@ -904,23 +904,112 @@ venv, and no dataset cache on shared scratch. The model is told to ignore the
 dataset if it doesn't genuinely fit the plan, and to say so in
 `assumptions_made`.
 
-Set `CODER_DATASET_CACHE_DIR` and the agent instead downloads that dataset
-**once**, paging the same endpoint into a single JSONL file, and hands the
-generated code the local path — which is the difference between an experiment
-that samples a dataset and one that can train on it. `CODER_DATASET_MAX_ROWS`
-(default 50,000) bounds it. Deliberately one file rather than the thousands a
-Hugging Face cache directory creates: Barkla's scratch inode quotas bind long
-before disk space does. The cache is shared across every experiment and every
-run pointed at the same directory, so the first plan in a sweep pays for the
-download and the rest get it free, and a materialized dataset is recorded as
-real *local* data in `data_provenance.json`.
-
 This is an enhancement to a prompt, never a dependency: it's only attempted when
 the runtime network probe succeeds, and every failure (no network, rate limit, a
 dataset the viewer can't serve, a download that dies part-way) degrades silently
 to generating exactly as before. `CODER_ENABLE_HF_DATASET_SEARCH=false` turns it
 off for fully offline or reproducible runs; `HUGGINGFACE_API_TOKEN` is optional and only raises rate
 limits.
+
+##### Fetching the data here, not in the generated code
+
+`CODER_ENABLE_DATA_ACQUISITION=true` (default **false**) goes one step further:
+instead of handing the model a URL and asking `load_data()` to fetch it,
+`agents/coder/acquire.py` fetches it in the pipeline, validates what came back,
+writes it under `CODER_DATA_CACHE_DIR` (content-addressed on the URL, so a
+100-question sweep downloads each dataset once), and hands the model a **local
+file path plus the real column names and first rows** read off the bytes on
+disk. The input is then recorded as `real_local` rather than `real_download`,
+with the origin URL and a sha256 kept in `data_provenance.json`.
+
+The reason is failure attribution. A fetch that 404s or returns an HTML
+interstitial is, to the fix loop, indistinguishable from a defect in the
+generated source, so it spends `CODER_MAX_FIX_ATTEMPTS` on code that was never
+wrong — Barkla job 10411308 is the recorded case. Moving the fetch out of the
+generated program takes that whole class of failure out of the fix budget, and
+removes the need to *infer* afterwards whether the code fetched anything.
+
+Because a URL reaching this module may one day be model-suggested rather than
+table-matched, the fetch is guarded: https only, the host must resolve to a
+public address (no loopback, RFC1918 or link-local — the SSRF guard), redirects
+are followed by hand and re-checked on every hop, the body is streamed and
+abandoned past `CODER_MAX_DOWNLOAD_BYTES`, an HTML body is rejected rather than
+saved, and nothing downloaded is ever executed or unpacked. Same degradation
+contract as the dataset lookup: every failure leaves the input a
+`real_download` that the generated code fetches exactly as it did before, so
+turning this on cannot lose an experiment that already worked.
+
+##### Finding a source nobody named
+
+`CODER_ENABLE_SOURCE_DISCOVERY=true` (default **false**, and needs the
+acquisition switch above) closes the remaining gap. `provenance.resolve` answers
+"what data is this plan entitled to use?" from hand-written tables, which is
+right for the two things a table knows and a search cannot — which sources are
+*restricted* (CMS, UK Biobank) and which need *credentials*. It is wrong for the
+ordinary case: a requirement matching no table becomes a surrogate, so the
+experiment invents its inputs, and for an arbitrary research plan that is most
+requirements.
+
+`agents/coder/discover.py` searches instead. Three connectors are tried in
+order — a URL or DOI the plan wrote down, the CKAN portals (`data.gov.uk`,
+`open.canada.ca`, `data.gov.au`, `data.europa.eu`, all speaking one
+`package_search` API), then Zenodo — and each candidate is handed to
+`acquire.fetch`, which doubles as the probe: a candidate that comes back as
+described tabular data is real, and one that does not is dropped. Adding a
+portal is one line; adding a catalogue is one function.
+
+Two deterministic gates decide what is even downloaded. A candidate must clear
+`is_relevant` — a *majority* of the requirement's content words shared with the
+catalogue record — and among those, the best-scoring candidate whose URL looks
+like a file is probed first, so a dataset's measurements are tried before its
+station list. Restricted and credentialed requirements are never searched for at
+all: those name real data that specifically was not obtained, and answering
+"CMS claims" with a municipal CSV is exactly the over-claim the provenance
+module exists to prevent.
+
+**A discovered input does not get a hypothesis verdict.** It is genuinely real
+data — on disk, checksummed, nothing invented — so it passes every
+synthetic-data test in the pipeline. What it has not passed is whether it
+answers *this* question. A live sweep of five requirements returned one clearly
+correct dataset, two that were real, plausible and wrong (a geographic reference
+table for a request about crime counts; COVID-19 case counts for one about pupil
+absence), and two honest misses. A refutation computed on the wrong real data
+reads as defensible in a way one computed on invented data does not, so
+`meets_success_criteria` becomes `"unknown"` and the experiment reports its
+metrics as "inconclusive" until a human checks the connector, query and landing
+page recorded for each discovered input in `data_provenance.json`. Staging the
+confirmed file under `CODER_DATA_DIR` is what makes the verdict reachable.
+
+##### Letting the model take part, without letting it decide
+
+`CODER_ENABLE_MODEL_DATA_SOURCING=true` (default **false**, needs the discovery
+switch) adds the model in the two places keyword search measurably falls down.
+
+**Choosing which file holds the data.** A catalogue hit with the right title
+routinely contains files that are not the data — a station list, a geographic
+reference table, a data dictionary. Those score well on keywords and are wrong,
+and they are two of the five outcomes in the sweep above. So candidates from
+every connector are pooled, and the model is shown each one's title, *resource
+name*, description and URL, and asked which it would actually defend. Its answer
+is validated to be indices into the list it was shown, so it can reorder and
+reject but never invent one; an empty answer means "none of these", which leaves
+the requirement a labelled surrogate — the right outcome. Rejection matters as
+much as ranking: a chooser that keeps the wrong candidates in the list still
+loses when the right one fails to download, because probing falls through to the
+next.
+
+**Naming a source when no catalogue had one.** Tried last, and only after every
+catalogue has missed, because a catalogue hit is a file someone published and
+described while a proposed URL is the model's recollection of a URL shape. Each
+proposed URL goes through exactly the same gate as any other — the safety check,
+the fetch, the parse — so an invented one costs a download and can never become
+a source. That is what makes it safe to let the model guess at all.
+
+None of this changes the verdict rule. A model reading real resource names is a
+better *filter* than keyword overlap, but whether a dataset answers a research
+question is not something Python can verify, so a discovered input stays
+inconclusive whoever picked it. What the model buys is fewer wrong datasets
+reaching an experiment, and more requirements resolved rather than missed.
 
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags

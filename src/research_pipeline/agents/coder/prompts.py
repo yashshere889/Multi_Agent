@@ -185,32 +185,6 @@ raw and unescaped — real line breaks, real backslashes, real quotes — becaus
 it is read verbatim, not decoded.
 """
 
-# The materialized-dataset counterpart of HF_DATASET_USAGE_NOTE below, used when
-# the agent has already downloaded the dataset to a local JSONL. `.format(path=)`
-# rather than an f-string at import: the path is per-experiment. It has no
-# literal braces to escape, unlike the note below it.
-HF_DATASET_LOCAL_NOTE = """Read it with the standard library — one JSON object per \
-line, no third-party package needed and nothing to download:
-
-  import json
-  with open({path}, encoding="utf-8") as fh:
-      records = [json.loads(line) for line in fh]
-
-Because it is already local, use as much of it as the experiment actually needs \
-— this is not a sample to be kept small, it is the dataset. Take a subset only \
-where the design calls for one (a train/test split, a stratified sample), and \
-say so in "assumptions_made" if you do.
-
-Use this dataset ONLY if it genuinely fits the plan's data_requirements. If it \
-doesn't, ignore it completely, generate/synthesize the data the plan describes, \
-and say in assumptions_made that you did and why.
-
-Guard the read either way: wrap it in try/except and fall back to a small \
-synthesized stand-in dataset in the same shape if the file is missing (the \
-experiment may be run somewhere the cache is not mounted), recording that \
-fallback in assumptions_made and the README.
-"""
-
 # Appended after the concrete dataset facts by CoderAgent._hf_dataset_block. Kept
 # out of .format() reach on purpose: it contains literal JSON braces describing
 # the API's response shape, which would have to be doubled in a format template
@@ -322,6 +296,14 @@ do not write results.json yourself, the template does that:
     "meets_success_criteria": true | false | "unknown"   (use "unknown" only \
 if genuinely inconclusive given what could actually be computed here)
     "success_notes": "1-3 sentences on what happened and why"
+  If you train any model with an iterative optimizer, the returned dict must \
+ALSO include "training_history": {{"<arm name>": [mean training loss for each \
+epoch, ...]}} with one entry per arm you trained. Two things depend on it: a \
+reader can tell a model that learned something worse from one that never \
+learned, and every arm is checked for convergence — an arm whose loss is still \
+falling when the epoch budget runs out is sent back to be trained longer, \
+whichever arm it is. Train to convergence and stop on the validation split \
+rather than at a fixed epoch count.
   helpers                - optional extra helper function(s) used by the \
 functions above. Empty section if none are needed.
   readme                  - full README.md contents: which hypothesis this \
@@ -473,3 +455,74 @@ Return the files using EXACTLY this delimited format:
     + "\n\n"
     + SHARED_INFRA_FORMAT_RULES
 )
+
+
+# --------------------------------------------------------------------------
+# Data sourcing (agents/coder/discover.py). Both prompts ask only for short
+# structured fields, so they stay on llm_json.py rather than llm_sections.py —
+# no source code crosses either of them.
+#
+# Neither response is trusted. The selection prompt's answer is validated to be
+# indices into the list the model was shown, so it can reorder and reject but
+# never invent; the proposal prompt's URLs are fetched and parsed before
+# anything is allowed to call them a source. The model nominates, Python rules.
+# --------------------------------------------------------------------------
+
+DATA_SOURCE_SELECTION_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+An open-data catalogue search returned the candidate files below. Each is a \
+real, downloadable file — the question is not whether they exist, it is which \
+one (if any) actually contains the data described above.
+
+{candidate_block}
+
+Read the RESOURCE line especially carefully. A dataset with the right title \
+routinely contains files that are not the data itself — a station list, a \
+geographic reference table, a data dictionary, a coverage summary. Those look \
+relevant and are not.
+
+Return ONLY this JSON object:
+
+{{"ranked": [<candidate numbers, best first>], "why": "<one sentence>"}}
+
+Rules:
+- Include a candidate's number ONLY if you believe that file plausibly contains \
+the data described. Leave out anything you would not defend.
+- If none of them do, return {{"ranked": [], "why": "..."}}. That is a useful \
+answer, not a failure — the experiment will use clearly-labelled synthetic data \
+instead, which is far better than real data that answers a different question.
+- Use only the numbers shown. Do not invent candidates or URLs.
+"""
+
+DATA_SOURCE_PROPOSAL_PROMPT = """A research experiment needs this data input:
+
+    {requirement}
+
+No open-data catalogue had a match. Name up to {max_sources} URLs that would \
+serve this data directly.
+
+Each URL must be:
+- a direct download or a REST endpoint that returns CSV or JSON when fetched \
+with an ordinary GET — never a landing page, a search page, a documentation \
+page, or a link to a page that has a download button on it;
+- https, publicly accessible, and needing no API key, login, or signed request;
+- complete, with every query parameter already filled in. A URL with a \
+placeholder in it is worse than no URL.
+
+Prefer well-known public APIs and government or institutional open-data \
+endpoints whose URL structure you are confident about. Fewer real URLs beat \
+more guesses: every one is fetched and discarded if it does not return usable \
+data, so a plausible-looking invention costs the experiment a download and \
+gains it nothing.
+
+Return ONLY this JSON object:
+
+{{"sources": [{{"url": "<complete URL>", "name": "<what this serves>", \
+"format": "<csv|json>"}}], "why": "<one sentence>"}}
+
+If you do not know a real URL that meets these rules, return \
+{{"sources": [], "why": "..."}}. An empty list is the correct answer when you \
+would otherwise be guessing.
+"""

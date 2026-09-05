@@ -21,18 +21,10 @@ is a fresh multi-hundred-MB install (and a local dataset cache) per experiment o
 shared HPC scratch; `requests` is already a pipeline dependency and the viewer's
 `/rows` endpoint returns paginated JSON.
 
-Two modes, and which one applies is the difference between an experiment that
-*samples* a dataset and one that can *train* on it:
-
-- By default the model is handed the `/rows` URL and reads ~100 rows at a time
-  over HTTP. Cheap, nothing on disk, and fine for a small experiment.
-- With `CODER_DATASET_CACHE_DIR` set, `materialize_dataset` pages that same
-  endpoint here, once, and writes the rows to one JSONL file the generated code
-  reads with the standard library. Still no new dependency anywhere, and one
-  file rather than the thousands a Hugging Face cache directory would create —
-  which matters because Barkla's scratch inode quotas bind long before disk
-  space does. Shared across every experiment and every run pointed at the same
-  directory.
+When `acquire.py` has already fetched the rows this lookup pointed at, the
+model is handed that local file instead of the URL — see its module docstring.
+That module owns every download in this package; this one only ever finds and
+describes.
 
 Nothing here ever raises. This lookup is an enhancement to a prompt, never a
 precondition for generating code: every failure — no network, a 503, a rate
@@ -43,11 +35,8 @@ generates exactly as it did before, mirroring
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import re
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -180,14 +169,35 @@ def _keyword_queries(description: str) -> list[str]:
     the model is told it may ignore is still more useful than no dataset, and one
     extra HTTP call is cheap next to a codegen round-trip.
     """
-    # Bare numbers ("500 students", "2024") are dropped along with stopwords:
-    # they never help match a dataset *name*, and they crowd out the words that do.
+    # A number joined to a name is part of the name — CoNLL-2003, CIFAR-10,
+    # MNIST_10k — and the Hub matches on names. Tokenizing "CoNLL-2003 dataset"
+    # gave ["conll", "2003", "dataset"], the year was dropped as a bare number,
+    # and the query became "conll": the Hub answers that with conll2000,
+    # conll2002 and a non-servable conll2003, all three probes are spent, and the
+    # lookup reports no match — while "conll2003" returns
+    # Davlan/conll2003_noMISC, which the viewer serves. Barkla 10426431 went to
+    # synthetic data over that one dropped token.
+    #
+    # Added as an extra query rather than by rewriting the tokens, because the
+    # merge cannot be done safely in general: "survey 2024 responses" would
+    # become "survey2024", which matches nothing. The caller tries queries in
+    # order and stops at the first that yields a servable dataset, so a
+    # speculative compound costs one HTTP call when it is wrong and rescues the
+    # lookup when it is right.
+    lowered = description.lower()
+    compounds = [
+        re.sub(r"[-_ ]", "", match) for match in re.findall(r"[a-z]{3,}[-_ ]?[0-9]+", lowered)
+    ]
+    # Bare numbers ("500 students", "2024") are still dropped along with
+    # stopwords: unattached to a name they never help match one, and they crowd
+    # out the words that do.
     words = [
         word
-        for word in re.findall(r"[a-z0-9]+", description.lower())
+        for word in re.findall(r"[a-z0-9]+", lowered)
         if len(word) > 2 and not word.isdigit() and word not in _QUERY_STOPWORDS
     ]
-    queries = []
+    # Most specific first: an exact benchmark name beats a bag of keywords.
+    queries = list(dict.fromkeys(compounds[:2]))
     for count in (4, 2):
         candidate = " ".join(words[:count])
         if candidate and candidate not in queries:
@@ -317,99 +327,4 @@ def find_dataset_for_experiment(query: str) -> dict | None:
         logger.warning(
             "Hugging Face dataset lookup for %r failed unexpectedly: %s", query[:120], exc
         )
-        return None
-
-
-# How many rows one /rows request may ask for. The endpoint's own cap; asking
-# for more silently returns this many, which would turn a paging loop into an
-# infinite one if the caller believed the number it asked for.
-ROWS_PAGE_SIZE = 100
-
-
-def dataset_cache_filename(dataset_id: str, config: str, split: str, max_rows: int) -> str:
-    """The one file a materialized dataset lives in.
-
-    The dataset id is in the name so a human can see what a cache directory
-    holds, and `max_rows` is in it so raising the cap fetches more rather than
-    silently reusing a smaller download that happens to be sitting there. The
-    namespace slash becomes `__`, since one file is the whole point — a
-    directory per namespace would start reintroducing the inode problem this
-    avoids.
-    """
-    stem = re.sub(r"[^A-Za-z0-9._-]+", "__", f"{dataset_id}__{config}__{split}")
-    return f"{stem}__{max_rows}rows.jsonl"
-
-
-def materialize_dataset(
-    hf_dataset: dict, cache_dir: Path, max_rows: int
-) -> tuple[Path, int] | None:
-    """Download a matched dataset to one local JSONL file. Returns
-    (path, row_count), or None if it could not be had.
-
-    Reuses an existing file untouched: the cache is shared across experiments
-    and across runs, so the common case in a sweep is that the first plan pays
-    for the download and every later one gets it free.
-
-    Written to a temporary name and renamed into place, for the same reason
-    run.py's checkpoints are: a process killed mid-download must not leave a
-    truncated file that every later run then reads as a complete dataset. That
-    is also why there is no separate "done" marker — the final name existing
-    *is* the marker.
-
-    Never raises, like everything else in this module. A failure here means the
-    prompt falls back to handing over the REST URL, which is exactly what it did
-    before this function existed.
-    """
-    dataset_id = str(hf_dataset.get("dataset_id") or "")
-    if not dataset_id or max_rows <= 0:
-        return None
-    config = str(hf_dataset.get("config") or "default")
-    split = str(hf_dataset.get("split") or "train")
-
-    try:
-        cache_dir = Path(cache_dir)
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        final_path = cache_dir / dataset_cache_filename(dataset_id, config, split, max_rows)
-        if final_path.exists():
-            rows = sum(1 for _ in final_path.open(encoding="utf-8"))
-            logger.info("Reusing cached %s (%d rows) at %s", dataset_id, rows, final_path)
-            return final_path, rows
-
-        tmp_path = final_path.with_suffix(".jsonl.partial")
-        written = 0
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            while written < max_rows:
-                payload = _get_json(
-                    DATASET_VIEWER_ROWS_URL,
-                    {
-                        "dataset": dataset_id,
-                        "config": config,
-                        "split": split,
-                        "offset": written,
-                        "length": min(ROWS_PAGE_SIZE, max_rows - written),
-                    },
-                )
-                if not isinstance(payload, dict):
-                    break
-                entries = payload.get("rows") or []
-                if not entries:
-                    break  # the split is exhausted — fewer rows than the cap
-                for entry in entries:
-                    row = entry.get("row") if isinstance(entry, dict) else None
-                    if isinstance(row, dict):
-                        fh.write(json.dumps(row, default=str) + "\n")
-                        written += 1
-                if len(entries) < ROWS_PAGE_SIZE:
-                    break
-
-        if written == 0:
-            tmp_path.unlink(missing_ok=True)
-            logger.warning("Downloaded no rows for %s — falling back to the rows URL.", dataset_id)
-            return None
-
-        os.replace(tmp_path, final_path)
-        logger.info("Materialized %s: %d rows to %s", dataset_id, written, final_path)
-        return final_path, written
-    except Exception as exc:  # noqa: BLE001 — see the docstring: never raise
-        logger.warning("Could not materialize %s: %s", dataset_id, exc)
         return None

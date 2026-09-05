@@ -2632,8 +2632,10 @@ def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
         _planner_output([_plan("H1")])
     )
 
-    # Queried with the plan's own data description, not the objective.
-    assert queries == ["d"]
+    # Queried with the plan's own data_requirements, not the objective, and
+    # `source` first: it names the dataset while `description` is prose about
+    # what it contains, and the Hub matches on names. Stops at the first hit.
+    assert queries == ["synthetic"]
     prompt = model.prompts_by_kind["codegen"][0]
     assert "acme/sleep-survey" in prompt
     assert "hours_slept (float32)" in prompt  # real column names and dtypes
@@ -2651,7 +2653,8 @@ def test_no_dataset_block_when_nothing_matched(tmp_path):
         _planner_output([_plan("H1")])
     )
 
-    assert queries == ["d"]
+    # Both fields tried before giving up — see the previous test for why.
+    assert queries == ["synthetic", "d"]
     assert result["experiments"][0]["status"] == "completed"
     # The prompt reads exactly as it did before this lookup existed.
     assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
@@ -4907,16 +4910,25 @@ def test_reads_dataset_matches_the_percent_encoded_form():
     assert not CoderAgent._reads_dataset(offered, "load('other/thing')")
 
 
-def test_reads_dataset_matches_a_materialized_local_path():
-    """A downloaded dataset is read by path, and the code need never name the
-    dataset id at all — without this the provenance gate would score an
-    experiment reading real local data as having invented it."""
-    offered = {"dataset_id": "acme/sleep-survey", "local_path": "/cache/acme__sleep-survey.jsonl"}
-    assert CoderAgent._reads_dataset(offered, "open('/cache/acme__sleep-survey.jsonl')")
-    assert not CoderAgent._reads_dataset(offered, "open('/cache/something-else.jsonl')")
-    # And the two gates agree, which is the invariant dataset_traces exists for.
+def test_reads_dataset_matches_a_path_acquire_fetched():
+    """Once acquisition is on this is the common case: the code reads a local
+    file and never names the dataset id at all. Without matching it, the
+    provenance gate scores an experiment reading real data as having invented
+    it — Barkla job 10424136."""
+    offered = {"dataset_id": "acme/sleep-survey"}
+    acquired = ["/cache/rows_acme_sleep-survey.jsonl"]
+    assert CoderAgent._reads_dataset(
+        offered, "open('/cache/rows_acme_sleep-survey.jsonl')", acquired
+    )
+    assert not CoderAgent._reads_dataset(offered, "open('/cache/something-else.jsonl')", acquired)
+    # And the two gates agree, which is the invariant dataset_traces exists for:
+    # one decides whether the attempt goes back to the fix loop, the other
+    # whether the data was real, and a split verdict reaches the Writer as an
+    # experiment that read real data and invented it at once.
     assert (
-        sandbox.check_hf_dataset_usage("", "open('/cache/acme__sleep-survey.jsonl')", [], offered)
+        sandbox.check_hf_dataset_usage(
+            "", "open('/cache/rows_acme_sleep-survey.jsonl')", [], offered, acquired
+        )
         == []
     )
 
@@ -5608,184 +5620,1039 @@ def test_losing_the_publish_race_reuses_the_winner_and_discards_our_build(tmp_pa
     assert not list((experiments / sandbox.SHARED_VENV_DIR_NAME).glob(".build-*"))
 
 
-# -- materializing a dataset to the shared cache -------------------------------------------
+# ---------------------------------------------------------------------------
+# Data acquisition (agents/coder/acquire.py) — wired into the graph.
+#
+# acquire.py's own behaviour (the URL safety gate, paging, parsing, the cache)
+# is covered in tests/test_coder_acquire.py. These are about the wiring: that
+# the node runs at the right point, that what it fetched reaches the prompt and
+# the provenance document, and that every way it can fail leaves the run exactly
+# as it was before the module existed.
+# ---------------------------------------------------------------------------
 
 
-_MATCH = {"dataset_id": "acme/sleep-survey", "config": "default", "split": "train"}
+def _hf_rows_response(rows=2):
+    """The Dataset Viewer payload acquire.py would fetch for HF_DATASET_MATCH."""
+
+    class _Response:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+        is_redirect = False
+        is_permanent_redirect = False
+
+        def iter_content(self, chunk_size=65536):
+            payload = {
+                "rows": [
+                    {"row_idx": i, "row": {"hours_slept": 7.0 + i, "score": 80 + i}}
+                    for i in range(rows)
+                ],
+                "num_rows_total": rows,
+            }
+            yield json.dumps(payload).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    return _Response()
 
 
-def _paged_rows(total: int):
-    """A fake /rows endpoint over a split of `total` rows."""
-    calls = []
+@pytest.fixture
+def acquisition_on(monkeypatch, tmp_path):
+    """CODER_ENABLE_DATA_ACQUISITION on, a cache under tmp_path, and a faked
+    network — no test here touches the real one."""
+    from research_pipeline.agents.coder import acquire
 
-    def get_json(url, params):
-        calls.append(params)
-        offset, length = params["offset"], params["length"]
-        rows = [
-            {"row": {"idx": i, "text": f"row {i}"}}
-            for i in range(offset, min(offset + length, total))
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        acquire.socket, "getaddrinfo", lambda host, port: [(2, 1, 6, "", ("93.184.216.34", 0))]
+    )
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        return _hf_rows_response()
+
+    monkeypatch.setattr(acquire.requests, "get", fake_get)
+    return calls
+
+
+def test_a_fetched_dataset_reaches_the_model_as_a_local_file(tmp_path, acquisition_on):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "already downloaded for you" in prompt
+    assert "Read that file from disk" in prompt
+    assert str(tmp_path / "data_cache") in prompt
+    # And crucially *not* the instruction to build the REST call, which is the
+    # step that used to go wrong and burn fix attempts.
+    assert "Read it over HTTP with `requests`" not in prompt
+
+
+def test_a_fetched_dataset_is_a_real_local_input_in_the_provenance_document(
+    tmp_path, acquisition_on
+):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    fetched = [entry for entry in inputs if entry.get("acquired")]
+    assert len(fetched) == 1
+    assert fetched[0]["kind"] == "real_local"
+    assert fetched[0]["acquired"]["row_count"] == 2
+    assert len(fetched[0]["acquired"]["sha256"]) == 64
+    # The origin URL is kept, so the record still says where the bytes came from.
+    assert fetched[0]["uri"].startswith("https://datasets-server.huggingface.co/rows")
+
+
+def test_the_fetch_happens_once_per_plan_not_once_per_fix_attempt(tmp_path, acquisition_on):
+    # Same reasoning as the dataset lookup being threaded through state: a fix
+    # attempt must reuse what the first generation read rather than re-download.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS_WITH_HF_DATASET, "imports": "import ("})],
+        fix=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)],
+    )
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert len(model.prompts_by_kind["fix"]) == 1, "the fix loop ran"
+    # One page of rows, fetched for the first generation and reused for the fix.
+    assert len(acquisition_on) == 1
+    assert "already downloaded for you" in model.prompts_by_kind["fix"][0]
+
+
+def test_acquisition_is_skipped_without_the_setting(tmp_path, monkeypatch):
+    """The default. Nothing is fetched and the prompt keeps handing over a URL."""
+    from research_pipeline.agents.coder import acquire
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no request may be made with acquisition off")
+
+    monkeypatch.setattr(acquire.requests, "get", fail)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Read it over HTTP with `requests`" in model.prompts_by_kind["codegen"][0]
+    assert not any(
+        entry.get("acquired") for entry in result["experiments"][0]["data_provenance"]["inputs"]
+    )
+
+
+def test_acquisition_is_skipped_without_a_network(tmp_path, monkeypatch):
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(monkeypatch, coder_enable_data_acquisition=True)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no request may be made when the network probe failed")
+
+    monkeypatch.setattr(acquire.requests, "get", fail)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: False).run(
+        _planner_output([_plan("H1")])
+    )
+    assert result["experiments"][0]["status"] == "completed"
+
+
+def test_a_failing_fetch_generates_exactly_as_before(tmp_path, monkeypatch):
+    """The degradation contract, at the agent level: a download that breaks
+    leaves the input a real_download and the code fetching it as it always did.
+    An experiment must never go ungenerated because a fetch failed."""
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        acquire.requests,
+        "get",
+        lambda url, **kwargs: (_ for _ in ()).throw(acquire.requests.RequestException("down")),
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert result["experiments"][0]["status"] == "completed"
+    assert "Read it over HTTP with `requests`" in model.prompts_by_kind["codegen"][0]
+
+
+def test_require_real_data_sees_the_fetch_before_deciding_to_skip(
+    tmp_path, monkeypatch, acquisition_on
+):
+    """The routing order that matters: acquire_data runs *before* the skip
+    decision, so an input the pipeline managed to fetch counts as real when that
+    decision is made rather than after it."""
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+        coder_require_real_data=True,
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
+    lookup, _ = _recording_lookup(HF_DATASET_MATCH)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])
+    )
+
+    assert acquisition_on, "the fetch ran before the skip decision, not after it"
+    # This fixture plan also names a requirement nothing can resolve, so the run
+    # is still skipped — but the skip's own provenance record shows the fetched
+    # dataset as a real_local input, which is only possible if acquire_data had
+    # already run when _route_after_data_lookup resolved the sources.
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs if entry.get("acquired")] == ["real_local"]
+
+
+# ---------------------------------------------------------------------------
+# Source discovery (agents/coder/discover.py) — wired into the same node.
+#
+# discover.py's own behaviour (connectors, the relevance gate, the probe cap)
+# is covered in tests/test_coder_discover.py. These are about the wiring.
+# ---------------------------------------------------------------------------
+
+
+def _plan_needing_data(hid="H1"):
+    """A plan whose data requirement names no source — the case that becomes an
+    invented input today, and the only case discovery is allowed to answer."""
+    plan = _plan(hid)
+    plan["data_requirements"] = {
+        "source": "bicycle collision casualty records",
+        "description": "reported cycling casualties by year",
+        "preprocessing_steps": [],
+    }
+    return plan
+
+
+@pytest.fixture
+def discovery_on(monkeypatch, tmp_path, acquisition_on):
+    """Discovery enabled, with the catalogues faked to offer one relevant CSV."""
+    from research_pipeline.agents.coder import discover
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    searched = []
+
+    def fake_search(requirement):
+        searched.append(requirement)
+        return [
+            discover.Candidate(
+                name=requirement,
+                url="https://data.example/collisions.csv",
+                connector="ckan:data.gov.uk",
+                title="Reported road collisions and casualties",
+                description="Bicycle collision casualty records by year",
+                landing_page="https://www.data.gov.uk/dataset/collisions",
+            )
         ]
-        return {"num_rows_total": total, "rows": rows}
 
-    return get_json, calls
-
-
-def test_materialize_downloads_the_whole_split_to_one_file(tmp_path, monkeypatch):
-    """One file, not a Hugging Face cache directory: Barkla's scratch inode
-    quotas bind long before disk space does."""
-    get_json, calls = _paged_rows(250)
-    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
-
-    result = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
-
-    assert result is not None
-    path, rows = result
-    assert rows == 250
-    assert len(list(tmp_path.iterdir())) == 1
-    records = [json.loads(line) for line in path.read_text().splitlines()]
-    assert len(records) == 250
-    assert records[0] == {"idx": 0, "text": "row 0"}
-    # Paged at the endpoint's own cap, and stopped when the split ran out.
-    assert [c["offset"] for c in calls] == [0, 100, 200]
+    monkeypatch.setattr(discover, "CONNECTORS", [("fake", fake_search)])
+    return searched
 
 
-def test_materialize_stops_at_the_row_cap(tmp_path, monkeypatch):
-    get_json, calls = _paged_rows(10_000)
-    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+def _collisions_csv_response():
+    class _Response:
+        status_code = 200
+        headers = {"content-type": "text/csv"}
+        is_redirect = False
+        is_permanent_redirect = False
 
-    path, rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=150)
+        def iter_content(self, chunk_size=65536):
+            yield b"year,casualties\n2020,15\n2021,18\n"
 
-    assert rows == 150
-    assert len(path.read_text().splitlines()) == 150
-    # Never asks for more than the cap allows, so the last page is a short one.
-    assert [c["length"] for c in calls] == [100, 50]
+        def __enter__(self):
+            return self
 
+        def __exit__(self, *exc):
+            return False
 
-def test_materialize_reuses_an_existing_download(tmp_path, monkeypatch):
-    """The cache is shared across experiments and runs: the first plan in a
-    sweep pays for the download and every later one gets it free."""
-    get_json, calls = _paged_rows(120)
-    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
-
-    first_path, _ = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
-    requests_made = len(calls)
-    second_path, rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
-
-    assert second_path == first_path
-    assert rows == 120
-    assert len(calls) == requests_made, "the second call should not hit the network at all"
+    return _Response()
 
 
-def test_a_raised_row_cap_downloads_again_rather_than_reusing_a_smaller_file(tmp_path, monkeypatch):
-    get_json, _ = _paged_rows(500)
-    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
+def test_a_discovered_source_turns_an_invented_input_into_a_real_one(
+    tmp_path, monkeypatch, discovery_on
+):
+    from research_pipeline.agents.coder import acquire
 
-    small, small_rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100)
-    large, large_rows = huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=400)
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
 
-    assert (small_rows, large_rows) == (100, 400)
-    assert small != large, "the cap is part of the cache key"
+    assert discovery_on == ["bicycle collision casualty records"]
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs] == ["real_local"]
+    assert result["experiments"][0]["data_provenance"]["all_inputs_real"] is True
+    # The audit trail: what was searched, by which connector, and which record.
+    assert inputs[0]["discovered"]["connector"] == "ckan:data.gov.uk"
+    assert inputs[0]["discovered"]["landing_page"] == ("https://www.data.gov.uk/dataset/collisions")
+    assert inputs[0]["acquired"]["columns"] == ["year", "casualties"]
 
-
-def test_an_interrupted_download_is_not_readable_as_a_complete_dataset(tmp_path, monkeypatch):
-    """No separate 'done' marker: the final name existing *is* the marker, so a
-    process killed mid-download cannot leave a truncated file that every later
-    run then trains on believing it is the whole dataset."""
-
-    def dies_partway(url, params):
-        if params["offset"] == 0:
-            return {"rows": [{"row": {"idx": i}} for i in range(100)]}
-        raise KeyboardInterrupt("killed mid-download")
-
-    monkeypatch.setattr(huggingface_client, "_get_json", dies_partway)
-
-    with pytest.raises(KeyboardInterrupt):
-        huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=1000)
-
-    assert not list(tmp_path.glob("*.jsonl")), "no complete-looking file may be left behind"
-
-
-def test_materialize_degrades_to_none_when_the_endpoint_gives_nothing(tmp_path, monkeypatch):
-    # The caller falls back to handing over the REST URL, exactly as before.
-    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: None)
-    assert huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100) is None
-    assert not list(tmp_path.iterdir())
+    # Real data, and still not a verdict: nobody named this dataset, so the
+    # experiment runs on it and reports its metrics while the hypothesis stays
+    # inconclusive until a human checks the landing page. A live sweep found two
+    # of five discovered datasets were real, plausible and wrong — see
+    # provenance.needs_confirmation.
+    exp = result["experiments"][0]
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["data_provenance"]["unconfirmed_discovered_inputs"] == [
+        "bicycle collision casualty records"
+    ]
+    assert "found by keyword search" in exp["results"]["verdict_withheld_because"]
 
 
-def test_materialize_never_raises_on_an_unexpected_payload(tmp_path, monkeypatch):
-    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: {"rows": "not a list"})
-    assert huggingface_client.materialize_dataset(_MATCH, tmp_path, max_rows=100) is None
+def test_the_model_is_told_the_source_was_discovered_not_named(tmp_path, monkeypatch, discovery_on):
+    from research_pipeline.agents.coder import acquire
+
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model, network_check=lambda: True).run(_planner_output([_plan_needing_data()]))
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "no source was named for this input" in prompt
+    assert "Columns: year, casualties" in prompt
+    assert "say so in assumptions_made rather than synthesizing" in prompt
+    # And it is no longer ordered to write a generator for this input.
+    block = prompt[prompt.index("RESOLVED DATA INPUTS") :]
+    assert "SURROGATE" not in block
 
 
-def test_a_materialized_dataset_is_offered_as_a_local_path_not_a_url(tmp_path, monkeypatch):
-    block = CoderAgent._hf_dataset_block(
+def test_discovery_is_skipped_without_the_setting(tmp_path, monkeypatch, acquisition_on):
+    """The default. No catalogue is searched and the input stays a surrogate."""
+    from research_pipeline.agents.coder import discover
+
+    monkeypatch.setattr(
+        discover,
+        "CONNECTORS",
+        [("fake", lambda r: pytest.fail("no catalogue may be searched with discovery off"))],
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    inputs = result["experiments"][0]["data_provenance"]["inputs"]
+    assert [entry["kind"] for entry in inputs] == ["synthetic_surrogate"]
+    assert result["experiments"][0]["results"]["meets_success_criteria"] == "unknown"
+
+
+def test_discovery_runs_once_per_plan_not_once_per_fix_attempt(tmp_path, monkeypatch, discovery_on):
+    from research_pipeline.agents.coder import acquire
+
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS, "imports": "import ("})],
+        fix=[_codegen_response()],
+    )
+    _agent(tmp_path, model, network_check=lambda: True).run(_planner_output([_plan_needing_data()]))
+
+    assert len(model.prompts_by_kind["fix"]) == 1, "the fix loop ran"
+    assert len(discovery_on) == 1, "four catalogue searches are not repeated per attempt"
+    assert "no source was named for this input" in model.prompts_by_kind["fix"][0]
+
+
+def test_a_failing_discovery_leaves_the_input_a_surrogate(tmp_path, monkeypatch, acquisition_on):
+    """Degradation: nothing relevant found means the experiment is generated
+    exactly as it was, on a documented surrogate, with the verdict withheld."""
+    from research_pipeline.agents.coder import discover
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(
+        discover, "CONNECTORS", [("dead", lambda r: (_ for _ in ()).throw(RuntimeError("down")))]
+    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert [entry["kind"] for entry in exp["data_provenance"]["inputs"]] == ["synthetic_surrogate"]
+
+
+# ---------------------------------------------------------------------------
+# Model-assisted data sourcing (Phase 3). The model nominates; Python rules.
+#
+# discover.py's side of this (rank_with's validation, pooling, the probe budget)
+# is covered in tests/test_coder_discover.py. These cover the two model calls
+# themselves: what they send, what they accept back, and that every failure mode
+# degrades to the keyword behaviour rather than losing the requirement.
+# ---------------------------------------------------------------------------
+
+
+def _sourcing_agent(tmp_path, model):
+    return _agent(tmp_path, model, network_check=lambda: True)
+
+
+def _cands():
+    from research_pipeline.agents.coder import discover
+
+    good = discover.Candidate(
+        name="r",
+        url="https://x.example/hourly.csv",
+        connector="ckan:data.gov.uk",
+        title="Air quality",
+        description="Monitoring",
+        resource="Hourly PM2.5 readings",
+    )
+    bad = discover.Candidate(
+        name="r",
+        url="https://x.example/ref.csv",
+        connector="ckan:data.gov.uk",
+        title="Air quality",
+        description="Monitoring",
+        resource="Geographic reference table",
+    )
+    return [good, bad]
+
+
+def test_the_chooser_prompt_shows_the_resource_name_of_each_candidate(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [0], "why": "hourly readings"}'})
+    chosen = _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5 hourly", _cands())
+
+    assert chosen == [0]
+    prompt = model.calls[0][-1][1]
+    # The resource line is the whole point: a dataset with the right title
+    # routinely contains a station list rather than the data.
+    assert "RESOURCE: Hourly PM2.5 readings" in prompt
+    assert "RESOURCE: Geographic reference table" in prompt
+    assert "0." in prompt and "1." in prompt
+
+
+def test_the_chooser_passes_through_an_empty_rejection(tmp_path):
+    """[] is a real answer — "I looked and none of these fit" — and must reach
+    discover.rank_with, which honours it by leaving a labelled surrogate."""
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [], "why": "none hold the measurements"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) == []
+
+
+def test_the_chooser_returns_none_when_the_model_fails(tmp_path):
+    """None, not [] — no answer was obtained, so the keyword ordering stands
+    rather than the requirement being rejected outright."""
+    model = FakeChatModel({"RESOURCE:": "not json at all, and not on the retry either"})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) is None
+
+
+def test_the_chooser_returns_none_for_a_malformed_shape(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": "the first one"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) is None
+
+
+def test_the_chooser_drops_non_integer_entries(tmp_path):
+    model = FakeChatModel({"RESOURCE:": '{"ranked": [0, "1", null, 1], "why": "w"}'})
+    assert _sourcing_agent(tmp_path, model)._choose_data_source("PM2.5", _cands()) == [0, 1]
+
+
+def test_proposed_sources_become_candidates(tmp_path):
+    model = FakeChatModel(
         {
-            **_MATCH,
-            "columns": [],
-            "sample_rows": [],
-            "local_path": "/cache/x.jsonl",
-            "local_rows": 5000,
+            "Name up to": (
+                '{"sources": [{"url": "https://api.example/v1/pm25.csv", "name": "PM2.5 hourly",'
+                ' "format": "csv"}], "why": "public API"}'
+            )
         }
     )
-    assert "/cache/x.jsonl" in block
-    assert "5000 rows" in block
-    assert "datasets-server" not in block, "the REST URL is not the read path any more"
-    assert "it is the dataset" in block
+    proposed = _sourcing_agent(tmp_path, model)._propose_data_sources("PM2.5 hourly readings")
+
+    assert [c.url for c in proposed] == ["https://api.example/v1/pm25.csv"]
+    assert proposed[0].connector == "model"
+    assert proposed[0].resource == "PM2.5 hourly"
 
 
-def test_an_unmaterialized_dataset_is_still_offered_as_a_rows_url():
-    block = CoderAgent._hf_dataset_block({**_MATCH, "columns": [], "sample_rows": []})
-    assert "datasets-server" in block
+def test_proposed_sources_are_capped(tmp_path):
+    from research_pipeline.agents.coder.coder_agent import _MAX_PROPOSED_SOURCES
+
+    sources = ", ".join(
+        f'{{"url": "https://api.example/{i}.csv", "name": "n{i}"}}' for i in range(12)
+    )
+    model = FakeChatModel({"Name up to": f'{{"sources": [{sources}], "why": "w"}}'})
+    proposed = _sourcing_agent(tmp_path, model)._propose_data_sources("anything")
+    assert len(proposed) == _MAX_PROPOSED_SOURCES
 
 
-def test_a_materialized_dataset_is_recorded_as_real_local_data(tmp_path, monkeypatch):
-    """It is a file on disk, which is what KIND_REAL_LOCAL means — and there is
-    no longer a URL in the code for verify_downloads_used to match a host on."""
-    _patch_settings(monkeypatch, coder_data_dir="")
+def test_a_proposal_with_no_usable_urls_yields_nothing(tmp_path):
+    for payload in (
+        '{"sources": [], "why": "I do not know a real URL"}',
+        '{"sources": [{"name": "no url here"}], "why": "w"}',
+        '{"sources": "not a list"}',
+        "not json at all, and not on the retry either",
+    ):
+        model = FakeChatModel({"Name up to": payload})
+        assert _sourcing_agent(tmp_path, model)._propose_data_sources("anything") == []
+
+
+def test_the_model_connector_is_last_and_only_when_enabled(tmp_path, monkeypatch):
+    """A catalogue hit is a file someone published and described; a proposed URL
+    is the model's recollection of a URL shape. Try the first one first."""
     agent = _agent(tmp_path, FakeChatModel({}))
+    assert [name for name, _ in agent._data_connectors()] == ["direct", "ckan", "zenodo"]
+
+    _patch_settings(monkeypatch, coder_enable_model_data_sourcing=True)
+    assert [name for name, _ in agent._data_connectors()][-1] == "model"
+
+
+def test_a_model_proposed_url_still_has_to_fetch_and_parse(tmp_path, monkeypatch):
+    """The reason the model is allowed to guess at all: an invented URL costs a
+    download and can never become a source."""
+    from research_pipeline.agents.coder import acquire, discover
+
+    _patch_settings(monkeypatch, coder_enable_model_data_sourcing=True)
+    monkeypatch.setattr(
+        acquire.requests,
+        "get",
+        lambda url, **kw: _hallucinated_404(),
+    )
+    model = FakeChatModel(
+        {
+            "Name up to": (
+                '{"sources": [{"url": "https://invented.example/does-not-exist.csv",'
+                ' "name": "n"}], "why": "w"}'
+            )
+        }
+    )
+    agent = _agent(tmp_path, model, network_check=lambda: True)
+    found = discover.find_source(
+        "some requirement nothing has",
+        cache_dir=tmp_path / "cache",
+        connectors=[("model", agent._propose_data_sources)],
+    )
+    assert found is None
+
+
+def _hallucinated_404():
+    class _Response:
+        status_code = 404
+        headers = {}
+        is_redirect = False
+        is_permanent_redirect = False
+
+        def iter_content(self, chunk_size=65536):
+            yield b""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    return _Response()
+
+
+def test_model_sourcing_does_not_change_the_verdict_rule(tmp_path, monkeypatch, discovery_on):
+    """A model picking the dataset improves the hit rate, not the epistemic
+    status: whether real data answers a research question is not something
+    Python can verify, so a discovered input stays inconclusive whoever chose
+    it."""
+    from research_pipeline.agents.coder import acquire
+
+    _patch_settings(
+        monkeypatch,
+        coder_enable_data_acquisition=True,
+        coder_enable_source_discovery=True,
+        coder_enable_model_data_sourcing=True,
+        coder_data_cache_dir=str(tmp_path / "data_cache"),
+    )
+    monkeypatch.setattr(acquire.requests, "get", lambda url, **kw: _collisions_csv_response())
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    result = _agent(tmp_path, model, network_check=lambda: True).run(
+        _planner_output([_plan_needing_data()])
+    )
+
+    exp = result["experiments"][0]
+    assert exp["data_provenance"]["all_inputs_real"] is True
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["data_provenance"]["unconfirmed_discovered_inputs"] == [
+        "bicycle collision casualty records"
+    ]
+
+
+# -- static_safety_check must not flag attribute calls -------------------------
+#
+# Regression for Barkla job 10423680: `\beval\s*\(` matched `model.eval()`,
+# because `.` is a word boundary. The plan spent all three fix attempts
+# regenerating correct code and was reported code_generated_not_run. A false
+# positive here is strictly worse than a missing pattern — the model cannot fix
+# a finding about code that has no defect.
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "baseline_model.eval()",
+        "enhanced_model.eval()\n    with torch.no_grad():\n        pass",
+        "self.model.eval()",
+        "cursor.exec(query)",
+        "session.exec(statement)",
+        "results = df.eval('a + b')",  # pandas.DataFrame.eval, also legitimate
+    ],
+)
+def test_static_safety_check_allows_attribute_calls(code):
+    assert sandbox.static_safety_check(code) == []
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        ("result = eval(user_input)", "eval"),
+        ("eval(payload)", "eval"),
+        ("x = 1; exec(code)", "exec"),
+        ("mod = __import__(name)", "__import__"),
+        ("value = eval  ( expr )", "eval"),
+    ],
+)
+def test_static_safety_check_still_flags_the_bare_builtins(code, expected):
+    findings = sandbox.static_safety_check(code)
+    assert findings, f"{code!r} should still be flagged"
+    assert expected in findings[0]
+
+
+def test_the_pytorch_inference_idiom_is_clean_end_to_end():
+    """The exact shape job 10423680 generated and was punished for."""
+    code = (
+        "def run_experiment(data, model):\n"
+        "    baseline_model, enhanced_model = model\n"
+        "    baseline_model.eval()\n"
+        "    enhanced_model.eval()\n"
+        "    with torch.no_grad():\n"
+        "        return {'preds': enhanced_model(data)}\n"
+    )
+    assert sandbox.static_safety_check(code) == []
+
+
+# -- an acquired dataset must be recorded as the input it is --------------------
+#
+# Regression for Barkla job 10424136: load_data read the acquired JSONL and
+# computed real metrics from it, but because acquire._safe_label sanitises the
+# namespace slash the cached filename matches neither the raw dataset id nor its
+# percent-encoded form, so _reads_dataset said no and the dataset was left out of
+# data_provenance.json — which named a staged CSV the code never opened. Cosmetic
+# there only because that staged file independently made the run real; with
+# nothing staged, the experiment's one real input vanishes and the verdict is
+# withheld from a run that earned it.
+
+
+def test_reads_dataset_accepts_the_acquired_local_path():
+    dataset_id = "chuyin0321/timeseries-daily-stocks"
+    # The real cached path from job 10424136 — note the sanitised slash.
+    path = (
+        "/mnt/fastscratch/users/sgyshere/coder-data-cache/37f0c4d9d9e16f7b/"
+        "hugging_face_dataset_chuyin0321_timeseries-daily-stocks.jsonl"
+    )
+    code = f'df_hf = pd.read_json("{path}", lines=True)'
+
+    offered = {"dataset_id": dataset_id}
+    assert dataset_id not in code, "the sanitised filename must not contain the raw id"
+    assert not CoderAgent._reads_dataset(offered, code)
+    assert CoderAgent._reads_dataset(offered, code, [path])
+
+
+def test_reads_dataset_still_matches_the_id_and_url_forms():
+    offered = {"dataset_id": "acme/sleep-survey"}
+    assert CoderAgent._reads_dataset(offered, "load('acme/sleep-survey')", ["/tmp/x.jsonl"])
+    assert CoderAgent._reads_dataset(offered, "url='...dataset=acme%2Fsleep-survey'")
+    assert not CoderAgent._reads_dataset(offered, "load('other/thing')", ["/tmp/x.jsonl"])
+
+
+def test_an_acquired_dataset_the_code_reads_is_a_real_input(tmp_path, monkeypatch):
+    """End to end through _provenance_for: the acquired file is recorded, so a
+    run with nothing staged still reaches a real verdict."""
+    _patch_settings(monkeypatch, coder_data_dir="")  # nothing staged
+    agent = _agent(tmp_path, FakeChatModel({}))
+    rows_url = CoderAgent._rows_url(HF_DATASET_MATCH)
+    path = str(tmp_path / "cache" / "hugging_face_dataset_acme_sleep-survey.jsonl")
+    acquisitions = {
+        rows_url: {
+            "url": rows_url,
+            "path": path,
+            "sha256": "d" * 64,
+            "byte_count": 10,
+            "data_format": "jsonl",
+            "columns": ["hours_slept", "score"],
+            "row_count": 100,
+        }
+    }
+    run_py = f'df = pd.read_json("{path}", lines=True)'
+
     sources = agent._provenance_for(
         _plan("H1"),
         network_available=True,
-        hf_dataset={**_MATCH, "local_path": "/cache/x.jsonl"},
-        run_py="records = open('/cache/x.jsonl')",
+        hf_dataset=HF_DATASET_MATCH,
+        run_py=run_py,
+        acquisitions=acquisitions,
     )
-    dataset_source = sources[0]
-    assert dataset_source.kind == provenance.KIND_REAL_LOCAL
-    assert dataset_source.uri == "/cache/x.jsonl"
-    assert dataset_source.is_real
+    hub = [s for s in sources if "acme/sleep-survey" in s.name]
+    assert hub, "the acquired dataset must appear as an input"
+    assert hub[0].kind == provenance.KIND_REAL_LOCAL
+    assert hub[0].local_path == path
+    assert provenance.verdict(sources) != provenance.VERDICT_SURROGATE
 
 
-def test_the_cache_directory_setting_is_what_turns_materialization_on(tmp_path, monkeypatch):
-    """Empty (the default) keeps the long-standing REST-URL behaviour exactly,
-    so an existing run is unaffected until the directory is configured."""
-    lookup, _ = _recording_lookup(dict(_MATCH))
-    agent = _agent(
-        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
+# -- sandbox.check_training_batching -------------------------------------------
+
+_UNBATCHED = (
+    "def run_experiment(data, model):\n"
+    "    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)\n"
+    "    for epoch in range(NUM_EPOCHS):\n"
+    "        optimizer.zero_grad()\n"
+    "        loss = criterion(model(X_train_tensor), y_train_tensor)\n"
+    "        loss.backward()\n"
+    "        optimizer.step()\n"
+    "    return {}\n"
+)
+
+
+def test_training_batching_flags_one_step_per_epoch():
+    findings = sandbox.check_training_batching(_UNBATCHED, _UNBATCHED, [])
+    assert len(findings) == 1
+    assert "mini-batching" in findings[0]
+
+
+def test_training_batching_accepts_a_dataloader():
+    code = _UNBATCHED.replace(
+        "    for epoch in range(NUM_EPOCHS):",
+        "    loader = DataLoader(TensorDataset(X, y), batch_size=32)\n"
+        "    for epoch in range(NUM_EPOCHS):\n        for xb, yb in loader:",
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_accepts_hand_rolled_slicing():
+    code = _UNBATCHED.replace(
+        "        optimizer.zero_grad()",
+        "        for i in range(0, len(X_train_tensor), BATCH_SIZE):\n            optimizer.zero_grad()",
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_ignores_code_with_no_torch_optimizer():
+    """An sklearn fit, a closed-form estimator or a statistical test has no
+    training loop to be wrong about."""
+    code = "def run_experiment(data, model):\n    model.fit(data['X'], data['y'])\n    return {}\n"
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_ignores_a_scheduler_step():
+    code = (
+        "def run_experiment(data, model):\n"
+        "    for epoch in range(10):\n"
+        "        scheduler.step()\n"
+        "    return {}\n"
+    )
+    assert sandbox.check_training_batching(code, code, []) == []
+
+
+def test_training_batching_accepts_a_declared_full_batch_choice():
+    """Same sanctioned escape as check_hf_dataset_usage: full-batch is right for
+    a small dataset or a second-order optimizer. The point is that the choice be
+    deliberate and recorded, not that mini-batching be mandatory."""
+    assert (
+        sandbox.check_training_batching(
+            _UNBATCHED, _UNBATCHED, ["Full-batch training: the dataset is 300 rows"]
+        )
+        == []
     )
 
-    _patch_settings(monkeypatch, coder_dataset_cache_dir="")
-    assert "local_path" not in agent._find_hf_dataset(_plan("H1"), network_available=True)
 
-    cache = tmp_path / "datasets"
-    _patch_settings(monkeypatch, coder_dataset_cache_dir=str(cache), coder_dataset_max_rows=150)
-    get_json, _ = _paged_rows(1000)
-    monkeypatch.setattr(huggingface_client, "_get_json", get_json)
-
-    dataset = agent._find_hf_dataset(_plan("H1"), network_available=True)
-    assert dataset["local_rows"] == 150
-    assert Path(dataset["local_path"]).exists()
+def test_training_batching_survives_a_syntax_error():
+    assert sandbox.check_training_batching("def run_experiment(", "", []) == []
 
 
-def test_a_failed_download_falls_back_to_generating_exactly_as_before(tmp_path, monkeypatch):
-    """Same rule as the lookup itself: this is an enhancement to a prompt, never
-    a precondition for generating code."""
-    lookup, _ = _recording_lookup(dict(_MATCH))
-    agent = _agent(
-        tmp_path, FakeChatModel({}), network_check=lambda: True, huggingface_lookup_fn=lookup
+def test_neither_check_is_a_retry_on_bad_results():
+    """The line this pair must not cross. Both are properties of the program;
+    neither reads a metric. A retry keyed on meets_success_criteria would have
+    the agent regenerate until the hypothesis came out supported."""
+    import ast
+    import inspect
+    import textwrap
+
+    for fn in (sandbox.check_training_batching,):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        function = tree.body[0]
+        assert isinstance(function, ast.FunctionDef)
+        # No parameter carries a result into either check...
+        parameters = [a.arg for a in function.args.args]
+        assert not any(p in parameters for p in ("results", "metrics", "meets_success_criteria"))
+        # ...and neither does the executable body, docstring excluded, mention one.
+        body = function.body[1:] if ast.get_docstring(function) else function.body
+        code = "\n".join(ast.unparse(node) for node in body)
+        assert "meets_success_criteria" not in code
+        assert "metrics" not in code
+
+
+# -- the "train it properly" checks --------------------------------------------
+#
+# From Barkla job 10424865: the run accumulated baseline_losses and
+# enhanced_losses every epoch, reported neither, and left an 18x gap that could
+# equally have been "this architecture is worse" or "this architecture never
+# trained". These two close that, without either of them being able to see which
+# arm won.
+
+
+def _falling(n=40):
+    """A curve still descending steeply when the budget ran out."""
+    return [10.0 * (0.9**i) for i in range(n)]
+
+
+def _plateaued(n=40):
+    return [10.0 * (0.5**i) if i < 10 else 0.0098 for i in range(n)]
+
+
+def test_training_diagnostics_requires_a_loss_curve_per_arm():
+    findings = sandbox.check_training_diagnostics({"mae": 0.5}, trains_with_optimizer=True)
+    assert len(findings) == 1
+    assert sandbox.TRAINING_HISTORY_KEY in findings[0]
+
+
+def test_training_diagnostics_ignores_a_run_with_no_optimizer():
+    """An sklearn fit or a statistical test has no curve to report."""
+    assert sandbox.check_training_diagnostics({"mae": 0.5}, trains_with_optimizer=False) == []
+
+
+def test_training_diagnostics_accepts_a_reported_history():
+    metrics = {"training_history": {"baseline": _plateaued(), "enhanced": _plateaued()}}
+    assert sandbox.check_training_diagnostics(metrics, trains_with_optimizer=True) == []
+
+
+def test_convergence_flags_a_curve_still_falling():
+    metrics = {"training_history": {"enhanced": _falling()}}
+    findings = sandbox.check_training_convergence(metrics, trains_with_optimizer=True)
+    assert findings and "still improving" in findings[0]
+    assert "measures the training budget" in findings[-1]
+
+
+def test_convergence_accepts_a_plateaued_curve():
+    metrics = {"training_history": {"baseline": _plateaued(), "enhanced": _plateaued()}}
+    assert sandbox.check_training_convergence(metrics, trains_with_optimizer=True) == []
+
+
+def test_convergence_flags_a_curve_too_short_to_judge():
+    metrics = {"training_history": {"baseline": [5.0, 4.0, 3.0]}}
+    findings = sandbox.check_training_convergence(metrics, trains_with_optimizer=True)
+    assert findings and "too few to show convergence" in findings[0]
+
+
+def test_convergence_is_blind_to_which_arm_is_winning():
+    """The safety property. The same curve is judged the same way whether it
+    belongs to the baseline or the treatment, and whether it is the better or
+    the worse arm — so this can fix undertraining but never favour a verdict."""
+    as_baseline = sandbox.check_training_convergence(
+        {"training_history": {"baseline": _falling(), "enhanced": _plateaued()}}, True
     )
-    _patch_settings(monkeypatch, coder_dataset_cache_dir=str(tmp_path / "datasets"))
-    monkeypatch.setattr(huggingface_client, "_get_json", lambda url, params: None)
+    as_enhanced = sandbox.check_training_convergence(
+        {"training_history": {"baseline": _plateaued(), "enhanced": _falling()}}, True
+    )
+    assert len(as_baseline) == len(as_enhanced) == 2
+    assert as_baseline[0].replace("baseline", "X") == as_enhanced[0].replace("enhanced", "X")
 
-    dataset = agent._find_hf_dataset(_plan("H1"), network_available=True)
-    assert dataset["dataset_id"] == "acme/sleep-survey"
-    assert "local_path" not in dataset
+
+def test_convergence_ignores_a_malformed_history():
+    for history in ({"a": "not a list"}, {"a": [1, "two"]}, [], "nope", None):
+        metrics = {"training_history": history}
+        assert sandbox.check_training_convergence(metrics, trains_with_optimizer=True) == []
+
+
+def test_trains_with_torch_optimizer():
+    assert sandbox.trains_with_torch_optimizer("optimizer_baseline.step()")
+    assert not sandbox.trains_with_torch_optimizer("scheduler.step()")
+    assert not sandbox.trains_with_torch_optimizer("model.fit(X, y)")
+    assert not sandbox.trains_with_torch_optimizer("def f(")
+
+
+def test_the_convergence_loop_never_reads_the_verdict():
+    """The line this must not cross, enforced structurally rather than by
+    review: a retry keyed on meets_success_criteria would regenerate until the
+    hypothesis came out supported."""
+    import ast as _ast
+    import inspect
+    import textwrap
+
+    for fn in (sandbox.check_training_convergence, sandbox.check_training_diagnostics):
+        tree = _ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        function = tree.body[0]
+        assert isinstance(function, _ast.FunctionDef)
+        assert "meets_success_criteria" not in [a.arg for a in function.args.args]
+        body = function.body[1:] if _ast.get_docstring(function) else function.body
+        code = "\n".join(_ast.unparse(node) for node in body)
+        assert "meets_success_criteria" not in code
+        assert "success" not in code
+
+
+# -- sandbox.parse_requirements_lines ------------------------------------------
+#
+# Regression for Barkla job 10424998: the model echoed the prompt's own section
+# placeholder, so requirements.txt held the literal text `<empty>`. That was
+# merged into .resolved_requirements.txt and made uv reject the whole file,
+# taking numpy, pandas, scipy, scikit-learn and torch with it — and because an
+# env-provisioning failure is deliberately never retried, one stray line ended
+# the plan where a real defect would have got ten attempts.
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "<empty>",
+        "<empty section — no third-party packages needed>",
+        "  <empty>  \n",
+        "None needed\n",  # starts with a letter, but see the asserts below
+    ],
+)
+def test_parse_requirements_drops_placeholder_prose(text):
+    parsed = sandbox.parse_requirements_lines(text)
+    assert all(not line.startswith("<") for line in parsed)
+
+
+def test_parse_requirements_drops_the_exact_line_that_broke_the_run():
+    assert sandbox.parse_requirements_lines("<empty>") == []
+
+
+def test_parse_requirements_keeps_real_packages():
+    text = "numpy\npandas>=2.0\nscikit-learn==1.5.0\ntorch\n"
+    assert sandbox.parse_requirements_lines(text) == [
+        "numpy",
+        "pandas>=2.0",
+        "scikit-learn==1.5.0",
+        "torch",
+    ]
+
+
+def test_parse_requirements_drops_comments_and_blanks():
+    text = "# generated\n\nnumpy\n\n  # trailing note\npandas\n"
+    assert sandbox.parse_requirements_lines(text) == ["numpy", "pandas"]
+
+
+def test_parse_requirements_survives_a_placeholder_mixed_with_real_packages():
+    """The costly shape: one bad line must not discard the good ones."""
+    assert sandbox.parse_requirements_lines("<empty>\nnumpy\ntorch\n") == ["numpy", "torch"]
+
+
+# -- Hub query construction keeps benchmark names intact -----------------------
+#
+# Barkla 10426431: the Planner asked for "CoNLL-2003 dataset", the tokenizer
+# produced ["conll", "2003", "dataset"], the year was dropped as a bare number,
+# and the query became "conll" — for which the Hub returns conll2000, conll2002
+# and a non-servable conll2003, spending all three probes. The query "conll2003"
+# returns Davlan/conll2003_noMISC, which the viewer serves. The run went to
+# synthetic data over one dropped token.
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_first"),
+    [
+        ("CoNLL-2003 dataset", "conll2003"),
+        ("CIFAR-10 images", "cifar10"),
+        ("MNIST_10k digits", "mnist10"),
+        ("SQuAD 2.0 questions", "squad2"),
+    ],
+)
+def test_keyword_queries_tries_the_benchmark_name_first(description, expected_first):
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries(description)[0] == expected_first
+
+
+def test_keyword_queries_still_drops_an_unattached_number():
+    """A number not joined to a name really does crowd out the words that match."""
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries("500 students survey") == ["students survey"]
+
+
+def test_keyword_queries_keeps_the_plain_query_as_a_fallback():
+    """The compound is speculative — 'survey 2024' merges to something that
+    matches nothing — so it is an extra query, never a replacement."""
+    from research_pipeline.agents.coder import huggingface_client
+
+    queries = huggingface_client._keyword_queries("survey 2024 responses")
+    assert queries[0] == "survey2024"
+    assert "survey responses" in queries
+
+
+def test_keyword_queries_unchanged_for_prose_with_no_benchmark_name():
+    from research_pipeline.agents.coder import huggingface_client
+
+    assert huggingface_client._keyword_queries(
+        "a survey of 500 undergraduate students measuring sleep quality"
+    ) == ["survey undergraduate students measuring", "survey undergraduate"]
+
+
+def test_a_model_proposed_archive_is_not_probed(tmp_path):
+    """Barkla 10426431 spent one of four probes fetching a conll2003.zip that
+    acquire.describe could never have read. The catalogue connectors already
+    apply this filter to their resources; the model connector did not."""
+    model = FakeChatModel(
+        {
+            "Name up to": json.dumps(
+                {
+                    "sources": [
+                        {"url": "https://x.example/conll2003.zip", "name": "conll"},
+                        {"url": "https://x.example/train.csv", "name": "conll csv"},
+                    ],
+                    "why": "w",
+                }
+            )
+        }
+    )
+    proposed = _agent(tmp_path, model)._propose_data_sources("CoNLL-2003 dataset")
+    assert [c.url for c in proposed] == ["https://x.example/train.csv"]
+
+
+def test_hf_lookup_tries_the_source_field_before_the_description(tmp_path):
+    """Barkla 10426431 and 10427224 both reported "no viewer-servable dataset"
+    for CoNLL-2003 — which is on the Hub — because the lookup only ever saw the
+    prose description, and the Hub matches on names."""
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)  # nothing matches: both are tried
+    plan = _plan("H1")
+    plan["data_requirements"] = {
+        "source": "CoNLL-2003 dataset",
+        "description": "A widely used benchmark for NER with annotated sentences.",
+        "preprocessing_steps": [],
+    }
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+    assert queries[0] == "CoNLL-2003 dataset"
+    assert queries[1].startswith("A widely used benchmark")
+
+
+def test_hf_lookup_falls_back_to_the_objective_when_requirements_are_empty(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    plan = _plan("H1")
+    plan["data_requirements"] = {"source": "", "description": "", "preprocessing_steps": []}
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+    assert queries == [plan["objective"]]

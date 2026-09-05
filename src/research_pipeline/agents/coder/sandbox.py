@@ -18,6 +18,7 @@ import shutil
 import socket
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -393,10 +394,19 @@ def check_undefined_names(source: str) -> list[tuple[int, str]]:
 # new footgun shows up. It is a second layer behind the isolated per-experiment
 # venv, not the sandboxing boundary itself — but it *is* the only gate on the
 # SLURM auto-submit path, where nothing ever runs locally first.
+# `(?<![\w.])` rather than `\b` in front of the bare builtins below. A `.` is a
+# word boundary, so `\beval\s*\(` matches `model.eval()` — PyTorch's switch to
+# evaluation mode, which every generated inference path correctly contains. That
+# false positive cost Barkla job 10423680 its whole fix budget: three
+# regenerations, the byte-identical `eval() call` finding each time, and a plan
+# reported `code_generated_not_run` over code that was right. The model cannot
+# fix a finding about code that has no defect, which is what makes a false
+# positive here strictly worse than a missing pattern. The same shape would hit
+# `cursor.exec()` and `session.exec()`.
 DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\b__import__\s*\(", "dynamic __import__() call"),
+    (r"(?<![\w.])eval\s*\(", "eval() call"),
+    (r"(?<![\w.])exec\s*\(", "exec() call"),
+    (r"(?<![\w.])__import__\s*\(", "dynamic __import__() call"),
     (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
     (r"\bos\.system\s*\(", "os.system() call"),
     (r"\bos\.popen\s*\(", "os.popen() call"),
@@ -752,27 +762,35 @@ def check_nontrivial_function_bodies(sections: dict[str, str]) -> list[str]:
     return findings
 
 
-def dataset_traces(hf_dataset: dict) -> tuple[str, ...]:
+def dataset_traces(
+    hf_dataset: dict, acquired_paths: Sequence[str] | None = None
+) -> tuple[str, ...]:
     """Every string whose presence in generated code proves the offered dataset
     was actually used.
 
-    The raw id, the percent-encoded form the rows URL carries, and — when the
-    dataset was materialized to a local JSONL — that path, which is what the
-    code reads instead of any URL. One definition because two callers ask the
-    same question and must not disagree: `check_hf_dataset_usage` below decides
-    whether an attempt goes back to the fix loop, and
-    `coder_agent._reads_dataset` decides whether the dataset counts as a real
-    input. A dataset that clears one and fails the other would be routed to the
-    Writer as an experiment that read real data and invented it at the same time.
+    Four forms, because the prompt can hand the same dataset over four ways: the
+    raw id, the percent-encoded form a rows URL carries, the local JSONL when
+    the viewer rows were materialized here, and any file `acquire.py` downloaded
+    for this experiment. The last two matter most once fetching moved into the
+    pipeline: the prompt then gives the model a *local file* and tells it not to
+    make an HTTP request, so correct code names neither the id nor a URL.
+
+    One definition because two callers ask the same question and must not
+    disagree: `check_hf_dataset_usage` below decides whether an attempt goes
+    back to the fix loop, and `coder_agent._reads_dataset` decides whether the
+    dataset counts as a real input. A dataset that clears one and fails the
+    other reaches the Writer as an experiment that read real data and invented
+    it at the same time — which is why the acquired paths belong here rather
+    than being checked separately at each call site.
     """
     dataset_id = str(hf_dataset.get("dataset_id") or "")
+    acquired = [str(path) for path in (acquired_paths or []) if path]
     if not dataset_id:
-        return ()
-    traces = [dataset_id, quote(dataset_id, safe="")]
-    local_path = hf_dataset.get("local_path")
-    if local_path:
-        traces.append(str(local_path))
-    return tuple(traces)
+        # An acquired file with no Hub match behind it is still a trace worth
+        # matching: acquisition does not require the dataset to have come from
+        # the Hub lookup at all.
+        return tuple(acquired)
+    return tuple([dataset_id, quote(dataset_id, safe="")] + acquired)
 
 
 def check_hf_dataset_usage(
@@ -780,6 +798,7 @@ def check_hf_dataset_usage(
     load_data_source: str,
     assumptions_made: list[str],
     hf_dataset: dict,
+    acquired_paths: list[str] | None = None,
 ) -> list[str]:
     """When coder_agent._find_hf_dataset matched a real, pre-verified dataset
     and offered it to the model (see _hf_dataset_block), checks that
@@ -803,10 +822,17 @@ def check_hf_dataset_usage(
     AST walk for a specific HTTP call shape, since the id is the one fixed
     trace consistent with how the prompt hands the dataset over — the model
     can build the actual read call in more shapes than are worth enumerating.
+
+    `acquired_paths` is the third sanctioned trace, and exists because the
+    prompt can now hand the dataset over a second way. When acquire.py has
+    already downloaded it, `_hf_dataset_block` gives the model a local file and
+    tells it *not* to make an HTTP request — so the dataset id never appears in
+    correct code, and checking only for the id would flag every experiment that
+    did exactly as instructed.
     """
-    traces = dataset_traces(hf_dataset)
-    if not traces:
+    if not hf_dataset.get("dataset_id"):
         return []
+    traces = dataset_traces(hf_dataset, acquired_paths)
     dataset_id = str(hf_dataset.get("dataset_id"))
     code = f"{configuration_source}\n{load_data_source}"
     if any(trace in code for trace in traces):
@@ -1065,6 +1091,50 @@ def _publish_venv(build_dir: Path, venv_dir: Path) -> Path:
     return venv_dir / "bin" / "python"
 
 
+# A requirement starts with a letter or digit. Everything a requirements file
+# may legitimately carry besides a package — a comment, a blank line, a `-r`
+# include — is either dropped or handled elsewhere, and anything else is the
+# model writing prose where a package name belongs.
+_REQUIREMENT_LINE = re.compile(r"^[A-Za-z0-9]")
+
+
+def parse_requirements_lines(text: str) -> list[str]:
+    """Package lines from a generated requirements.txt, prose discarded.
+
+    Barkla job 10424998 died here with the whole plan lost: the model echoed the
+    prompt's own section placeholder, so requirements.txt contained the literal
+    text `<empty>`, which was merged into .resolved_requirements.txt and made uv
+    reject the file outright —
+
+        error: Unexpected '<', expected '-c', '-e', '-r' or the start of a
+        requirement at .resolved_requirements.txt:1:1
+
+    — taking numpy, pandas, scipy, scikit-learn and torch down with it. That is
+    expensive out of all proportion to the mistake, because an env-provisioning
+    failure is deliberately never retried (regenerating the code cannot install a
+    package), so one stray line ends the plan where a real defect would have got
+    ten attempts.
+
+    Comments and blank lines are dropped as any requirements parser would. What
+    is new is dropping a line that cannot be a requirement at all: `<empty>`,
+    `None`, a sentence explaining that nothing is needed. Filtering beats
+    validating-and-failing here for the same reason the surrounding module
+    prefers degrading — the packages the code actually imports are recovered
+    separately by extract_third_party_imports, so a dropped placeholder costs
+    nothing while a rejected file costs the experiment.
+    """
+    lines = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if not _REQUIREMENT_LINE.match(line):
+            logger.warning("Ignoring non-requirement line in requirements.txt: %r", line[:80])
+            continue
+        lines.append(line)
+    return lines
+
+
 def ensure_experiment_env(
     experiment_dir: Path,
     requirements_path: Path,
@@ -1102,7 +1172,11 @@ def ensure_experiment_env(
     actually missing, installed the same way; they're just never written to
     requirements.txt on disk, since that file documents what *this
     experiment's own code* declared, not what shared infra happens to need."""
-    requirements = requirements_path.read_text().splitlines() if requirements_path.exists() else []
+    requirements = (
+        parse_requirements_lines(requirements_path.read_text())
+        if requirements_path.exists()
+        else []
+    )
     combined_requirements = requirements + list(extra_requirements or [])
     missing = missing_packages(combined_requirements)
     if not missing:
@@ -1549,3 +1623,191 @@ def section_for_line(spans: dict[str, tuple[int, int]], lineno: int) -> str | No
         if start <= lineno <= end:
             return section
     return None
+
+
+# Names a batch loop is built out of. `DataLoader`/`TensorDataset` cover the
+# torch idiom; the range-with-step and slicing forms cover hand-rolled batching,
+# which generated code writes about as often.
+_BATCHING_NAMES = ("DataLoader", "TensorDataset", "batch_iter", "minibatch", "next_batch")
+
+
+def _optimizer_step_calls(tree: ast.AST) -> list[ast.Call]:
+    """`<something>.step()` calls whose receiver name looks like an optimizer."""
+    steps = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr != "step":
+            continue
+        receiver = node.func.value
+        name = receiver.id if isinstance(receiver, ast.Name) else getattr(receiver, "attr", "")
+        # `scheduler.step()` is a real thing and is not the training step.
+        if "optim" in str(name).lower():
+            steps.append(node)
+    return steps
+
+
+def check_training_batching(
+    run_experiment_source: str, rendered_code: str, assumptions_made: list[str]
+) -> list[str]:
+    """Whether a torch training loop takes more than one step per epoch.
+
+    Barkla job 10424488 trained both arms with `for epoch in range(50)`, one
+    forward pass over the entire training tensor and one `optimizer.step()` per
+    epoch — fifty gradient updates in total, on an LSTM. The comparison was
+    *fair* (identical epochs, lr and optimizer on both arms) and still
+    uninterpretable: the enhanced arm carried a DCT block and an attention head,
+    so under a fifty-step budget the larger model is systematically further from
+    convergence, and "enhanced is worse" measures the budget rather than the
+    architecture. That result was reported as a refutation.
+
+    This is deliberately *not* a check on how good the numbers are. The fix loop
+    retries failures, and a retry keyed on `meets_success_criteria` would have
+    the agent regenerate until the hypothesis came out supported, which
+    manufactures the verdict the whole provenance gate exists to protect. What
+    is checked is a property of the program: it declares an epoch loop and never
+    batches inside it.
+
+    Escape hatch, matching `check_hf_dataset_usage`: full-batch really is right
+    for a small dataset or a second-order optimizer, so saying so in
+    `assumptions_made` is accepted. The point is that the choice be deliberate
+    and recorded, not that mini-batching be mandatory.
+    """
+    try:
+        tree = ast.parse(run_experiment_source)
+    except SyntaxError:
+        # compile_check on the whole rendered run.py reports syntax errors with
+        # proper line numbers; not this check's job. Same rule as
+        # check_data_fallback.
+        return []
+
+    steps = _optimizer_step_calls(tree)
+    if not steps:
+        # No torch-style optimizer loop at all — an sklearn `.fit()`, a
+        # closed-form estimator, a statistical test. Nothing to say.
+        return []
+
+    if any(name in rendered_code for name in _BATCHING_NAMES):
+        return []
+    # Hand-rolled batching: `for i in range(0, len(X), BATCH_SIZE)` or an
+    # explicit slice of the training tensor inside the loop.
+    if re.search(r"range\s*\(\s*0\s*,\s*len\s*\(", rendered_code):
+        return []
+
+    if any(
+        "full-batch" in note.lower() or "full batch" in note.lower() for note in assumptions_made
+    ):
+        return []
+
+    return [
+        f"line {steps[0].lineno}: the training loop calls optimizer.step() once per epoch over "
+        "the whole training tensor — there is no mini-batching anywhere, so the model gets as "
+        "many gradient updates as there are epochs. Iterate over mini-batches inside the epoch "
+        "loop (torch.utils.data.DataLoader, or slices of the training tensor), and use the "
+        "validation split for early stopping. If full-batch training is genuinely intended for "
+        "this method, say so in assumptions_made and this will be accepted"
+    ]
+
+
+# --------------------------------------------------------------------------
+# Did the training run actually finish?
+#
+# These two are the "train it properly" loop. They are deliberately blind to
+# which arm wins: `check_training_convergence` asks the same question of every
+# curve it is given, so it fires on an under-trained *baseline* exactly as
+# readily as on an under-trained treatment. That symmetry is what separates it
+# from a retry on `meets_success_criteria`, which would regenerate until the
+# hypothesis came out supported and manufacture the verdict the provenance gate
+# exists to protect. Nothing here reads a success flag or a comparison.
+# --------------------------------------------------------------------------
+
+TRAINING_HISTORY_KEY = "training_history"
+# A curve shorter than this cannot show a plateau, whatever it does.
+CONVERGENCE_MIN_EPOCHS = 10
+# Mean loss over the final quarter of training, against the quarter before it.
+# Still improving by more than this fraction means the curve was cut off on its
+# way down — the model had more to learn and the epoch budget ran out. A
+# heuristic, and about training dynamics rather than about the result.
+CONVERGENCE_IMPROVEMENT_THRESHOLD = 0.05
+
+
+def trains_with_torch_optimizer(code: str) -> bool:
+    """Whether `code` runs an iterative optimizer loop worth asking about."""
+    try:
+        return bool(_optimizer_step_calls(ast.parse(code)))
+    except SyntaxError:
+        return False
+
+
+def _curves(metrics: dict) -> dict[str, list[float]]:
+    history = metrics.get(TRAINING_HISTORY_KEY)
+    if not isinstance(history, dict):
+        return {}
+    curves = {}
+    for name, values in history.items():
+        if isinstance(values, list) and all(isinstance(v, (int, float)) for v in values):
+            curves[str(name)] = [float(v) for v in values]
+    return curves
+
+
+def check_training_diagnostics(metrics: dict, trains_with_optimizer: bool) -> list[str]:
+    """Every arm's per-epoch loss must reach results.json.
+
+    Barkla job 10424865 accumulated `baseline_losses` and `enhanced_losses`
+    every epoch and reported neither, so results.json carried four MAE/RMSE
+    numbers and no way to tell "this architecture is worse" from "this
+    architecture never trained" — which is the difference between a finding and
+    an artefact, and the gap was 18x.
+
+    A quantity the experiment computes and discards is the same defect class as
+    a constant it declares and ignores (check_unused_configuration); this one
+    just costs the reader rather than the run.
+    """
+    if not trains_with_optimizer:
+        return []
+    if not _curves(metrics):
+        return [
+            f"the experiment trains with an iterative optimizer but results.json has no "
+            f"'{TRAINING_HISTORY_KEY}' — return it from evaluate() as "
+            "{'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a "
+            "reader can tell a model that learned something worse from one that never learned"
+        ]
+    return []
+
+
+def check_training_convergence(metrics: dict, trains_with_optimizer: bool) -> list[str]:
+    """Whether each arm's loss curve had stopped improving when training ended.
+
+    Asked of every curve independently and identically — see this section's
+    header for why that symmetry is the whole safety property.
+    """
+    if not trains_with_optimizer:
+        return []
+
+    findings = []
+    for name, curve in _curves(metrics).items():
+        if len(curve) < CONVERGENCE_MIN_EPOCHS:
+            findings.append(
+                f"'{name}' trained for only {len(curve)} epoch(s), too few to show convergence"
+            )
+            continue
+        quarter = max(1, len(curve) // 4)
+        recent = sum(curve[-quarter:]) / quarter
+        previous = sum(curve[-2 * quarter : -quarter]) / quarter
+        if previous <= 0:
+            continue
+        improvement = (previous - recent) / abs(previous)
+        if improvement > CONVERGENCE_IMPROVEMENT_THRESHOLD:
+            findings.append(
+                f"'{name}' was still improving when training stopped — mean loss fell "
+                f"{improvement:.1%} over the final quarter of {len(curve)} epochs "
+                f"({previous:.4g} -> {recent:.4g}), so the epoch budget ran out before the "
+                "model converged"
+            )
+    if not findings:
+        return []
+    return findings + [
+        "Train every arm to convergence before comparing them: raise the epoch budget, and stop "
+        "on the validation split rather than at a fixed epoch count. A comparison between models "
+        "that have not converged measures the training budget, not the thing under test"
+    ]
