@@ -630,3 +630,150 @@ def test_a_2xx_with_a_non_data_body_is_still_rejected(monkeypatch, tmp_path):
         ],
     )
     assert acquire.fetch("https://portal.example/d.csv", cache_dir=tmp_path) is None
+
+
+# --------------------------------------------------------------------------
+# Parquet
+#
+# The format Hugging Face serves every auto-converted dataset in, and the only
+# binary one this module reads. Bodies here are built with pyarrow rather than
+# checked in as fixtures, so a test asserts against a file the real writer
+# produced instead of against bytes nobody can regenerate.
+# --------------------------------------------------------------------------
+
+
+def _parquet_bytes(columns):
+    import pyarrow
+    import pyarrow.parquet
+
+    buffer = pyarrow.BufferOutputStream()
+    pyarrow.parquet.write_table(pyarrow.table(columns), buffer)
+    return buffer.getvalue().to_pybytes()
+
+
+_NEWSGROUPS = {
+    "text": ["I was wondering if anyone out there", "My brother is in the market", "A fair number"],
+    "label": [7, 4, 4],
+    "label_text": ["rec.autos", "comp.sys.mac.hardware", "comp.sys.mac.hardware"],
+}
+
+
+def test_describe_reads_a_parquet_body():
+    body = _parquet_bytes(_NEWSGROUPS)
+    described = acquire.describe(body)
+
+    assert described is not None
+    data_format, columns, row_count, sample, written = described
+    assert data_format == acquire.FORMAT_PARQUET
+    assert columns == ["text", "label", "label_text"]
+    assert row_count == 3
+    assert sample[0]["label_text"] == "rec.autos"
+    # Written back unchanged: parquet is already a file, and re-encoding a
+    # columnar one to JSON Lines would inflate it and lose its dtypes.
+    assert written == body
+
+
+def test_a_parquet_body_is_identified_before_the_utf8_decode():
+    """The ordering that makes parquet reachable at all. Every other format is
+    identified by decoding first, which a binary body cannot survive."""
+    body = _parquet_bytes(_NEWSGROUPS)
+    assert body.startswith(acquire.PARQUET_MAGIC)
+    with pytest.raises(UnicodeDecodeError):
+        body.decode("utf-8-sig")
+    assert acquire.describe(body) is not None
+
+
+def test_parquet_keeps_a_single_column_file():
+    """Unlike the delimited path, where one column is what an HTML page read as
+    CSV looks like. The magic bytes already settled what this is."""
+    described = acquire.describe(_parquet_bytes({"text": ["a", "b"]}))
+    assert described is not None
+    assert described[1] == ["text"]
+
+
+def test_parquet_cells_are_coerced_to_json_able_values():
+    """Sample rows go into checkpointed graph state and into a prompt, and
+    parquet is the first source that can hand back a timestamp or a Decimal."""
+    import datetime
+
+    described = acquire.describe(
+        _parquet_bytes(
+            {
+                "when": [datetime.datetime(2026, 9, 5, 12, 30), datetime.datetime(2026, 9, 6)],
+                "count": [3, 4],
+            }
+        )
+    )
+    assert described is not None
+    sample = described[3]
+    assert isinstance(sample[0]["when"], str)
+    assert "2026-09-05" in sample[0]["when"]
+    # A native value is left alone rather than stringified.
+    assert sample[0]["count"] == 3
+    json.dumps(sample)  # must survive the writers downstream
+
+
+def test_parquet_sample_cells_are_truncated():
+    described = acquire.describe(_parquet_bytes({"text": ["x" * 5000, "y"], "label": [1, 2]}))
+    assert described is not None
+    assert len(described[3][0]["text"]) == acquire.MAX_CELL_CHARS + 1
+
+
+def test_an_empty_parquet_file_is_not_data():
+    assert acquire.describe(_parquet_bytes({"text": [], "label": []})) is None
+
+
+def test_a_corrupt_parquet_body_is_a_miss_not_a_crash():
+    """Carries the magic, is not a parquet file. The never-raise contract."""
+    assert acquire.describe(acquire.PARQUET_MAGIC + b"not actually parquet") is None
+
+
+def test_parquet_is_unreadable_without_pyarrow(monkeypatch):
+    """pyarrow is a base dependency, but an environment provisioned before it
+    became one must degrade to the surrogate it produced before, not raise."""
+    body = _parquet_bytes(_NEWSGROUPS)
+    monkeypatch.setattr(acquire, "_parquet", None)
+    assert not acquire.parquet_supported()
+    assert acquire.describe(body) is None
+
+
+def test_parquet_supported_when_pyarrow_is_installed():
+    assert acquire.parquet_supported() is True
+
+
+def test_fetch_writes_a_parquet_file_the_model_is_told_how_to_read(monkeypatch, tmp_path):
+    body = _parquet_bytes(_NEWSGROUPS)
+    _serve(
+        monkeypatch,
+        [FakeResponse(headers={"content-type": "application/octet-stream"}, body=body)],
+    )
+    acquired = acquire.fetch(
+        "https://huggingface.co/api/datasets/SetFit/20_newsgroups/parquet/default/train/0.parquet",
+        cache_dir=tmp_path,
+        label="documents labelled with a category",
+    )
+
+    assert acquired is not None
+    assert acquired.data_format == acquire.FORMAT_PARQUET
+    assert acquired.columns == ["text", "label", "label_text"]
+    assert acquired.row_count == 3
+    written = Path(acquired.path)
+    # The extension matters: the model is told to read this with
+    # pandas.read_parquet, and the bytes on disk must be a parquet file.
+    assert written.suffix == ".parquet"
+    assert written.read_bytes() == body
+    assert "read_parquet" in acquired.to_dict()["read_hint"]
+
+
+def test_every_format_has_an_extension_and_a_read_hint():
+    """The two tables the writer and the prompt read. A format in one and not
+    the other either crashes on write or reaches the model undescribed."""
+    formats = {
+        acquire.FORMAT_CSV,
+        acquire.FORMAT_TSV,
+        acquire.FORMAT_JSON,
+        acquire.FORMAT_JSONL,
+        acquire.FORMAT_PARQUET,
+    }
+    assert set(acquire._EXTENSIONS) == formats
+    assert set(acquire.READ_HINTS) == formats

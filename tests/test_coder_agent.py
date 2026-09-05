@@ -6118,7 +6118,12 @@ def test_the_model_connector_is_last_and_only_when_enabled(tmp_path, monkeypatch
     """A catalogue hit is a file someone published and described; a proposed URL
     is the model's recollection of a URL shape. Try the first one first."""
     agent = _agent(tmp_path, FakeChatModel({}))
-    assert [name for name, _ in agent._data_connectors()] == ["direct", "ckan", "zenodo"]
+    assert [name for name, _ in agent._data_connectors()] == [
+        "direct",
+        "huggingface",
+        "ckan",
+        "zenodo",
+    ]
 
     _patch_settings(monkeypatch, coder_enable_model_data_sourcing=True)
     assert [name for name, _ in agent._data_connectors()][-1] == "model"

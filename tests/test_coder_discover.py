@@ -784,3 +784,289 @@ def test_the_probe_budget_is_shared_across_connectors(monkeypatch, tmp_path):
         connectors=[_connector("direct", direct), _connector("ckan", catalogue)],
     )
     assert len(probed) == discover.MAX_CANDIDATES_PROBED
+
+
+# --------------------------------------------------------------------------
+# The Hugging Face connector
+#
+# The Hub is where ML benchmark corpora live and the open-data catalogues hold
+# almost none of them, so before this connector a requirement like "documents
+# labelled with a category" found nothing. Payload shapes below are trimmed
+# copies of real responses from huggingface.co, verified 2026-09-05.
+# --------------------------------------------------------------------------
+
+HF_SEARCH_HITS = [
+    {
+        "id": "fancyzhx/ag_news",
+        "gated": False,
+        "private": False,
+        "description": "AG is a collection of more than 1 million news articles.",
+        "tags": ["task_categories:text-classification", "task_ids:topic-classification"],
+    },
+    {
+        "id": "keremberke/shoe-classification",
+        "gated": False,
+        "description": "Photographs of shoes by brand.",
+        "tags": ["task_categories:image-classification"],
+    },
+]
+
+HF_PARQUET_INDEX = {
+    "default": {
+        "test": [
+            "https://huggingface.co/api/datasets/fancyzhx/ag_news/parquet/default/test/0.parquet"
+        ],
+        "train": [
+            "https://huggingface.co/api/datasets/fancyzhx/ag_news/parquet/default/train/0.parquet"
+        ],
+    }
+}
+
+HF_REQUIREMENT = "news articles labelled with a category for text classification"
+
+
+_UNSET = object()
+
+
+def _serve_hub(monkeypatch, *, hits=None, index=_UNSET, searches=None):
+    """Fake both Hub endpoints. `searches` maps a query to its hits; `hits` is
+    the answer to every query. Returns the recorded (kind, argument) calls."""
+    calls = []
+
+    def fake_search(query, limit=None):
+        calls.append(("search", query))
+        if searches is not None:
+            return list(searches.get(query, []))
+        return list(hits or [])
+
+    def fake_get_json(url, params):
+        calls.append(("index", url))
+        return HF_PARQUET_INDEX if index is _UNSET else index
+
+    monkeypatch.setattr(discover.huggingface_client, "search_datasets", fake_search)
+    monkeypatch.setattr(discover, "_get_json", fake_get_json)
+    return calls
+
+
+def test_the_hub_is_one_of_the_connectors():
+    assert "huggingface" in [name for name, _ in discover.CONNECTORS]
+
+
+def test_search_huggingface_reads_the_real_response_shape(monkeypatch):
+    _serve_hub(monkeypatch, hits=HF_SEARCH_HITS)
+    found = discover.search_huggingface(HF_REQUIREMENT)
+
+    # Only ag_news clears the relevance gate; the shoe dataset shares
+    # "classification" and nothing else.
+    assert [c.title for c in found] == ["fancyzhx/ag_news"]
+    candidate = found[0]
+    assert candidate.connector == "huggingface"
+    assert candidate.url.endswith("/parquet/default/train/0.parquet")
+    assert candidate.resource == "default/train (parquet)"
+    # A page a human auditing data_provenance.json can actually open.
+    assert candidate.landing_page == "https://huggingface.co/datasets/fancyzhx/ag_news"
+
+
+def test_the_hubs_topical_tags_are_what_make_a_dataset_matchable():
+    """`ag_news` shares no word with "documents labelled with a category". The
+    Hub's own task tags carry the vocabulary a research plan writes in, so they
+    are scored alongside the card summary."""
+    without_tags = discover.Candidate(
+        name=HF_REQUIREMENT,
+        url="https://huggingface.co/x.parquet",
+        connector="huggingface",
+        title="fancyzhx/ag_news",
+        description="AG is a collection of more than 1 million news articles.",
+    )
+    with_tags = discover.Candidate(
+        **{
+            **vars(without_tags),
+            "description": without_tags.description + " task_categories:text-classification",
+        }
+    )
+    assert not discover.is_relevant(HF_REQUIREMENT, without_tags)
+    assert discover.is_relevant(HF_REQUIREMENT, with_tags)
+
+
+def test_a_gated_or_private_dataset_is_never_offered(monkeypatch):
+    """Both need a token generated code would not have, so they are a miss
+    however well they match."""
+    hits = [
+        {**HF_SEARCH_HITS[0], "id": "secret/ag_news_gated", "gated": "auto"},
+        {**HF_SEARCH_HITS[0], "id": "secret/ag_news_private", "private": True},
+    ]
+    _serve_hub(monkeypatch, hits=hits)
+    assert discover.search_huggingface(HF_REQUIREMENT) == []
+
+
+def test_the_preferred_split_is_taken_when_the_dataset_has_one(monkeypatch):
+    _serve_hub(monkeypatch, hits=HF_SEARCH_HITS[:1])
+    found = discover.search_huggingface(HF_REQUIREMENT)
+    assert found[0].url.endswith("/default/train/0.parquet")
+
+
+def test_a_config_that_is_not_default_is_still_reachable(monkeypatch):
+    """openai/gsm8k publishes "main" and "socratic" and no "default" at all, so
+    building the URL from a template rather than asking would 404 on it."""
+    index = {"socratic": {"train": ["https://huggingface.co/d/socratic/train/0.parquet"]}}
+    _serve_hub(monkeypatch, hits=HF_SEARCH_HITS[:1], index=index)
+    found = discover.search_huggingface(HF_REQUIREMENT)
+    assert found[0].resource == "socratic/train (parquet)"
+
+
+def test_a_split_outside_the_preferred_list_is_still_taken(monkeypatch):
+    index = {"default": {"corpus": ["https://huggingface.co/d/default/corpus/0.parquet"]}}
+    _serve_hub(monkeypatch, hits=HF_SEARCH_HITS[:1], index=index)
+    assert discover.search_huggingface(HF_REQUIREMENT)[0].resource == "default/corpus (parquet)"
+
+
+def test_a_dataset_with_no_parquet_export_is_dropped(monkeypatch):
+    """It exists only as loose files, or is too large to convert. Nothing to fetch."""
+    for index in ({}, None, {"default": {}}, {"default": {"train": []}}, {"default": "nope"}):
+        _serve_hub(monkeypatch, hits=HF_SEARCH_HITS[:1], index=index)
+        assert discover.search_huggingface(HF_REQUIREMENT) == []
+
+
+def test_search_huggingface_survives_an_unexpected_payload(monkeypatch):
+    for hits in ([], [None, 3], [{}], [{"id": ""}]):
+        _serve_hub(monkeypatch, hits=[h for h in hits if isinstance(h, dict)])
+        assert discover.search_huggingface(HF_REQUIREMENT) == []
+
+
+def test_the_connector_declines_entirely_without_a_parquet_reader(monkeypatch):
+    """Every candidate it can offer is parquet, so without a reader each one
+    would fetch, fail to parse and burn a probe the other connectors could use."""
+    calls = _serve_hub(monkeypatch, hits=HF_SEARCH_HITS)
+    monkeypatch.setattr(discover.acquire, "parquet_supported", lambda: False)
+    assert discover.search_huggingface(HF_REQUIREMENT) == []
+    assert calls == []  # not one request made
+
+
+def test_an_irrelevant_hit_costs_no_parquet_lookup(monkeypatch):
+    """The pre-filter is a bound on requests, not a second gate: `_find_source`
+    applies the identical test to whatever comes back."""
+    calls = _serve_hub(monkeypatch, hits=HF_SEARCH_HITS)
+    discover.search_huggingface(HF_REQUIREMENT)
+    assert [url for kind, url in calls if kind == "index"] == [
+        discover.HF_DATASET_PARQUET_URL.format(dataset_id="fancyzhx/ag_news")
+    ]
+
+
+def test_parquet_lookups_are_capped(monkeypatch):
+    hits = [{**HF_SEARCH_HITS[0], "id": f"owner/ag_news_{n}"} for n in range(10)]
+    calls = _serve_hub(monkeypatch, hits=hits)
+    discover.search_huggingface(HF_REQUIREMENT)
+    assert len([1 for kind, _ in calls if kind == "index"]) == discover.MAX_HF_PARQUET_LOOKUPS
+
+
+def test_the_first_query_that_finds_something_wins(monkeypatch):
+    """A later, broader query only adds worse matches to a pool that already
+    has one — so the ladder is a cap on a miss, not a cost paid every time."""
+    queries = discover._hf_queries(HF_REQUIREMENT)
+    calls = _serve_hub(monkeypatch, searches={queries[0]: HF_SEARCH_HITS[:1]})
+    assert discover.search_huggingface(HF_REQUIREMENT)
+    assert [query for kind, query in calls if kind == "search"] == [queries[0]]
+
+
+def test_every_query_is_tried_before_giving_up(monkeypatch):
+    calls = _serve_hub(monkeypatch, searches={})
+    assert discover.search_huggingface(HF_REQUIREMENT) == []
+    assert [query for kind, query in calls if kind == "search"] == discover._hf_queries(
+        HF_REQUIREMENT
+    )
+
+
+# --------------------------------------------------------------------------
+# The Hub's query ladder
+# --------------------------------------------------------------------------
+
+
+def test_hf_queries_tries_adjacent_pairs_not_the_whole_requirement():
+    """Measured live: the Hub's `search` matches dataset *names* and narrows
+    with every word. "documents labelled category text" returns nothing while
+    "text classification" returns ten."""
+    queries = discover._hf_queries("documents labelled with a category for text classification")
+    assert "text classification" in queries
+    assert queries.index("labelled category") < queries.index("text classification")
+
+
+def test_hf_queries_keeps_a_name_with_a_number_in_it_first():
+    """The rule `huggingface_client._keyword_queries` owns: "conll2003" finds
+    CoNLL-2003 where "conll" finds conll2000 and conll2002."""
+    queries = discover._hf_queries("CoNLL-2003 named entity recognition annotations")
+    assert queries[0] == "conll2003"
+    assert "named entity" in queries
+
+
+def test_hf_queries_still_searches_a_one_word_requirement():
+    assert "earthquakes" in discover._hf_queries("earthquakes")
+
+
+def test_hf_queries_is_capped():
+    long_requirement = " ".join(f"term{n}word" for n in range(30))
+    assert len(discover._hf_queries(long_requirement)) == discover.MAX_HF_QUERIES
+
+
+def test_hf_queries_of_an_empty_requirement_is_empty():
+    assert discover._hf_queries("") == []
+
+
+# --------------------------------------------------------------------------
+# Parquet as an admitted format
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "declared", "expected"),
+    [
+        ("https://huggingface.co/api/datasets/x/parquet/default/train/0.parquet", "", True),
+        ("https://x.example/a", "PARQUET", True),
+        ("https://x.example/a.parquet.zip", "PARQUET", False),  # the archive veto still wins
+    ],
+)
+def test_parquet_is_a_readable_format(url, declared, expected):
+    """acquire.describe reads parquet now, so the tables that say what is worth
+    downloading have to agree — otherwise a Hub URL is filtered out before it
+    is ever probed."""
+    assert discover._is_tabular(url, declared) is expected
+
+
+def test_the_format_tables_match_what_acquire_can_read():
+    assert ".parquet" in discover.TABULAR_EXTENSIONS
+    assert "PARQUET" in discover.TABULAR_FORMATS
+    assert acquire.FORMAT_PARQUET.upper() in discover.TABULAR_FORMATS
+
+
+def test_a_hub_candidate_is_pooled_and_ranked_with_the_others(monkeypatch, tmp_path):
+    """End to end: the Hub competes in the same pool as CKAN and Zenodo, and a
+    better keyword match wins whichever connector found it."""
+    _fake_acquire(monkeypatch, succeeds_for=("https://huggingface.co/ag_news.parquet",))
+    connectors = [
+        _connector(
+            "ckan",
+            [
+                discover.Candidate(
+                    name=HF_REQUIREMENT,
+                    url="https://data.example/procurement.csv",
+                    connector="ckan:open.canada.ca",
+                    title="Mapping of goods and services category codes",
+                    description="Procurement category classification codes.",
+                )
+            ],
+        ),
+        _connector(
+            "huggingface",
+            [
+                discover.Candidate(
+                    name=HF_REQUIREMENT,
+                    url="https://huggingface.co/ag_news.parquet",
+                    connector="huggingface",
+                    title="fancyzhx/ag_news",
+                    description="news articles labelled text classification category",
+                )
+            ],
+        ),
+    ]
+    found = discover.find_source(HF_REQUIREMENT, cache_dir=tmp_path, connectors=connectors)
+    assert found is not None
+    assert found.connector == "huggingface"

@@ -18,6 +18,15 @@ dependencies = [
     # provisioning a venv and running it. Pure Python, no dependencies of its
     # own — the reason this is a base dependency and not an extra.
     "pyflakes>=3.2",
+    # Used by agents/coder/acquire.py to read a parquet body. Not an extra,
+    # unlike everything below, because it is the only format Hugging Face
+    # serves auto-converted datasets in — so without it
+    # discover.search_huggingface nominates ML benchmark corpora that then all
+    # fail to parse, which is worse than not having the connector at all.
+    # It is the heaviest base dependency here (a ~40 MB wheel, and inodes
+    # matter on a quota'd HPC home); acquire.py guards the import anyway, so an
+    # environment without it degrades to the surrogate it produced before.
+    "pyarrow>=15",
 ]
 
 [project.optional-dependencies]

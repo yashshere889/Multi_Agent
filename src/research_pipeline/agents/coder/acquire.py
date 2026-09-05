@@ -48,6 +48,25 @@ every hop, not on the string that was passed in:
   parses into garbage instead of failing loudly.
 - Nothing downloaded is ever executed, imported, or unpacked.
 
+Four formats are accepted — CSV, TSV, JSON and JSON Lines — plus **parquet**,
+which is the odd one out and worth saying why. Every other format here is text
+this module identifies by decoding and parsing; parquet is binary, and it is
+here because it is the only way to reach Hugging Face. The Hub serves every
+auto-converted dataset as parquet (`/api/datasets/<repo>/parquet/...`), so
+without it `discover.search_huggingface` could nominate ML benchmark corpora —
+20 Newsgroups, AG News — and every one of them would fail the utf-8 decode in
+`describe`, parse to nothing, and degrade to a surrogate. That is the recorded
+cost: a run on "how much of a document's text must be extracted before its
+category can be classified reliably" had both corpora hand-staged into
+`CODER_DATA_DIR`, because a surrogate input withholds the hypothesis verdict.
+
+Reading it needs pyarrow, which is a base dependency for exactly this reason
+(see pyproject.toml). The import is still guarded and `parquet_supported()`
+still exists, because this module's contract is that a missing capability
+degrades rather than raises — an environment installed before that dependency
+existed reports "not data this module can vouch for" and leaves the input a
+surrogate, which is the same answer it gave before parquet was handled at all.
+
 Reads no settings, same rule as `sandbox.py` and `provenance.py`: the cache
 directory and byte cap arrive as arguments, resolved by `coder_agent.py`.
 """
@@ -70,6 +89,18 @@ from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 import requests
 
 from research_pipeline.agents.coder import provenance
+
+# Guarded on purpose — see the module docstring. pyarrow is a base dependency,
+# so this import fails only in an environment provisioned before it became one,
+# and this module may not raise there. `Any` rather than the module type
+# because the name is rebound to None on the failure path.
+_parquet: Any
+try:
+    import pyarrow.parquet
+
+    _parquet = pyarrow.parquet
+except ImportError:  # pragma: no cover — exercised by monkeypatching _parquet
+    _parquet = None
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +141,19 @@ FORMAT_CSV = "csv"
 FORMAT_TSV = "tsv"
 FORMAT_JSON = "json"
 FORMAT_JSONL = "jsonl"
+FORMAT_PARQUET = "parquet"
 
-_EXTENSIONS = {FORMAT_CSV: ".csv", FORMAT_TSV: ".tsv", FORMAT_JSON: ".json", FORMAT_JSONL: ".jsonl"}
+_EXTENSIONS = {
+    FORMAT_CSV: ".csv",
+    FORMAT_TSV: ".tsv",
+    FORMAT_JSON: ".json",
+    FORMAT_JSONL: ".jsonl",
+    FORMAT_PARQUET: ".parquet",
+}
+
+# Every parquet file opens and closes with this. It is what lets `describe`
+# identify the body before the utf-8 decode that would otherwise reject it.
+PARQUET_MAGIC = b"PAR1"
 
 # How the model is told to read each format. Kept beside the writer so the two
 # cannot disagree about what is actually on disk.
@@ -120,6 +162,10 @@ READ_HINTS = {
     FORMAT_TSV: "tab-separated, with a header row (pandas.read_csv(..., sep='\\t'))",
     FORMAT_JSON: "a JSON array of objects (pandas.read_json)",
     FORMAT_JSONL: "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))",
+    # The generated experiment installs its own dependencies into a throwaway
+    # venv, so naming pandas here is a hint about the file, not a claim that
+    # this process reads it the same way — it uses pyarrow directly.
+    FORMAT_PARQUET: "Apache Parquet — columnar and binary (pandas.read_parquet)",
 }
 
 
@@ -377,6 +423,71 @@ def _describe_delimited(text: str) -> tuple[str, list[str], int] | None:
     return (FORMAT_TSV if delimiter == "\t" else FORMAT_CSV), columns, row_count
 
 
+def parquet_supported() -> bool:
+    """Whether this process can read a parquet body at all.
+
+    Public because a caller that can *only* offer parquet should not nominate
+    candidates it knows will fail to parse — see `discover.search_huggingface`,
+    where every candidate is parquet and probing them would spend the whole
+    budget learning that.
+    """
+    return _parquet is not None
+
+
+def _describe_parquet(body: bytes) -> tuple[str, list[str], int, list[dict], bytes] | None:
+    """(format, columns, row_count, sample_rows, original bytes) for a parquet body.
+
+    The original bytes are written unchanged, unlike the record path which
+    normalizes to JSON Lines: parquet already *is* a file, and re-encoding a
+    columnar one to text would inflate a 9 MB corpus into something far bigger
+    while losing the dtypes the model is about to be told about.
+
+    Only the schema footer and the first few rows are read. `num_rows` comes
+    from the metadata rather than a scan, so describing a large file costs the
+    same as describing a small one.
+    """
+    if _parquet is None:
+        logger.warning("Body is parquet but pyarrow is not installed; treating it as unreadable")
+        return None
+    try:
+        parquet_file = _parquet.ParquetFile(io.BytesIO(body))
+        columns = [str(name) for name in parquet_file.schema_arrow.names]
+        row_count = int(parquet_file.metadata.num_rows)
+        sample_records: list[dict] = []
+        if row_count:
+            for batch in parquet_file.iter_batches(batch_size=SAMPLE_ROWS):
+                sample_records = [row for row in batch.to_pylist() if isinstance(row, dict)]
+                break
+    except Exception as exc:  # noqa: BLE001 — a corrupt or unsupported file is a miss, not a crash
+        logger.warning("Body carries the parquet magic but could not be read: %s", exc)
+        return None
+
+    # One column is legitimate here, unlike the delimited path where it is the
+    # signature of an HTML page read as CSV. The magic bytes already settled
+    # what this is, so there is nothing left for a column count to disprove.
+    if not columns or row_count < 1:
+        return None
+    sample = [
+        {str(key): _truncate_cell(_jsonable(value)) for key, value in record.items()}
+        for record in sample_records[:SAMPLE_ROWS]
+    ]
+    return FORMAT_PARQUET, columns, row_count, sample, body
+
+
+def _jsonable(value: Any) -> Any:
+    """Coerce a parquet cell to something `json.dumps` and a prompt can hold.
+
+    The other formats arrive as JSON or text, so their cells are JSON-native by
+    construction; parquet is the first source that can hand back a timestamp, a
+    Decimal or a nested struct. `Acquired.to_dict` promises every value in it is
+    JSON-able — it is checkpointed graph state — so the coercion belongs here
+    rather than in a `default=` on one of the several writers downstream.
+    """
+    if isinstance(value, str | int | float | bool) or value is None:
+        return value
+    return str(value)
+
+
 def describe(body: bytes) -> tuple[str, list[str], int, list[dict], bytes] | None:
     """Identify the body by its content, never by its content-type header.
 
@@ -387,6 +498,11 @@ def describe(body: bytes) -> tuple[str, list[str], int, list[dict], bytes] | Non
     one header this module *does* trust it trusts negatively (see
     REJECTED_CONTENT_TYPES).
     """
+    # Parquet first, and by magic bytes: it is binary, so the utf-8 decode
+    # below would reject it before any parser saw it.
+    if body.startswith(PARQUET_MAGIC):
+        return _describe_parquet(body)
+
     try:
         # utf-8-sig, not utf-8: government CSV exports are routinely BOM-prefixed,
         # and a plain utf-8 decode glues \ufeff onto the first column's name. That

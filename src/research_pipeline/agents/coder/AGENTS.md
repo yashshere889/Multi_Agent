@@ -392,6 +392,33 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 - **`CKAN_PORTALS` entries store whole URLs, not a base.** `data.europa.eu` serves
   `package_search` under its hub path rather than `/api/3/action/`, and deriving the suffix
   silently 404'd every request to it. `catalog.data.gov` is absent because it 404s on both paths.
+- **The Hugging Face connector queries with word *pairs*, not one keyword string.** The Hub's
+  `search` matches dataset names and narrows with every word, so `query_for`'s shape — right for
+  CKAN and Zenodo, which match terms — is the one thing guaranteed to miss here. Measured live:
+  "documents labelled category text" returns nothing, "text classification" returns ten.
+  `_hf_queries` keeps `huggingface_client._keyword_queries` first (it owns the rule that a number
+  joined to a name is part of it, so "conll2003" finds CoNLL-2003) and then walks adjacent pairs.
+- **`search_huggingface` is the only connector that checks whether a format is readable.** Every
+  candidate it can offer is parquet, so without `acquire.parquet_supported()` each one would
+  fetch, fail to parse and burn a probe the other connectors could have used. The format tables
+  (`TABULAR_EXTENSIONS`/`TABULAR_FORMATS`) stay static for the opposite reason: they describe what
+  the pipeline reads, not what today's interpreter has installed, and a stray CKAN parquet
+  resource costs one probe where a runtime-dependent table would make the format set vary by
+  environment. Its relevance pre-filter is a bound on request count only — `_find_source` applies
+  the identical gate afterwards, so it can never admit what the caller would reject.
+- **`discover.py` importing `huggingface_client` does not break the no-settings rule.** That
+  module reads `settings.huggingface_api_token` for its own optional auth header and always did;
+  `discover.py` still resolves no configuration of its own, and its cache directory and caps still
+  arrive as arguments.
+- **`acquire.describe` checks the parquet magic before the utf-8 decode.** Every other format is
+  identified by decoding and parsing; parquet is binary and would be rejected by the decode that
+  comes first. The bytes are written back unchanged rather than normalized to JSON Lines — it is
+  already a file, and re-encoding a columnar one loses its dtypes and inflates it. Parquet cells
+  go through `_jsonable` because it is the only source here that can return a timestamp or a
+  Decimal, and `Acquired.to_dict` is checkpointed graph state.
+- **`pyarrow` is a base dependency, and the import is still guarded.** Base because the Hub
+  connector is useless without it; guarded because this module may not raise, so an environment
+  provisioned before it became one degrades to the surrogate it produced before.
 - **Nothing in `acquire.py` or `discover.py` may raise, and neither may read settings.** Same two rules as
   `huggingface_client.py` and `sandbox.py` respectively: every failure degrades to `None`/`{}` and
   leaves the run exactly as it was without the module, and the cache directory and byte cap arrive

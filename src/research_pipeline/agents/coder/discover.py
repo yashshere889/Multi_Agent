@@ -18,13 +18,31 @@ better than a HEAD request would.
 
 Connectors, in the order they are tried:
 
-    direct   a URL or DOI written into the plan's own `source` field
-    ckan     the CKAN portals below — one API shape (`package_search`) shared
-             by the UK, Canadian, Australian and EU open-data catalogues
-    zenodo   research datasets and their DOIs
+    direct        a URL or DOI written into the plan's own `source` field
+    huggingface   the Hub, via `huggingface_client` — where ML benchmark
+                  corpora live, and nowhere else here does
+    ckan          the CKAN portals below — one API shape (`package_search`)
+                  shared by the UK, Canadian, Australian and EU open-data
+                  catalogues
+    zenodo        research datasets and their DOIs
 
 Adding a portal is one line in `CKAN_PORTALS`; adding a catalogue with a
 different API shape is one function plus one line in `CONNECTORS`.
+
+The Hugging Face connector is here because the government and research
+catalogues, between them, hold almost no machine-learning corpus. A requirement
+like "documents labelled with a category" finds nothing in any of them, while
+the Hub serves 20 Newsgroups and AG News — and a run on "how much of a
+document's text must be extracted before its category can be classified
+reliably" had to have both hand-staged into `CODER_DATA_DIR` for that reason.
+It differs from the others in two ways worth knowing. It offers **parquet**
+only, since that is the single format the Hub serves every auto-converted
+dataset in, so it declines to nominate anything at all when
+`acquire.parquet_supported()` is false rather than spending the probe budget
+proving it; and it applies `is_relevant` to the search hits *before* asking the
+Hub for their parquet URLs, purely to bound the request count — the caller
+applies the same gate again afterwards, so this changes cost and not which
+candidates are admitted.
 
 **The relevance gate is the load-bearing part.** A search that returns *some*
 real dataset for "UK air quality" is not the same as returning the right one,
@@ -73,7 +91,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from research_pipeline.agents.coder import acquire, provenance
+from research_pipeline.agents.coder import acquire, huggingface_client, provenance
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +132,23 @@ CKAN_PORTALS: list[tuple[str, str, str]] = [
 
 ZENODO_RECORDS_URL = "https://zenodo.org/api/records"
 
+# The Hub's per-dataset parquet index: GET it and you get
+# {config: {split: [shard urls]}} for every auto-converted dataset. Asked for
+# rather than assembled, because the config is not always "default" — openai/gsm8k
+# publishes "main" and "socratic" and no "default" at all, so building the URL
+# from a template would 404 on exactly the datasets worth having.
+HF_DATASET_PARQUET_URL = "https://huggingface.co/api/datasets/{dataset_id}/parquet"
+HF_DATASET_LANDING_URL = "https://huggingface.co/datasets/{dataset_id}"
+
+# How many Hub hits are asked for their parquet index. One request each, spent
+# only on hits that already cleared the relevance gate on their search-payload
+# title and description — so the connector costs one search plus at most this
+# many, however many datasets the Hub returns.
+MAX_HF_PARQUET_LOOKUPS = 4
+# How many queries the Hub is asked before giving up on a requirement. See
+# `_hf_queries` for why a requirement needs several.
+MAX_HF_QUERIES = 6
+
 # How many catalogue hits are considered per connector, and how many candidates
 # are actually fetched before giving up on a requirement. Each fetch is a real
 # download, so the second number is the one that costs wall clock.
@@ -131,8 +166,17 @@ RELEVANCE_FRACTION = 0.6
 # Formats this pipeline can actually read (see acquire.describe). Everything
 # else a catalogue offers — XLSX, PDF, XML, ZIP, WMS endpoints — is skipped
 # rather than downloaded and rejected.
-TABULAR_EXTENSIONS = (".csv", ".tsv", ".json", ".jsonl", ".ndjson")
-TABULAR_FORMATS = {"CSV", "TSV", "JSON", "JSONL", "NDJSON"}
+#
+# Parquet is listed unconditionally rather than gated on
+# `acquire.parquet_supported()`, even though reading it needs pyarrow. These
+# tables describe what the pipeline reads, not what today's interpreter
+# happens to have installed, and the cost of being wrong is asymmetric: a
+# stray CKAN parquet resource costs one probe, while making the tables
+# runtime-dependent would make the whole format set vary by environment.
+# `search_huggingface` is the one place that does check, because parquet is
+# the only thing it can offer.
+TABULAR_EXTENSIONS = (".csv", ".tsv", ".json", ".jsonl", ".ndjson", ".parquet")
+TABULAR_FORMATS = {"CSV", "TSV", "JSON", "JSONL", "NDJSON", "PARQUET"}
 # GeoJSON is JSON and would parse — into one row per map feature with a nested
 # geometry blob for a column. That is not the table the plan asked for, and it
 # is worse than nothing because it looks like success.
@@ -459,9 +503,149 @@ def search_zenodo(requirement: str) -> list[Candidate]:
     return candidates
 
 
+def _hf_queries(requirement: str) -> list[str]:
+    """The ladder of queries to try against the Hub, most specific first.
+
+    `query_for`'s space-joined keywords are the wrong shape here, and measurably
+    so. The Hub's `search` matches dataset *names*, not free text, and it
+    narrows with every word: measured live, "documents labelled category text"
+    returns nothing, "documents labelled" returns nothing, and "text
+    classification" returns ten — so a single query built from the whole
+    requirement is the one thing guaranteed to miss.
+
+    So: `huggingface_client._keyword_queries` first, reused rather than
+    restated because it holds the rule that a number joined to a name is part
+    of the name ("conll2003" finds CoNLL-2003 where "conll" does not). Then
+    every *adjacent pair* of content words, in the order the requirement wrote
+    them. Pairs, because a dataset name is where the requirement's vocabulary
+    actually lands — "text classification", "named entity", "news articles" —
+    while single words return whatever the Hub ranks highest for a topic and
+    lean on `is_relevant` to throw all of it away again.
+
+    The caller stops at the first query that yields an admitted candidate, so
+    the length of this list is a cap on a miss, not a cost paid every time.
+    """
+    queries = [query for query in huggingface_client._keyword_queries(requirement) if query]
+    words = [
+        word.lower()
+        for word in re.split(r"[^A-Za-z0-9]+", requirement or "")
+        if _is_content_word(word)
+    ]
+    for first, second in zip(words, words[1:]):
+        pair = f"{first} {second}"
+        if pair not in queries:
+            queries.append(pair)
+    # A one-word requirement has no pairs, and dropping it entirely would make
+    # the shortest requirements the only unsearchable ones.
+    if len(words) == 1 and words[0] not in queries:
+        queries.append(words[0])
+    return queries[:MAX_HF_QUERIES]
+
+
+def _hf_parquet_shard(dataset_id: str) -> tuple[str, str, str] | None:
+    """(url, config, split) for one parquet shard of `dataset_id`, or None.
+
+    The preferred split if the dataset publishes one, else the first it lists —
+    `huggingface_client.PREFERRED_SPLITS` is reused rather than restated, so
+    "which split is the representative one?" keeps having one answer in this
+    package. The first shard only: `acquire` caps a fetch by bytes, and one
+    shard of a Hub corpus is already more rows than these experiments use.
+    """
+    index = _get_json(HF_DATASET_PARQUET_URL.format(dataset_id=dataset_id), {})
+    if not isinstance(index, dict) or not index:
+        return None
+    configs = {
+        name: splits
+        for name, splits in index.items()
+        if isinstance(splits, dict) and isinstance(name, str)
+    }
+    if not configs:
+        return None
+    config = "default" if "default" in configs else next(iter(configs))
+    splits = configs[config]
+    ordered = [name for name in huggingface_client.PREFERRED_SPLITS if name in splits]
+    ordered += [name for name in splits if name not in ordered]
+    for split in ordered:
+        shards = splits.get(split)
+        if isinstance(shards, list) and shards and isinstance(shards[0], str):
+            return shards[0], config, str(split)
+    return None
+
+
+def search_huggingface(requirement: str) -> list[Candidate]:
+    """Hub datasets whose parquet export this pipeline can fetch and read.
+
+    The Hub is the only catalogue here that holds ML benchmark corpora, and it
+    goes through `huggingface_client` rather than a second search
+    implementation of its own.
+
+    Queries come from `_hf_queries` and the first that yields an admitted
+    candidate wins, the same shape `find_dataset_for_experiment` uses: a later,
+    broader query only ever adds worse matches to a pool that already has one.
+    """
+    # Declining is the honest answer, not a degradation: every candidate this
+    # connector can produce is parquet, so without a reader they would each
+    # fetch, fail to parse and burn a probe the other connectors could use.
+    if not acquire.parquet_supported():
+        logger.info("Skipping the Hugging Face connector: no parquet reader available")
+        return []
+
+    for query in _hf_queries(requirement):
+        candidates: list[Candidate] = []
+        lookups = 0
+        for hit in huggingface_client.search_datasets(query, limit=MAX_HITS_PER_CONNECTOR):
+            dataset_id = str(hit.get("id") or "")
+            if not dataset_id or hit.get("gated") or hit.get("private"):
+                # Gated and private datasets need a token that generated code
+                # would not have, so they are a miss however well they match.
+                continue
+            described = Candidate(
+                name=requirement,
+                url="",
+                connector="huggingface",
+                title=dataset_id,
+                # The card summary plus the Hub's own topical tags. Tags are
+                # what carry the vocabulary a plan uses — `text-classification`,
+                # `topic-classification` — where a dataset id like `ag_news`
+                # shares no word with "documents labelled with a category".
+                description=" ".join(
+                    [str(hit.get("description") or "")]
+                    + [str(tag) for tag in hit.get("tags") or [] if isinstance(tag, str)]
+                ),
+                landing_page=HF_DATASET_LANDING_URL.format(dataset_id=dataset_id),
+            )
+            # Pre-filtered here purely to bound the request count; `_find_source`
+            # applies the identical gate to whatever comes back, so this cannot
+            # admit anything the caller would have rejected.
+            if not is_relevant(requirement, described):
+                continue
+            if lookups >= MAX_HF_PARQUET_LOOKUPS:
+                break
+            lookups += 1
+            shard = _hf_parquet_shard(dataset_id)
+            if shard is None:
+                # No parquet export: the dataset exists only as loose files, or
+                # is too large for the Hub to convert. Nothing to fetch.
+                continue
+            url, config, split = shard
+            described.url = url
+            described.resource = f"{config}/{split} (parquet)"
+            candidates.append(described)
+        if candidates:
+            return candidates
+    return []
+
+
 # The registry. Order is the search order, cheapest and most specific first.
+# `huggingface` sits ahead of the open-data catalogues rather than after them
+# because the two answer disjoint questions: the Hub holds the ML corpora and
+# almost no civic statistics, CKAN and Zenodo the reverse. Ordering them costs
+# nothing when they disagree and saves four `package_search` calls when the
+# requirement is a benchmark corpus — and candidates are pooled and ranked
+# together afterwards regardless, so this is request order, not precedence.
 CONNECTORS: list[tuple[str, Callable[[str], list[Candidate]]]] = [
     ("direct", search_direct),
+    ("huggingface", search_huggingface),
     ("ckan", search_ckan),
     ("zenodo", search_zenodo),
 ]

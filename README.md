@@ -950,13 +950,28 @@ ordinary case: a requirement matching no table becomes a surrogate, so the
 experiment invents its inputs, and for an arbitrary research plan that is most
 requirements.
 
-`agents/coder/discover.py` searches instead. Three connectors are tried in
-order — a URL or DOI the plan wrote down, the CKAN portals (`data.gov.uk`,
-`open.canada.ca`, `data.gov.au`, `data.europa.eu`, all speaking one
-`package_search` API), then Zenodo — and each candidate is handed to
+`agents/coder/discover.py` searches instead. Four connectors are tried in
+order — a URL or DOI the plan wrote down, the Hugging Face Hub, the CKAN portals
+(`data.gov.uk`, `open.canada.ca`, `data.gov.au`, `data.europa.eu`, all speaking
+one `package_search` API), then Zenodo — and each candidate is handed to
 `acquire.fetch`, which doubles as the probe: a candidate that comes back as
 described tabular data is real, and one that does not is dropped. Adding a
 portal is one line; adding a catalogue is one function.
+
+The Hub is there because the government and research catalogues, between them,
+hold almost no machine-learning corpus. "Documents labelled with a category"
+matches nothing in any of them — a run on *how much of a document's text must be
+extracted before its category can be classified reliably* had 20 Newsgroups and
+AG News hand-staged into `CODER_DATA_DIR` for exactly that reason — while the
+Hub serves both. It reaches them as **parquet**, the one format the Hub serves
+auto-converted datasets in, which is why `acquire.py` reads parquet at all and
+why `pyarrow` is a base dependency rather than an extra. Two things differ from
+the other connectors: the parquet index is *asked for* rather than assembled
+from a URL template, since the config is not always `default` (`openai/gsm8k`
+publishes `main` and `socratic`), and the Hub is queried with **adjacent word
+pairs** rather than one keyword query, because its `search` matches dataset
+*names* and narrows with every word — measured live, `documents labelled
+category text` returns nothing and `text classification` returns ten.
 
 Two deterministic gates decide what is even downloaded. A candidate must clear
 `is_relevant` — a *majority* of the requirement's content words shared with the
