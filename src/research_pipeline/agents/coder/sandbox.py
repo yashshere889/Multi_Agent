@@ -578,12 +578,43 @@ def check_data_fallback(load_data_function_source: str) -> list[str]:
 # by these exact bare global names — the wiring is fixed template text, not
 # model output, so a section that defines something differently named is simply
 # not callable.
-REQUIRED_FUNCTION_NAMES: dict[str, str] = {
-    "load_data_function": "load_data",
-    "build_model_function": "build_model",
-    "run_experiment_function": "run_experiment",
-    "evaluate_function": "evaluate",
+# Section -> (the function run.py's orchestration calls, how many positional
+# arguments it calls it with). The arity half exists because `build_model` takes
+# the loaded data: a model that cannot see its inputs has to hard-code the shapes
+# it needs (input dim, class count, vocab size), which is fine for a fixed
+# synthetic fixture and wrong for anything fitted to real data. A section that
+# writes `def build_model():` compiles, defines the right name, and dies on a
+# TypeError only after a venv has been provisioned — so the arity is checked here
+# with the name, for the same reason the name is.
+REQUIRED_FUNCTIONS: dict[str, tuple[str, int]] = {
+    "load_data_function": ("load_data", 0),
+    "build_model_function": ("build_model", 1),
+    "run_experiment_function": ("run_experiment", 2),
+    "evaluate_function": ("evaluate", 1),
 }
+
+# The names alone, for the checks that only ask "is it defined" —
+# check_nontrivial_function_bodies has no opinion about arity.
+REQUIRED_FUNCTION_NAMES: dict[str, str] = {
+    section: name for section, (name, _) in REQUIRED_FUNCTIONS.items()
+}
+
+
+def _accepts_positional(node: ast.FunctionDef | ast.AsyncFunctionDef, count: int) -> bool:
+    """Whether `node` can be called with exactly `count` positional arguments.
+
+    Not an equality check on the parameter list: extra trailing parameters that
+    have defaults are fine (`def run_experiment(data, model, verbose=False)` is
+    callable with two), and `*args` absorbs any number beyond the required ones.
+    Keyword-only parameters are ignored entirely — they take no positional slot,
+    and one with no default would be a TypeError this check is not looking for.
+    """
+    args = node.args
+    slots = len(args.posonlyargs) + len(args.args)
+    required = slots - len(args.defaults)
+    if args.vararg is not None:
+        return count >= required
+    return required <= count <= slots
 
 
 def check_required_function_names(sections: dict[str, str]) -> list[str]:
@@ -611,23 +642,37 @@ def check_required_function_names(sections: dict[str, str]) -> list[str]:
     define correctly.
     """
     findings = []
-    for section_name, expected_fn in REQUIRED_FUNCTION_NAMES.items():
+    for section_name, (expected_fn, arity) in REQUIRED_FUNCTIONS.items():
         source = sections.get(section_name, "")
         try:
             tree = ast.parse(source)
         except SyntaxError:
             continue
         defined = {
-            node.name
+            node.name: node
             for node in tree.body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
-        if expected_fn not in defined:
+        node = defined.get(expected_fn)
+        if node is None:
             findings.append(
                 f"{section_name} does not define a top-level `def {expected_fn}(...)` "
                 f"(found: {sorted(defined) or 'no top-level function'}) — run.py's fixed "
                 f"orchestration calls {expected_fn}() by that exact name, so the experiment "
                 "would fail with a NameError"
+            )
+            continue
+        if not _accepts_positional(node, arity):
+            call = {
+                "load_data": "load_data()",
+                "build_model": "build_model(data)",
+                "run_experiment": "run_experiment(data, model)",
+                "evaluate": "evaluate(experiment_output)",
+            }[expected_fn]
+            findings.append(
+                f"{section_name} defines `{expected_fn}` but it cannot be called with "
+                f"{arity} positional argument(s) — run.py's fixed orchestration calls "
+                f"`{call}`, so the experiment would fail with a TypeError"
             )
     return findings
 

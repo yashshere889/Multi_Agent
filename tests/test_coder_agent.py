@@ -1,12 +1,16 @@
 import dataclasses
 import json
+import signal
+import subprocess
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from langgraph.store.memory import InMemoryStore
 
+from research_pipeline.agents.coder import coder_agent as coder_agent_module
 from research_pipeline.agents.coder import (
     compute_provenance,
     diagnose,
@@ -712,7 +716,7 @@ GOOD_SECTIONS = {
     "imports": "",
     "configuration": "",
     "load_data_function": "def load_data():\n    return None\n",
-    "build_model_function": "def build_model():\n    return None\n",
+    "build_model_function": "def build_model(data):\n    return None\n",
     "run_experiment_function": "def run_experiment(data, model):\n    return {}\n",
     "evaluate_function": (
         "def evaluate(experiment_output):\n"
@@ -1197,7 +1201,7 @@ def test_render_experiment_template_handles_braces_in_generated_code(tmp_path):
         agent_imports="",
         agent_configuration='CONFIG = {"a": 1, "b": {"nested": 2}}',
         load_data_function='def load_data():\n    return {"x": 1}\n',
-        build_model_function="def build_model():\n    return None\n",
+        build_model_function="def build_model(data):\n    return None\n",
         run_experiment_function='def run_experiment(data, model):\n    label = f"{data[\'x\']}"\n    return {"label": label}\n',
         evaluate_function='def evaluate(experiment_output):\n    return {"meets_success_criteria": "unknown", "success_notes": f"got {experiment_output}"}\n',
         agent_helpers="",
@@ -2146,7 +2150,7 @@ HOLLOW_SECTIONS = {
         "    pass\n"
     ),
     "build_model_function": (
-        "def build_model():\n    # Build a logistic regression classifier\n    pass\n"
+        "def build_model(data):\n    # Build a logistic regression classifier\n    pass\n"
     ),
     "run_experiment_function": (
         "def run_experiment(data, model):\n    # Train the model and collect predictions\n    pass\n"
@@ -4383,7 +4387,14 @@ def test_smoke_run_leaves_neither_its_script_nor_its_results_behind(tmp_path, mo
         (Path(cwd) / "results.json").write_text(json.dumps({"metrics": {"accuracy": 0.1}}))
         if Path(run_script).name == "run_smoke.py":
             seen_during_run["smoke_script_existed"] = Path(run_script).exists()
+            # A smoke run of a training experiment writes these too, exactly as
+            # the real run does.
+            (Path(cwd) / "progress.jsonl").write_text('{"epoch": 0}\n')
+            (Path(cwd) / "checkpoint.pt").write_text("smoke")
             return True, ""
+        seen_during_run["checkpoint_survived_into_the_real_run"] = (
+            Path(cwd) / "checkpoint.pt"
+        ).exists()
         (Path(cwd) / "results.json").write_text(
             json.dumps({"metrics": {"accuracy": 0.9}, "meets_success_criteria": True})
         )
@@ -4394,6 +4405,11 @@ def test_smoke_run_leaves_neither_its_script_nor_its_results_behind(tmp_path, mo
 
     assert seen_during_run["smoke_script_existed"] is True
     assert not (tmp_path / "experiments" / "H1" / "run_smoke.py").exists()
+    # The checkpoint matters as much as the results: a later run started with
+    # --resume would otherwise resume the *smoke* run's pinned first epoch and
+    # report the experiment as having trained on from there.
+    assert seen_during_run["checkpoint_survived_into_the_real_run"] is False
+    assert not (tmp_path / "experiments" / "H1" / "progress.jsonl").exists()
     # The reported metrics are the full run's, never the smoke run's.
     assert result["experiments"][0]["results"]["metrics"] == {"accuracy": 0.9}
 
@@ -5168,3 +5184,272 @@ def test_reconciling_twice_changes_nothing_the_second_time(tmp_path):
     assert first.action == reconcile.ACTION_COMPLETED
     assert second is None, "an already-reconciled experiment is not this pass's business"
     assert twice == once
+
+
+# -- the template's training-shaped runtime -----------------------------------------------
+
+
+def _render_with(sections: dict, hid: str = "T1") -> str:
+    merged = {**GOOD_SECTIONS, **sections}
+    return sandbox.render_experiment_template(
+        hypothesis_id=hid,
+        objective="test objective",
+        design="test design",
+        data_description="synthetic",
+        baseline="n/a",
+        success_criteria="n/a",
+        agent_imports=merged.get("imports", ""),
+        agent_configuration=merged.get("configuration", ""),
+        load_data_function=merged["load_data_function"],
+        build_model_function=merged["build_model_function"],
+        run_experiment_function=merged["run_experiment_function"],
+        evaluate_function=merged["evaluate_function"],
+        agent_helpers=merged.get("helpers", ""),
+    )
+
+
+# A run_experiment that checkpoints each epoch and picks up where it left off,
+# i.e. the shape the prompt now asks a training loop to have.
+_RESUMABLE_SECTIONS = {
+    "run_experiment_function": (
+        "def run_experiment(data, model):\n"
+        "    resume_from = resume_checkpoint()\n"
+        "    start = 0\n"
+        "    if resume_from is not None:\n"
+        "        start = json.loads(resume_from.read_text())['epoch']\n"
+        "    for epoch in range(start, 3):\n"
+        "        log_progress(epoch=epoch)\n"
+        "        tmp = begin_checkpoint()\n"
+        "        tmp.write_text(json.dumps({'epoch': epoch + 1}))\n"
+        "        finish_checkpoint(tmp)\n"
+        "    return {'start_epoch': start}\n"
+    ),
+    "evaluate_function": (
+        "def evaluate(experiment_output):\n"
+        "    return {\n"
+        "        'start_epoch': experiment_output['start_epoch'],\n"
+        "        'meets_success_criteria': True,\n"
+        "        'success_notes': 'ok',\n"
+        "    }\n"
+    ),
+}
+
+
+def _run_generated(experiment_dir, *args):
+    return subprocess.run(
+        [sys.executable, "run.py", *args],
+        cwd=experiment_dir,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+
+def test_a_checkpointing_run_resumes_instead_of_starting_over(tmp_path):
+    """The whole point of the checkpoint primitives: a second attempt started
+    with --resume continues from the last checkpoint. This is what makes a
+    preempt-and-requeue partition usable for a long training run."""
+    experiment_dir = tmp_path / "T1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text(_render_with(_RESUMABLE_SECTIONS))
+
+    first = _run_generated(experiment_dir)
+    assert first.returncode == 0, first.stderr
+    assert json.loads((experiment_dir / "results.json").read_text())["metrics"] == {
+        "start_epoch": 0
+    }
+    assert (experiment_dir / "checkpoint.pt").exists()
+    # One line per epoch, flushed as it went — the only trace a killed run leaves.
+    progress = (experiment_dir / "progress.jsonl").read_text().splitlines()
+    assert [json.loads(line)["epoch"] for line in progress] == [0, 1, 2]
+
+    second = _run_generated(experiment_dir, "--resume")
+    assert second.returncode == 0, second.stderr
+    results = json.loads((experiment_dir / "results.json").read_text())
+    assert results["metrics"] == {"start_epoch": 3}, "did not resume from the checkpoint"
+    assert results["resumed"] is True
+
+
+def test_a_rerun_without_resume_ignores_an_existing_checkpoint(tmp_path):
+    """resume_checkpoint() returns None unless --resume was actually passed, so
+    generated code can call it unconditionally without a stale checkpoint from
+    an earlier attempt silently contaminating a fresh run."""
+    experiment_dir = tmp_path / "T1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text(_render_with(_RESUMABLE_SECTIONS))
+
+    assert _run_generated(experiment_dir).returncode == 0
+    assert (experiment_dir / "checkpoint.pt").exists()
+
+    again = _run_generated(experiment_dir)
+    assert again.returncode == 0, again.stderr
+    results = json.loads((experiment_dir / "results.json").read_text())
+    assert results["metrics"] == {"start_epoch": 0}
+    assert results["resumed"] is False
+
+
+def test_resume_on_a_first_attempt_with_no_checkpoint_just_starts_fresh(tmp_path):
+    """Why `python run.py --resume` is correct as the only line in run.sbatch:
+    on the first attempt there is nothing to resume from."""
+    experiment_dir = tmp_path / "T1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text(_render_with(_RESUMABLE_SECTIONS))
+
+    proc = _run_generated(experiment_dir, "--resume")
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads((experiment_dir / "results.json").read_text())["metrics"] == {
+        "start_epoch": 0
+    }
+
+
+def test_an_interrupted_run_writes_no_results_and_keeps_its_checkpoint(tmp_path):
+    """SLURM sends SIGTERM before killing a preempted job. The run must not
+    leave behind a results.json — an interrupted experiment has no result, and
+    a fabricated one would put a number in front of the Writer that nothing
+    produced. What it must leave is the checkpoint, so the requeued attempt can
+    carry on."""
+    sections = {
+        "run_experiment_function": (
+            "def run_experiment(data, model):\n"
+            "    tmp = begin_checkpoint()\n"
+            "    tmp.write_text(json.dumps({'epoch': 1}))\n"
+            "    finish_checkpoint(tmp)\n"
+            "    log_progress(epoch=1)\n"
+            "    time.sleep(30)\n"
+            "    return {}\n"
+        )
+    }
+    experiment_dir = tmp_path / "T1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text(_render_with(sections))
+
+    proc = subprocess.Popen(
+        [sys.executable, "run.py"],
+        cwd=experiment_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.time() + 20
+        while not (experiment_dir / "progress.jsonl").exists() and time.time() < deadline:
+            time.sleep(0.05)
+        assert (experiment_dir / "progress.jsonl").exists(), "run.py never reached the loop"
+        proc.send_signal(signal.SIGTERM)
+        proc.communicate(timeout=20)
+    finally:
+        if proc.poll() is None:  # pragma: no cover - only on an unexpected hang
+            proc.kill()
+            proc.communicate()
+
+    assert proc.returncode == 128 + signal.SIGTERM
+    assert not (experiment_dir / "results.json").exists()
+    assert json.loads((experiment_dir / "checkpoint.pt").read_text()) == {"epoch": 1}
+    events = [
+        json.loads(line) for line in (experiment_dir / "progress.jsonl").read_text().splitlines()
+    ]
+    assert events[-1]["event"] == "interrupted"
+
+
+def test_finish_checkpoint_replaces_the_previous_one_atomically(tmp_path):
+    """A job killed mid-write must not be able to destroy the last good
+    checkpoint, which is why writing goes via a temporary path."""
+    sections = {
+        "run_experiment_function": (
+            "def run_experiment(data, model):\n"
+            "    tmp = begin_checkpoint()\n"
+            "    assert tmp.name.endswith('.tmp'), tmp\n"
+            "    tmp.write_text('first')\n"
+            "    final = finish_checkpoint(tmp)\n"
+            "    assert final.name == 'checkpoint.pt', final\n"
+            "    assert not tmp.exists(), 'the temporary file should be gone'\n"
+            "    tmp2 = begin_checkpoint()\n"
+            "    tmp2.write_text('second')\n"
+            "    finish_checkpoint(tmp2)\n"
+            "    return {'contents': final.read_text()}\n"
+        ),
+        "evaluate_function": (
+            "def evaluate(experiment_output):\n"
+            "    return {\n"
+            "        'ok': 1,\n"
+            "        'meets_success_criteria': True,\n"
+            "        'success_notes': experiment_output['contents'],\n"
+            "    }\n"
+        ),
+    }
+    experiment_dir = tmp_path / "T1"
+    experiment_dir.mkdir()
+    (experiment_dir / "run.py").write_text(_render_with(sections))
+
+    proc = _run_generated(experiment_dir)
+    assert proc.returncode == 0, proc.stderr
+    assert (experiment_dir / "checkpoint.pt").read_text() == "second"
+    assert not (experiment_dir / "checkpoint.pt.tmp").exists()
+
+
+# -- build_model's arity ------------------------------------------------------------------
+
+
+def test_build_model_without_the_data_parameter_is_caught_before_anything_runs():
+    """`def build_model():` compiles, defines the right name, and dies on a
+    TypeError only after a venv has been provisioned. It is cheap to catch here."""
+    findings = sandbox.check_required_function_names(
+        {**GOOD_SECTIONS, "build_model_function": "def build_model():\n    return None\n"}
+    )
+    assert len(findings) == 1
+    assert "build_model(data)" in findings[0]
+    assert "TypeError" in findings[0]
+
+
+def test_extra_parameters_with_defaults_are_fine():
+    # Callable with the arity the orchestration uses, so not a finding.
+    assert (
+        sandbox.check_required_function_names(
+            {
+                **GOOD_SECTIONS,
+                "build_model_function": "def build_model(data, verbose=False):\n    return None\n",
+                "run_experiment_function": (
+                    "def run_experiment(data, model, *extra):\n    return {}\n"
+                ),
+            }
+        )
+        == []
+    )
+
+
+def test_a_required_parameter_too_many_is_a_finding():
+    findings = sandbox.check_required_function_names(
+        {**GOOD_SECTIONS, "evaluate_function": "def evaluate(output, registry):\n    return {}\n"}
+    )
+    assert len(findings) == 1
+    assert "evaluate(experiment_output)" in findings[0]
+
+
+def test_a_wrong_name_is_still_reported_as_a_wrong_name():
+    # The arity check must not shadow the older, more basic finding.
+    findings = sandbox.check_required_function_names(
+        {**GOOD_SECTIONS, "build_model_function": "def make_model(data):\n    return None\n"}
+    )
+    assert len(findings) == 1
+    assert "does not define a top-level" in findings[0]
+
+
+# -- the compute budget the prompt names --------------------------------------------------
+
+
+def test_the_prompt_names_the_budget_the_executor_actually_enforces(monkeypatch):
+    """A prompt that names a different number than the killer uses is how an
+    experiment gets written to be tiny under a budget it had far more of."""
+    _patch_settings(monkeypatch, coder_medium_complexity_timeout_seconds=600)
+
+    text = coder_agent_module._compute_budget_text("medium")
+
+    assert "600s" in text
+    assert "10 minutes" in text
+    assert coder_agent_module._timeout_for("medium") == 600
+
+
+def test_the_high_complexity_budget_mentions_the_cluster_path():
+    text = coder_agent_module._compute_budget_text("high")
+    assert "24-hour" in text
+    assert "checkpoint" in text

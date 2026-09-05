@@ -760,6 +760,43 @@ the compute is already dedicated to this pipeline. Writes
 docstring for the exact output schema and execution model (confirmed with
 the pipeline owner, not assumed).
 
+#### What a generated experiment is written against
+
+The model does not write a whole file. It fills seven sections into
+[`run.py.template`](src/research_pipeline/agents/coder/templates/run.py.template),
+whose fixed parts call, in order, `data = load_data()`,
+`model = build_model(data)`, `experiment_output = run_experiment(data, model)`,
+`eval_output = evaluate(experiment_output)`. `build_model` receives the loaded
+data so shapes that depend on the dataset — feature count, number of classes,
+vocabulary size — are read off it rather than hard-coded; a section that writes
+`def build_model():` is caught by `check_required_function_names` before a venv
+is ever provisioned.
+
+The template also hands the generated code a small runtime it must not
+reimplement:
+
+| Call | What it does |
+|---|---|
+| `log_progress(**fields)` | Appends one flushed JSON line to `progress.jsonl` and logs it. Call it per epoch/fold/trial. |
+| `begin_checkpoint()` | A temporary path to write the next checkpoint to. |
+| `finish_checkpoint(tmp)` | Atomically moves it into place, replacing the previous one. |
+| `resume_checkpoint()` | The checkpoint to resume from, or `None` to start fresh. |
+
+Checkpointing is split into three calls because only the generated code knows
+how to serialize its own model (`torch.save`, `np.save`, `joblib.dump` — the
+template cannot import any of them) and only the template can guarantee that a
+job killed mid-write doesn't destroy the last good checkpoint. `run.sbatch` is
+generated with `--requeue`, `--open-mode=append` and `python run.py --resume`,
+so a job preempted off one of Barkla's free low-priority GPU partitions is
+requeued and continues instead of starting the experiment over. `--resume` is a
+no-op on a first attempt, which is what makes it safe as the only command in
+the script.
+
+An interrupted run writes **no** `results.json`. SLURM's SIGTERM is caught, the
+last checkpoint is kept, an `interrupted` line goes into `progress.jsonl`, and
+the process exits non-zero — a partial result that looks like a finished one is
+worse than no result at all.
+
 #### Collecting results from jobs that went to the cluster
 
 Submission is asynchronous and the pipeline is not: a run that submits a job

@@ -577,6 +577,44 @@ class CoderAgentError(RuntimeError):
     """Raised when the agent can't produce schema-valid output, even after retries."""
 
 
+def _timeout_for(complexity: str) -> int:
+    """The wall-clock budget _attempt_once will actually enforce for a plan of
+    this complexity. One definition, read by both the executor and the prompt —
+    a prompt that names a different number than the killer uses is how an
+    experiment ends up written to be tiny under a budget it had far more of."""
+    if complexity == "high":
+        return settings.coder_high_complexity_timeout_seconds
+    if complexity == "medium":
+        return settings.coder_medium_complexity_timeout_seconds
+    return settings.coder_low_complexity_timeout_seconds
+
+
+def _compute_budget_text(complexity: str) -> str:
+    """What the codegen prompt is told about the compute this experiment gets.
+
+    Deliberately concrete. The instruction it replaced told the model to prefer
+    "a deliberately small default (a data subsample, few iterations/epochs)"
+    with no number attached, which is advice to write a toy regardless of what
+    the experiment was actually given.
+    """
+    seconds = _timeout_for(complexity)
+    budget = f"about {seconds // 60} minutes" if seconds >= 120 else f"about {seconds} seconds"
+    text = (
+        f"estimated_complexity is {complexity!r}, so this gets {budget} "
+        f"({seconds}s) of wall clock and is killed at that point — code that cannot "
+        "finish within it produces no result at all. Size the experiment to fill that "
+        "budget rather than to finish well inside it."
+    )
+    if complexity == "high":
+        text += (
+            " If you report needs_gpu: true and no GPU is present where this was "
+            "generated, it is written out as a cluster job with a 24-hour limit "
+            "instead — so a training loop that checkpoints (see below) can use far "
+            "more time than the number above, while one that does not is capped by it."
+        )
+    return text
+
+
 class CoderAgent:
     def __init__(
         self,
@@ -1515,14 +1553,11 @@ class CoderAgent:
                 )
             }
 
-        # All three timeouts are settings-driven and read here rather than in
-        # sandbox.py, which deliberately reads no settings at all.
-        if complexity == "high":
-            timeout_seconds = settings.coder_high_complexity_timeout_seconds
-        elif complexity == "medium":
-            timeout_seconds = settings.coder_medium_complexity_timeout_seconds
-        else:
-            timeout_seconds = settings.coder_low_complexity_timeout_seconds
+        # Settings-driven and resolved here rather than in sandbox.py, which
+        # deliberately reads no settings at all. Shared with the codegen prompt
+        # via _timeout_for, so the budget the model is told about is the budget
+        # this line enforces.
+        timeout_seconds = _timeout_for(complexity)
         # Execution, plus the repairs that don't need the model.
         #
         # A failure is classified by *kind* before anything is decided about it
@@ -1768,12 +1803,21 @@ class CoderAgent:
             )
         finally:
             smoke_path.unlink(missing_ok=True)
-            # The smoke copy writes results.json into the experiment directory
-            # exactly as the real run does, and those numbers came from a run
-            # shrunk past the point of meaning anything. Removed rather than
-            # left for read_results_json_for_diagnosis — or a human reading the
-            # experiment directory — to mistake for the experiment's result.
-            (experiment_dir / "results.json").unlink(missing_ok=True)
+            # The smoke copy writes into the experiment directory exactly as the
+            # real run does, and everything it wrote came from a run shrunk past
+            # the point of meaning anything. Removed rather than left for
+            # read_results_json_for_diagnosis — or a human reading the experiment
+            # directory — to mistake for the experiment's own output. The
+            # checkpoint matters as much as the results here: a real run started
+            # with --resume would otherwise resume the *smoke* run's first epoch
+            # and report the experiment as having trained from there.
+            for leftover in (
+                "results.json",
+                "progress.jsonl",
+                "checkpoint.pt",
+                "checkpoint.pt.tmp",
+            ):
+                (experiment_dir / leftover).unlink(missing_ok=True)
 
         if succeeded:
             logger.info(
@@ -2467,6 +2511,7 @@ class CoderAgent:
                 self._provenance_for(plan, network_available, hf_dataset=hf_dataset)
             ),
             starter_block=self._starter_block(starter_id),
+            compute_budget=_compute_budget_text(plan["estimated_complexity"]),
             hypothesis_id=plan["hypothesis_id"],
             objective=plan["objective"],
             network_status="available" if network_available else "NOT available",

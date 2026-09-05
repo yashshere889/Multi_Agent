@@ -31,8 +31,15 @@ def load_data() -> Any:
 ===END load_data_function===
 
 ===BEGIN build_model_function===
-def build_model() -> Any:
-    return {"k": N_CLUSTERS, "max_iterations": MAX_ITERATIONS, "seed": RANDOM_SEED}
+def build_model(data: Any) -> Any:
+    """k is a hyperparameter, but it cannot exceed the number of points there
+    are to cluster — the kind of bound that has to be read off the data rather
+    than assumed, which is what build_model receives load_data's output for."""
+    return {
+        "k": min(N_CLUSTERS, len(data["points"])),
+        "max_iterations": MAX_ITERATIONS,
+        "seed": RANDOM_SEED,
+    }
 ===END build_model_function===
 
 ===BEGIN run_experiment_function===

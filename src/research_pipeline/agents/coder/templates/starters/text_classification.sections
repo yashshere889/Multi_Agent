@@ -53,13 +53,19 @@ def load_data() -> Any:
 ===END load_data_function===
 
 ===BEGIN build_model_function===
-def build_model() -> Any:
-    return {"smoothing": LAPLACE_SMOOTHING}
+def build_model(data: Any) -> Any:
+    """The label set is derived from the training data rather than written as a
+    literal: a classifier that hard-codes its classes silently drops every
+    example belonging to one it was never told about. That is exactly the kind
+    of thing build_model receives load_data's output to avoid."""
+    return {"smoothing": LAPLACE_SMOOTHING, "classes": sorted(set(data["train_labels"]))}
 ===END build_model_function===
 
 ===BEGIN run_experiment_function===
 def run_experiment(data: Any, model: Any) -> dict[str, Any]:
-    naive_bayes = _train_naive_bayes(data["train_docs"], data["train_labels"], model["smoothing"])
+    naive_bayes = _train_naive_bayes(
+        data["train_docs"], data["train_labels"], model["smoothing"], model["classes"]
+    )
     y_pred = [_predict_naive_bayes(naive_bayes, doc) for doc in data["test_docs"]]
     return {"y_true": data["test_labels"], "y_pred": y_pred}
 ===END run_experiment_function===
@@ -83,10 +89,15 @@ def _tokenize(document: str) -> list[str]:
     return document.lower().split()
 
 
-def _train_naive_bayes(docs: list[str], labels: list[int], smoothing: float) -> dict[str, Any]:
+def _train_naive_bayes(
+    docs: list[str], labels: list[int], smoothing: float, classes: list[int]
+) -> dict[str, Any]:
     vocab: set[str] = set()
-    class_word_counts: dict[int, Counter] = {0: Counter(), 1: Counter()}
-    class_doc_counts: dict[int, int] = {0: 0, 1: 0}
+    # Keyed off the classes build_model read from the data, not off a literal
+    # {0, 1} — a third label would otherwise raise a KeyError here, and a
+    # dataset that happens to use {-1, 1} would raise on the first document.
+    class_word_counts: dict[int, Counter] = {c: Counter() for c in classes}
+    class_doc_counts: dict[int, int] = {c: 0 for c in classes}
 
     for doc, label in zip(docs, labels):
         tokens = _tokenize(doc)

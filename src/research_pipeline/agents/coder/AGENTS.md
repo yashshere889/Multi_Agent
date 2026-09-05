@@ -32,8 +32,8 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `compute_provenance.py` | The same withholding, asked of the compute instead of the inputs: records which cost knobs `repair.downscale` had to shrink, and withholds the verdict when shrinking one changed what the experiment measures. No LLM. |
 | `prompts.py` | All prompt templates. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
-| `templates/run.py.template` | The fixed experiment scaffold — metadata block + orchestration footer that write `results.json`. Not model-generated. |
-| `templates/run.sbatch.template` | Barkla-shaped SLURM script. |
+| `templates/run.py.template` | The fixed experiment scaffold — metadata, the runtime-support block (`logger`, `log_progress`, `begin_checkpoint`/`finish_checkpoint`/`resume_checkpoint`, the SIGTERM handler) and the orchestration footer that writes `results.json`. Not model-generated. |
+| `templates/run.sbatch.template` | Barkla-shaped SLURM script — `--requeue`, `--open-mode=append`, and `python run.py --resume`, so a preempted job continues rather than restarting. |
 | `templates/starters/*.sections` | The starter library's content, one `.sections` file per archetype, in `llm_sections.py`'s own delimited format — parsed by the same `parse_sections` the model's responses are parsed by. |
 
 ## Conventions
@@ -100,6 +100,23 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   delimiter shapes have no braces at all (that's one less thing to get wrong than the JSON
   examples they replaced), and `HF_DATASET_USAGE_NOTE` keeps its literal JSON braces *unescaped*
   precisely because it is appended by `_hf_dataset_block` and never passed through `.format()`.
+- **The template hands generated code four things it must not reimplement.**
+  `log_progress(**fields)` (one flushed JSON line per epoch into `progress.jsonl` — the only
+  trace a killed job leaves, since `results.json` is deliberately never written for an
+  incomplete run), and `begin_checkpoint()`/`finish_checkpoint(tmp)`/`resume_checkpoint()`.
+  The checkpoint trio is split three ways for a reason: only the generated code knows how to
+  serialize its own model (torch.save, np.save, joblib), and only the template can guarantee a
+  job killed mid-write doesn't destroy the last good checkpoint — so the template hands out a
+  `.tmp` path and does the `os.replace`. It cannot use `pickle` itself: `pickle.loads?` is in
+  `DANGEROUS_PATTERNS` and `static_safety_check` runs over the whole *rendered* run.py, template
+  included, so a pickling template would fail its own safety gate on every experiment.
+  `resume_checkpoint()` returns None unless `--resume` was passed *and* a checkpoint exists,
+  which is what makes `python run.py --resume` correct as the only line in `run.sbatch`.
+- **`build_model` takes the data.** `REQUIRED_FUNCTIONS` in `sandbox.py` carries an arity
+  alongside each name and `_accepts_positional` enforces it, because `def build_model():`
+  compiles, defines the right name, passes every other check, and only dies on a TypeError once
+  a venv has been provisioned. Extra parameters with defaults and `*args` pass — the question is
+  "can the orchestration call this", not "does the signature match exactly".
 - **Three static checks run on the rendered `run.py`, in order, and they answer
   different questions.** `lenient_compile_check` asks "does it parse";
   `check_undefined_names` asks "does it bind every name it uses" (pyflakes, not a
