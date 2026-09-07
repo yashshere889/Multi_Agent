@@ -1,9 +1,76 @@
 \chapter{Project Ethics}
 \label{ch:ethics}
-% BUDGET: 1 page. Expands the front-matter statement.
-% OUTLINE: B3 in practice; participant handling and anonymisation at n=2;
-%  research-integrity risk (a tool that drafts papers); the poetry
-%  incident as an integrity failure mode and what prevents it;
-%  API terms of use; self-hosting as data governance; the
-%  unauthenticated tunnel as a known limitation.
-[TODO]
+
+% BUDGET: 1 page. Expands the front-matter statement of compliance rather than
+% repeating it; the declared categories and the consent arrangements are stated
+% there and are not restated here.
+
+This project was declared under Data Category~B and Participant Category~3. This chapter sets
+out how that declaration was honoured in practice, and the two ethical questions the work
+raised that the declaration did not anticipate.
+
+\section{Participants}
+
+Two activities involved human participants. The requirements analysis reported in
+Chapter~\ref{ch:requirements} was a questionnaire completed by academic staff before
+implementation began; the software evaluation in Chapter~\ref{ch:evaluation} followed the
+working system. Both were voluntary, both required explicit consent before any question could
+be answered, and participants could skip any item or stop at any point. No names, email
+addresses or other identifying fields were collected.
+
+Anonymisation required more care than the sample size first suggested. With two respondents,
+the combination of exact discipline, academic position and institution is close to
+identifying within a school of this size, so disciplines are generalised in
+Chapter~\ref{ch:requirements} and in the appendices. Free-text responses are reproduced
+verbatim because their content is the evidence, but nothing accompanying them narrows the
+population they came from.
+
+\section{Data}
+
+The pipeline retrieves publicly available metadata and open-access papers from the arXiv,
+Semantic Scholar~\cite{semanticscholar} and CORE~\cite{corapi} APIs, and reads public machine
+learning datasets in its experimentation stage, in each case under the provider's own terms.
+No personal data is processed by the software. Where a plan's data requirement names a
+restricted source --- clinical records under a data use agreement, for instance --- the system
+records that the source was not obtained and synthesises a documented surrogate rather than
+attempting to acquire it, which is a deliberate design position as much as an ethical one.
+
+\section{Research integrity}
+
+A tool that drafts papers raises an integrity question that a tool which merely analyses data
+does not, and two findings during this project sharpened it.
+
+The first is distributive. Zhao et al.~\cite{zhao2026hallucinations} find not only that
+hallucinated citations have risen sharply, but that they disproportionately credit scholars who
+are already prominent. A system that fabricates a reference therefore does not merely state a
+falsehood; it redirects credit toward those who already hold it, and does so invisibly. This
+reframes the citation mechanism described in Section~\ref{sec:writing} as an ethical
+safeguard rather than a correctness feature: because a citation marker can only resolve
+against a paper the system actually retrieved, the failure mode is structurally unavailable.
+
+The second is the risk of a plausible, well-formatted, and wrong paper. The system is designed
+throughout to withhold rather than assert --- a verdict computed on synthesised inputs is
+reported as inconclusive, an unresolvable citation is stripped and flagged, an experiment that
+did not run is never described as though it had. The incident recorded in
+Section~\ref{sec:wrong-data}, in which a feature intended to improve grounding attached an
+irrelevant dataset to a question and a positive verdict was asserted on it, is the clearest
+demonstration that these safeguards are necessary and that they were not yet complete.
+
+Two limitations follow honestly. The similarity checking promised in the project proposal, and
+rated maximally important by both requirements-analysis respondents, was not implemented, so
+the system offers no protection against methodological overlap with existing work ---
+precisely the failure Gupta and Pruthi~\cite{gupta2025glitters} document. And the tool
+produces drafts that a person must take responsibility for; nothing in it establishes
+authorship, and it should be understood as assisting a researcher who remains accountable for
+what they submit rather than as producing publishable work.
+
+\section{Deployment}
+
+Because the system is intended for institutional use, it runs on the university's own
+hardware against self-hosted open-weight models, so that unpublished hypotheses, results and
+drafts are never transmitted to a third-party provider (aim~A4). Two deployment weaknesses are
+recorded rather than glossed: the web interface has no authentication and binds to the local
+loopback interface by default for that reason, and the tunnelling arrangement used for
+development exposes an unauthenticated model endpoint for as long as it is open. Both are
+acceptable for single-user research use and would need addressing before any shared
+deployment.
