@@ -1,0 +1,117 @@
+% ===================== PERSONAL TITLE PAGE =====================
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\LARGE\bfseries Multi-Agent LLM Applications\\[0.3em] for Scientific Research\par}
+\vspace{1.5cm}
+{\Large Dissertation\par}
+\vspace{0.5cm}
+{\large COMP702 --- M.Sc. Project (2026/27)\par}
+\vspace{2cm}
+{\large Submitted by\par}
+\vspace{0.3cm}
+{\Large Yash Shere\par}
+{\large (201974389)\par}
+\vspace{1.5cm}
+{\large under the supervision of\par}
+\vspace{0.3cm}
+{\Large Dr Alexei Lisitsa\par}
+\vfill
+{\large School of Computer Science and Informatics\\ University of Liverpool\par}
+\vspace{1cm}
+\end{titlepage}
+
+% ===================== STUDENT DECLARATION =====================
+\chapter*{Student Declaration}
+I confirm that I have read and understood the University's Academic Integrity Policy.
+
+I confirm that I have acted honestly, ethically and professionally in conduct leading to
+assessment for the programme of study.
+
+I confirm that I have not copied material from another source nor committed plagiarism nor
+fabricated data when completing the attached piece of work. I confirm that I have not
+previously presented the work or part thereof for assessment for another University of
+Liverpool module. I confirm that I have not copied material from another source, nor colluded
+with any other student in the preparation and production of this work.
+
+I confirm that I have not incorporated into this assignment material that has been submitted
+by me or any other person in support of a successful application for a degree of this or any
+other university or degree-awarding body.
+
+\vspace{2cm}
+\noindent SIGNATURE \hrulefill
+
+\vspace{1cm}
+\noindent DATE \hrulefill
+
+% ===================== ACKNOWLEDGEMENTS =====================
+\chapter*{Acknowledgements}
+% TODO(yash): first person, personal. Suggested content:
+%   - Dr Alexei Lisitsa (supervision)
+%   - the two academic staff who completed the requirements questionnaire
+%   - the evaluation participants
+%   - Barkla / Advanced Research Computing at Liverpool for compute
+%   - family / friends
+%   - explicit acknowledgement of third-party libraries is in Ch.3, not here
+[TODO --- written last.]
+
+% ===================== ANONYMOUS TITLE PAGE =====================
+% Nothing from this point onwards may contain personal information.
+\clearpage
+\thispagestyle{empty}
+\vspace*{4cm}
+\begin{center}
+{\LARGE\bfseries Multi-Agent LLM Applications\\[0.3em] for Scientific Research\par}
+\vspace{1cm}
+{\large COMP702 --- M.Sc. Project (2026/27)\par}
+\end{center}
+\clearpage
+
+% ===================== ABSTRACT =====================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+% TODO(yash): write LAST. Two to three paragraphs, one page maximum.
+% Must cover, in terms a non-specialist can follow:
+%   1. The problem: research is slow, and the parts that are slow (search,
+%      implementation, write-up) are exactly the parts that exclude people
+%      who cannot program.
+%   2. What was built: a seven-agent LangGraph pipeline, self-hosted on the
+%      university's own HPC, that carries a research question through to a
+%      drafted paper, with every verifiable decision moved out of the
+%      language model into deterministic code.
+%   3. What was found: verification beats optimisation for this class of
+%      failure; the quantitative benchmark result; the human evaluation.
+%   4. The honest limits.
+[TODO --- written last.]
+
+% ===================== ETHICAL COMPLIANCE =====================
+\chapter*{Statement of Ethical Compliance}
+\addcontentsline{toc}{chapter}{Statement of Ethical Compliance}
+
+This project was declared under \textbf{Data Category B} and \textbf{Participant
+Category 3} (\textbf{B3}). I confirm that I have read the School's ethical guidance and
+followed it throughout the project.
+
+\textbf{Data (Category B).} The pipeline retrieves publicly available academic metadata and
+open-access papers from the arXiv, Semantic Scholar and CORE APIs, and uses publicly
+available machine learning datasets from Hugging Face in its experimentation stage. All such
+data is used in accordance with the respective providers' terms of use. No personal data is
+processed by the software itself.
+
+\textbf{Participants (Category 3).} Human participants were involved in two activities:
+a requirements analysis questionnaire completed by academic staff before implementation
+began, and a software evaluation of the working system. Participation in both was voluntary
+and informed; participants consented explicitly before beginning, could skip any question,
+and could withdraw at any time. No personally identifiable information was collected,
+stored, or reported. All responses are presented here in anonymised and aggregated form, and
+the reported detail has been deliberately generalised where a combination of attributes could
+otherwise identify an individual within a small institution.
+
+% TODO(yash): if the evaluation ends up smaller than planned, amend the
+% paragraph above to say exactly what was and was not carried out. Doing
+% less than was declared is acceptable; describing it inaccurately is not.
+
+% ===================== CONTENTS =====================
+\tableofcontents
+\listoffigures
+\listoftables

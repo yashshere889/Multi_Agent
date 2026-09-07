@@ -1,0 +1,91 @@
+% ============================================================
+%  COMP702 M.Sc. Dissertation
+%  Multi-Agent LLM Applications for Scientific Research
+%
+%  No LaTeX toolchain on the authoring machine: compile on
+%  Overleaf (upload this folder) or with `latexmk -pdf main.tex`.
+%
+%  PAGE BUDGET (50 pp incl. front matter + references,
+%  EXCLUDING appendices):
+%    front matter  9 | ch1  6 | ch2  2 | ch3 13 | ch4  4
+%    ch5           7 | ch6  1 | ch7  2 | ch8  3 | refs 3
+% ============================================================
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[british]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}   % IEEE-style numeric citation
+
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{0.4em}
+
+% ---- listings style for the Python snippets in ch. 3 -------
+\definecolor{lstbg}{RGB}{247,248,250}
+\definecolor{lstkw}{RGB}{31,95,139}
+\definecolor{lstcm}{RGB}{107,122,137}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{lstbg},
+  keywordstyle=\color{lstkw}\bfseries,
+  commentstyle=\color{lstcm}\itshape,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{lstcm!30},
+  showstringspaces=false,
+  captionpos=b,
+  language=Python,
+}
+
+\begin{document}
+
+% ============================================================
+%  FRONT MATTER — personal pages.
+%  Everything from the anonymous title page onwards must
+%  contain NO personal information (see submission brief).
+% ============================================================
+\pagenumbering{roman}
+\input{chapters/00-frontmatter}
+
+% ============================================================
+%  MAIN BODY
+% ============================================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{chapters/01-introduction}
+\include{chapters/02-requirements}
+\include{chapters/03-design-implementation}
+\include{chapters/04-preference-optimisation}
+\include{chapters/05-evaluation}
+\include{chapters/06-ethics}
+\include{chapters/07-conclusion}
+\include{chapters/08-bcs-reflection}
+
+% ============================================================
+%  REFERENCES
+% ============================================================
+\bibliographystyle{IEEEtranN}
+\bibliography{references}
+
+% ============================================================
+%  APPENDICES — excluded from the 50-page limit
+% ============================================================
+\appendix
+\include{chapters/A-appendices}
+
+\end{document}

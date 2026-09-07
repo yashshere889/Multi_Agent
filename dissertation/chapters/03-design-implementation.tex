@@ -1,0 +1,454 @@
+\chapter{Design and Implementation}
+\label{ch:design}
+
+% BUDGET: 13 pages. Design and implementation are presented together, as the
+% submission brief permits: the system was built iteratively, and most of its
+% design decisions are only intelligible alongside the failure that forced them.
+
+This chapter presents the design and the implementation together. They are not
+separable in this project: almost every structural decision described below was made in
+response to a specific observed failure, and presenting the structure without the failure
+would misrepresent both how the system came to look the way it does and why it is right that
+it does. The chapter therefore proceeds from the architecture outwards, and each mechanism is
+introduced with the problem that produced it.
+
+\section{Architecture}
+\label{sec:architecture}
+
+The system is a pipeline of seven agents, shown in Figure~\ref{fig:architecture}. Each agent
+is a self-contained stage with a published output contract and a validation function that
+enforces it. Two orchestrators sit above them, and neither is an agent: a small loop
+coordinating the Writer and Reviewer, and a top-level graph running all seven stages
+end to end.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  ag/.style={draw,rounded corners=1pt,align=center,font=\scriptsize,
+             minimum height=7mm,minimum width=20mm,fill=black!3},
+  lbl/.style={font=\scriptsize\itshape},
+  ar/.style={-{Stealth[length=1.4mm]},thick}
+]
+\node[ag] (lit) {Literature};
+\node[ag,right=of lit] (ida) {Interdisc.\\Literature};
+\node[ag,right=of ida] (hyp) {Hypothesis};
+\node[ag,right=of hyp] (plan) {Experiment\\Planner};
+\node[ag,below=8mm of plan] (code) {Coder};
+\node[ag,left=of code] (wri) {Writer};
+\node[ag,left=of wri] (rev) {Reviewer};
+
+\draw[ar] (lit) -- (ida);
+\draw[ar] (ida) -- (hyp);
+\draw[ar] (hyp) -- (plan);
+\draw[ar] (plan) -- (code);
+\draw[ar] (code) -- (wri);
+\draw[ar] ([yshift=1mm]wri.west) -- ([yshift=1mm]rev.east);
+\draw[ar] ([yshift=-1mm]rev.east) -- ([yshift=-1mm]wri.west);
+\node[lbl,below=0.5mm of wri] {revise $\rightleftarrows$ review};
+\end{tikzpicture}
+\caption{The seven-stage pipeline. The Writer and Reviewer form a cycle that terminates
+when the Reviewer reports no issues and every quality score clears a threshold, or when an
+iteration limit is reached.}
+\label{fig:architecture}
+\end{figure}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.2em]
+  \item[Literature] queries arXiv, Semantic Scholar~\cite{semanticscholar} and
+    CORE~\cite{corapi} in parallel, deduplicates the results, and downloads the available PDFs.
+  \item[Interdisciplinary Literature] identifies adjacent fields whose methods could inform
+    the same problem, searches each of them with the same clients, and returns the merged pool
+    together with \emph{bridge insights} tying cross-field work back to the question.
+  \item[Hypothesis] synthesises the paper set into exactly three grounded, testable
+    hypotheses, and ranks them against one another on feasibility, testability and grounding.
+  \item[Experiment Planner] converts each hypothesis into an implementation-ready plan:
+    variables, design, data requirements, methods, evaluation criteria and ordered steps,
+    with an explicit feasibility judgement.
+  \item[Coder] generates a runnable experiment per feasible plan and, where the environment
+    permits, executes it and captures structured results.
+  \item[Writer] drafts a paper section by section and renders it to
+    PDF via reportlab~\cite{reportlab}.
+  \item[Reviewer] checks the rendered paper against the same upstream evidence the Writer
+    used, and produces structured feedback the Writer can act on.
+\end{description}
+
+Every one of the seven is internally a LangGraph \texttt{StateGraph}, not only the top-level
+orchestrator. This is a deliberate cost. A graph is heavier than a function call, and for
+several of these agents the control flow would fit comfortably in a Python \texttt{for} loop.
+The justification is inspection: because each model call and each deterministic check is an
+addressable node over checkpointed state, a run can be resumed from the stage at which it
+stopped (NFR4) and examined step by step afterwards --- which, given that the user is assumed
+unable to read the generated code, is the only remaining means of establishing what happened.
+
+\section{Chaining by data shape}
+\label{sec:chaining}
+
+The agents are not coupled through a shared orchestrator object. Each entry point,
+\texttt{run\_<name>\_agent()}, accepts a plain dictionary shaped like the \emph{previous
+agent's output}, never that agent's internal state, and validates it against the upstream
+agent's own \texttt{validate\_output()} before doing anything else (NFR3). A malformed or
+outdated file therefore fails immediately with a clear error rather than confusing the model
+downstream.
+
+The practical consequence is that every link works identically in process or through disk: a
+previous run's JSON can be read from \texttt{outputs/} and passed straight into the next
+stage. This is what makes FR10 --- running only selected stages --- a configuration rather
+than a separate execution path, and it is what allowed the Interdisciplinary Literature agent
+to be inserted into a working pipeline without modifying either of its neighbours. That agent
+publishes its merged pool under a \texttt{papers} key, which is precisely the shape the
+Hypothesis agent already consumed.
+
+Optionality is preserved additively rather than by changing contracts. The Hypothesis agent's
+\texttt{interdisciplinary\_context} and the Planner's \texttt{hypothesis\_ids} both default to
+behaving exactly as they did before those parameters existed.
+
+\section{The determinism boundary}
+\label{sec:determinism}
+
+NFR1 states that every decision which can be settled mechanically must be settled in code
+rather than by model judgement. This is the organising principle of the system, and the
+requirements analysis in Chapter~\ref{ch:requirements} is its justification: no participant
+would accept unchecked output, and one located the objection precisely in the opacity of model
+decisions. The response is not to make the model more persuasive but to reduce the set of
+things it is trusted to decide.
+
+Table~\ref{tab:determinism} lists the principal instances. Each was introduced in response to
+an observed failure, not anticipated in advance --- a point returned to in
+Section~\ref{sec:abandoned} and in Chapter~\ref{ch:bcs}.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Decisions moved out of the model, and the failure that motivated each.}
+\label{tab:determinism}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Decision} & \textbf{Left to the model} & \textbf{Now settled in code} \\
+\midrule
+Is this citation real?
+  & Cite the retrieved papers
+  & Markers resolve only against the retrieved index; anything else is stripped and reported \\
+Was the hypothesis supported?
+  & Judge the outcome
+  & Computed from the Coder's own execution status and success criteria \\
+Are these two papers the same?
+  & Judge duplicates
+  & One DOI / normalised-title key, shared by both literature agents \\
+Which hypothesis wins?
+  & Assert a selection
+  & Derived from whichever ranking entry holds rank 1; the schema rejects a ranking that is
+    not a permutation of $1\ldots3$ \\
+Is the data read guarded?
+  & Follow the prompt's instruction
+  & The generated \texttt{load\_data} is AST-parsed and unguarded reads are rejected \\
+Is the paper accurate?
+  & Score its own work
+  & Citations, metrics and coverage checked by regular expression and dictionary comparison \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The last row is the one the literature most directly supports. Agent
+Laboratory~\cite{schmidgall2025agentlab} reports that its automated reviewer substantially
+overestimates paper quality relative to human reviewers, and Gupta and
+Pruthi~\cite{gupta2025glitters} show that model-based novelty checks miss plagiarism entirely.
+The Reviewer implemented here therefore re-derives its own copy of the ground truth
+independently rather than reading the Writer's summary, and only two things are put to the
+model at all: nuance in detecting hallucination, and honesty of framing and tone. Everything
+checkable is checked.
+
+The fifth row deserves emphasis because it is the clearest illustration of the principle. The
+code-generation prompt had instructed the model for months to guard every data read and fall
+back to synthesised data if the file was absent. A production run then generated code that
+assumed a \texttt{survey\_data.csv} would be present for a plan whose data requirement was to
+collect new data. The instruction was not wrong; nothing checked it. An instruction that is
+not verified is a hope.
+
+\section{Graph structure: where concurrency is real, and where it is forbidden}
+\label{sec:graphs}
+
+The seven graphs take three shapes, chosen by what the stage actually does rather than by
+uniformity.
+
+\paragraph{Fan-out over a fixed set.} The Literature agent queries three independent HTTP APIs
+and merges the results; the Reviewer runs a fixed set of independent checks. Both use ordinary
+edges, since the branches are known at compile time.
+
+\paragraph{Fan-out over a dynamic set.} The Hypothesis agent batches large paper sets, the
+Planner plans each hypothesis independently, and the Interdisciplinary agent searches each
+adjacent field. The number of branches is known only at run time, so these use LangGraph's
+\texttt{Send} API. One subtlety: the Interdisciplinary agent's conditional edge returns a
+plain node name when no adjacent field was identified, because an empty \texttt{Send} list
+would otherwise leave the run with no path to its output node.
+
+\paragraph{Cycles, deliberately sequential.} The Coder is the only agent with true cycles, and
+the only one where concurrency is actively forbidden. Its per-plan loop and its nested fix
+loop are graph cycles rather than Python loops, for the same observability reason as above.
+They are not \texttt{Send} fan-outs because the plans are not independent: the cap on SLURM
+submissions per run is enforced against a counter that each plan must read after every
+preceding plan has updated it. Running them concurrently would let two plans observe the same
+pre-submission count and both submit, silently changing real submission-gating behaviour. The
+sequencing is a correctness property, not a missed optimisation; the per-plan work is I/O and
+model bound, so nothing is lost.
+
+Node-level retry follows the same reasoning. Model- and search-calling nodes carry a retry
+policy as an outer net over the retries already beneath them, but nodes with side effects are
+excluded explicitly: retrying the Coder's fix loop would re-execute generated code or
+re-provision an environment. The policy also uses LangGraph's default exception set, which
+does \emph{not} retry \texttt{ValueError} --- a schema failure that survived a repair attempt
+is persistent, not flaky.
+
+\section{Transporting generated code}
+\label{sec:transport}
+
+Agents that ask the model for short structured fields use a shared helper that invokes the
+model, parses JSON, and retries once with a repair prompt. The Coder cannot use it, and the
+reason is instructive.
+
+Putting source code inside a JSON string value forces every newline, quote and backslash
+through an escaping round-trip that the model must perform by hand. A 3B-active-parameter
+model does this unreliably: a literal \texttt{\textbackslash d} in a regular expression, a
+real newline where \texttt{\textbackslash n} was required, a trailing backslash that
+terminates nothing. Three separate deterministic repairs had accumulated in the codebase to
+undo these corruptions before it became clear that the transport itself was the defect.
+
+Code is therefore carried unescaped between delimiters, in a format with no escaping anywhere,
+so that a real newline is a real newline and a real backslash is a real backslash:
+
+\begin{lstlisting}[caption={The delimited section format used for all code-bearing responses.},label={lst:sections}]
+===BEGIN load_data_function===
+def load_data():
+    path = DATA_DIR / "corpus.csv"       # a real newline is a real newline
+    try:
+        return pd.read_csv(path)
+    except FileNotFoundError:
+        return synthesize_corpus()       # guarded, per check_data_fallback
+===END load_data_function===
+\end{lstlisting}
+
+The parser mirrors the JSON helper's contract exactly --- one repair retry, then raise --- so a
+call site moves between them without other changes. All three deterministic repairs were
+deleted when it landed. The section names the prompt asks for are generated from the same list
+the parser accepts, so the requested shape cannot drift from the accepted shape.
+
+\section{Making generated experiments work}
+\label{sec:coder}
+
+The Coder agent is the largest component in the system and the one where aim A5 --- that
+experiments recover from their own failures, because the intended user cannot debug them ---
+is discharged.
+
+\subsection{The template splice}
+
+An experiment is a single \texttt{run.py} rendered from a fixed template. The metadata block
+and the orchestration footer --- timing, exception handling, and writing
+\texttt{results.json} --- are not model-generated. Only \texttt{load\_data},
+\texttt{build\_model}, \texttt{run\_experiment} and \texttt{evaluate}, plus imports and
+configuration, are, and they are spliced into the template by plain string replacement rather
+than \texttt{str.format()}, because generated code routinely contains literal braces that
+would break format-string substitution.
+
+This replaced an earlier design in which the model wrote four separate files. That design
+required the model to observe a cross-file calling convention consistently, and it got it
+slightly wrong on roughly one experiment in every batch. Removing the wiring from the model's
+responsibilities removed the entire failure mode rather than mitigating it.
+
+\subsection{Classifying a failure before responding to it}
+
+Every runtime failure was originally recorded as \texttt{run\_experiment} --- the stage that
+broke, never what broke --- and every such failure took the same route: regenerate the code and
+try again. That is correct for a logic bug and useless for anything else. A production run
+demonstrates the cost: three fix attempts, three regenerations, and
+\texttt{ModuleNotFoundError: No module named 'pandas'} returned verbatim each time. Rewriting
+the source could not install anything.
+
+Failures are now classified by kind before anything decides what to do about them, as shown in
+Table~\ref{tab:failures}. Three kinds never reach the model at all.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Failure classification and routing. The first three routes spend no fix attempt,
+because none represents a defect in the generated source.}
+\label{tab:failures}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Kind} & \textbf{Route} & \textbf{Action} \\
+\midrule
+Missing dependency & environment & Install the distribution, verify the import now resolves,
+  re-run the \emph{unchanged} code \\
+Resource limit & downscale & Halve the code's own cost parameters and re-run \\
+Removed API & regenerate & Rewrite the deleted call mechanically \\
+Dead import & regenerate & Regenerate carrying the successor API, because installing
+  cannot help \\
+Missing system library & terminal & Report; pip cannot supply it \\
+Logic defect & regenerate & The fix loop proper \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two distinctions in that table are subtle and were learned the hard way. An import that pip
+\emph{can} satisfy (\texttt{sklearn} $\rightarrow$ \texttt{scikit-learn}) is an alias, and
+installing works. An import that no package provides (\texttt{pymc3}, \texttt{pystan}) is a
+succession, and installing the successor reports success while changing nothing --- the
+identical error returns on the re-run and the loop makes no progress. These route in opposite
+directions. Similarly, the removed-API case is regenerated \emph{carrying the replacement},
+because the traceback states what broke but not what to write instead; this was added
+specifically because the fix prompt already named the correct replacement and the model
+reproduced the identical deleted call regardless. Asking again is the thing that does not work.
+
+\subsection{Making a failed attempt cheap before making it rare}
+
+The first execution of any generated experiment is a \emph{smoke run}: the same code with every
+known cost parameter pinned to its floor, under a short timeout rather than the complexity
+timeout. A defect anywhere in the program therefore surfaces in seconds rather than after a
+full-length run --- and so does each subsequent round of the fix loop.
+
+The asymmetry is deliberate and load-bearing. A smoke run can end an attempt early; it can
+never let one through. Anything that passes is still executed at full size, and the smoke
+run's own results file is deleted rather than read. A failure that the shrinking could itself
+have caused is re-run at full size rather than reported.
+
+A related check operates one step earlier. A program that parses is not yet a program that can
+run, so the generated source is checked with pyflakes for undefined names before an environment
+is provisioned. The same defect previously cost a full environment provision, an execution, and
+a fix attempt.
+
+\subsection{Two budgets, because two things can go wrong}
+
+The fix loop is bounded, but not by a single counter. A response that is \emph{malformed or
+hollow} rather than wrong --- unparseable, missing a section, a function under the wrong name,
+a body consisting of \texttt{pass} --- rendered nothing, provisioned nothing and executed
+nothing. It draws on a separate structural-retry budget, leaving the fix budget for the defect
+underneath. The failure that forced this split was a run which spent all three fix attempts on
+the model omitting a section, never reaching the code at all.
+
+A compile error deliberately remains on the fix budget: a syntax error is a real defect in a
+real answer. Exhausting the structural budget ends the plan rather than falling through to the
+fix budget, because the identical-failure stop condition cannot bound that fall-through --- an
+unparseable response's summary quotes the model's own varying output, so repeated failures do
+not compare equal.
+
+\subsection{Confining a regeneration}
+
+The fix prompt instructs the model to keep whatever already worked. That is an instruction, not
+a guarantee. A production trace records attempt~1 correctly fixing a \texttt{ModuleNotFoundError}
+while attempts~2 and~3 each introduced a fresh syntax error in a region they were never asked
+to touch.
+
+A check that can \emph{localise} its failure --- to a section it parsed independently, or to a
+line the template's span map resolves back to one --- therefore requests only those sections and
+reuses the rest verbatim. And because a fix loop is not monotonic, giving up reports the attempt
+that got \emph{furthest}, ranked by the same ordering that defines whether a regeneration made
+progress, rather than whichever attempt happened to be last. Ties go to the final attempt, so a
+run that never regressed is unaffected.
+
+\section{Provenance, and the withheld verdict}
+\label{sec:provenance}
+
+Aim A2 requires that results computed on synthesised inputs withhold a conclusion. Every input
+a plan declares is resolved to a real source or a surrogate, and any surrogate sets the
+experiment's success criterion to the string \texttt{"unknown"}, which the Writer maps to
+\emph{inconclusive}.
+
+The alternative --- returning \texttt{False} --- would map to \emph{refuted}, meaning the paper
+would claim to have refuted a hypothesis on the basis of numbers computed over invented inputs.
+That is the specific outcome the mechanism exists to prevent. The metrics are still reported
+and the model's own claim is retained under a separate field; only the verdict is withheld.
+
+Two deterministic passes run afterwards, in order. The first downgrades a declared download the
+code never actually fetched --- the over-claiming direction, in which a plan that quietly
+synthesised data would otherwise still earn an interpretable verdict. The second drops a
+\emph{phantom} surrogate: a requirement no source could be found for, which a real input the
+code demonstrably reads already answers under a different name. Only unresolved entries are
+superseded; a restricted or credentialed source names real data that specifically was not
+obtained, and nothing else answers it.
+
+\section{Grounding the write-up}
+\label{sec:writing}
+
+The Writer drafts section by section, each call seeing only the slice of upstream data that
+section needs, so the full pipeline output is never forced into a single context window.
+
+Citations use markers of the form \texttt{[[cite:ID]]} and \texttt{[[citet:ID]]}, restricted to
+identifiers actually present in the retrieved paper index --- the same identifier scheme the
+Hypothesis agent used, so citations line up with the paper ids already referenced by the
+hypotheses. Resolution is necessarily two-phase, because author-year citation cannot format any
+single marker until the whole cited set is known: two papers may share a first-author surname
+and year and require a \emph{2020a}/\emph{2020b} suffix. Sections are therefore scanned first,
+disambiguation and reference ordering are fixed once, and only then is each marker replaced.
+
+A marker naming an identifier that is not in the index is never trusted into the output. It is
+stripped and recorded for review, so a fabricated citation cannot reach the rendered PDF. The
+Writer and Reviewer are given the \emph{same} paper set --- the merged in-domain and cross-field
+pool --- because otherwise the Reviewer would flag citations the Writer was entitled to make.
+
+Rendering is via reportlab rather than LaTeX. This deviates from the project proposal, and the
+justification is operational: reportlab is pure Python, so the Writer runs unmodified on the
+HPC facility with no TeX installation, and the proposal's own risk register had rated
+``generated LaTeX reports fail to compile'' as high-likelihood. The risk was removed rather
+than mitigated.
+
+\section{The web application}
+\label{sec:webapp}
+
+The interface (FR11) reads the pipeline and never modifies it. Progress comes from streaming
+node-level updates out of the graph, and the display layer reduces each node's own delta to
+display fields; no agent logic is reimplemented for it.
+
+It runs as three processes, not one. The server never executes pipeline work: starting a run
+spawns a separate runner process, and the server thereafter only reads files that process
+writes. This is what makes a run cancellable at all --- a thread inside a blocking graph
+invocation cannot be interrupted, whereas a subprocess accepts a signal --- and it additionally
+isolates the server from a crash inside generated code, permits the server to be restarted
+mid-run, and gives each run its own experiment directory, which is the one output location the
+graph itself cannot route per run. Each run is a self-contained directory, so the server's
+entire view of a run is the files on disk.
+
+\section{Deployment}
+\label{sec:deployment}
+
+The pipeline is designed to run on the university's HPC facility (A4). Model weights are served
+by vLLM~\cite{kwon2023vllm} inside a container, and the pipeline runs on the same allocated
+node so that model traffic never leaves it. Because the agents are CPU-bound and the GPU nodes
+have many cores, co-locating costs nothing and avoids both an SSH tunnel and any long-running
+process on a login node.
+
+Aim A6 is addressed by durable checkpointing. All eight compiled graphs obtain their
+checkpointer from one factory, so the whole pipeline switches between in-process and durable
+storage through a single environment variable rather than eight edits. Durability is what makes
+resumption possible, and both unattended entry points use it: a failed run is offered a resume
+control in the interface, and a batch sweep records each question's thread identifier in a
+manifest so that a pre-empted job resumes mid-question rather than restarting it. The resume
+control is hidden entirely under in-process checkpointing, rather than offering a restart that
+describes itself as a resume.
+
+A subtlety in the batch path is worth recording. Its original per-question identifiers were
+freshly generated each run and so were, by construction, identifiers no later process could ask
+for. Persisting them was necessary before resumption could work at all --- and a recorded
+identifier is reused only when the question at that index still matches, because indices are
+positions in a file that people edit between sweeps, and resuming the wrong thread would
+silently graft half a run about one question onto another.
+
+\section{Approaches tried and abandoned}
+\label{sec:abandoned}
+
+Four are worth recording, beyond those already described.
+
+\paragraph{An in-process model backend.} An alternative backend loading weights directly rather
+than through an HTTP server was built and later removed, once the pipeline settled on a single
+served model. It had allowed smaller models on hardware too small for the target model, but it
+doubled the configuration surface for a path nothing used.
+
+\paragraph{A change of model.} The pipeline originally targeted a reasoning model that emitted
+an explicit thinking trace. Moving to a coding-specialised model removed the need for that
+trace, but the stripping logic was retained rather than deleted, so that pointing the
+configuration back at a reasoning model requires no code change.
+
+\paragraph{Resolving symbolic links.} An apparently innocuous call to resolve a virtual
+environment's interpreter path to its canonical form followed the symbolic link to the base
+interpreter and discarded the environment entirely. Two cluster jobs were lost to it before the
+cause was found. Absolute paths were required; canonical paths were not.
+
+\paragraph{Trusting an instruction.} Discussed in Section~\ref{sec:determinism}, and worth
+stating as a general lesson rather than a single bug: several mechanisms in this chapter exist
+because a prompt had asked for behaviour that nothing verified, and the behaviour did not
+occur. Every such instruction that could be checked in code eventually was.

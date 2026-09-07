@@ -1,0 +1,269 @@
+\chapter{Introduction and Background}
+\label{ch:intro}
+
+% BUDGET: 6 pages.
+
+\section{Motivation}
+\label{sec:motivation}
+
+Academic research contains a great deal of work that is necessary but not itself scholarly.
+Finding and triaging the relevant literature, translating an idea into an experiment,
+implementing that experiment correctly, and assembling the result into a structured document
+consume time that is not spent on the judgement that constitutes the research. This is
+familiar enough to be unremarkable. What makes it worth addressing is that the burden is not
+distributed evenly.
+
+The mechanical parts of modern research are disproportionately \emph{programming} parts. A
+researcher who cannot write code is not merely slower at running an experiment; they are
+frequently unable to run it at all without recruiting somebody who can. The requirements
+analysis conducted for this project, reported in Chapter~\ref{ch:requirements}, illustrates
+the point directly: asked what they found most frustrating about designing and running
+experiments, one respondent answered simply, \emph{``my own programming abilities''}, and went
+on to say that experiment code was the one stage of the research process they would willingly
+delegate to a machine. The same respondent refused to delegate literature review or writing,
+regarding those as constitutive of scholarship rather than overhead. That distinction ---
+between the parts of research that are the work and the parts that merely stand in its way ---
+is the distinction this project attempts to serve.
+
+The prospect of using large language models to close that gap is not new, and several systems
+discussed in Section~\ref{sec:background} already attempt it. What has not been adequately
+addressed is the condition under which such a system could responsibly be deployed inside a
+university. Two obstacles stand out. The first is trust: a system that produces a plausible
+literature review, a plausible experiment and a plausible set of results gives a
+non-programming user no means of telling a correct result from a fabricated one, and the
+existing literature shows that such systems fabricate readily. The second is governance: an
+unpublished hypothesis, an unpublished result and an early draft are among the most sensitive
+artefacts a research institution holds, and sending them to a third-party commercial API is
+a disclosure that many institutions cannot sanction.
+
+This project therefore sets out to build a research assistant intended for institutional
+deployment: one that runs on the university's own hardware under its own control, and whose
+outputs are constructed so that a person who cannot read the code it wrote can nevertheless
+establish whether to believe them.
+
+\section{Problem statement}
+\label{sec:problem}
+
+\noindent\textbf{Input:} A research question, expressed in plain text.
+
+\noindent\textbf{Task:} Retrieve and synthesise the relevant literature; derive testable
+hypotheses from it; plan a corresponding experiment; generate and execute the code for that
+experiment; and produce a structured research paper reporting what was found --- such that
+every factual claim in the resulting document is mechanically traceable to evidence the system
+actually obtained, and any claim that is not so traceable is withheld rather than asserted.
+
+The final clause is the difficult one, and it is what separates this project from a pipeline
+that simply chains model calls together. A system may be permitted to be wrong; it may not be
+permitted to be confidently, unverifiably wrong to a user who has no means of checking it.
+
+\section{Background}
+\label{sec:background}
+
+\subsection{Autonomous research agents}
+
+The immediate predecessor to this work is Agent Laboratory~\cite{schmidgall2025agentlab},
+which accepts a human research idea and progresses through literature review, experimentation
+and report writing, producing a code repository and a written report. It decomposes the
+pipeline into agents named after academic roles --- PhD Student, Postdoc, ML Engineer,
+Professor --- and supplies specialised sub-systems (\emph{mle-solver}, \emph{paper-solver})
+for code generation and report assembly. Two of its reported findings shaped this project more
+than its architecture did. First, human involvement through a ``co-pilot'' mode materially
+improves output quality relative to fully autonomous operation. Second, and more troubling,
+its automated reviewer substantially overestimates the quality of the papers it assesses
+relative to human reviewers. A system that grades its own work generously is not merely
+inaccurate; it is inaccurate in the direction that most misleads a user who is relying on it.
+
+The AI Scientist~\cite{lu2024aiscientist} pursues fully autonomous end-to-end discovery,
+including simulated peer review, and ResearchAgent~\cite{baek2024researchagent} iteratively
+refines research ideas using reviewing agents. Both depend on proprietary models. In each of
+these systems the reviewing component is itself a language model asked for a judgement, which
+is precisely the arrangement that produces the overestimation Agent Laboratory reports.
+
+\subsection{Verification and originality}
+
+Gupta and Pruthi~\cite{gupta2025glitters} provide the strongest available evidence that
+outputs from systems of this class cannot be taken at face value. In an expert-led study of
+fifty research documents produced by state-of-the-art research agents, 24\% contained clear
+plagiarism --- defined as one-to-one methodological mapping or significant uncredited
+borrowing --- and every plagiarised document had passed the systems' own built-in novelty
+checks. Automated detection tools, including Turnitin, identified none of the verified
+instances. The authors further observe that documents which expert reviewers had rated
+\emph{more novel} than human-written work were subsequently found to be plagiarised once those
+reviewers were specifically directed to look for overlap.
+
+Two conclusions follow, and both are load-bearing here. Evaluating such a system on the
+apparent quality of its output measures the wrong thing, because the failure mode is
+invisible to a reader not actively hunting for it. And a checking mechanism implemented as a
+model judging its own output does not work, because the same model that produced the
+overlap is being asked to notice it.
+
+\subsection{Graph-structured orchestration}
+
+The system described in this dissertation is built on
+LangGraph~\cite{langgraph}, which models a computation as a directed graph of nodes over a
+shared, checkpointed state. The relevant property is not the programming convenience but the
+consequence for inspection and recovery: every step, including deterministic non-model steps,
+is an addressable node whose inputs and outputs are recorded, so a run can be resumed from
+where it stopped and examined stage by stage after the fact. Chapter~\ref{ch:design} explains
+where that mattered and where it did not.
+
+\subsection{Open-weight models and institutional deployment}
+
+The systems above depend on commercial APIs. This project uses open-weight models served on
+the university's own high-performance computing facility, principally Qwen3-Coder
+30B-A3B-Instruct~\cite{qwen3coder} served through vLLM~\cite{kwon2023vllm}. The motivation is
+not cost. It is that an institutional research tool must not export its users' unpublished
+work, and self-hosting is the only arrangement in which that guarantee is structural rather
+than contractual. A consequence, developed throughout Chapter~\ref{ch:design}, is that the
+system must remain correct while being driven by a model considerably weaker than the
+commercial frontier --- which turns out to sharpen the design rather than compromise it.
+
+\section{Aims and requirements}
+\label{sec:aims}
+
+\subsection{Aims}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.3em]
+  \item[\textbf{A1}] Enable a researcher to proceed from a research question to a
+    literature-grounded, experimentally-supported draft paper \emph{without writing code}.
+  \item[\textbf{A2}] Ensure that no claim the system presents is unverifiable: citations must
+    resolve to papers actually retrieved, hypothesis verdicts must derive from code that
+    actually ran, and results computed on synthesised inputs must withhold a conclusion rather
+    than assert one.
+  \item[\textbf{A3}] Keep every stage independently usable and steerable, so that a researcher
+    may use only the parts they need and override the system's choices rather than accept them.
+  \item[\textbf{A4}] Run entirely on institutional infrastructure using open-weight models, so
+    that unpublished research does not leave the university.
+  \item[\textbf{A5}] Make generated experiments recover from their own failures without human
+    intervention, since the intended user cannot debug them.
+  \item[\textbf{A6}] Survive the conditions of a shared HPC facility --- pre-emption, queue
+    limits and storage quotas --- so that an unattended run is resumable rather than lost.
+\end{description}
+
+\subsection{Functional requirements}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.2em,font=\normalfont\bfseries]
+  \item[FR1] Accept a plain-text research question as the only mandatory input. \hfill(A1)
+  \item[FR2] Retrieve, deduplicate and download relevant literature from open-access
+    scholarly APIs. \hfill(A1)
+  \item[FR3] Identify adjacent research fields and surface concrete cross-disciplinary
+    connections to the question. \hfill(A1)
+  \item[FR4] Synthesise the retrieved literature into testable, grounded hypotheses, ranked
+    against one another. \hfill(A1)
+  \item[FR5] Convert a hypothesis into an implementation-ready experiment plan, with an
+    explicit feasibility judgement. \hfill(A1)
+  \item[FR6] Generate runnable experiment code and, where the environment permits, execute it
+    and capture structured results. \hfill(A1, A5)
+  \item[FR7] Diagnose failures in generated code and regenerate it, bounded by an explicit
+    attempt budget. \hfill(A5)
+  \item[FR8] Draft a structured research paper from the resulting evidence, rendered as a PDF.
+    \hfill(A1)
+  \item[FR9] Review that paper against the same upstream evidence the drafting stage used, and
+    revise it in response. \hfill(A2)
+  \item[FR10] Permit a user to run a selected range of stages, supply their own papers, and
+    choose which hypothesis is carried forward. \hfill(A3)
+  \item[FR11] Present live progress, intermediate outputs and retrieved sources through a
+    graphical interface requiring no terminal. \hfill(A1, A3)
+\end{description}
+
+\subsection{Non-functional requirements}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.2em,font=\normalfont\bfseries]
+  \item[NFR1] Every decision that can be settled mechanically must be settled in code rather
+    than by model judgement. \hfill(A2)
+  \item[NFR2] No research content may be transmitted to a third-party model provider.
+    \hfill(A4)
+  \item[NFR3] Each stage must validate its input against the preceding stage's published
+    contract before acting on it. \hfill(A3)
+  \item[NFR4] A run interrupted by pre-emption or crash must be resumable from the stage at
+    which it stopped. \hfill(A6)
+  \item[NFR5] All non-model logic must be unit-testable without a language model present.
+    \hfill(A2)
+\end{description}
+
+\subsection{Divergence from the original project proposal}
+\label{sec:divergence}
+
+The project proposal for this work specified a reinforcement learning component as its
+principal novelty: agent behaviour was to be improved over iterations using reward signals
+derived from code execution outcomes and paper scores, targeting hallucination, poor
+self-evaluation and instruction-following failures. That component was not delivered in the
+form proposed. During implementation it became apparent that all three of its stated targets
+were better addressed by moving decisions out of the model altogether than by optimising the
+model's behaviour within it, and the effort was redirected accordingly.
+Chapter~\ref{ch:po} states that argument in full, quotes the proposal's own justification
+against it, and discharges the requirement with a preference dataset derived from the
+system's own failure history together with a direct preference optimisation
+experiment~\cite{rafailov2023dpo}.
+
+Three smaller divergences are recorded here for completeness and discussed where relevant.
+A similarity-checking stage, promised in response to Gupta and Pruthi's
+findings~\cite{gupta2025glitters}, was not implemented; it emerged from the requirements
+analysis as the highest-priority requirement by participant rating, and its absence is the
+project's most significant shortfall (Section~\ref{sec:future-overlap}). Reports are rendered
+directly to PDF rather than through LaTeX, for reasons given in Chapter~\ref{ch:design}.
+Conversely, both features the proposal listed as optional --- a graphical interface and a
+co-pilot mode --- were delivered, and substantially exceeded.
+
+\section{Contributions}
+\label{sec:contributions}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.25em,font=\normalfont\bfseries]
+  \item[C1] A seven-agent research pipeline in which every agent is itself a graph, not merely
+    the orchestrator, so that each individual model call and each deterministic check is an
+    independently addressable and inspectable step.
+  \item[C2] An explicit design principle --- that every verifiable decision belongs in code
+    rather than in the model --- together with a catalogue of its instances and, for each, the
+    concrete failure that motivated it.
+  \item[C3] A reliability architecture for language-model-generated experiment code:
+    classification of failures by kind before response, reduction of the cost of a failed
+    attempt before its frequency, separate budgets for malformed and merely incorrect
+    responses, and regeneration confined to the code region actually implicated.
+  \item[C4] A data provenance mechanism that withholds a hypothesis verdict when an
+    experiment's inputs were synthesised, on the grounds that reporting a refutation computed
+    on invented data is a worse outcome than reporting nothing.
+  \item[C5] An empirical failure analysis of the system in operation, including a documented
+    case in which a feature intended to improve grounding actively degraded the trustworthiness
+    of results.
+  \item[C6] A preference dataset constructed from the system's own fix loop, in which each
+    rejected generation, the check that rejected it, and its accepted replacement form a
+    preference triple by construction.
+\end{description}
+
+\section{Terminology}
+\label{sec:terminology}
+
+The reader is assumed to be able to program and to be familiar with language models in
+general terms. The following usages are specific to this project.
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.2em]
+  \item[\emph{Agent}] A self-contained pipeline stage with a published input and output
+    contract, implemented internally as a graph. The term carries no implication of a
+    persona; Chapter~\ref{ch:requirements} explains why role-based naming was abandoned.
+  \item[\emph{Verdict}] The classification of a hypothesis as supported, refuted or
+    inconclusive. Computed in code from execution results, never asserted by the model.
+  \item[\emph{Surrogate data}] Data synthesised by generated code because no real source for a
+    declared input could be resolved. Any surrogate input causes the verdict to be withheld.
+  \item[\emph{Fix loop}] The cycle in which failing generated code is diagnosed, regenerated
+    against the concrete error, and re-executed, bounded by an explicit attempt budget.
+  \item[\emph{Smoke run}] A preliminary execution of generated code with every cost parameter
+    reduced to its minimum, used to surface defects in seconds rather than after a full-length
+    run.
+  \item[\emph{Bridge insight}] A concrete statement that a method from an adjacent field could
+    inform the research question, citing the cross-field papers it was drawn from.
+\end{description}
+
+\section{Structure of this dissertation}
+
+Chapter~\ref{ch:requirements} reports the requirements analysis conducted with academic staff
+before implementation, and the design decisions traceable to it. Chapter~\ref{ch:design}
+presents the design and implementation of the system together, covering the architecture, the
+verification mechanisms that give effect to A2, the reliability work behind A5, the deployment
+arrangements behind A4 and A6, and the approaches that were tried and abandoned.
+Chapter~\ref{ch:po} addresses the reinforcement learning requirement discussed in
+Section~\ref{sec:divergence}. Chapter~\ref{ch:evaluation} reports the testing regime, a
+quantitative benchmark of the code-generation stage, an analysis of the system's characteristic
+failures, the human evaluation, and an assessment against A1--A6.
+Chapter~\ref{ch:ethics} sets out the project's ethical position, Chapter~\ref{ch:conclusion}
+concludes and identifies further work, and Chapter~\ref{ch:bcs} addresses the BCS project
+criteria and reflects critically on the project as a whole.
