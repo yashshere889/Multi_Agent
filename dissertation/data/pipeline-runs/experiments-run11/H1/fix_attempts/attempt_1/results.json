@@ -1,0 +1,15 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether integrating frequency-domain features via adaptive fusion improves the predictive accuracy of Python-based machine learning models for stock price forecasting compared to traditional econometric models, especially under volatile market conditions.",
+  "author": "coder-agent",
+  "baseline": "Performance of ARIMA models on the same dataset and forecasting horizon",
+  "success_criteria": "If ML models with adaptive fusion consistently achieve lower MAE/RMSE than ARIMA models across both stable and volatile conditions, the hypothesis is supported. If not, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-02T23:25:23.492159+00:00",
+  "status": "failure",
+  "elapsed_seconds": 4.143,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/experiments-run11/H1/run.py\", line 420, in run\n    eval_output = evaluate(experiment_output)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/experiments-run11/H1/run.py\", line 235, in evaluate\n    lstm_mae = np.mean(np.abs(lstm_preds.flatten() - actual_values))\n                              ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~\nValueError: operands could not be broadcast together with shapes (6,) (70,) \n"
+}

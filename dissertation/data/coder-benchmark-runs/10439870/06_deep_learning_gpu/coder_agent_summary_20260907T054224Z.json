@@ -1,0 +1,175 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H106",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106",
+      "assumptions_made": [
+        "The dataset contains valid text and label columns with appropriate structure",
+        "The bag-of-embeddings model uses a simple mean pooling approach as a baseline",
+        "The transformer model uses BERT base as the backbone with CLS token pooling",
+        "Training will converge within 5 epochs with early stopping",
+        "The experiment will run successfully on CPU without GPU requirements"
+      ],
+      "results": {
+        "experiment_id": "H106",
+        "experiment_name": "Experiment H106",
+        "hypothesis": "Test whether a small transformer outperforms a bag-of-embeddings baseline on topic classification.",
+        "author": "coder-agent",
+        "baseline": "The bag-of-embeddings classifier trained on the same data for the same number of epochs.",
+        "success_criteria": "The transformer improves test accuracy by at least 0.03 over the bag-of-embeddings baseline.",
+        "timestamp_utc": "2026-09-07T05:42:22.904727+00:00",
+        "status": "success",
+        "elapsed_seconds": 1515.8542,
+        "resumed": false,
+        "metrics": {
+          "bag_of_embeddings_accuracy": 0.0548492553577915,
+          "transformer_accuracy": 0.7130403196512896,
+          "bag_of_embeddings_train_seconds": 23.255985498428345,
+          "transformer_train_seconds": 1489.1536164283752,
+          "accuracy_improvement": 0.658191064293498,
+          "training_history": {
+            "bag_of_embeddings": [
+              3.0004881030707713
+            ],
+            "transformer": [
+              1.2786505474183358
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Transformer improved accuracy by 0.658 over bag-of-embeddings baseline.",
+        "error": null,
+        "model_reported_meets_success_criteria": true,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "Training did not converge, and raising the epoch budget as far as the compute budget allows did not reach convergence either. The run is real and its loss curves are reported, but a comparison between models that have not converged measures the training budget rather than the thing under test, so the verdict is withheld. See compute_provenance.json."
+      },
+      "fix_attempts": 5,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport csv\\nimport torch\\nimport torch.nn as nn\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import AutoTokenizer, AutoModel\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score, f1_score\\nimport numpy as np\\nfrom collections import Counter\\nimport time\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 3\\nMAX_SEQ_LENGTH: int = 128\\nBATCH_SIZE: int = 32\\nLEARNING_RATE: float = 2e-5\\n'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ==============================\n  EXPERIMENT : Experiment H106\n  ID         : H106\n  STATUS     : FAILURE\n  ELAPSED    : 0.0002 s\n  SAVED TO   : results.json\n========================================================================\n  MEETS SUCCESS CRITERIA: unknown\n  NOTES: Experiment raised an exception before evaluation completed — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/run.py\", line 573, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n        label = int(row['label'])\n    ValueError: invalid literal for int() with base 10: 'rec.autos'\n========================================================================\n\n\n2026-09-07T03:47:12 [INFO] H106 — Starting experiment 'Experiment H106' (H106)\n2026-09-07T03:47:12 [INFO] H106 — Phase 1/4 — Loading data...\n2026-09-07T03:47:12 [ERROR] H106 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/run.py\", line 573, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n    label = int(row['label'])\nValueError: invalid literal for int() with base 10: 'rec.autos'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has columns named 'text' and 'label'",
+            "The label column contains integer values representing topic classes",
+            "The transformer model uses BERT base architecture which is suitable for this task",
+            "Training will converge within 5 epochs with early stopping",
+            "GPU is available for training (will fall back to CPU if not)"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ed.mean(dim=1)  # (batch_size, embed_dim)\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\nusers/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/run.py\", line 264, in forward\n    pooled = embedded.mean(dim=1)  # (batch_size, embed_dim)\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains string labels that need to be converted to integers for training",
+            "The dataset has 'text' and 'label' columns",
+            "The label column may contain non-numeric values that require mapping to integers",
+            "The experiment will run on a system with GPU support (though it will fall back to CPU)"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: lf.sparse,\n            ^^^^^^^^^^^^\n        )\n        ^\n      File \"/tmp/users/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 2621, in embedding\n        return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)\n               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    IndexError: index out of range in self\n========================================================================\n\n\n/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/sparse.py\", line 189, in forward\n    return F.embedding(\n           ~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        self.sparse,\n        ^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439870/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 2621, in embedding\n    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nIndexError: index out of range in self",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_4/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains text and label columns where labels can be either integers or strings",
+            "We force CPU training to avoid CUDA errors that occurred in previous attempts",
+            "Label conversion handles both numeric and string labels gracefully",
+            "The model architectures are compatible with the data size and complexity"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_5/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has 'text' and 'label' columns",
+            "Labels can be either numeric or string values that need mapping to integers",
+            "Training will be performed on CPU to avoid CUDA-related issues",
+            "The bag-of-embeddings model uses a vocabulary built from training data",
+            "The transformer model uses BERT base uncased as the backbone",
+            "Early stopping is implemented to prevent overfitting"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face public dataset",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": true,
+        "changes": [
+          "epochs: 5 -> 2",
+          "batch_size: 32 -> 16",
+          "epochs: 2 -> 1",
+          "batch_size: 16 -> 8"
+        ],
+        "converged": false,
+        "convergence_findings": [
+          "'bag_of_embeddings' trained for only 1 epoch(s), too few to show convergence",
+          "'transformer' trained for only 1 epoch(s), too few to show convergence",
+          "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+        ],
+        "measurement_changes": [
+          "epochs: 5 -> 2",
+          "batch_size: 32 -> 16",
+          "epochs: 2 -> 1",
+          "batch_size: 16 -> 8"
+        ],
+        "precision_changes": [],
+        "timeout_seconds": 1800,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "ran_at_full_size": false
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/06_deep_learning_gpu/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-07T05:42:24.186701+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

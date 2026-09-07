@@ -1,0 +1,120 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H106",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: lf.sparse,\n            ^^^^^^^^^^^^\n        )\n        ^\n      File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 2621, in embedding\n        return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)\n               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    IndexError: index out of range in self\n========================================================================\n\n\n/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/sparse.py\", line 189, in forward\n    return F.embedding(\n           ~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        self.sparse,\n        ^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 2621, in embedding\n    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nIndexError: index out of range in self after 6 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106",
+      "assumptions_made": [
+        "The experiment runs on CPU to avoid CUDA errors that caused previous failures",
+        "The dataset has valid text and label columns",
+        "Labels may be either numeric or string types and will be handled appropriately",
+        "Training will complete within the allocated time limits"
+      ],
+      "results": null,
+      "fix_attempts": 6,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport csv\\nimport torch\\nimport torch.nn as nn\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import AutoTokenizer, AutoModel\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score, f1_score\\nimport numpy as np\\nfrom collections import Counter\\nimport time\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 3\\nMAX_SEQ_LENGTH: int = 128\\nBATCH_SIZE: int = 32\\nLEARNING_RATE: float = 2e-5\\n'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ==============================\n  EXPERIMENT : Experiment H106\n  ID         : H106\n  STATUS     : FAILURE\n  ELAPSED    : 0.0002 s\n  SAVED TO   : results.json\n========================================================================\n  MEETS SUCCESS CRITERIA: unknown\n  NOTES: Experiment raised an exception before evaluation completed — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 571, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n        label = int(row['label'])\n    ValueError: invalid literal for int() with base 10: 'rec.autos'\n========================================================================\n\n\n2026-09-07T04:10:31 [INFO] H106 — Starting experiment 'Experiment H106' (H106)\n2026-09-07T04:10:31 [INFO] H106 — Phase 1/4 — Loading data...\n2026-09-07T04:10:31 [ERROR] H106 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 571, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n    label = int(row['label'])\nValueError: invalid literal for int() with base 10: 'rec.autos'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset file exists at the specified path and contains 'text' and 'label' columns.",
+            "CUDA is available for training, but the code falls back to CPU if not.",
+            "The experiment is run on a machine with sufficient memory for the models and data loading.",
+            "The dataset is large enough to support both models' training."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: cratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 585, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 209, in load_data\n        reader.reset()  # Reset DictReader\n        ^^^^^^^^^^^^\n    AttributeError: 'DictReader' object has no attribute 'reset'\n========================================================================\n\n\n2026-09-07T04:11:09 [INFO] H106 — Starting experiment 'Experiment H106' (H106)\n2026-09-07T04:11:09 [INFO] H106 — Phase 1/4 — Loading data...\n2026-09-07T04:11:09 [ERROR] H106 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 203, in load_data\n    label = int(label_str)\nValueError: invalid literal for int() with base 10: 'rec.autos'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 585, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 209, in load_data\n    reader.reset()  # Reset DictReader\n    ^^^^^^^^^^^^\nAttributeError: 'DictReader' object has no attribute 'reset' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 5 -> 1; batch_size: 32 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The label column in the CSV contains string labels that need to be converted to integers for training",
+            "The dataset has sufficient samples to train both models effectively",
+            "The experiment will run on a system with GPU support for training",
+            "Training will converge within the specified number of epochs"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ed.mean(dim=1)  # (batch_size, embed_dim)\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\nusers/sgyshere/coder-venvs-10439911/5d4186f63b720a76/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/5d4186f63b720a76/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 279, in forward\n    pooled = embedded.mean(dim=1)  # (batch_size, embed_dim)\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains 'text' and 'label' columns",
+            "Labels in the CSV may be either numeric or string values",
+            "The dataset is large enough to support a 75/25 train/test split",
+            "The experiment will run on a system with sufficient memory for the models",
+            "The BERT tokenizer and model can be downloaded from Hugging Face"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ed.mean(dim=1)  # (batch_size, embed_dim)\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\nusers/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 275, in forward\n    pooled = embedded.mean(dim=1)  # (batch_size, embed_dim)\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains 'text' and 'label' columns",
+            "Labels in the CSV may be either numeric or string values, requiring dynamic type detection",
+            "The dataset is large enough to support a 25% test split",
+            "GPU memory is sufficient for the batch size and model parameters",
+            "The transformer model will not encounter CUDA assertion errors during training",
+            "The bag-of-embeddings model handles edge cases like empty sequences gracefully"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ed.mean(dim=1)  # (batch_size, embed_dim)\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\nusers/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439911/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/run.py\", line 275, in forward\n    pooled = embedded.mean(dim=1)  # (batch_size, embed_dim)\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has 'text' and 'label' columns",
+            "Labels can be converted to integers (either numeric or string labels)",
+            "GPU is available for training but will fall back to CPU if not",
+            "Training will converge within 3 epochs with early stopping",
+            "The model architectures are compatible with the data dimensions"
+          ],
+          "same_error_streak": 5
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 7
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/06_deep_learning_gpu/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-07T03:13:58.516508+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

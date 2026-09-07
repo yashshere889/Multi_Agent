@@ -1,0 +1,102 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H104",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: ted — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n        data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n        ~~~~^^^^^^^^^^\n    TypeError: list indices must be integers or slices, not str\n========================================================================\n\n\n2026-09-07T03:56:57 [INFO] H104 — Starting experiment 'Experiment H104' (H104)\n2026-09-07T03:56:57 [INFO] H104 — Phase 1/4 — Loading data...\n2026-09-07T03:56:57 [INFO] H104 — Phase 2/4 — Building model...\n2026-09-07T03:56:57 [INFO] H104 — Phase 3/4 — Running experiment...\n2026-09-07T03:56:57 [ERROR] H104 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n    data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n    ~~~~^^^^^^^^^^\nTypeError: list indices must be integers or slices, not str after 4 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104",
+      "assumptions_made": [
+        "The synthetic data generation produces realistic cluster structures with varying degrees of overlap",
+        "The k-means implementation follows Lloyd's algorithm correctly",
+        "Adjusted Rand Index is computed accurately using scikit-learn",
+        "Random assignment is truly random and independent of cluster structure",
+        "The experiment processes one dataset at a time rather than all datasets together"
+      ],
+      "results": null,
+      "fix_attempts": 4,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 298: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The synthetic data is generated with three Gaussian blobs in 2D space with fixed base centers and varying separation",
+            "Cluster separation is controlled by scaling the base centers by a factor (0.5, 1.0, 2.0)",
+            "K-means is implemented using Lloyd's algorithm with fixed maximum iterations",
+            "Adjusted Rand Index is used to measure clustering quality against ground truth",
+            "Random assignment serves as a meaningful baseline for comparison",
+            "The experiment assumes that at higher separations, k-means should perform significantly better than random assignment",
+            "The synthetic data generation uses a fixed random seed for reproducibility",
+            "The number of samples per cluster is fixed at 50 for all separation levels",
+            "The number of clusters is fixed at 3 for all experiments"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ted — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 472, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 245, in run_experiment\n        data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n        ~~~~^^^^^^^^^^\n    TypeError: list indices must be integers or slices, not str\n========================================================================\n\n\n2026-09-07T03:56:12 [INFO] H104 — Starting experiment 'Experiment H104' (H104)\n2026-09-07T03:56:12 [INFO] H104 — Phase 1/4 — Loading data...\n2026-09-07T03:56:12 [INFO] H104 — Phase 2/4 — Building model...\n2026-09-07T03:56:12 [INFO] H104 — Phase 3/4 — Running experiment...\n2026-09-07T03:56:12 [ERROR] H104 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 472, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 245, in run_experiment\n    data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n    ~~~~^^^^^^^^^^\nTypeError: list indices must be integers or slices, not str",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic data generation uses a fixed seed for reproducibility and generates three Gaussian blobs in 2D space with configurable separation levels.",
+            "The k-means implementation follows Lloyd's algorithm as specified in the literature.",
+            "The Adjusted Rand Index is computed using scikit-learn's implementation for consistency with established metrics.",
+            "The experiment evaluates performance at three separation levels: 0.5 (high overlap), 1.0 (moderate overlap), and 2.0 (low overlap)."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ted — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n        data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n        ~~~~^^^^^^^^^^\n    TypeError: list indices must be integers or slices, not str\n========================================================================\n\n\n2026-09-07T03:56:27 [INFO] H104 — Starting experiment 'Experiment H104' (H104)\n2026-09-07T03:56:27 [INFO] H104 — Phase 1/4 — Loading data...\n2026-09-07T03:56:27 [INFO] H104 — Phase 2/4 — Building model...\n2026-09-07T03:56:27 [INFO] H104 — Phase 3/4 — Running experiment...\n2026-09-07T03:56:27 [ERROR] H104 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n    data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n    ~~~~^^^^^^^^^^\nTypeError: list indices must be integers or slices, not str",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic data generation creates realistic cluster structures with appropriate correlation structure.",
+            "The k-means implementation correctly handles the varying degrees of cluster overlap.",
+            "The adjusted Rand index provides meaningful comparison between clustering results and ground truth.",
+            "The experiment processes one dataset at a time, not all datasets together."
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ted — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n        data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n        ~~~~^^^^^^^^^^\n    TypeError: list indices must be integers or slices, not str\n========================================================================\n\n\n2026-09-07T03:56:42 [INFO] H104 — Starting experiment 'Experiment H104' (H104)\n2026-09-07T03:56:42 [INFO] H104 — Phase 1/4 — Loading data...\n2026-09-07T03:56:42 [INFO] H104 — Phase 2/4 — Building model...\n2026-09-07T03:56:42 [INFO] H104 — Phase 3/4 — Running experiment...\n2026-09-07T03:56:42 [ERROR] H104 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 461, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/run.py\", line 240, in run_experiment\n    data[\"points\"], model[\"k\"], model[\"max_iterations\"], model[\"seed\"]\n    ~~~~^^^^^^^^^^\nTypeError: list indices must be integers or slices, not str",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/H104/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic data generation produces realistic cluster structures with varying degrees of overlap",
+            "K-means is implemented correctly according to Lloyd's algorithm",
+            "Adjusted Rand Index is computed accurately using scikit-learn",
+            "Random assignment is truly random and independent of cluster structure",
+            "The experiment processes one dataset at a time rather than all datasets together"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "clustering",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 5
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439911/04_clustering_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H104"
+  ],
+  "generated_at": "2026-09-07T02:56:57.509504+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,103 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H111",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/11_bootstrap_resampling/experiments/H111",
+      "assumptions_made": [
+        "Synthetic data generated using log-normal distributions with shape parameter controlling skewness.",
+        "The median of a log-normal distribution with mu=0 is 1.0.",
+        "Bootstrap intervals are computed using percentile method.",
+        "The experiment is run with fixed seeds for reproducibility."
+      ],
+      "results": {
+        "experiment_id": "H111",
+        "experiment_name": "Experiment H111",
+        "hypothesis": "Test whether the bootstrap confidence interval for a median achieves nominal coverage on skewed data.",
+        "author": "coder-agent",
+        "baseline": "The nominal 95% coverage the interval claims.",
+        "success_criteria": "Empirical coverage stays within 0.03 of nominal at every skewness level.",
+        "timestamp_utc": "2026-09-07T05:52:58.097340+00:00",
+        "status": "success",
+        "elapsed_seconds": 70.0674,
+        "resumed": false,
+        "metrics": {
+          "coverage_at_skewness_0.0": 1.0,
+          "mean_width_at_skewness_0.0": 0.0,
+          "coverage_at_skewness_0.5": 0.946,
+          "mean_width_at_skewness_0.5": 0.34186530524774356,
+          "coverage_at_skewness_1.0": 0.958,
+          "mean_width_at_skewness_1.0": 0.7166201771401358,
+          "coverage_at_skewness_2.0": 0.952,
+          "mean_width_at_skewness_2.0": 1.5732357474444574,
+          "coverage_at_skewness_5.0": 0.942,
+          "mean_width_at_skewness_5.0": 8.3387884672216
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "At skewness 0.0: empirical coverage 1.000 is outside ±0.03 of nominal 0.95; At skewness 0.5: empirical coverage 0.946 is within ±0.03 of nominal 0.95; At skewness 1.0: empirical coverage 0.958 is within ±0.03 of nominal 0.95; At skewness 2.0: empirical coverage 0.952 is within ±0.03 of nominal 0.95; At skewness 5.0: empirical coverage 0.942 is within ±0.03 of nominal 0.95",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/11_bootstrap_resampling/experiments/H111/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Generated synthetic data using log-normal distributions since they exhibit increasing skewness with higher shape parameters",
+            "Fixed the location parameter (mu) to 0 so that the median is always 1.0 across all distributions",
+            "Used the percentile bootstrap method as specified in the literature",
+            "Set the nominal coverage level to 95% as standard",
+            "Used 100 samples per replicate as a reasonable balance between computational cost and statistical stability",
+            "Used 1000 bootstrap samples per replicate for sufficient precision in interval estimation",
+            "Used 1000 replicates per skewness level to provide stable coverage estimates",
+            "Defined success criteria as being within ±0.03 of nominal coverage level"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/11_bootstrap_resampling/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H111"
+  ],
+  "generated_at": "2026-09-07T05:52:58.202020+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

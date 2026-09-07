@@ -1,0 +1,123 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H104",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439864/04_clustering_synthetic/experiments/H104",
+      "assumptions_made": [
+        "Used synthetic data generation instead of the Hugging Face dataset because the persona chat data isn't suitable for clustering analysis",
+        "Generated three Gaussian blobs with varying separation distances to simulate increasing overlap",
+        "Applied StandardScaler to normalize features for fair comparison across separation levels",
+        "Used fixed number of samples per cluster (50) for consistent experimental conditions",
+        "Chose separation levels [0.5, 1.0, 2.0] to represent low, medium, and high overlap scenarios",
+        "Implemented random assignment as a baseline by randomly assigning points to clusters",
+        "Used Adjusted Rand Index as the primary metric to measure clustering quality",
+        "Used within-cluster inertia as a secondary metric to measure compactness",
+        "Set maximum iterations to 100 for k-means convergence",
+        "Used fixed random seed for reproducibility"
+      ],
+      "results": {
+        "experiment_id": "H104",
+        "experiment_name": "Experiment H104",
+        "hypothesis": "Test whether k-means recovers known cluster structure better than random assignment at increasing overlap.",
+        "author": "coder-agent",
+        "baseline": "Random assignment of points to the same number of clusters.",
+        "success_criteria": "k-means beats random assignment on adjusted Rand index at every separation level tested.",
+        "timestamp_utc": "2026-09-07T01:58:20.726962+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0368,
+        "resumed": false,
+        "metrics": {
+          "adjusted_rand_index": [
+            0.6467451746122679,
+            1.0,
+            1.0
+          ],
+          "inertia": [
+            255.28076714258148,
+            291.29688825030536,
+            294.0786051098937
+          ],
+          "random_adjusted_rand_index": [
+            0.0009879871588737489,
+            0.0009879871588737489,
+            0.0009879871588737489
+          ]
+        },
+        "meets_success_criteria": true,
+        "notes": "K-means performs better than random assignment on adjusted Rand index at all separation levels tested.",
+        "error": null
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "clustering",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset google/Synthetic-Persona-Chat",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl (5000 rows, 9302670 bytes, sha256 6a78aef9d8e3)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+              "sha256": "6a78aef9d8e3a7f09b63903c707ab20f76efe474abb035d12336bf0c4b5d8f36",
+              "byte_count": 9302670,
+              "data_format": "jsonl",
+              "columns": [
+                "user 1 personas",
+                "user 2 personas",
+                "Best Generated Conversation"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "user 1 personas": "I am 32.\nI do not want a job.\nI play video games all day.\nI still live at home with my parents.",
+                  "user 2 personas": "My favorite drink is iced coffee.\nI have a black belt in karate.\nI m in a jazz band and play the saxophone.\nI vacation along lake michigan every summer.",
+                  "Best Generated Conversation": "User 1: Hi! I'm [user 1's name].\nUser 2: Hi [user 1's name], I'm [user 2's name].\nUser 1: What do you do for fun?\nUser 2: I like to play video games, go to the beach, and read.\nUser 1: I like to play …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.",
+                  "user 2 personas": "I have a ford f150.\nI like ford cars.\nMy truck is black.\nI also like ford trucks.\nI own a ford truck.",
+                  "Best Generated Conversation": "User 1: Hey, how's it going?\nUser 2: Good, I'm just hanging out.\nUser 1: Nice. Me too. I'm playing video games.\nUser 2: Oh, cool. I like video games. What are you playing?\nUser 1: I'm playing Call of …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.\nI eat all take out.",
+                  "user 2 personas": "I can recite the movie young frankenstein word for word.\nI like to make my own clothes.\nI am partially blind.\nI do volunteer work for human rights organizations.\nI can do convincing bird calls.",
+                  "Best Generated Conversation": "User 1: Hi, my name is John. What's your name?\nUser 2: Hi, John, my name is Mary.\nUser 1: It's nice to meet you, Mary. What do you do for a living?\nUser 2: I do volunteer work for human rights organiz…"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439864/04_clustering_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H104"
+  ],
+  "generated_at": "2026-09-07T01:58:20.969197+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

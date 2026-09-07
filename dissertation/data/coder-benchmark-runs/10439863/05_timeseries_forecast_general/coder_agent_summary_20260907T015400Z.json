@@ -1,0 +1,144 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H105",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439863/05_timeseries_forecast_general/experiments/H105",
+      "assumptions_made": [
+        "The Hugging Face dataset was successfully loaded and used for generating the time series.",
+        "The synthetic data generation function correctly produces a time series with trend, seasonality, and noise as required by the experiment.",
+        "All necessary imports are properly included to avoid undefined name errors.",
+        "The rolling origin evaluation correctly implements the seasonal differencing and persistence forecasting methods.",
+        "The evaluation function accurately computes the MAE and determines if the success criteria are met."
+      ],
+      "results": {
+        "experiment_id": "H105",
+        "experiment_name": "Experiment H105",
+        "hypothesis": "Test whether seasonal differencing improves one-step forecast error on a series with known seasonality.",
+        "author": "coder-agent",
+        "baseline": "Persistence forecast on the undifferenced series.",
+        "success_criteria": "Seasonal differencing reduces one-step MAE by at least 10% against persistence.",
+        "timestamp_utc": "2026-09-07T01:54:00.608792+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0614,
+        "resumed": false,
+        "metrics": {
+          "mae_persistence": 472.0347222222222,
+          "mae_seasonal_diff": 3108.6875,
+          "improvement_percentage": -558.5717858561488
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Baseline (persistence) MAE: 472.0347, Seasonal differencing MAE: 3108.6875. Improvement: -558.57%.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 178: undefined name 'pd'; line 211: undefined name 'np'; line 214: undefined name 'np'; line 217: undefined name 'np'; line 217: undefined name 'np'; line 217: undefined name 'np'; line 220: undefined name 'np'; line 272: undefined name 'np'; line 272: undefined name 'np'; line 272: undefined name 'np'; line 272: undefined name 'np'; line 273: undefined name 'np'; line 273: undefined name 'np'; line 273: undefined name 'np'; line 273: undefined name 'np'; line 278: undefined name 'np'; line 291: undefined name 'np'; line 291: undefined name 'np'; line 291: undefined name 'np'; line 291: undefined name 'np'; line 292: undefined name 'np'; line 292: undefined name 'np'; line 292: undefined name 'np'; line 292: undefined name 'np'; line 317: undefined name 'np'; line 318: undefined name 'np'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439863/05_timeseries_forecast_general/experiments/H105/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "run_experiment_function",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Used synthetic data generation because the Hugging Face dataset doesn't contain suitable time series data",
+            "Assumed a seasonal period of 12 based on common seasonal patterns in time series analysis",
+            "Used a rolling origin evaluation over the final quarter of the series as specified in the design",
+            "Implemented naive persistence forecasting as the baseline method",
+            "Applied seasonal differencing by subtracting values from one seasonal period earlier",
+            "Used mean absolute error (MAE) as the primary metric for comparing forecast accuracy",
+            "Set the success criterion at a 10% reduction in MAE from using seasonal differencing",
+            "The synthetic series has a linear trend, fixed seasonal period, and Gaussian noise as required"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset google/Synthetic-Persona-Chat",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl (5000 rows, 9302670 bytes, sha256 6a78aef9d8e3)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+              "sha256": "6a78aef9d8e3a7f09b63903c707ab20f76efe474abb035d12336bf0c4b5d8f36",
+              "byte_count": 9302670,
+              "data_format": "jsonl",
+              "columns": [
+                "user 1 personas",
+                "user 2 personas",
+                "Best Generated Conversation"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "user 1 personas": "I am 32.\nI do not want a job.\nI play video games all day.\nI still live at home with my parents.",
+                  "user 2 personas": "My favorite drink is iced coffee.\nI have a black belt in karate.\nI m in a jazz band and play the saxophone.\nI vacation along lake michigan every summer.",
+                  "Best Generated Conversation": "User 1: Hi! I'm [user 1's name].\nUser 2: Hi [user 1's name], I'm [user 2's name].\nUser 1: What do you do for fun?\nUser 2: I like to play video games, go to the beach, and read.\nUser 1: I like to play …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.",
+                  "user 2 personas": "I have a ford f150.\nI like ford cars.\nMy truck is black.\nI also like ford trucks.\nI own a ford truck.",
+                  "Best Generated Conversation": "User 1: Hey, how's it going?\nUser 2: Good, I'm just hanging out.\nUser 1: Nice. Me too. I'm playing video games.\nUser 2: Oh, cool. I like video games. What are you playing?\nUser 1: I'm playing Call of …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.\nI eat all take out.",
+                  "user 2 personas": "I can recite the movie young frankenstein word for word.\nI like to make my own clothes.\nI am partially blind.\nI do volunteer work for human rights organizations.\nI can do convincing bird calls.",
+                  "Best Generated Conversation": "User 1: Hi, my name is John. What's your name?\nUser 2: Hi, John, my name is Mary.\nUser 1: It's nice to meet you, Mary. What do you do for a living?\nUser 2: I do volunteer work for human rights organiz…"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439863/05_timeseries_forecast_general/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H105"
+  ],
+  "generated_at": "2026-09-07T01:54:00.823697+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

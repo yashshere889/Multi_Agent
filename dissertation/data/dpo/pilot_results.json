@@ -1,0 +1,37 @@
+{
+  "_note": "Transcribed from the Barkla job logs on 2026-09-07 while the cluster was reachable. The authoritative files are dpo/run-<jobid>/result.json on fastscratch; re-sync them before quoting these numbers in the dissertation.",
+  "runs": [
+    {
+      "job_id": "10439925",
+      "outcome": "failed",
+      "reason": "DPOConfig in trl 1.12 does not accept max_prompt_length; TypeError at construction. Fixed by filtering the config against DPOConfig's own dataclass fields."
+    },
+    {
+      "job_id": "10439928",
+      "outcome": "completed",
+      "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "pairs_total": 28, "pairs_train": 21, "pairs_held_out": 7,
+      "metric": "mean token loss over prompt+completion",
+      "accuracy_before": 0.2857142857142857,
+      "accuracy_after": 0.2857142857142857,
+      "interpretation": "Null result attributed to the metric, not the model: averaging over prompt+completion diluted the differing section by roughly an order of magnitude."
+    },
+    {
+      "job_id": "10439931",
+      "outcome": "completed",
+      "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "pairs_total": 28, "pairs_train": 21, "pairs_held_out": 7,
+      "metric": "completion tokens only; summed and length-normalised",
+      "accuracy_summed_before": 0.0, "accuracy_summed_after": 0.0,
+      "accuracy_length_normalised_before": 0.2857142857142857,
+      "accuracy_length_normalised_after": 0.2857142857142857,
+      "interpretation": "Summed accuracy of exactly 0/7 is pure length bias: chosen completions are systematically longer (median 7000 vs 5581 characters) and a summed log-probability is strictly more negative for a longer sequence. The length-normalised figure is the meaningful one and did not move, but accuracy over 7 discrete pairs takes values only in sevenths and cannot separate 'no effect' from 'an effect too small to flip a pair'. A continuous margin statistic was added afterwards and has NOT yet been run."
+    }
+  ],
+  "pending": "scripts/dpo/train_dpo.py now reports a per-pair margin (length-normalised logprob of chosen minus rejected) alongside accuracy. Not yet deployed to the cluster or run.",
+  "limitations": [
+    "n=7 held out admits no statistical claim; a binomial test at this size rejects p=0.5 only at 0/7 or 7/7.",
+    "trl emitted tokenizer-mismatch warnings on every pair, indicating the prompt/completion boundary does not tokenize cleanly.",
+    "The contribution demonstrated is the harvesting pipeline, not a performance improvement."
+  ]
+}

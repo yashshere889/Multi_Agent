@@ -1,0 +1,90 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H109",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439912/09_restricted_clinical_data/experiments/H109",
+      "assumptions_made": [
+        "Generated synthetic data mimics real MIMIC-III patient characteristics and relationships",
+        "Diagnosis categories are representative of common clinical conditions in critical care",
+        "Length of stay and readmission relationships follow realistic patterns (longer stays increase readmission risk)",
+        "Rare diagnosis categories are grouped into \"Other\" as specified in preprocessing steps",
+        "The synthetic data maintains realistic correlation structures between variables",
+        "Logistic regression is appropriate for this binary classification problem",
+        "The experiment uses a reasonable sample size (10,000 patients) for statistical power"
+      ],
+      "results": {
+        "experiment_id": "H109",
+        "experiment_name": "Experiment H109",
+        "hypothesis": "Test whether length of stay predicts 30-day readmission independently of admission diagnosis.",
+        "author": "coder-agent",
+        "baseline": "A model using admission diagnosis alone.",
+        "success_criteria": "Length of stay remains associated with readmission after adjustment, improving AUC by at least 0.02.",
+        "timestamp_utc": "2026-09-07T03:47:16.706000+00:00",
+        "status": "success",
+        "elapsed_seconds": 16.044,
+        "resumed": false,
+        "metrics": {
+          "baseline_accuracy": 0.66,
+          "baseline_precision": 0.0,
+          "baseline_recall": 0.0,
+          "baseline_f1": 0.0,
+          "baseline_auc": 0.6471134135472413,
+          "baseline_calibration_slope": 1.0,
+          "full_accuracy": 0.66,
+          "full_precision": 0.0,
+          "full_recall": 0.0,
+          "full_f1": 0.0,
+          "full_auc": 0.6552328431372599,
+          "full_calibration_slope": 5.654777514421291,
+          "odds_ratio": 1.0051945293474742,
+          "auc_improvement": 0.008119429590018656
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Baseline AUC: 0.647, Full model AUC: 0.655. AUC improvement: 0.008. Odds ratio for length of stay: 1.005. Length of stay remains significant: True. AUC improvement meets criteria: False.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "MIMIC-III critical care database",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "MIMIC requires PhysioNet credentialing and a signed DUA. Nothing was staged for it, so a documented surrogate is generated instead.",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439912/09_restricted_clinical_data/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H109"
+  ],
+  "generated_at": "2026-09-07T03:47:16.729532+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

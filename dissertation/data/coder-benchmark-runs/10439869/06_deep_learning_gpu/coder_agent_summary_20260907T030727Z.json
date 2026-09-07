@@ -1,0 +1,185 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H106",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1:  \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n        return torch._C._nn.cross_entropy_loss(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n            input,\n            ^^^^^^\n        ...<5 lines>...\n            label_smoothing,\n            ^^^^^^^^^^^^^^^^\n        )\n        ^\n    IndexError: Target 7 is out of bounds.\n========================================================================\n\n\nargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/loss.py\", line 1400, in forward\n    return F.cross_entropy(\n           ~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<4 lines>...\n        label_smoothing=self.label_smoothing,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n    return torch._C._nn.cross_entropy_loss(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        label_smoothing,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\nIndexError: Target 7 is out of bounds. after 10 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106",
+      "assumptions_made": [
+        "The dataset contains valid text and label columns named 'text' and 'label'",
+        "Labels in the dataset are either numeric or can be converted to integers",
+        "The vocabulary built from training data is sufficient for both models",
+        "Training parameters (learning rate, epochs, batch size) are appropriate for this dataset size",
+        "The model architectures are compatible with the available hardware (CPU-only)"
+      ],
+      "results": null,
+      "fix_attempts": 10,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport csv\\nimport torch\\nimport torch.nn as nn\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import AutoTokenizer, AutoModel\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score, f1_score\\nimport numpy as np\\nfrom collections import Counter\\nimport time\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 3\\nMAX_SEQ_LENGTH: int = 128\\nBATCH_SIZE: int = 32\\nLEARNING_RATE: float = 2e-5\\n'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ==============================\n  EXPERIMENT : Experiment H106\n  ID         : H106\n  STATUS     : FAILURE\n  ELAPSED    : 0.0002 s\n  SAVED TO   : results.json\n========================================================================\n  MEETS SUCCESS CRITERIA: unknown\n  NOTES: Experiment raised an exception before evaluation completed — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 561, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n        label = int(row['label'])\n    ValueError: invalid literal for int() with base 10: 'rec.autos'\n========================================================================\n\n\n2026-09-07T04:01:43 [INFO] H106 — Starting experiment 'Experiment H106' (H106)\n2026-09-07T04:01:43 [INFO] H106 — Phase 1/4 — Loading data...\n2026-09-07T04:01:43 [ERROR] H106 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 561, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 200, in load_data\n    label = int(row['label'])\nValueError: invalid literal for int() with base 10: 'rec.autos'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains 'text' and 'label' columns as expected",
+            "The experiment will be run on a system with GPU support for training",
+            "The transformer model can be loaded from Hugging Face without issues",
+            "The bag-of-embeddings model uses a fixed vocabulary size of 10000",
+            "Training will converge within 5 epochs with early stopping"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:    encodings = self._encode_plus(\n            text=text,\n        ...<4 lines>...\n            **all_kwargs,\n        )\n      File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n        for key in tokens_and_encodings[0][0]:\n                   ~~~~~~~~~~~~~~~~~~~~^^^\n    IndexError: list index out of range\n========================================================================\n\n\nh/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 581, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 307, in run_experiment\n    test_encodings = tokenizer(data[\"test_docs\"], truncation=True, padding=True, max_length=MAX_SEQ_LENGTH, return_tensors=\"pt\")\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_base.py\", line 2512, in __call__\n    encodings = self._encode_plus(\n        text=text,\n    ...<4 lines>...\n        **all_kwargs,\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n    for key in tokens_and_encodings[0][0]:\n               ~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains a 'text' column and a 'label' column",
+            "Labels in the CSV file may be strings that need to be mapped to integers",
+            "The dataset is large enough to support both training runs within the time constraints",
+            "The experiment will run on a system with sufficient memory for the models"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:    encodings = self._encode_plus(\n            text=text,\n        ...<4 lines>...\n            **all_kwargs,\n        )\n      File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n        for key in tokens_and_encodings[0][0]:\n                   ~~~~~~~~~~~~~~~~~~~~^^^\n    IndexError: list index out of range\n========================================================================\n\n\nh/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 585, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 308, in run_experiment\n    test_encodings = tokenizer(data[\"test_docs\"], truncation=True, padding=True, max_length=MAX_SEQ_LENGTH, return_tensors=\"pt\")\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_base.py\", line 2512, in __call__\n    encodings = self._encode_plus(\n        text=text,\n    ...<4 lines>...\n        **all_kwargs,\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n    for key in tokens_and_encodings[0][0]:\n               ~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains text and label columns named 'text' and 'label' respectively.",
+            "Labels may be either numeric or string values, requiring dynamic type conversion.",
+            "The experiment requires GPU acceleration for training.",
+            "Tokenization errors are handled gracefully to prevent crashes during data preparation."
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:    encodings = self._encode_plus(\n            text=text,\n        ...<4 lines>...\n            **all_kwargs,\n        )\n      File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n        for key in tokens_and_encodings[0][0]:\n                   ~~~~~~~~~~~~~~~~~~~~^^^\n    IndexError: list index out of range\n========================================================================\n\n\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 658, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/run.py\", line 385, in run_experiment\n    test_encodings = tokenizer(\n        test_texts,\n    ...<3 lines>...\n        return_tensors=\"pt\"\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_base.py\", line 2512, in __call__\n    encodings = self._encode_plus(\n        text=text,\n    ...<4 lines>...\n        **all_kwargs,\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py\", line 1050, in _encode_plus\n    for key in tokens_and_encodings[0][0]:\n               ~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains 'text' and 'label' columns",
+            "Labels are either numeric or can be mapped to integers",
+            "The text data is suitable for tokenization with the BERT tokenizer",
+            "The simplified transformer model will work without BERT dependencies",
+            "Training will complete within the allocated time limits"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\n, retain_graph, create_graph, inputs=inputs\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py\", line 388, in backward\n    grad_tensors_ = _make_grads(tensors, grad_tensors_, is_grads_batched=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/3441ffa8e573c93b/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py\", line 233, in _make_grads\n    torch.ones_like(out, memory_format=torch.preserve_format)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains 'text' and 'label' columns",
+            "Labels can be either numeric or string, and will be mapped to integers",
+            "The text data is suitable for tokenization with basic regex splitting",
+            "The experiment will run on a system with sufficient memory for the models",
+            "Training will complete within the allocated time limits"
+          ],
+          "same_error_streak": 5
+        },
+        {
+          "attempt": 7,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    torch.AcceleratorError: CUDA error: device-side assert triggered\n    Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\n    CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\n    For debugging consider passing CUDA_LAUNCH_BLOCKING=1\n    \n========================================================================\n\n\n, retain_graph, create_graph, inputs=inputs\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py\", line 388, in backward\n    grad_tensors_ = _make_grads(tensors, grad_tensors_, is_grads_batched=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py\", line 233, in _make_grads\n    torch.ones_like(out, memory_format=torch.preserve_format)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.AcceleratorError: CUDA error: device-side assert triggered\nSearch for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset file exists at the specified path and is readable",
+            "The dataset has 'text' and 'label' columns",
+            "Labels in the dataset are either numeric or can be mapped to integers",
+            "The experiment will run on a system with GPU support for training",
+            "The vocabulary size is manageable for the embedding layers",
+            "The maximum sequence length is appropriate for the dataset"
+          ],
+          "same_error_streak": 6
+        },
+        {
+          "attempt": 8,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n        return torch._C._nn.cross_entropy_loss(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n            input,\n            ^^^^^^\n        ...<5 lines>...\n            label_smoothing,\n            ^^^^^^^^^^^^^^^^\n        )\n        ^\n    IndexError: Target 7 is out of bounds.\n========================================================================\n\n\nargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/loss.py\", line 1400, in forward\n    return F.cross_entropy(\n           ~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<4 lines>...\n        label_smoothing=self.label_smoothing,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n    return torch._C._nn.cross_entropy_loss(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        label_smoothing,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\nIndexError: Target 7 is out of bounds.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_8/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Training on CPU instead of GPU to avoid CUDA errors that caused previous failures",
+            "Using simple tokenization and vocabulary building instead of complex NLP libraries",
+            "All models trained for the same number of epochs with same hyperparameters",
+            "The dataset contains valid text and label columns with appropriate formatting"
+          ],
+          "same_error_streak": 7
+        },
+        {
+          "attempt": 9,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n        return torch._C._nn.cross_entropy_loss(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n            input,\n            ^^^^^^\n        ...<5 lines>...\n            label_smoothing,\n            ^^^^^^^^^^^^^^^^\n        )\n        ^\n    IndexError: Target 7 is out of bounds.\n========================================================================\n\n\nargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/loss.py\", line 1400, in forward\n    return F.cross_entropy(\n           ~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<4 lines>...\n        label_smoothing=self.label_smoothing,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n    return torch._C._nn.cross_entropy_loss(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        label_smoothing,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\nIndexError: Target 7 is out of bounds.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_9/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has a 'text' column and a 'label' column",
+            "Labels may be numeric or string, requiring conversion/mapping",
+            "The experiment runs on CPU due to compute constraints",
+            "Early stopping prevents overfitting during training",
+            "Training data is shuffled before splitting into train/test"
+          ],
+          "same_error_streak": 8
+        },
+        {
+          "attempt": 10,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n        return torch._C._nn.cross_entropy_loss(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n            input,\n            ^^^^^^\n        ...<5 lines>...\n            label_smoothing,\n            ^^^^^^^^^^^^^^^^\n        )\n        ^\n    IndexError: Target 7 is out of bounds.\n========================================================================\n\n\nargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/modules/loss.py\", line 1400, in forward\n    return F.cross_entropy(\n           ~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<4 lines>...\n        label_smoothing=self.label_smoothing,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10439869/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/nn/functional.py\", line 3561, in cross_entropy\n    return torch._C._nn.cross_entropy_loss(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        input,\n        ^^^^^^\n    ...<5 lines>...\n        label_smoothing,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\nIndexError: Target 7 is out of bounds.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_10/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has a 'text' column and a 'label' column",
+            "Labels in the dataset are either integers or can be mapped to integers",
+            "The vocabulary size is manageable for the embedding layers",
+            "The maximum sequence length of 128 tokens is sufficient for the texts in the dataset",
+            "Training for 5 epochs with early stopping is sufficient to reach convergence",
+            "The CPU-based training is acceptable for this experiment"
+          ],
+          "same_error_streak": 9
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 11
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/06_deep_learning_gpu/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-07T03:07:27.744966+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,13 @@
+{
+  "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "pairs_total": 28,
+  "pairs_train": 21,
+  "pairs_held_out": 7,
+  "held_out_preference_accuracy_before": 0.2857142857142857,
+  "held_out_preference_accuracy_after": 0.2857142857142857,
+  "epochs": 3.0,
+  "learning_rate": 5e-05,
+  "beta": 0.1,
+  "lora_rank": 16,
+  "seed": 13
+}

@@ -1,0 +1,216 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H103",
+      "status": "code_generated_not_run",
+      "reason": "results.json's metrics look hollow: every numeric metric is exactly 0 (accuracy, accuracy_improvement, f1, precision, recall, unigram_accuracy) — check whether evaluate() is actually computing anything from its input, or just returning a default after 10 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103",
+      "assumptions_made": [
+        "The dataset file path is correct and accessible",
+        "The dataset has 'text' and 'label' columns",
+        "Labels are numeric (0 or 1) for binary classification",
+        "The data is large enough to support meaningful bigram analysis",
+        "All necessary modules are imported and available"
+      ],
+      "results": null,
+      "fix_attempts": 10,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 342: undefined name 'math'; line 342: undefined name 'math'; line 366: undefined name 'math'; line 391: undefined name 'math'; line 391: undefined name 'math'; line 415: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The CSV file contains columns named 'text' and 'label'",
+            "Labels are numeric or can be converted to numeric form",
+            "The dataset is sufficiently large to support meaningful statistical analysis",
+            "Text preprocessing uses simple whitespace tokenization",
+            "The experiment assumes the dataset is already cleaned and ready for processing",
+            "The experiment treats the entire dataset as a single class problem (binary sentiment classification)"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 250: undefined name '_train_naive_bayes'; line 258: undefined name '_predict_naive_bayes'; line 261: undefined name '_train_naive_bayes_with_bigrams'; line 269: undefined name '_predict_naive_bayes_with_bigrams'; line 289: undefined name '_classification_metrics'; line 292: undefined name '_classification_metrics'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "run_experiment_function",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The CSV file contains columns named 'text' and 'label' as expected by the data loading function",
+            "The label values in the CSV are strings that can be used directly as class identifiers",
+            "The dataset is large enough to provide meaningful training and testing splits",
+            "All required modules are available in the Python environment"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 3,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: every numeric metric is exactly 0 (accuracy, accuracy_improvement, f1, precision, recall, unigram_accuracy) — check whether evaluate() is actually computing anything from its input, or just returning a default",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The CSV file contains columns named 'text' and 'label'",
+            "The label column contains integer values representing classes",
+            "The dataset is large enough to provide meaningful results for both unigram and bigram models",
+            "All required helper functions are properly implemented within the same file"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 4,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 178: undefined name 'RANDOM_SEED'; line 205: undefined name 'TEST_FRACTION'; line 229: undefined name 'LAPLACE_SMOOTHING'; line 242: undefined name '_train_naive_bayes'; line 250: undefined name '_predict_naive_bayes'; line 253: undefined name '_train_naive_bayes_with_bigrams'; line 261: undefined name '_predict_naive_bayes_with_bigrams'; line 281: undefined name '_classification_metrics'; line 284: undefined name '_classification_metrics'; line 296: undefined name 'math'; line 296: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_4/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains valid text and label fields that can be parsed correctly",
+            "Labels are numeric or can be converted to numeric form for classification",
+            "The evaluation function properly handles all possible edge cases in metric computation"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 5,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: every numeric metric is exactly 0 (accuracy, accuracy_improvement, f1, precision, recall, unigram_accuracy) — check whether evaluate() is actually computing anything from its input, or just returning a default",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset file path is valid and accessible",
+            "The CSV file has 'text' and 'label' columns",
+            "The label values are strings that can be used directly as class identifiers",
+            "The text preprocessing (lowercasing and whitespace tokenization) is appropriate for this task",
+            "The implementation correctly handles edge cases like empty documents or rare features",
+            "The success criteria of 0.02 improvement is meaningful for this domain"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 6,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 175: undefined name 'random'; line 175: undefined name 'RANDOM_SEED'; line 183: undefined name 'csv'; line 198: undefined name 'random'; line 202: undefined name 'TEST_FRACTION'; line 226: undefined name 'LAPLACE_SMOOTHING'; line 239: undefined name '_train_naive_bayes'; line 247: undefined name '_predict_naive_bayes'; line 250: undefined name '_train_naive_bayes_with_bigrams'; line 258: undefined name '_predict_naive_bayes_with_bigrams'; line 278: undefined name '_classification_metrics'; line 281: undefined name '_classification_metrics'; line 293: undefined name 'math'; line 293: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_6/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains string labels that need to be converted to integers for the classifier to process",
+            "The CSV file has columns named 'text' and 'label'",
+            "The label conversion from string to integer is handled by the classifier training code",
+            "The evaluation function now includes explicit validation checks for empty prediction lists and true labels to prevent returning all-zero metrics"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 7,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: every numeric metric is exactly 0 (accuracy, accuracy_improvement, f1, precision, recall, unigram_accuracy) — check whether evaluate() is actually computing anything from its input, or just returning a default",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset has columns named 'text' and 'label'",
+            "The label values are strings that can be interpreted as integers for classification",
+            "The dataset contains enough samples to support both training and testing splits",
+            "The text preprocessing (lowercasing and whitespace tokenization) is appropriate for the task",
+            "The evaluation metrics are computed correctly with proper handling of edge cases"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 8,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 175: undefined name 'random'; line 175: undefined name 'RANDOM_SEED'; line 183: undefined name 'csv'; line 198: undefined name 'random'; line 202: undefined name 'TEST_FRACTION'; line 226: undefined name 'LAPLACE_SMOOTHING'; line 239: undefined name '_train_naive_bayes'; line 247: undefined name '_predict_naive_bayes'; line 250: undefined name '_train_naive_bayes_with_bigrams'; line 258: undefined name '_predict_naive_bayes_with_bigrams'; line 292: undefined name '_classification_metrics'; line 295: undefined name '_classification_metrics'; line 307: undefined name 'math'; line 307: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_8/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains columns named 'text' and 'label' as expected by the data loading function",
+            "The label values in the CSV are compatible with integer conversion for classification purposes",
+            "The dataset is large enough to provide meaningful accuracy measurements",
+            "Both unigram and bigram models are able to generate predictions without errors"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 9,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: every numeric metric is exactly 0 (accuracy, accuracy_improvement, f1, precision, recall, unigram_accuracy) — check whether evaluate() is actually computing anything from its input, or just returning a default",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_9/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset has columns named 'text' and 'label'",
+            "The label values are strings that can be interpreted as integers for classification",
+            "The text is suitable for whitespace tokenization",
+            "The dataset is large enough to provide meaningful results for both unigram and bigram models"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 10,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 175: undefined name 'random'; line 175: undefined name 'RANDOM_SEED'; line 183: undefined name 'csv'; line 198: undefined name 'random'; line 202: undefined name 'TEST_FRACTION'; line 226: undefined name 'LAPLACE_SMOOTHING'; line 239: undefined name '_train_naive_bayes'; line 247: undefined name '_predict_naive_bayes'; line 250: undefined name '_train_naive_bayes_with_bigrams'; line 258: undefined name '_predict_naive_bayes_with_bigrams'; line 292: undefined name '_classification_metrics'; line 295: undefined name '_classification_metrics'; line 307: undefined name 'math'; line 307: undefined name 'math'; line 346: undefined name 'math'; line 346: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_10/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The CSV file contains columns named 'text' and 'label' as expected by the data loading function",
+            "The label values in the CSV are compatible with integer conversion for classification purposes",
+            "The data loading process correctly parses and splits the data into train/test sets",
+            "The evaluation function properly handles all edge cases including empty predictions or invalid metrics"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 11
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439870/03_text_classification_public_corpus/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H103"
+  ],
+  "generated_at": "2026-09-07T02:32:24.379628+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

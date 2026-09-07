@@ -1,0 +1,155 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H106",
+      "status": "code_generated_not_run",
+      "reason": "Training did not converge: 'baseline' was still improving when training stopped — mean loss fell 32.5% over the final quarter of 100 epochs (0.004886 -> 0.003299), so the epoch budget ran out before the model converged; 'transformer' was still improving when training stopped — mean loss fell 23.1% over the final quarter of 100 epochs (0.0007689 -> 0.0005912), so the epoch budget ran out before the model converged; Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test after 8 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106",
+      "assumptions_made": [
+        "Increased training epochs from 50 to 100 to ensure proper convergence",
+        "Increased patience from 10 to 15 to better detect convergence",
+        "Used validation loss for early stopping instead of fixed epoch count",
+        "Maintained the same model architectures and training methodology as before",
+        "The HuggingFaceFW/fineweb dataset provides sufficient data for training both models"
+      ],
+      "results": null,
+      "fix_attempts": 8,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport json\\nimport requests\\nimport random\\nfrom collections import Counter\\nfrom typing import Any, List, Tuple, Optional\\nimport torch\\nfrom torch import nn\\nimport torch.nn.functional as F\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import AutoTokenizer, AutoModel\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score, f1_score\\nimport time\\nfrom datetime import datetime\\nimport os\\n===END imports===\\n\\n===BEGIN configura'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment ran out of GPU memory.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Used HuggingFaceFW/fineweb dataset as specified in the plan",
+            "Implemented keyword-based topic labeling since the dataset doesn't contain explicit labels",
+            "Created synthetic fallback data when real dataset fetching fails",
+            "Used DistilBERT as the base model due to computational constraints",
+            "Implemented both models as specified in the methods section",
+            "Trained both models to convergence with the same hyperparameters",
+            "Used macro F1 score for balanced evaluation across topics",
+            "Assumed GPU availability for efficient training"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment ran out of GPU memory.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced NUM_EPOCHS from 3 to 1 to prevent GPU memory overflow",
+            "Reduced N_SAMPLES from 2000 to 500 to prevent timeout and memory issues",
+            "Used a smaller batch size (16) to manage GPU memory usage",
+            "Implemented proper error handling for network failures and dataset loading issues"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_4/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced batch size from 16 to 8 to prevent GPU memory overflow",
+            "Reduced transformer encoder layers from 2 to 1 to decrease memory consumption",
+            "Limited dataset size to 200 samples to ensure quick execution within time constraints",
+            "Used a simpler model architecture to avoid GPU memory issues that caused previous failures"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 5,
+          "error_source": "not_converged",
+          "error_summary": "Training did not converge: 'baseline' trained for only 3 epoch(s), too few to show convergence; 'transformer' trained for only 3 epoch(s), too few to show convergence; Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Hugging Face dataset is accessible and contains sufficient data for training",
+            "The dataset has sufficient examples for both models to learn meaningful representations",
+            "The models will converge within 3 epochs with the specified hyperparameters",
+            "GPU acceleration is available for training (though CPU fallback is implemented)",
+            "The experiment will run successfully with the provided configuration and data"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 6,
+          "error_source": "not_converged",
+          "error_summary": "Training did not converge: 'baseline' was still improving when training stopped — mean loss fell 22.1% over the final quarter of 10 epochs (1.002 -> 0.7802), so the epoch budget ran out before the model converged; 'transformer' was still improving when training stopped — mean loss fell 47.3% over the final quarter of 10 epochs (0.5649 -> 0.2979), so the epoch budget ran out before the model converged; Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Increased training epochs from 3 to 10 with early stopping to ensure proper convergence",
+            "Added patience parameter for early stopping to prevent overfitting and ensure models train to convergence",
+            "Used validation loss for early stopping criteria to properly detect when models have converged",
+            "Maintained the same model architectures and training setup as originally intended",
+            "The Hugging Face dataset is accessible and contains sufficient data for training"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 7,
+          "error_source": "not_converged",
+          "error_summary": "Training did not converge: 'baseline' was still improving when training stopped — mean loss fell 68.3% over the final quarter of 30 epochs (0.1154 -> 0.03657), so the epoch budget ran out before the model converged; 'transformer' was still improving when training stopped — mean loss fell 71.5% over the final quarter of 30 epochs (0.01279 -> 0.003648), so the epoch budget ran out before the model converged; Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Increased the number of epochs from 10 to 30 to ensure proper convergence",
+            "Increased patience from 3 to 5 to allow for better convergence detection",
+            "Used early stopping based on validation loss to ensure both models train to convergence",
+            "The Hugging Face dataset is properly formatted and accessible",
+            "The keyword-based labeling approach provides reasonable topic assignments for the experiment"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 8,
+          "error_source": "not_converged",
+          "error_summary": "Training did not converge: 'baseline' was still improving when training stopped — mean loss fell 58.4% over the final quarter of 50 epochs (0.02038 -> 0.008484), so the epoch budget ran out before the model converged; 'transformer' was still improving when training stopped — mean loss fell 49.1% over the final quarter of 50 epochs (0.002186 -> 0.001113), so the epoch budget ran out before the model converged; Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_8/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Increased the epoch budget from 30 to 50 to ensure convergence",
+            "Increased patience from 5 to 10 for early stopping to allow better convergence detection",
+            "Used validation loss for early stopping instead of fixed epochs",
+            "The Hugging Face dataset provides sufficient data for training both models",
+            "Topic classification labels are reasonably assigned using keyword matching"
+          ],
+          "same_error_streak": 4
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 9
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/06_deep_learning_gpu/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-05T14:07:56.108369+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}
