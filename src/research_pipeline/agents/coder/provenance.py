@@ -410,6 +410,112 @@ def all_real(sources: list[DataSource]) -> bool:
     return bool(sources) and all(s.is_real for s in sources)
 
 
+# Phrases in which the model reports having *substituted* for the data the plan
+# asked for. Each was taken from an `assumptions_made` entry in a real run whose
+# verdict was asserted anyway (coder benchmark 10431703/10431840, cases 03, 04
+# and 11). They are grouped only for reporting; any match has the same effect.
+_DECLARED_SUBSTITUTION = re.compile(
+    r"\bproxy\b|\bstand[- ]in\b|\bsubstitut|\binstead of\b|\bin place of\b"
+    r"|\bas a replacement\b",
+    re.I,
+)
+_DECLARED_FABRICATED_LABELS = re.compile(
+    r"keyword[- ]based (?:sentiment )?label|true labels? (?:are|aren'?t|is|isn'?t) "
+    r"(?:not )?(?:provided|available)|heuristic label|pseudo[- ]label|synthetic label",
+    re.I,
+)
+_DECLARED_SYNTHETIC_USE = re.compile(
+    r"synthetic (?:data|dataset|corpus)|simulated (?:data|dataset)|generated (?:the )?data",
+    re.I,
+)
+# What makes a statement hypothetical rather than a report of what happened.
+# "falls back to synthetic data if the fetch fails" describes the guarded read
+# that `sandbox.check_data_fallback` *requires*; it is not a confession.
+_HYPOTHETICAL = re.compile(
+    r"\bif\b|\bwhen\b|\bunless\b|\bshould\b|\bin case\b|\bfall(?:s|ing)? back\b"
+    r"|\bwould\b|\bmay\b",
+    re.I,
+)
+
+
+def declared_substitutions(assumptions: list[str]) -> list[str]:
+    """The assumptions in which the model states it used something else.
+
+    Returns only *assertions*. A conditional clause describing a fallback path
+    that may never have executed is excluded, because generating one is required
+    behaviour rather than a defect.
+    """
+    found = []
+    for assumption in assumptions or []:
+        text = str(assumption)
+        if _HYPOTHETICAL.search(text):
+            continue
+        if (
+            _DECLARED_SUBSTITUTION.search(text)
+            or _DECLARED_FABRICATED_LABELS.search(text)
+            or _DECLARED_SYNTHETIC_USE.search(text)
+        ):
+            found.append(text.strip())
+    return found
+
+
+def honour_declared_substitution(
+    sources: list[DataSource], assumptions: list[str]
+) -> list[DataSource]:
+    """Withhold the verdict when the model says it substituted for the real data.
+
+    `resolve` establishes that an input *could* be obtained and
+    `verify_downloads_used` that the code went and fetched something from the
+    right host. Neither asks whether what was fetched is the data the plan
+    called for. Two observed failures sit exactly in that gap, and both asserted
+    a verdict rather than withholding one:
+
+      * a real dataset fetched from the right host but answering a different
+        question — benchmark case 03 pulled `HuggingFaceFW/fineweb` "as a proxy
+        for movie review sentiment corpus" and derived its labels by keyword,
+        then reported the hypothesis supported;
+      * a file genuinely present on disk whose *contents* are synthetic, which
+        `real_local` cannot distinguish from real data.
+
+    In every observed instance the model declared what it had done, in
+    `assumptions_made`, and nothing read the declaration. This reads it, and
+    treats an asserted substitution the way a surrogate is already treated: the
+    metrics stand, the verdict does not.
+
+    Every real source is downgraded rather than a guessed subset, because the
+    assumption text does not say which input it refers to and withholding is the
+    safe direction — the same reasoning that makes an unresolvable
+    `data_requirements` block a surrogate rather than a pass.
+
+    **This is not a check on reality.** It honours what the model reported; a
+    substitution it never mentions is not caught, and cannot be by reading prose.
+    It closes the declared case only, which is the case observed in practice.
+    """
+    declared = declared_substitutions(assumptions)
+    if not declared:
+        return sources
+    reason = (
+        "the generated code reports substituting for the data this plan requires: "
+        + "; ".join(declared[:2])
+    )
+    downgraded = []
+    for source in sources:
+        if source.kind in REAL_KINDS:
+            downgraded.append(
+                DataSource(
+                    name=source.name,
+                    kind=KIND_SURROGATE,
+                    uri=source.uri,
+                    local_path=source.local_path,
+                    reason=reason,
+                    credentials=list(source.credentials),
+                )
+            )
+        else:
+            downgraded.append(source)
+    return downgraded
+
+
 def verdict(sources: list[DataSource]) -> str:
     """The methodological validity stamp — computed, never asked of the model."""
     if not sources:

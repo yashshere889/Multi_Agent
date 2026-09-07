@@ -4871,3 +4871,82 @@ def test_template_verdict_normalization_withholds_on_anything_else():
     normalize = _template_normalize_verdict()
     for value in (1, 0, 0.5, "yes", "", None, [], {}, object()):
         assert normalize(value) == "unknown", value
+
+
+# -- provenance.honour_declared_substitution -------------------------------------------
+# `resolve` establishes that an input could be obtained and `verify_downloads_used` that
+# the code fetched from the right host. Neither asks whether what was fetched answers the
+# plan. Benchmark runs 10431703/10431840 produced three experiments that asserted a
+# verdict while their own assumptions_made said they had substituted; the strings below
+# are taken verbatim from those runs.
+
+
+def _real_source():
+    from research_pipeline.agents.coder import provenance
+
+    return [
+        provenance.DataSource(
+            name="Hugging Face dataset HuggingFaceFW/fineweb",
+            kind=provenance.KIND_REAL_DOWNLOAD,
+            uri="https://datasets-server.huggingface.co/rows?dataset=HuggingFaceFW%2Ffineweb",
+        )
+    ]
+
+
+def test_declared_proxy_dataset_withholds_the_verdict():
+    # Benchmark 10431840, case 03: fetched a real corpus answering a different
+    # question, then reported meets_success_criteria=True.
+    from research_pipeline.agents.coder import provenance
+
+    assumptions = [
+        "Used Hugging Face `HuggingFaceFW/fineweb` dataset as a proxy for movie "
+        "review sentiment corpus",
+        "Implemented keyword-based sentiment labeling since true labels aren't "
+        "provided in the dataset",
+    ]
+    result = provenance.honour_declared_substitution(_real_source(), assumptions)
+    assert [s.kind for s in result] == [provenance.KIND_SURROGATE]
+    assert not provenance.all_real(result)
+    assert "proxy" in result[0].reason
+
+
+def test_declared_synthetic_primary_source_withholds_the_verdict():
+    # Benchmark 10431840, case 04: input resolved to real_local, but the model
+    # states it generated the data itself. real_local cannot see file contents.
+    from research_pipeline.agents.coder import provenance
+
+    assumptions = [
+        "Used synthetic data generation since no suitable public dataset matched "
+        "the exact requirements"
+    ]
+    result = provenance.honour_declared_substitution(_real_source(), assumptions)
+    assert [s.kind for s in result] == [provenance.KIND_SURROGATE]
+
+
+def test_a_guarded_fallback_is_not_a_declared_substitution():
+    # The prompt REQUIRES load_data to fall back to synthesized data if the read
+    # fails (sandbox.check_data_fallback enforces it), so describing that path
+    # must not withhold the verdict — it may never have executed.
+    from research_pipeline.agents.coder import provenance
+
+    for assumption in (
+        "When the Hugging Face fetch fails, the synthetic data provides a reasonable "
+        "approximation for testing",
+        "Falls back to synthetic data if the real dataset is unavailable",
+        "The synthetic persona chat dataset would be used if the download failed",
+    ):
+        result = provenance.honour_declared_substitution(_real_source(), [assumption])
+        assert provenance.all_real(result), assumption
+        assert provenance.declared_substitutions([assumption]) == []
+
+
+def test_declared_substitution_leaves_a_surrogate_alone_and_survives_no_assumptions():
+    from research_pipeline.agents.coder import provenance
+
+    surrogate = [
+        provenance.DataSource(name="synthetic", kind=provenance.KIND_SURROGATE, reason="x")
+    ]
+    assert provenance.honour_declared_substitution(surrogate, ["Used a proxy dataset"]) == surrogate
+    unchanged = provenance.honour_declared_substitution(_real_source(), [])
+    assert provenance.all_real(unchanged)
+    assert provenance.honour_declared_substitution(_real_source(), None) is not None
