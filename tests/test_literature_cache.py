@@ -54,9 +54,13 @@ def _install_counting_searches(monkeypatch):
     arxiv = CountingSearch("arxiv_papers", [{"title": "Paper A", "arxiv_id": "1"}])
     semantic_scholar = CountingSearch("semantic_scholar_papers", [{"title": "Paper B", "paper_id": "2"}])
     core = CountingSearch("core_papers", [])
+    # Stubbed like the rest: unstubbed it would reach Semantic Scholar for real
+    # whenever the developer running the tests has a key in their .env.
+    snippets = CountingSearch("snippet_papers", [])
     monkeypatch.setattr(literature_graph, "search_arxiv_node", arxiv)
     monkeypatch.setattr(literature_graph, "search_semantic_scholar_node", semantic_scholar)
     monkeypatch.setattr(literature_graph, "search_core_node", core)
+    monkeypatch.setattr(literature_graph, "search_semantic_scholar_snippets_node", snippets)
     return arxiv, semantic_scholar, core
 
 

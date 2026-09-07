@@ -31,6 +31,8 @@ class Settings:
     checkpointer_backend: str
     checkpointer_sqlite_path: str
     checkpointer_postgres_uri: str
+    enable_snippet_search: bool
+    snippet_passages_per_result: int
     enable_paper_search_cache: bool
     paper_search_cache_ttl_seconds: int
     interdisciplinary_output_dir: str
@@ -160,6 +162,28 @@ def load_settings() -> Settings:
         # limits, which matters for a long batch sweep from one IP.
         huggingface_api_token=os.environ.get("HUGGINGFACE_API_TOKEN", ""),
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
+        # Semantic Scholar's /snippet/search: passage-level retrieval over the
+        # S2ORC body-text index, the hosted equivalent of the retriever
+        # OpenScholar ships a 746GB local datastore for. It is the only search
+        # source that matches on a paper's body rather than its abstract, and
+        # the only one that returns text the Writer can quote — everything
+        # downstream has preferred `full_text` over `abstract` since
+        # agents/hypothesis/papers.py was written, and nothing populated it
+        # until this existed. On by default because it costs one more call
+        # against a key the pipeline already needs, and skips itself
+        # automatically when SEMANTIC_SCHOLAR_API_KEY is unset.
+        enable_snippet_search=_env_bool("ENABLE_SNIPPET_SEARCH", True),
+        # The snippet endpoint's limit counts *passages*, not papers, and
+        # several passages routinely come back from one paper — so asking it for
+        # MAX_RESULTS_PER_QUERY directly would return far fewer papers than
+        # every other source. This is the multiplier that converts one into the
+        # other: passages requested = MAX_RESULTS_PER_QUERY x this. A multiplier
+        # rather than its own absolute count so that `--max-results 2` narrows
+        # this branch too; at the default of 5, it asks for 20 passages, which
+        # in practice yields a paper count in the same range as the other three
+        # sources (per-paper contribution is capped by
+        # clients.MAX_SNIPPETS_PER_PAPER).
+        snippet_passages_per_result=int(os.environ.get("SNIPPET_PASSAGES_PER_RESULT", "4")),
         # Where every graph's LangGraph checkpoints go — one of "memory",
         # "sqlite" or "postgres" (see checkpointer.get_checkpointer). "memory"
         # is the default and reproduces the behaviour every graph.py hardcoded

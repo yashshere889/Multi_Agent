@@ -18,6 +18,7 @@ from research_pipeline.agents.literature.nodes import (
     search_arxiv_node,
     search_core_node,
     search_semantic_scholar_node,
+    search_semantic_scholar_snippets_node,
 )
 from research_pipeline.agents.literature.state import LiteratureState
 from research_pipeline.checkpointer import get_checkpointer, get_node_cache
@@ -38,6 +39,7 @@ def build_literature_graph():
 
     # Cached on the search nodes only: they are the pure "same queries in, same
     # papers out" steps, and they're the ones that cost a third-party API call.
+    # The snippet node counts double there — a search plus a metadata batch.
     # Toggled off entirely (rather than given a 0s TTL) when the setting is off,
     # so "disabled" means the node is compiled without a cache policy at all.
     search_cache = (
@@ -50,6 +52,9 @@ def build_literature_graph():
     graph.add_node("search_arxiv", search_arxiv_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("search_semantic_scholar", search_semantic_scholar_node, retry_policy=_RETRY, **search_cache)
     graph.add_node("search_core", search_core_node, retry_policy=_RETRY, **search_cache)
+    graph.add_node(
+        "search_snippets", search_semantic_scholar_snippets_node, retry_policy=_RETRY, **search_cache
+    )
     graph.add_node("merge_and_dedupe", merge_and_dedupe_node)
     # No retry on download_papers on purpose: it is already thread-pooled with
     # per-file partial-success tolerance, so re-running the node on one failed
@@ -59,15 +64,17 @@ def build_literature_graph():
 
     graph.set_entry_point("generate_queries")
 
-    # Fan out: all three searches start as soon as queries are generated
+    # Fan out: all four searches start as soon as queries are generated
     graph.add_edge("generate_queries", "search_arxiv")
     graph.add_edge("generate_queries", "search_semantic_scholar")
     graph.add_edge("generate_queries", "search_core")
+    graph.add_edge("generate_queries", "search_snippets")
 
-    # Fan in: merge waits for all three branches to complete
+    # Fan in: merge waits for all four branches to complete
     graph.add_edge("search_arxiv", "merge_and_dedupe")
     graph.add_edge("search_semantic_scholar", "merge_and_dedupe")
     graph.add_edge("search_core", "merge_and_dedupe")
+    graph.add_edge("search_snippets", "merge_and_dedupe")
 
     graph.add_edge("merge_and_dedupe", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
