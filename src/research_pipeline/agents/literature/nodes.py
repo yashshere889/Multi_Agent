@@ -22,6 +22,7 @@ from research_pipeline.agents.literature.clients import (
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
+from research_pipeline.reranker import rerank_papers
 from research_pipeline.llm_json import strip_fences
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,23 @@ def merge_and_dedupe_node(state: LiteratureState) -> dict:
     with_text = sum(1 for p in merged_list if p.get("full_text"))
     logger.info("Merged to %d unique papers (%d carrying body passages)", len(merged_list), with_text)
     return {"merged_papers": merged_list}
+
+
+def rerank_papers_node(state: LiteratureState) -> dict:
+    """Orders the merged pool by relevance to the research question.
+
+    Sits before download_papers rather than after it so a truncating rerank
+    (RERANK_TOP_K) never spends a PDF download on a paper it is about to drop.
+    Search here is recall-oriented by construction — four sources, three
+    generated queries each, everything merged — and until now nothing judged
+    whether what came back was actually about the question.
+
+    No RetryPolicy on this node: rerank_papers swallows its own failures and
+    returns the pool untouched, so there is nothing for a retry to catch.
+    """
+    return {
+        "merged_papers": rerank_papers(state.get("research_question"), state["merged_papers"])
+    }
 
 
 def _paper_uid(paper: Paper) -> str:

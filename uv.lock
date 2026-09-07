@@ -2482,6 +2482,10 @@ huggingface = [
     { name = "torch" },
     { name = "transformers" },
 ]
+rerank = [
+    { name = "torch" },
+    { name = "transformers" },
+]
 webapp = [
     { name = "fastapi" },
     { name = "jinja2" },
@@ -2516,10 +2520,12 @@ requires-dist = [
     { name = "reportlab", specifier = ">=4.0" },
     { name = "requests", specifier = ">=2.31" },
     { name = "torch", marker = "extra == 'huggingface'", specifier = ">=2.4" },
+    { name = "torch", marker = "extra == 'rerank'", specifier = ">=2.4" },
     { name = "transformers", marker = "extra == 'huggingface'", specifier = ">=4.44" },
+    { name = "transformers", marker = "extra == 'rerank'", specifier = ">=4.44" },
     { name = "uvicorn", marker = "extra == 'webapp'", specifier = ">=0.30" },
 ]
-provides-extras = ["huggingface", "webapp", "checkpoint-sqlite", "checkpoint-postgres"]
+provides-extras = ["huggingface", "rerank", "webapp", "checkpoint-sqlite", "checkpoint-postgres"]
 
 [package.metadata.requires-dev]
 dev = [

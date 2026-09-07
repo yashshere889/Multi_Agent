@@ -13,7 +13,10 @@ seven end to end in one call (see "Running the whole pipeline"):
   *body* text rather than its abstract and returns the matched passages: it
   finds work whose abstract never mentions the query, and it is the only source
   that populates each paper's `full_text`, which every downstream agent prefers
-  over the abstract. Off with `ENABLE_SNIPPET_SEARCH=false`.
+  over the abstract. Off with `ENABLE_SNIPPET_SEARCH=false`. With
+  `ENABLE_RERANK=true` the merged pool is then ordered by relevance to the
+  research question with OpenScholar's cross-encoder reranker — see
+  "Reranking" below.
 - **interdisciplinary-literature** — takes the literature agent's papers,
   identifies up to `INTERDISCIPLINARY_MAX_FIELDS` *adjacent* fields whose
   methods could inform the same problem, searches each of them with the same
@@ -519,6 +522,46 @@ Get a free key at https://core.ac.uk/services/api and set `CORE_API_KEY` in
 `.env`. CORE has no unauthenticated tier, so without a key CORE search is
 skipped entirely (logged as a warning) rather than failing the whole run.
 
+### Reranking
+
+Search here is recall-oriented by construction: four sources, three generated
+queries each, everything merged. Nothing judged whether a paper that came back
+was actually *about* the question — until this.
+
+`ENABLE_RERANK=true` scores every (question, paper) pair with
+[`OpenSciLM/OpenScholar_Reranker`](https://huggingface.co/OpenSciLM/OpenScholar_Reranker),
+a 560M XLM-RoBERTa cross-encoder fine-tuned from BAAI/bge-reranker-large — the
+one component of [OpenScholar](https://github.com/AkariAsai/OpenScholar) that
+transplants here without its 746GB datastore or a second served model. It runs
+in two places:
+
+- the **literature** agent, between the merge and the PDF downloads, so a
+  truncating rerank never spends a download on a paper it is about to drop;
+- the **interdisciplinary-literature** agent, over the cross-field papers it
+  adds — the recall-heavy half, chosen by the model for adjacency rather than
+  for answering the question. Its own `INTERDISCIPLINARY_RERANK_TOP_K`, since
+  `RERANK_TOP_K` bounds a whole pool rather than one stage's additions.
+
+Ordering and truncation are separate decisions. Both `*_TOP_K` settings default
+to `0` — reorder, drop nothing — because dropping a paper is irreversible
+downstream (the Writer can only cite what reaches it), so enabling the reranker
+gets you the safe half and the destructive half is opted into explicitly. Every
+paper carries its `rerank_score` into `metadata.json`, so an ordering is
+inspectable rather than implicit.
+
+It needs `uv sync --extra rerank` (torch + transformers). That is an extra and
+not a base dependency for two reasons: torch is several GB and thousands of
+inodes, which matters on a quota'd HPC home; and it is not installable
+everywhere at all — PyTorch publishes no wheels for macOS x86_64, nor for a
+Python newer than its current release supports. So the whole module degrades:
+with the feature off, the dependencies missing, the model unfetchable or scoring
+raising, the pool is passed through in the order the merge produced, logged
+once. On the SLURM path `HF_HOME` already points at fastscratch, so the 2.2GB
+model lands there rather than in your home directory, and `RERANK_DEVICE`
+defaults to `cpu` on purpose — GPU 0 is the vLLM server's card and GPU 1 is
+deliberately left free for generated experiments. See the commented block in
+`scripts/slurm/run_pipeline.sbatch` for turning it on there.
+
 ### Checkpointing and caching
 
 Every agent graph and the orchestrator compile with a LangGraph checkpointer, so
@@ -971,6 +1014,13 @@ uv run pytest
 
 - LLM/Barkla config is env-driven (`.env`) instead of hardcoded/Kaggle-specific.
 - Semantic Scholar / arXiv / CORE requests retry transient failures (429/5xx) with backoff.
+- Added **cross-encoder reranking** (`research_pipeline/reranker.py`), the
+  second thing worth taking from OpenScholar: its reranker scores the pool
+  against the research question, in the literature agent (before downloads) and
+  over the interdisciplinary agent's cross-field additions. Ordering is on when
+  the feature is; truncation is a separate opt-in, because dropping a paper is
+  irreversible downstream. Optional dependency, and every failure path leaves
+  the pool exactly as the merge produced it.
 - Added **passage search** as a fourth literature source: Semantic Scholar's
   `/snippet/search` over open-access body text, which is what finally populates
   the `full_text` field the hypothesis/writer path has preferred over the

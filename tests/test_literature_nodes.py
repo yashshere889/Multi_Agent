@@ -133,3 +133,29 @@ def test_snippet_node_contributes_an_empty_branch_when_disabled(monkeypatch):
     )
 
     assert nodes.search_semantic_scholar_snippets_node({"search_queries": ["q"]}) == {"snippet_papers": []}
+
+
+# --- rerank node ----------------------------------------------------------------
+
+
+def test_rerank_node_replaces_the_merged_pool_with_the_ranked_one(monkeypatch):
+    from research_pipeline.agents.literature import nodes
+
+    monkeypatch.setattr(
+        nodes, "rerank_papers", lambda question, papers: list(reversed(papers))
+    )
+    state = {"research_question": "q", "merged_papers": [{"title": "A"}, {"title": "B"}]}
+
+    assert nodes.rerank_papers_node(state) == {"merged_papers": [{"title": "B"}, {"title": "A"}]}
+
+
+def test_rerank_node_runs_before_downloads():
+    """RERANK_TOP_K drops papers, so ordering the graph the other way would spend
+    a PDF download on every paper it is about to discard."""
+    from research_pipeline.agents.literature.graph import build_literature_graph
+
+    edges = {(e.source, e.target) for e in build_literature_graph().get_graph().edges}
+
+    assert ("merge_and_dedupe", "rerank_papers") in edges
+    assert ("rerank_papers", "download_papers") in edges
+    assert ("merge_and_dedupe", "download_papers") not in edges

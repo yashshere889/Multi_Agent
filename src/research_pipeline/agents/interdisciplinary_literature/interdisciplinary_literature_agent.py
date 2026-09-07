@@ -91,6 +91,7 @@ from research_pipeline.agents.interdisciplinary_literature import prompts
 from research_pipeline.agents.interdisciplinary_literature.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.interdisciplinary_literature.state import InterdisciplinaryState
 from research_pipeline.agents.literature.clients import search_arxiv, search_core, search_semantic_scholar
+from research_pipeline.reranker import rerank_papers
 
 # The Literature Agent's own dedupe key, imported rather than re-implemented so
 # "are these the same paper?" can only ever be answered one way in this
@@ -154,6 +155,7 @@ class InterdisciplinaryLiteratureAgent:
         search_arxiv_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
         search_semantic_scholar_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
         search_core_fn: Optional[Callable[[List[str], int], List[dict]]] = None,
+        rerank_fn: Optional[Callable[..., List[dict]]] = None,
     ) -> None:
         # Reuses the pipeline's existing LLM client/config (research_pipeline.llm)
         # at a lower temperature suited to grounded synthesis rather than
@@ -168,6 +170,11 @@ class InterdisciplinaryLiteratureAgent:
         self.search_arxiv = search_arxiv_fn or search_arxiv
         self.search_semantic_scholar = search_semantic_scholar_fn or search_semantic_scholar
         self.search_core = search_core_fn or search_core
+        # Injected for the same reason as the three searches above: it is the
+        # only other call here that reaches outside the process (a 2.2GB model
+        # load), so tests substitute it rather than downloading one. Defaults to
+        # a no-op unless ENABLE_RERANK is on — see research_pipeline.reranker.
+        self.rerank = rerank_fn or rerank_papers
 
     def run(self, papers: List[dict], research_question: Optional[str] = None) -> dict:
         """Runs the agent's graph end to end, returning the validated output
@@ -253,6 +260,21 @@ class InterdisciplinaryLiteratureAgent:
                     continue
                 seen.add(key)
                 cross_field.append(paper)
+
+        # Reranking applies to the cross-field papers alone, not the whole
+        # pool. The in-domain papers arrived already ordered (the Literature
+        # Agent reranks its own merge) and lead the pool by contract —
+        # `merged` is core-then-cross everywhere this output is consumed. The
+        # cross-field half is the recall-heavy, unvetted part: three adjacent
+        # fields x three sources x three queries, chosen by the model for
+        # adjacency rather than for answering the question. Its own top-k
+        # rather than RERANK_TOP_K because that one bounds a whole pool while
+        # this one bounds what this agent *adds* to one.
+        cross_field = self.rerank(
+            state.get("research_question"),
+            cross_field,
+            top_k=settings.interdisciplinary_rerank_top_k,
+        )
 
         merged = list(core_papers) + cross_field
         logger.info(

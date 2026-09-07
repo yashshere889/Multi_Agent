@@ -14,6 +14,7 @@ from research_pipeline.agents.literature.nodes import (
     download_papers_node,
     generate_queries,
     merge_and_dedupe_node,
+    rerank_papers_node,
     save_metadata_node,
     search_arxiv_node,
     search_core_node,
@@ -56,6 +57,9 @@ def build_literature_graph():
         "search_snippets", search_semantic_scholar_snippets_node, retry_policy=_RETRY, **search_cache
     )
     graph.add_node("merge_and_dedupe", merge_and_dedupe_node)
+    # No retry: the node degrades internally rather than raising (see its
+    # docstring), so a retry policy would have nothing to act on.
+    graph.add_node("rerank_papers", rerank_papers_node)
     # No retry on download_papers on purpose: it is already thread-pooled with
     # per-file partial-success tolerance, so re-running the node on one failed
     # download would re-fetch every paper that already succeeded.
@@ -76,7 +80,8 @@ def build_literature_graph():
     graph.add_edge("search_core", "merge_and_dedupe")
     graph.add_edge("search_snippets", "merge_and_dedupe")
 
-    graph.add_edge("merge_and_dedupe", "download_papers")
+    graph.add_edge("merge_and_dedupe", "rerank_papers")
+    graph.add_edge("rerank_papers", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
     graph.add_edge("save_metadata", END)
 

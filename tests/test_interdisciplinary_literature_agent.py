@@ -338,3 +338,37 @@ def test_run_writes_an_invalid_output_dump_when_validation_fails(tmp_path, monke
         agent.run(_core_papers())
 
     assert list(tmp_path.glob("interdisciplinary_*_invalid.json"))
+
+
+def test_rerank_applies_to_the_cross_field_additions_only(monkeypatch):
+    """The in-domain papers arrive already ordered and lead the pool by
+    contract (`merged` is core-then-cross wherever this output is consumed), so
+    only the recall-heavy half this agent adds is reordered."""
+    from dataclasses import replace as _replace
+
+    from research_pipeline.agents.interdisciplinary_literature import (
+        interdisciplinary_literature_agent as module,
+    )
+
+    seen = {}
+
+    def _fake_rerank(question, papers, *, top_k=None):
+        seen["question"] = question
+        seen["titles"] = [p["title"] for p in papers]
+        seen["top_k"] = top_k
+        return list(reversed(papers))
+
+    monkeypatch.setattr(module, "settings", _replace(module.settings, interdisciplinary_rerank_top_k=7))
+    agent = module.InterdisciplinaryLiteratureAgent(chat_model=object(), rerank_fn=_fake_rerank)
+
+    state = {
+        "core_papers": [{"title": "In domain"}],
+        "research_question": "the question",
+        "field_results": [{"field": "biology", "papers": [{"title": "Cross A"}, {"title": "Cross B"}]}],
+    }
+    result = agent._node_merge_cross_field(state)
+
+    assert seen == {"question": "the question", "titles": ["Cross A", "Cross B"], "top_k": 7}
+    assert [p["title"] for p in result["cross_field_papers"]] == ["Cross B", "Cross A"]
+    # Core papers still lead the pool, and cross_field stays a subset of it.
+    assert [p["title"] for p in result["merged_papers"]] == ["In domain", "Cross B", "Cross A"]
