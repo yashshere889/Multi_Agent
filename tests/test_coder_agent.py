@@ -4801,3 +4801,73 @@ def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):
 
     assert not any("acme/sleep-survey" in s.name for s in sources)
     assert provenance.all_real(sources) is False
+
+
+# -- run.py.template: verdict normalisation --------------------------------------------
+# Regression test for the defect found in coder benchmark run 10431840: generated
+# `evaluate()` code computes meets_success_criteria from a numpy comparison, which
+# yields numpy.bool_. That is not JSON-serialisable, so the template's
+# json.dump(..., default=str) recorded the *string* "True". Downstream,
+# writer_agent.compute_hypothesis_verdict tests `meets is True`, so the string was
+# rejected and a correct verdict became "inconclusive" — a real result discarded.
+# Cases 05 and 12 of that run were both affected.
+
+
+def _template_normalize_verdict():
+    """Extracts _normalize_verdict from the template so it can be tested directly.
+
+    The template is not an importable module (it holds `===SPLICE===` markers and
+    is rendered, not imported), so the function is exec'd out of the template text.
+    That keeps the test bound to the shipped template rather than to a copy.
+    """
+    import ast
+
+    from research_pipeline.agents.coder import sandbox
+
+    source = (sandbox.TEMPLATES_DIR / "run.py.template").read_text()
+    tree = ast.parse(source)
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == "_normalize_verdict":
+            namespace: dict = {"Any": object}
+            exec(compile(ast.Module([node], []), "<template>", "exec"), namespace)
+            return namespace["_normalize_verdict"]
+    raise AssertionError("_normalize_verdict not found in run.py.template")
+
+
+class _FakeNumpyBool:
+    """Stands in for numpy.bool_: not a bool, but unwraps via .item()."""
+
+    def __init__(self, value: bool) -> None:
+        self._value = value
+
+    def item(self) -> bool:
+        return self._value
+
+
+def test_template_verdict_normalization_preserves_real_booleans():
+    normalize = _template_normalize_verdict()
+    assert normalize(True) is True
+    assert normalize(False) is False
+    assert normalize("unknown") == "unknown"
+
+
+def test_template_verdict_normalization_unwraps_numpy_style_booleans():
+    normalize = _template_normalize_verdict()
+    assert normalize(_FakeNumpyBool(True)) is True
+    assert normalize(_FakeNumpyBool(False)) is False
+
+
+def test_template_verdict_normalization_parses_a_stringified_verdict():
+    # The exact values recorded by benchmark run 10431840. bool("False") is True,
+    # so these must be *parsed*, never cast.
+    normalize = _template_normalize_verdict()
+    assert normalize("True") is True
+    assert normalize("False") is False
+
+
+def test_template_verdict_normalization_withholds_on_anything_else():
+    # Failing safe: withholding a verdict is always permitted, asserting a wrong
+    # one is not. A number is not a verdict, however truthy.
+    normalize = _template_normalize_verdict()
+    for value in (1, 0, 0.5, "yes", "", None, [], {}, object()):
+        assert normalize(value) == "unknown", value

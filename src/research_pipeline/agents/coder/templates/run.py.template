@@ -104,9 +104,56 @@ logger = logging.getLogger(EXPERIMENT_ID)
 _RESERVED_EVAL_KEYS = ("meets_success_criteria", "success_notes")
 
 
+def _normalize_verdict(value: Any) -> Any:
+    """Coerce evaluate()'s verdict to a real bool, or to the "unknown" sentinel.
+
+    Generated code routinely computes this from a comparison over numpy values
+    (`improvement >= 10.0`), which yields numpy.bool_ rather than bool.
+    numpy.bool_ is not JSON-serialisable, so the json.dump(default=str) below
+    records the *string* "True" instead. Downstream,
+    writer_agent.compute_hypothesis_verdict tests `meets is True`, which a
+    string fails, so a correct verdict is silently downgraded to inconclusive
+    and a real result is thrown away. Observed in coder benchmark run 10431840,
+    cases 05 and 12, which reported 'True'/'False' and were counted as carrying
+    no verdict at all.
+
+    The fix belongs here, at the origin, where the type is still known — NOT in
+    the downstream `is True` comparisons, whose strictness is the safety
+    property that stops a truthy non-verdict being read as success.
+
+    bool() alone will not do: bool("False") is True, so a verdict that has
+    already lost its type must be parsed rather than cast. Anything
+    unrecognised becomes "unknown", which is the safe direction — withholding a
+    verdict is always permitted; asserting a wrong one is not.
+    """
+    if value is True or value is False:
+        return value
+    # numpy.bool_ and other scalar wrappers expose .item(), which unwraps to a
+    # genuine Python bool. Duck-typed because this template imports no numpy.
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            inner = item()
+        except Exception:
+            return "unknown"
+        if inner is True or inner is False:
+            return inner
+        return "unknown"
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+    # Numbers are not verdicts, and neither is anything else.
+    return "unknown"
+
+
 def _build_result_envelope(status: str, eval_output: dict | None, error: str | None, elapsed: float) -> dict[str, Any]:
     eval_output = eval_output or {}
-    meets_success_criteria = eval_output.get("meets_success_criteria", "unknown")
+    meets_success_criteria = _normalize_verdict(
+        eval_output.get("meets_success_criteria", "unknown")
+    )
     notes = eval_output.get("success_notes", "")
     metrics = {k: v for k, v in eval_output.items() if k not in _RESERVED_EVAL_KEYS}
     if status == "failure":
