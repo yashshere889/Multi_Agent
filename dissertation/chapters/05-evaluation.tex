@@ -2,77 +2,301 @@
 \label{ch:evaluation}
 
 % BUDGET: 7 pages.
-% OUTLINE, with the evidence each section is written from:
-%
-%  5.1 Component testing -- 707 tests. Constructor injection over monkeypatching;
-%      the deterministic modules (sandbox, provenance, citations, checks,
-%      diagnose, repair) are tested with no model present, which is what NFR5
-%      was for.
-%
-%  5.2 The Coder benchmark -- twelve frozen plans, nine runs.
-%      5.2.1 Run-to-run variance. Interpretable scores of 4, 6, 3, 2, 3 on
-%            IDENTICAL inputs. Any single-run comparison is therefore unsound,
-%            including the one the harness's own output invites. Report as a
-%            finding about the instrument, not only about the system.
-%      5.2.2 The verdict-serialisation defect: a numpy.bool_ recorded as the
-%            string "True" was rejected by a strict identity test and the result
-%            discarded. Report both the recorded and corrected scores.
-%
-%  5.3 An ablation: dataset discovery on versus off.
-%      \label{sec:ablation}
-%      Five runs on, four off, identical plans. Completed 10.2 vs 7.2;
-%      code_generated_not_run 2 vs 8; fix attempts 14.6 vs 36.0. Interpretable
-%      is 0 with discovery off BY CONSTRUCTION -- no real data means the verdict
-%      is withheld -- so it must NOT be read as a quality difference. The
-%      informative result is throughput: offering a concrete dataset is
-%      load-bearing for the model's ability to write working code at all.
-%      Frame explicitly as an ablation in the tradition of AutoMETA's
-%      \cite{lee2026autometa} protocol-enforcement ablation.
-%
-%  5.4 Wrong-but-real data.  \label{sec:wrong-data}
-%      Discovery matched google/Synthetic-Persona-Chat to 6 of 12 cases in both
-%      runs, keying on a single word of vacuous requirement text; case 03 used
-%      fineweb "as a proxy for movie review sentiment corpus", invented labels by
-%      keyword, and asserted a positive verdict. The provenance system withholds
-%      on surrogates but not on real-but-wrong data. This is the failure the
-%      declared-substitution guardrail was built against, and it is why the
-%      recommendation is stricter matching rather than disabling discovery.
-%
-%  5.5 End-to-end runs -- the batch over the interdisciplinary question set;
-%      generated papers; per-stage completion.
-%
-%  5.6 Human evaluation -- method, participants, aggregated Likert results,
-%      anonymised free text. Cite FACT \cite{du2025deepresearchbench} when
-%      framing citation accuracy; note that DeepResearch Bench sized its 100
-%      tasks from 96,000 real user queries whereas this question set is smaller
-%      and not user-derived.
-%
-%  5.7 Assessment against A1--A6 and the numbered requirements.
+
+Evaluation here operates at three levels: component tests that establish each
+deterministic mechanism does what it claims, a frozen benchmark that scores the
+code-generation stage repeatedly under controlled conditions, and end-to-end runs
+that exercise all seven agents on real research questions. A fourth, the human
+evaluation, assesses whether the output is usable by the people the system is
+for.
+
+One theme runs through the first three and is stated here because it shaped what
+the later sections could claim: on this project, building trustworthy measurement
+proved consistently harder than building the thing being measured. Three of the
+findings below are defects in the evaluation apparatus rather than in the
+pipeline, and in each case the apparatus was reporting the system as worse than
+it was.
 
 \section{Component testing}
 \label{sec:component-testing}
-[TODO]
+
+The suite comprises 1{,}190 tests across 33 files. Its organising principle is
+NFR5: all non-model logic must be testable without a language model present.
+Table~\ref{tab:deterministic-modules} lists the modules this applies to --- some
+4{,}900 lines of logic that runs with no model, no network and no cluster.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Deterministic modules, all tested with no language model present.}
+\label{tab:deterministic-modules}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{Module} & \textbf{Lines} & \textbf{Responsibility} \\
+\midrule
+\texttt{coder/sandbox} & 1862 & environment probes, venv provisioning, execution, static checks \\
+\texttt{coder/provenance} & 774 & resolving inputs to real or surrogate; withholding the verdict \\
+\texttt{coder/repair} & 342 & the repairs needing no model call \\
+\texttt{coder/diagnose} & 317 & classifying a failure by kind \\
+\texttt{writer/citations} & 337 & citation resolution and disambiguation \\
+\texttt{reviewer/checks} & 330 & citation, results-accuracy and coverage checking \\
+\texttt{literature/nodes} & 386 & deduplication, screening, merging \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two conventions make this possible. Every environment dependency is injected
+through a constructor rather than patched: tests pass
+\texttt{network\_check=lambda: False} and a fake dataset lookup instead of
+monkeypatching four HTTP endpoints. And the modules above read no settings and
+call no model, so they behave identically on a laptop and a compute node.
+
+Tests are written against observed failures wherever one exists. The regression
+tests for verdict normalisation use the exact values a benchmark run recorded;
+those for the citation checker use the exact reference-list line that produced
+thousands of spurious issues. This keeps the suite a record of what actually went
+wrong rather than a catalogue of what might.
 
 \section{The Coder benchmark}
 \label{sec:benchmark}
-[TODO]
+
+The Coder Agent is scored against a frozen corpus of twelve experiment plans
+spanning tabular classification, regression, text classification, clustering,
+time series, deep learning on a GPU, Monte Carlo simulation, bootstrap
+resampling, an infeasible plan that should be refused, and a restricted clinical
+source that should be declined. The headline metric is \emph{interpretable}: an
+experiment counts only if it ran \emph{and} carries a real boolean verdict.
+Completion alone is not enough, because an experiment that finishes on
+synthesised data has produced numbers without evidence.
+
+Nine runs were collected on identical inputs.
+
+\subsection{The benchmark does not support single-run comparison}
+\label{sec:variance}
+
+The five runs under the system's default configuration returned interpretable
+scores of \textbf{4, 6, 3, 2 and 3} out of twelve. Completions were far more
+stable at 10, 11, 10, 10 and 10, and the count of experiments resolving to real
+data varied from 4 to 8.
+
+A threefold spread on identical plans, identical code and the same model means
+that a difference of one or two between two runs carries no information. This
+matters beyond a caveat, because the benchmark harness ends every run by printing
+an invitation to compare it against another single run. The instrument actively
+encourages an inference its own variance does not support. Every comparison in
+the remainder of this chapter therefore reports the range across repeated runs,
+and no claim rests on a single pair.
+
+The variance is not itself a defect. Each stage of the pipeline makes many model
+calls, and the corpus is small enough that one experiment changing category moves
+the score by 8 percentage points. What was a defect was the absence of repetition
+until late in the project: several earlier conclusions about whether a change had
+helped were drawn from single runs and could not have been sound.
+
+\subsection{A defect in the measurement, not the system}
+
+One run scored 4 interpretable when the correct figure was 6. Cases 05 and 12 had
+each computed a genuine verdict which was recorded as the \emph{string}
+\texttt{"True"} or \texttt{"False"} rather than a boolean, and the scorer's strict
+identity test rejected both.
+
+The cause is a type crossing a boundary unvalidated. Generated \texttt{evaluate()}
+code computes its verdict from a comparison over numpy values, which yields
+\texttt{numpy.bool\_}; that is not JSON-serialisable, so the template's
+\texttt{json.dump(\ldots, default=str)} stringified it. Downstream,
+\texttt{compute\_hypothesis\_verdict} tests \texttt{meets is True}, which a string
+fails, so a correct result was silently reported as inconclusive.
+
+It failed safe --- no false claim was ever made, because the strict comparison is
+precisely the discipline Chapter~\ref{ch:design} argues for --- but real results
+were discarded, and the project's own instrument under-reported its own
+improvement. The fix normalises at the origin, where the type is still known,
+rather than relaxing the downstream comparison whose strictness is the safety
+property. It parses rather than casts, since \texttt{bool("False")} is
+\texttt{True} and casting would have converted a refutation into a confirmation.
+Results below report both the recorded and the corrected figures.
 
 \section{An ablation: dataset discovery}
 \label{sec:ablation}
-[TODO]
+
+Section~\ref{sec:wrong-data} shows the dataset discovery mechanism attaching
+irrelevant data to experiments. The natural question is whether the pipeline
+would be more trustworthy without it. Following the ablation methodology
+AutoMETA~\cite{lee2026autometa} applies to its own protocol enforcement, discovery
+was disabled and the frozen corpus re-run four times.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Dataset discovery enabled versus disabled, on identical plans.
+Mean with observed range; ranges rather than standard deviations, since four to
+five runs cannot support an interval estimate.}
+\label{tab:ablation}
+\begin{tabularx}{\textwidth}{Xcc}
+\toprule
+& \textbf{Discovery on} ($n{=}5$) & \textbf{Discovery off} ($n{=}4$) \\
+\midrule
+Completed                  & 10.2 [10--11] & 7.2 [7--8] \\
+Interpretable (corrected)  & 3.6 [2--6]    & 0.0 [0--0] \\
+Real data only             & 5.0 [4--8]    & 0.2 [0--1] \\
+Fix attempts               & 14.6 [12--17] & 36.0 [34--41] \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The interpretable column must not be read as a quality difference. With discovery
+off, every resolved input becomes a surrogate, and a surrogate withholds the
+verdict by design, so a score of zero is what the provenance mechanism is
+\emph{supposed} to produce when no real data exists. Comparing the arms on that
+metric is close to tautological.
+
+The informative comparison is throughput, and there the result is unambiguous.
+Experiments that never ran at all rose from 2 to 8, and repair effort rose from
+14.6 fix attempts to 36.0 --- two and a half times the work for fewer finished
+experiments. Offering the model one concrete dataset, with real column names and
+real sample rows, is load-bearing for its ability to write working code,
+independently of whether that dataset is the right one.
+
+This is the opposite of the expected result, and it settles the design question
+the next section raises. Disabling discovery is not the remedy for wrong data: it
+costs roughly a third of completions and more than doubles the repair effort while
+producing nothing interpretable at all. The remedy has to be stricter matching,
+not removal.
 
 \section{Wrong-but-real data}
 \label{sec:wrong-data}
-[TODO]
+
+The most serious failure this evaluation found is not an experiment that breaks.
+It is one that succeeds on the wrong data.
+
+Across both configurations of the frozen corpus, the Hugging Face dataset
+\texttt{google/Synthetic-Persona-Chat} --- a corpus of generated dialogue --- was
+resolved as the input for \emph{six of the twelve cases}, including clustering,
+bootstrap resampling, Monte Carlo simulation and tabular classification. It is
+relevant to none of them. The mechanism is visible in the run logs: the search
+matched on the literal phrase \emph{``hugging face''} taken from a data
+requirement that named no subject. The same behaviour had previously matched a
+requirement reading \emph{``public dataset''} to a corpus of public-domain poetry.
+
+The consequence is worse than a surrogate. Every one of those inputs was labelled
+\texttt{real\_local} or \texttt{real\_download}, so the provenance mechanism ---
+which withholds a verdict only when data was \emph{synthesised} --- had nothing to
+object to, and the verdict was asserted. In one case the generated code recorded
+in its own \texttt{assumptions\_made} that it had used a web-crawl corpus
+\emph{``as a proxy for movie review sentiment corpus''} and derived its labels by
+keyword because the corpus had none, and then reported the hypothesis
+\emph{supported}.
+
+A surrogate withholds a verdict; wrong real data claims one. This is the
+over-claiming direction the entire provenance design exists to prevent, arriving
+through a route it did not cover.
+
+Two responses were implemented. The model had \emph{declared} what it did, in
+\texttt{assumptions\_made}, and nothing read the declaration; a deterministic pass
+now does, withholding the verdict when the text asserts a substitution while
+ignoring the conditional fallback the prompt requires. Separately, an input that
+was \emph{discovered} rather than named is now marked as needing confirmation
+before its verdict stands, on the grounds that a keyword match is not evidence
+that a dataset answers a question. Neither closes the case where the model
+substitutes silently, which cannot be caught by reading prose.
 
 \section{End-to-end runs}
 \label{sec:end-to-end}
-[TODO]
+
+Thirty-six interdisciplinary research questions were run through the complete
+pipeline, spanning finance, health, climate, economics, language and the physical
+sciences. All thirty-six completed, producing 108 drafted papers across three
+writer/reviewer iterations each, with a mean of 3.9 cross-field bridge insights
+per run. An earlier sweep of twenty questions had completed three; the difference
+is attributable to question design --- each of the thirty-six names a concrete
+data type and an explicit baseline --- and to hardware that left a GPU free for
+the experiments themselves.
+
+At the Coder stage, 25 of 36 experiments completed and 11 generated code that was
+not run. Of the completed ones, 9 reported a hypothesis supported, 7 refuted, and
+9 had their verdict withheld.
+
+\subsection{A verification mechanism that failed by over-reporting}
+
+Every one of the 36 runs exhausted its three writer/reviewer iterations without
+passing review, and mean issue counts \emph{rose} across iterations, from 34.8 to
+36.0 to 36.8. Revision improved 17 runs, worsened 17 and left 2 unchanged.
+
+The cause was a false-positive storm in the deterministic citation check.
+Table~\ref{tab:citation-issues} gives the breakdown.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Review issues across 36 runs and 108 drafts.}
+\label{tab:citation-issues}
+\begin{tabularx}{\textwidth}{Xr}
+\toprule
+\textbf{Issue source} & \textbf{Count} \\
+\midrule
+Citation issues located in the References section & 3{,}514 \\
+Citation issues anywhere else & 4 \\
+All other categories (results accuracy, hypothesis coverage) & 353 \\
+\midrule
+\textbf{Total} & \textbf{3{,}871} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The checker was scanning the paper's own reference list. Entries render as
+\emph{``Riccardo Alberti and Sven Karbach (2026). Title\ldots''}, so the
+narrative-citation pattern captured the \emph{last} author's surname before the
+year, while the lookup is keyed on the \emph{first}. Every multi-author reference
+therefore failed to resolve and was reported as possibly fabricated. A single
+paper produced 55 spurious issues from its reference list against 44
+citation-shaped matches in its entire body.
+
+Two conclusions follow. The Writer's citation grounding was working essentially
+perfectly: four genuine citation issues across 108 drafts. And the failure mode of
+a verification mechanism matters as much as its coverage --- by over-reporting,
+this check made \texttt{overall\_pass} unreachable, rendered the revision loop
+inert, and made a guarantee that \emph{was} holding impossible to confirm. A
+checker that cries wolf is not merely noisy; it destroys the signal it exists to
+provide. Reference entries are rendered mechanically from the retrieved paper
+index and so cannot be fabricated by construction; they are now excluded.
 
 \section{Human evaluation}
 \label{sec:human-eval}
+
+% TODO(yash): written once the sessions are complete. Structure:
+%   - recruitment: how participants were approached and selected, including
+%     the two requirements-analysis respondents who had already consented;
+%     state plainly how many took part.
+%   - method: each participant enters a research question in their own field,
+%     drives the pipeline through the web interface, and reviews the drafted
+%     paper. Instrument, consent form and rating rubric in the appendices.
+%   - results: Likert responses in aggregate, anonymised free text.
+%   - the question that matters most, given Chapter 2: what did they have to
+%     take on trust, and did the mechanisms of Chapter 3 let them check it?
+%   - report the sample size honestly and claim nothing it cannot carry.
 [TODO]
 
 \section{Assessment against the aims}
 \label{sec:assessment}
-[TODO]
+
+% TODO(yash): complete once the human evaluation is in; A1 and A3 depend on it.
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.3em]
+  \item[\textbf{A1}] \emph{Question to draft paper without writing code.} Met: 36
+    of 36 questions produced drafted papers with no human intervention.
+    Whether the result is \emph{usable} is the human evaluation's question.
+  \item[\textbf{A2}] \emph{No unverifiable claim.} Substantially met, with one
+    documented gap. Citations cannot resolve to unretrieved papers, verdicts
+    derive from execution, and synthesised inputs withhold conclusions --- but
+    Section~\ref{sec:wrong-data} shows real-but-wrong data asserting verdicts
+    until the guardrails described there were added, and a silent substitution
+    remains uncaught.
+  \item[\textbf{A3}] \emph{Independently usable and steerable stages.} Met in
+    the implementation; its value to a researcher is for the evaluation to say.
+  \item[\textbf{A4}] \emph{Institutional infrastructure, open weights.} Met: every
+    run reported here executed on the university's cluster against a self-hosted
+    model, with no research content leaving the institution.
+  \item[\textbf{A5}] \emph{Experiments recover from their own failures.} Met and
+    quantified: 284 fix attempts across the runs collected, with the repair
+    categories and their resolution rates reported in Chapter~\ref{ch:po}.
+  \item[\textbf{A6}] \emph{Survive shared-HPC conditions.} Met: runs resume from
+    durable checkpoints, batch sweeps resume per question from a manifest, and
+    the nine benchmark runs and 36-question sweep all completed on a contended
+    partition under a per-user GPU quota.
+\end{description}
