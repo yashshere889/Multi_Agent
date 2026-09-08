@@ -29,14 +29,44 @@ from research_pipeline.agents.writer.citations import (
 )
 
 _NOT_COMPLETED_PHRASES = (
-    "not executed", "not run", "no results", "not completed", "not implemented",
-    "no empirical", "not been run", "were not executed", "not carried out", "was skipped",
+    "not executed",
+    "not run",
+    "no results",
+    "not completed",
+    "not implemented",
+    "no empirical",
+    "not been run",
+    "were not executed",
+    "not carried out",
+    "was skipped",
 )
-_COMPLETED_CLAIM_PHRASES = ("results show", "we found", "successfully", "demonstrates that", "confirms that", "achieved")
+_COMPLETED_CLAIM_PHRASES = (
+    "results show",
+    "we found",
+    "successfully",
+    "demonstrates that",
+    "confirms that",
+    "achieved",
+)
 
 _SUPPORTED_KEYWORDS = ("support", "confirm", "consistent with", "validated", "corroborat")
-_REFUTED_KEYWORDS = ("refute", "contradict", "not support", "disconfirm", "inconsistent with", "fail to support")
-_INCONCLUSIVE_KEYWORDS = ("inconclusive", "not run", "not executed", "no results", "unclear", "not completed", "undetermined")
+_REFUTED_KEYWORDS = (
+    "refute",
+    "contradict",
+    "not support",
+    "disconfirm",
+    "inconsistent with",
+    "fail to support",
+)
+_INCONCLUSIVE_KEYWORDS = (
+    "inconclusive",
+    "not run",
+    "not executed",
+    "no results",
+    "unclear",
+    "not completed",
+    "undetermined",
+)
 
 _NUMBER_RE = re.compile(r"-?\d+\.?\d*%?")
 
@@ -102,6 +132,22 @@ def check_citations(
 
     lookup = build_surname_year_lookup(paper_index)
     for section, text in section_texts.items():
+        # The reference list is rendered mechanically by pdf_builder from the
+        # paper index itself, so an entry in it cannot be a fabricated citation
+        # — and scanning it guarantees false positives rather than catching
+        # anything. Each entry ends "<authors> (YYYY).", so _NARRATIVE_CITE_RE
+        # matches the *last* author before the year while the lookup is keyed on
+        # the *first*, and every entry with more than one author fails to
+        # resolve. Batch 10454089 shows the cost: 55 spurious issues from the
+        # References section of a single paper against 44 citation-shaped matches
+        # in its whole body, 3,518 citation issues across 36 runs, and
+        # `overall_pass` unreachable in every one of them — so the
+        # Writer/Reviewer loop ran its full three iterations on every question
+        # and converged on nothing. This check is for a citation the Writer typed
+        # into *prose*, which is what its docstring says and what the body
+        # sections are.
+        if section == "References":
+            continue
         seen: set[tuple[str, str]] = set()
         for pattern in (_PARENTHETICAL_CITE_RE, _NARRATIVE_CITE_RE):
             for match in pattern.finditer(text):
@@ -116,7 +162,7 @@ def check_citations(
                         {
                             "location": section,
                             "issue": (
-                                f"citation-like text \"({surname_group}, {year})\" doesn't match any paper in the "
+                                f'citation-like text "({surname_group}, {year})" doesn\'t match any paper in the '
                                 "Literature Agent's output by first-author surname and year — possibly fabricated "
                                 "or mismatched; verify against the source list."
                             ),
@@ -171,7 +217,13 @@ def check_results_accuracy(results_subsections: Dict[str, str], coder_output: di
         location = f"Results > {hid}"
 
         if not text:
-            issues.append({"location": location, "claimed": "(no Results subsection found for this hypothesis)", "actual": f"status={experiment['status']}"})
+            issues.append(
+                {
+                    "location": location,
+                    "claimed": "(no Results subsection found for this hypothesis)",
+                    "actual": f"status={experiment['status']}",
+                }
+            )
             continue
 
         lowered = text.lower()
@@ -194,7 +246,11 @@ def check_results_accuracy(results_subsections: Dict[str, str], coder_output: di
             expected = _plausible_number_reprs(metric_value)
             if expected & numbers_in_text:
                 continue
-            claimed = ", ".join(sorted(numbers_in_text)) if numbers_in_text else "(no number found in this text at all)"
+            claimed = (
+                ", ".join(sorted(numbers_in_text))
+                if numbers_in_text
+                else "(no number found in this text at all)"
+            )
             issues.append(
                 {
                     "location": location,
@@ -220,7 +276,10 @@ def _keyword_verdict_guess(text: str) -> Optional[str]:
 
 
 def check_hypothesis_coverage(
-    results_subsections: Dict[str, str], discussion_subsections: Dict[str, str], hypothesis_ids: List[str], verdicts: Dict[str, dict]
+    results_subsections: Dict[str, str],
+    discussion_subsections: Dict[str, str],
+    hypothesis_ids: List[str],
+    verdicts: Dict[str, dict],
 ) -> List[dict]:
     """Two deterministic checks per hypothesis:
     1. It has a dedicated Results *and* Discussion subsection at all (the
@@ -238,9 +297,21 @@ def check_hypothesis_coverage(
     issues: List[dict] = []
     for hid in hypothesis_ids:
         if hid not in results_subsections:
-            issues.append({"hypothesis_id": hid, "location": "Results", "issue": f"{hid} has no dedicated Results subsection in the rendered paper."})
+            issues.append(
+                {
+                    "hypothesis_id": hid,
+                    "location": "Results",
+                    "issue": f"{hid} has no dedicated Results subsection in the rendered paper.",
+                }
+            )
         if hid not in discussion_subsections:
-            issues.append({"hypothesis_id": hid, "location": "Discussion", "issue": f"{hid} has no dedicated Discussion subsection in the rendered paper."})
+            issues.append(
+                {
+                    "hypothesis_id": hid,
+                    "location": "Discussion",
+                    "issue": f"{hid} has no dedicated Discussion subsection in the rendered paper.",
+                }
+            )
             continue
 
         true_verdict = verdicts[hid]["verdict"]
