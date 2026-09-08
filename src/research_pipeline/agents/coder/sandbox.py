@@ -403,22 +403,71 @@ def check_undefined_names(source: str) -> list[tuple[int, str]]:
 # fix a finding about code that has no defect, which is what makes a false
 # positive here strictly worse than a missing pattern. The same shape would hit
 # `cursor.exec()` and `session.exec()`.
-DANGEROUS_PATTERNS: list[tuple[str, str]] = [
-    (r"(?<![\w.])eval\s*\(", "eval() call"),
-    (r"(?<![\w.])exec\s*\(", "exec() call"),
-    (r"(?<![\w.])__import__\s*\(", "dynamic __import__() call"),
-    (r"subprocess\.\w+\([^)]*shell\s*=\s*True", "subprocess call with shell=True"),
-    (r"\bos\.system\s*\(", "os.system() call"),
-    (r"\bos\.popen\s*\(", "os.popen() call"),
-    (r"\bshutil\.rmtree\s*\(", "shutil.rmtree() call"),
-    (r"\bos\.(remove|unlink)\s*\(", "file deletion via os.remove()/os.unlink()"),
-    (r"\bos\.chmod\s*\(", "os.chmod() call"),
-    (r"\bsocket\.(socket|create_connection)\s*\(", "raw socket usage"),
-    (r"\bpickle\.loads?\s*\(", "pickle load (arbitrary code execution on untrusted data)"),
-    (r"\bctypes\b", "ctypes usage"),
+DANGEROUS_PATTERNS: list[tuple[str, str, str]] = [
+    (
+        r"(?<![\w.])eval\s*\(",
+        "eval() call",
+        "ast.literal_eval() to parse a literal, or explicit parsing logic — never eval a string as code",
+    ),
+    (
+        r"(?<![\w.])exec\s*\(",
+        "exec() call",
+        "a direct call to the function/logic itself — never build up and exec a string as code",
+    ),
+    (
+        r"(?<![\w.])__import__\s*\(",
+        "dynamic __import__() call",
+        "a normal top-level `import` statement, or importlib.import_module() only when the module name is genuinely computed at runtime",
+    ),
+    (
+        r"subprocess\.\w+\([^)]*shell\s*=\s*True",
+        "subprocess call with shell=True",
+        "subprocess.run([...]) with a list of arguments and shell=False (the default)",
+    ),
+    (
+        r"\bos\.system\s*\(",
+        "os.system() call",
+        "subprocess.run([...]) with a list of arguments",
+    ),
+    (
+        r"\bos\.popen\s*\(",
+        "os.popen() call",
+        "subprocess.run([...], capture_output=True)",
+    ),
+    (
+        r"\bshutil\.rmtree\s*\(",
+        "shutil.rmtree() call",
+        "OUTPUT_DIR for all writes — never delete existing directories",
+    ),
+    (
+        r"\bos\.(remove|unlink)\s*\(",
+        "file deletion via os.remove()/os.unlink()",
+        "OUTPUT_DIR for all writes — never delete existing files",
+    ),
+    (
+        r"\bos\.chmod\s*\(",
+        "os.chmod() call",
+        "the default file permissions — never change them",
+    ),
+    (
+        r"\bsocket\.(socket|create_connection)\s*\(",
+        "raw socket usage",
+        "the `requests` library (or urllib.request) for any network access this experiment needs",
+    ),
+    (
+        r"\bpickle\.loads?\s*\(",
+        "pickle load (arbitrary code execution on untrusted data)",
+        "json for serialization, or numpy.load/pandas.read_* for array/tabular data",
+    ),
+    (
+        r"\bctypes\b",
+        "ctypes usage",
+        "pure Python or a standard scientific library (numpy/scipy) instead of native code",
+    ),
     (
         r"os\.environ(?:\.get\(\s*)?\[?[\"'][^\"']*(SECRET|TOKEN|PASSWORD|API_KEY|AWS_)",
         "credential-like environment variable access",
+        "nothing — no experiment needs credential access, so remove it entirely",
     ),
 ]
 
@@ -428,9 +477,9 @@ def static_safety_check(code: str) -> list[str]:
     experiment script, before it is executed or submitted anywhere. Returns a
     list of human-readable findings; empty means clean."""
     findings = []
-    for pattern, description in DANGEROUS_PATTERNS:
+    for pattern, description, alternative in DANGEROUS_PATTERNS:
         if re.search(pattern, code):
-            findings.append(description)
+            findings.append(f"{description} (use {alternative})")
     return findings
 
 

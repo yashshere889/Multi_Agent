@@ -15,12 +15,21 @@ docstring). The delimiter shapes below are built with
 format the model is shown can't drift from the format the parser accepts.
 Prompts that ask only for short structured fields (the self-review verdict)
 still use JSON via llm_json.py.
+
+BANNED_CONSTRUCTS_BLOCK below is built from sandbox.DANGEROUS_PATTERNS rather
+than typed out separately, same reasoning as EXPERIMENT_SECTION_SHAPE being
+built from render_section: the model would otherwise learn the banned-pattern
+list only by tripping static_safety_check and burning a fix attempt on it
+(see the 2026-08-11 batch post-mortem, where eval() alone recurred across
+three separate hypotheses' fix loops), and a list typed out separately here
+could silently drift from what the check actually enforces.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
+from research_pipeline.agents.coder.sandbox import DANGEROUS_PATTERNS
 from research_pipeline.llm_sections import render_section
 
 # The order the model is asked to emit them in, each with the placeholder shown
@@ -68,6 +77,12 @@ RUN_PY_SECTION_NAMES: tuple[str, ...] = (
 
 def _section_shape(fields: list[tuple[str, str]]) -> str:
     return "\n\n".join(render_section(name, placeholder) for name, placeholder in fields)
+
+
+BANNED_CONSTRUCTS_BLOCK = "\n".join(
+    f"  - {description} — use {alternative}."
+    for _pattern, description, alternative in DANGEROUS_PATTERNS
+)
 
 
 EXPERIMENT_SECTION_SHAPE = _section_shape(EXPERIMENT_SECTION_PLACEHOLDERS)
@@ -128,7 +143,8 @@ first BEGIN line or after the last END line, and nothing between an END line \
 and the next BEGIN line.
 """
 
-SYSTEM_PROMPT = """You are a research software engineer generating real, runnable \
+SYSTEM_PROMPT = (
+    """You are a research software engineer generating real, runnable \
 Python code for a single computational experiment, to be handed off with NO \
 further clarification available.
 
@@ -178,12 +194,19 @@ computation, make it resumable using the checkpoint primitives described \
 below. A job on a shared cluster gets preempted; one that checkpoints \
 continues where it left off, and one that does not starts over and usually \
 never finishes.
+- Never write any of the following — each is checked mechanically before the \
+code runs or is submitted anywhere, so using one doesn't just look bad, it \
+guarantees this code gets rejected and sent back to you as a failed attempt:
+"""
+    + BANNED_CONSTRUCTS_BLOCK
+    + """
 - Return ONLY the answer, in EXACTLY the output format the user prompt \
 specifies, with no markdown fences and no commentary before or after it. When \
 that format is a delimited section format, write the content of each section \
 raw and unescaped — real line breaks, real backslashes, real quotes — because \
 it is read verbatim, not decoded.
 """
+)
 
 # Appended after the concrete dataset facts by CoderAgent._hf_dataset_block. Kept
 # out of .format() reach on purpose: it contains literal JSON braces describing
@@ -355,6 +378,14 @@ it. If the failure was a missing or misnamed dependency, correct \
 requirements_txt to match what the code imports. If the failure was a flagged \
 unsafe pattern, rewrite that logic so it no longer needs it — do not just move \
 or obfuscate it.
+Diagnose the actual cause and regenerate every section, keeping whatever \
+already worked and correcting what caused the failure. Do not merely describe \
+the bug in "assumptions_made" — the returned code must actually fix it. If the \
+failure was a missing or misnamed dependency, correct requirements_txt to \
+match what the code imports. If the failure was a flagged unsafe pattern, the \
+error above already names the specific safe alternative to use instead — \
+rewrite that logic to use it, do not just move, rename, or obfuscate the \
+flagged call so it still does the same thing under a different name.
 
 {return_instruction}
 
