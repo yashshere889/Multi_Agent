@@ -97,8 +97,16 @@ def build_literature_graph():
     # be on topic — seeding from an unscreened pool compounds, with one
     # off-topic hit dragging in a bibliography's worth of its references.
     graph.add_edge("score_relevance", "expand_citations")
-    graph.add_edge("expand_citations", "download_papers")
-    graph.add_edge("merge_and_dedupe", "rerank_papers")
+    # One chain, not two. Both branches wrote merged_papers and both fed
+    # download_papers, so LangGraph saw two writes to the same key in one
+    # superstep and every run died with InvalidUpdateError before reaching the
+    # Hypothesis agent (batch 10460707, all six questions).
+    #
+    # Rerank goes last and still before downloading. RERANK_TOP_K drops papers,
+    # so ranking after download would spend a fetch on every paper it discards;
+    # ranking before expansion would order a pool about to change and leave what
+    # expansion contributed unranked.
+    graph.add_edge("expand_citations", "rerank_papers")
     graph.add_edge("rerank_papers", "download_papers")
     graph.add_edge("download_papers", "save_metadata")
     graph.add_edge("save_metadata", END)

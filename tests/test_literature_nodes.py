@@ -350,6 +350,14 @@ def test_rerank_node_runs_before_downloads():
 
     edges = {(e.source, e.target) for e in build_literature_graph().get_graph().edges}
 
-    assert ("merge_and_dedupe", "rerank_papers") in edges
+    # Rerank sits at the end of the pre-download chain, not straight after the
+    # merge: screening and expansion both change the pool. Asserting the whole
+    # chain rather than one edge, because the defect this caught was an EXTRA
+    # parallel branch that a single-edge assertion happily ignored.
+    assert ("merge_and_dedupe", "score_relevance") in edges
+    assert ("score_relevance", "expand_citations") in edges
+    assert ("expand_citations", "rerank_papers") in edges
+    assert ("merge_and_dedupe", "rerank_papers") not in edges
+    assert ("expand_citations", "download_papers") not in edges
     assert ("rerank_papers", "download_papers") in edges
     assert ("merge_and_dedupe", "download_papers") not in edges
