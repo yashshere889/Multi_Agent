@@ -23,6 +23,13 @@ ssh -o BatchMode=yes "$HOST" "cd $S && rm -f /tmp/sync_results.tar.gz && \
        -o -name 'results.json' \
        -o -name 'data_provenance.json' \
        -o -name 'batch_manifest.json' \
+       -o -name 'hypotheses_*.json' \
+       -o -name 'experiment_plan_*.json' \
+       -o -name 'interdisciplinary_*.json' \
+       -o -name 'review_*.json' \
+       -o -name 'review_log.json' \
+       -o -name '*_summary.json' \
+       -o -name 'v*.pdf' \
        -o -path '*/experiments/*' -name 'run.py' \) \
        -not -path '*/.venv/*' -not -path '*/site-packages/*' 2>/dev/null \
     | sort -u > /tmp/sync_files.txt && \
