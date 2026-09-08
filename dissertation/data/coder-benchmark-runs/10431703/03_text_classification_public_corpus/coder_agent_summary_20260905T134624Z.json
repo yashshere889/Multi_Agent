@@ -1,0 +1,124 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H103",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/03_text_classification_public_corpus/experiments/H103",
+      "assumptions_made": [
+        "Replaced the undefined helper functions with implementations that properly handle both unigram and bigram features within the existing framework",
+        "Simplified the feature extraction to use basic ngram concatenation instead of complex feature engineering",
+        "Maintained the original experimental design and evaluation criteria",
+        "Kept the same data loading and preprocessing approach"
+      ],
+      "results": {
+        "experiment_id": "H103",
+        "experiment_name": "Experiment H103",
+        "hypothesis": "Test whether bigram features improve sentiment classification accuracy over unigrams alone.",
+        "author": "coder-agent",
+        "baseline": "Unigram naive Bayes on the same split.",
+        "success_criteria": "Adding bigrams improves accuracy by at least 0.02 on the held-out split.",
+        "timestamp_utc": "2026-09-05T13:46:24.479151+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.1205,
+        "resumed": false,
+        "metrics": {
+          "accuracy_unigram": 1.0,
+          "accuracy_bigram": 0.96,
+          "f1_unigram": 1.0,
+          "f1_bigram": 0.9473684210526316,
+          "accuracy_improvement": -0.040000000000000036,
+          "f1_improvement": -0.05263157894736836
+        },
+        "meets_success_criteria": false,
+        "notes": "Unigram accuracy: 1.000, Bigram accuracy: 0.960. Accuracy improvement: -0.040. Unigram F1: 1.000, Bigram F1: 0.947. F1 improvement: -0.053. Bigram features did not improve accuracy by at least 0.02.",
+        "error": null
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 458: undefined name 'math'; line 458: undefined name 'math'; line 484: undefined name 'math'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using a simple heuristic to assign binary sentiment labels based on presence of positive/negative words",
+            "Limiting dataset fetch to 500 samples to stay within time budget",
+            "Using a fixed 25% test split ratio",
+            "Treating the Hugging Face dataset as a suitable replacement for a movie review sentiment corpus",
+            "Assuming the dataset contains enough English text for meaningful feature extraction",
+            "Using the same preprocessing steps as specified in data_requirements",
+            "Using Multinomial Naive Bayes with Laplace smoothing as the classifier",
+            "Using accuracy and macro F1 as the primary metrics",
+            "Using a 0.02 threshold for determining significant improvement"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 358: undefined name '_train_naive_bayes_with_features'; line 362: undefined name '_train_naive_bayes_with_features'; line 367: undefined name '_predict_naive_bayes_with_features'; line 368: undefined name '_predict_naive_bayes_with_features'; line 371: undefined name '_classification_metrics'; line 372: undefined name '_classification_metrics'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/03_text_classification_public_corpus/experiments/H103/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "run_experiment_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The math module was missing from imports, causing NameError when math.log was referenced in the helper functions"
+          ],
+          "same_error_streak": 2
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset HuggingFaceFW/fineweb",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=HuggingFaceFW%2Ffineweb&config=default&split=train&offset=0&length=100",
+            "local_path": "",
+            "reason": "found by the Hugging Face lookup and read by the generated code",
+            "credentials": []
+          },
+          {
+            "name": "Hugging Face public dataset",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows",
+            "local_path": "",
+            "reason": "open source Hugging Face datasets, reachable from this node",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/03_text_classification_public_corpus/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H103"
+  ],
+  "generated_at": "2026-09-05T13:46:24.518703+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

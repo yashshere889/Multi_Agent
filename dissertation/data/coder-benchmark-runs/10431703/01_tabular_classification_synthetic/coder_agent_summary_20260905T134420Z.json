@@ -1,0 +1,139 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H101",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/01_tabular_classification_synthetic/experiments/H101",
+      "assumptions_made": [
+        "Reduced dataset size from default to 500 samples to prevent timeout",
+        "Reduced max_iter parameter from 1000 to 100 to prevent timeout",
+        "Used synthetic data as fallback when real dataset loading fails",
+        "Assumed class 1 represents the minority class for recall calculation"
+      ],
+      "results": {
+        "experiment_id": "H101",
+        "experiment_name": "Experiment H101",
+        "hypothesis": "Test whether class-weighted logistic regression improves minority-class recall over an unweighted baseline on imbalanced tabular data.",
+        "author": "coder-agent",
+        "baseline": "Unweighted logistic regression on the same split.",
+        "success_criteria": "Weighted model improves minority-class recall by at least 0.05 without losing more than 0.03 accuracy.",
+        "timestamp_utc": "2026-09-05T13:44:20.530840+00:00",
+        "status": "success",
+        "elapsed_seconds": 3.1855,
+        "resumed": false,
+        "metrics": {
+          "accuracy_unweighted": 0.976,
+          "precision_unweighted": 1.0,
+          "recall_unweighted": 0.9516129032258065,
+          "f1_unweighted": 0.9752066115702479,
+          "accuracy_weighted": 0.976,
+          "precision_weighted": 1.0,
+          "recall_weighted": 0.9516129032258065,
+          "f1_weighted": 0.9752066115702479,
+          "minority_recall_improvement": 0.0,
+          "accuracy_loss": 0
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Unweighted model: accuracy=0.976, recall=0.952. Weighted model: accuracy=0.976, recall=0.952. Improvement in minority recall: 0.000, Accuracy loss: 0.000. The weighted model maintains accuracy but doesn't improve minority-class recall.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/01_tabular_classification_synthetic/experiments/H101/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The conversation length serves as a reasonable proxy for creating an imbalanced binary classification task",
+            "The synthetic dataset generation captures realistic correlations between features while maintaining the required 10% positive class ratio",
+            "The persona description features are appropriately converted to numeric representations",
+            "Class weighting strategy \"balanced\" is appropriate for this type of imbalance",
+            "The experiment will run within the 2-minute time budget with the current implementation",
+            "The evaluation logic properly identifies the minority class (assumed to be class 1)"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset google/Synthetic-Persona-Chat",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl (5000 rows, 9302670 bytes, sha256 6a78aef9d8e3)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+              "sha256": "6a78aef9d8e3a7f09b63903c707ab20f76efe474abb035d12336bf0c4b5d8f36",
+              "byte_count": 9302670,
+              "data_format": "jsonl",
+              "columns": [
+                "user 1 personas",
+                "user 2 personas",
+                "Best Generated Conversation"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "user 1 personas": "I am 32.\nI do not want a job.\nI play video games all day.\nI still live at home with my parents.",
+                  "user 2 personas": "My favorite drink is iced coffee.\nI have a black belt in karate.\nI m in a jazz band and play the saxophone.\nI vacation along lake michigan every summer.",
+                  "Best Generated Conversation": "User 1: Hi! I'm [user 1's name].\nUser 2: Hi [user 1's name], I'm [user 2's name].\nUser 1: What do you do for fun?\nUser 2: I like to play video games, go to the beach, and read.\nUser 1: I like to play …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.",
+                  "user 2 personas": "I have a ford f150.\nI like ford cars.\nMy truck is black.\nI also like ford trucks.\nI own a ford truck.",
+                  "Best Generated Conversation": "User 1: Hey, how's it going?\nUser 2: Good, I'm just hanging out.\nUser 1: Nice. Me too. I'm playing video games.\nUser 2: Oh, cool. I like video games. What are you playing?\nUser 1: I'm playing Call of …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.\nI eat all take out.",
+                  "user 2 personas": "I can recite the movie young frankenstein word for word.\nI like to make my own clothes.\nI am partially blind.\nI do volunteer work for human rights organizations.\nI can do convincing bird calls.",
+                  "Best Generated Conversation": "User 1: Hi, my name is John. What's your name?\nUser 2: Hi, John, my name is Mary.\nUser 1: It's nice to meet you, Mary. What do you do for a living?\nUser 2: I do volunteer work for human rights organiz…"
+                }
+              ],
+              "from_cache": false,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/01_tabular_classification_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H101"
+  ],
+  "generated_at": "2026-09-05T13:44:20.692718+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

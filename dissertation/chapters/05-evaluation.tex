@@ -1,0 +1,78 @@
+\chapter{Testing and Evaluation}
+\label{ch:evaluation}
+
+% BUDGET: 7 pages.
+% OUTLINE, with the evidence each section is written from:
+%
+%  5.1 Component testing -- 707 tests. Constructor injection over monkeypatching;
+%      the deterministic modules (sandbox, provenance, citations, checks,
+%      diagnose, repair) are tested with no model present, which is what NFR5
+%      was for.
+%
+%  5.2 The Coder benchmark -- twelve frozen plans, nine runs.
+%      5.2.1 Run-to-run variance. Interpretable scores of 4, 6, 3, 2, 3 on
+%            IDENTICAL inputs. Any single-run comparison is therefore unsound,
+%            including the one the harness's own output invites. Report as a
+%            finding about the instrument, not only about the system.
+%      5.2.2 The verdict-serialisation defect: a numpy.bool_ recorded as the
+%            string "True" was rejected by a strict identity test and the result
+%            discarded. Report both the recorded and corrected scores.
+%
+%  5.3 An ablation: dataset discovery on versus off.
+%      \label{sec:ablation}
+%      Five runs on, four off, identical plans. Completed 10.2 vs 7.2;
+%      code_generated_not_run 2 vs 8; fix attempts 14.6 vs 36.0. Interpretable
+%      is 0 with discovery off BY CONSTRUCTION -- no real data means the verdict
+%      is withheld -- so it must NOT be read as a quality difference. The
+%      informative result is throughput: offering a concrete dataset is
+%      load-bearing for the model's ability to write working code at all.
+%      Frame explicitly as an ablation in the tradition of AutoMETA's
+%      \cite{lee2026autometa} protocol-enforcement ablation.
+%
+%  5.4 Wrong-but-real data.  \label{sec:wrong-data}
+%      Discovery matched google/Synthetic-Persona-Chat to 6 of 12 cases in both
+%      runs, keying on a single word of vacuous requirement text; case 03 used
+%      fineweb "as a proxy for movie review sentiment corpus", invented labels by
+%      keyword, and asserted a positive verdict. The provenance system withholds
+%      on surrogates but not on real-but-wrong data. This is the failure the
+%      declared-substitution guardrail was built against, and it is why the
+%      recommendation is stricter matching rather than disabling discovery.
+%
+%  5.5 End-to-end runs -- the batch over the interdisciplinary question set;
+%      generated papers; per-stage completion.
+%
+%  5.6 Human evaluation -- method, participants, aggregated Likert results,
+%      anonymised free text. Cite FACT \cite{du2025deepresearchbench} when
+%      framing citation accuracy; note that DeepResearch Bench sized its 100
+%      tasks from 96,000 real user queries whereas this question set is smaller
+%      and not user-derived.
+%
+%  5.7 Assessment against A1--A6 and the numbered requirements.
+
+\section{Component testing}
+\label{sec:component-testing}
+[TODO]
+
+\section{The Coder benchmark}
+\label{sec:benchmark}
+[TODO]
+
+\section{An ablation: dataset discovery}
+\label{sec:ablation}
+[TODO]
+
+\section{Wrong-but-real data}
+\label{sec:wrong-data}
+[TODO]
+
+\section{End-to-end runs}
+\label{sec:end-to-end}
+[TODO]
+
+\section{Human evaluation}
+\label{sec:human-eval}
+[TODO]
+
+\section{Assessment against the aims}
+\label{sec:assessment}
+[TODO]

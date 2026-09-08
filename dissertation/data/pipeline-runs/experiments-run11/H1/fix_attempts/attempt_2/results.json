@@ -1,0 +1,15 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether integrating frequency-domain features via adaptive fusion improves the predictive accuracy of Python-based machine learning models for stock price forecasting compared to traditional econometric models, especially under volatile market conditions.",
+  "author": "coder-agent",
+  "baseline": "Performance of ARIMA models on the same dataset and forecasting horizon",
+  "success_criteria": "If ML models with adaptive fusion consistently achieve lower MAE/RMSE than ARIMA models across both stable and volatile conditions, the hypothesis is supported. If not, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-02T23:25:55.487290+00:00",
+  "status": "failure",
+  "elapsed_seconds": 4.0621,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/experiments-run11/H1/run.py\", line 427, in run\n    experiment_output = run_experiment(data, model)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/experiments-run11/H1/run.py\", line 195, in run_experiment\n    dummy_array[:, 0] = lstm_predictions.flatten()\n    ~~~~~~~~~~~^^^^^^\nValueError: could not broadcast input array from shape (30,) into shape (6,)\n"
+}

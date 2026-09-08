@@ -20,8 +20,16 @@ def _valid_output() -> dict:
         "hallucinations": [{"location": "Introduction", "claim": "c", "issue": "i"}],
         "citation_issues": [],
         "results_accuracy_issues": [],
-        "hypothesis_coverage_issues": [{"hypothesis_id": "H1", "location": "Discussion > H1", "issue": "i"}],
-        "quality_scores": {"clarity": 4, "flow": 4, "tone": 4, "structure": 4, "limitations_honesty": 4},
+        "hypothesis_coverage_issues": [
+            {"hypothesis_id": "H1", "location": "Discussion > H1", "issue": "i"}
+        ],
+        "quality_scores": {
+            "clarity": 4,
+            "flow": 4,
+            "tone": 4,
+            "structure": 4,
+            "limitations_honesty": 4,
+        },
         "overall_pass": False,
         "feedback_for_writer": "fix things",
         "generated_at": "2026-01-01T00:00:00+00:00",
@@ -58,7 +66,14 @@ def test_validate_output_rejects_missing_score_key():
 
 
 def _paper(**overrides) -> dict:
-    base = {"title": "RAG Paper", "authors": ["A. Smith"], "abstract": "abc", "year": 2020, "arxiv_id": "1", "source": "arxiv"}
+    base = {
+        "title": "RAG Paper",
+        "authors": ["A. Smith"],
+        "abstract": "abc",
+        "year": 2020,
+        "arxiv_id": "1",
+        "source": "arxiv",
+    }
     return {**base, **overrides}
 
 
@@ -96,7 +111,9 @@ def test_check_citations_flags_leaked_unresolved_marker_syntax():
     resolution logic can or can't already handle — the Reviewer must catch
     any [[cite:/[[citet: text that reaches the printed page, on its own."""
     index = build_paper_index([_paper()])
-    section_texts = {"Related Work": "Composite indices lack validation [[cite:999],[888]]. Later text."}
+    section_texts = {
+        "Related Work": "Composite indices lack validation [[cite:999],[888]]. Later text."
+    }
     issues = checks.check_citations(section_texts, index, citations_used=["1"])
     assert len(issues) == 1
     assert issues[0]["location"] == "Related Work"
@@ -119,10 +136,25 @@ def test_check_citations_does_not_flag_a_fully_resolved_section():
 
 def _experiment(hid, status, accuracy=None, meets=None, reason=""):
     if status != "completed":
-        return {"hypothesis_id": hid, "status": status, "reason": reason, "assumptions_made": [], "code_path": None, "results": None}
+        return {
+            "hypothesis_id": hid,
+            "status": status,
+            "reason": reason,
+            "assumptions_made": [],
+            "code_path": None,
+            "results": None,
+        }
     return {
-        "hypothesis_id": hid, "status": "completed", "reason": "", "assumptions_made": [], "code_path": f"experiments/{hid}",
-        "results": {"metrics": {"accuracy": accuracy}, "meets_success_criteria": meets, "notes": ""},
+        "hypothesis_id": hid,
+        "status": "completed",
+        "reason": "",
+        "assumptions_made": [],
+        "code_path": f"experiments/{hid}",
+        "results": {
+            "metrics": {"accuracy": accuracy},
+            "meets_success_criteria": meets,
+            "notes": "",
+        },
     }
 
 
@@ -157,12 +189,20 @@ def test_check_results_accuracy_flags_skipped_experiment_described_as_successful
 
 def test_check_results_accuracy_accepts_skipped_experiment_with_clear_disclaimer():
     coder_output = {"experiments": [_experiment("H2", "skipped", reason="infeasible")]}
-    results_subsections = {"H2": "This experiment was not executed because it was marked infeasible."}
+    results_subsections = {
+        "H2": "This experiment was not executed because it was marked infeasible."
+    }
     assert checks.check_results_accuracy(results_subsections, coder_output) == []
 
 
 def _verdict(hid, verdict, reason="r", statement="s", rationale="rat"):
-    return {"hypothesis_id": hid, "statement": statement, "rationale": rationale, "verdict": verdict, "reason": reason}
+    return {
+        "hypothesis_id": hid,
+        "statement": statement,
+        "rationale": rationale,
+        "verdict": verdict,
+        "reason": reason,
+    }
 
 
 def test_check_hypothesis_coverage_flags_missing_subsection():
@@ -176,8 +216,12 @@ def test_check_hypothesis_coverage_flags_missing_subsection():
 def test_check_hypothesis_coverage_flags_overstated_verdict():
     verdicts = {"H3": _verdict("H3", "inconclusive", reason="skipped")}
     results_subsections = {"H3": "text"}
-    discussion_subsections = {"H3": "The experiment clearly supports the hypothesis with strong evidence."}
-    issues = checks.check_hypothesis_coverage(results_subsections, discussion_subsections, ["H3"], verdicts)
+    discussion_subsections = {
+        "H3": "The experiment clearly supports the hypothesis with strong evidence."
+    }
+    issues = checks.check_hypothesis_coverage(
+        results_subsections, discussion_subsections, ["H3"], verdicts
+    )
     assert len(issues) == 1
     assert issues[0]["hypothesis_id"] == "H3"
     assert "inconclusive" in issues[0]["issue"]
@@ -187,7 +231,12 @@ def test_check_hypothesis_coverage_accepts_consistent_framing():
     verdicts = {"H1": _verdict("H1", "supported")}
     results_subsections = {"H1": "text"}
     discussion_subsections = {"H1": "Results support the hypothesis."}
-    assert checks.check_hypothesis_coverage(results_subsections, discussion_subsections, ["H1"], verdicts) == []
+    assert (
+        checks.check_hypothesis_coverage(
+            results_subsections, discussion_subsections, ["H1"], verdicts
+        )
+        == []
+    )
 
 
 # -- reviewer_agent.py: orchestration, with a fake (JSON-returning) chat model ----------
@@ -198,7 +247,9 @@ class FakeChatModel:
     the other agents' FakeChatModel, but for JSON responses (invoke_json), not
     plain prose (unlike WriterAgent's fake, which returns text directly)."""
 
-    def __init__(self, response_by_keyword: dict[str, str], default: str = '{"hallucinations": []}'):
+    def __init__(
+        self, response_by_keyword: dict[str, str], default: str = '{"hallucinations": []}'
+    ):
         self._response_by_keyword = response_by_keyword
         self._default = default
         self.calls = []
@@ -218,51 +269,82 @@ class FakeChatModel:
 
 
 def _quality_response(scores=None) -> str:
-    scores = scores or {"clarity": 5, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}
+    scores = scores or {
+        "clarity": 5,
+        "flow": 5,
+        "tone": 5,
+        "structure": 5,
+        "limitations_honesty": 5,
+    }
     return json.dumps({"quality_scores": scores, "quality_notes": {}})
 
 
 def _hyp(hid) -> dict:
     return {
-        "id": hid, "statement": f"statement {hid}", "rationale": "rationale", "related_gaps": [], "related_methods": [],
+        "id": hid,
+        "statement": f"statement {hid}",
+        "rationale": "rationale",
+        "related_gaps": [],
+        "related_methods": [],
         "suggested_variables": {"independent": [], "dependent": []},
     }
 
 
 def _hypothesis_output() -> dict:
     return {
-        "literature_summary": "summary", "methods_overview": [], "gaps": [],
+        "literature_summary": "summary",
+        "methods_overview": [],
+        "gaps": [],
         "hypotheses": [_hyp("H1"), _hyp("H2"), _hyp("H3")],
-        "ranking": [{"hypothesis_id": f"H{i}", "rank": i, "score": 9 - i, "justification": "j"} for i in (1, 2, 3)],
+        "ranking": [
+            {"hypothesis_id": f"H{i}", "rank": i, "score": 9 - i, "justification": "j"}
+            for i in (1, 2, 3)
+        ],
         "selected_hypothesis_id": "H1",
-        "source_paper_ids": ["1"], "generated_at": "2026-01-01T00:00:00+00:00", "model": "test-model",
+        "source_paper_ids": ["1"],
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "model": "test-model",
     }
 
 
 def _plan(hid, feasible=True) -> dict:
     return {
-        "hypothesis_id": hid, "feasible": feasible, "feasibility_notes": "ok", "objective": "o",
-        "variables": {"independent": [], "dependent": []}, "design": "d",
+        "hypothesis_id": hid,
+        "feasible": feasible,
+        "feasibility_notes": "ok",
+        "objective": "o",
+        "variables": {"independent": [], "dependent": []},
+        "design": "d",
         "data_requirements": {"source": "s", "description": "d", "preprocessing_steps": []},
-        "methods": [], "evaluation": {"metrics": ["accuracy"], "baseline": "b", "success_criteria": "sc"},
-        "implementation_steps": [{"step": 1, "description": "d"}], "estimated_complexity": "low", "risks": [],
+        "methods": [],
+        "evaluation": {"metrics": ["accuracy"], "baseline": "b", "success_criteria": "sc"},
+        "implementation_steps": [{"step": 1, "description": "d"}],
+        "estimated_complexity": "low",
+        "risks": [],
     }
 
 
 def _planner_output(plans) -> dict:
     return {
-        "experiment_plans": plans, "shared_infrastructure": [],
-        "priority_order": [{"hypothesis_id": p["hypothesis_id"], "rank": i + 1, "justification": "j"} for i, p in enumerate(plans)],
+        "experiment_plans": plans,
+        "shared_infrastructure": [],
+        "priority_order": [
+            {"hypothesis_id": p["hypothesis_id"], "rank": i + 1, "justification": "j"}
+            for i, p in enumerate(plans)
+        ],
         "source_hypothesis_ids": [p["hypothesis_id"] for p in plans],
-        "generated_at": "2026-01-01T00:00:00+00:00", "model": "test-model",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "model": "test-model",
     }
 
 
 def _coder_output(experiments) -> dict:
     return {
-        "experiments": experiments, "shared_infrastructure_path": "experiments/_shared",
+        "experiments": experiments,
+        "shared_infrastructure_path": "experiments/_shared",
         "source_hypothesis_ids": [e["hypothesis_id"] for e in experiments],
-        "generated_at": "2026-01-01T00:00:00+00:00", "model": "test-model",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "model": "test-model",
     }
 
 
@@ -272,41 +354,75 @@ def _build_good_paper(tmp_path: Path) -> tuple[Path, dict]:
         ("Related Work", "Smith (2020) covers this."),
         ("Hypotheses", "H1: s.\n\nH2: s.\n\nH3: s."),
         ("Methods", "## H1\n\nMethods.\n\n## H2\n\nMethods.\n\n## H3\n\nMethods."),
-        ("Results", "## H1\n\nAccuracy was 0.9.\n\n## H2\n\nAccuracy was 0.9.\n\n## H3\n\nAccuracy was 0.9."),
-        ("Discussion", "## H1 — supported\n\nResults support this.\n\n## H2 — supported\n\nResults support this.\n\n## H3 — supported\n\nResults support this."),
+        (
+            "Results",
+            "## H1\n\nAccuracy was 0.9.\n\n## H2\n\nAccuracy was 0.9.\n\n## H3\n\nAccuracy was 0.9.",
+        ),
+        (
+            "Discussion",
+            "## H1 — supported\n\nResults support this.\n\n## H2 — supported\n\nResults support this.\n\n## H3 — supported\n\nResults support this.",
+        ),
         ("Limitations", "Some limitations."),
         ("Future Work", "Future work."),
     ]
     path = tmp_path / "paper.pdf"
-    build_pdf(path, title="Title", abstract="Abstract.", sections=sections, references=["[1] A. Smith (2020). RAG Paper."])
+    build_pdf(
+        path,
+        title="Title",
+        abstract="Abstract.",
+        sections=sections,
+        references=["[1] A. Smith (2020). RAG Paper."],
+    )
     paper_summary = {
         "paper_path": str(path),
         "sections_generated": ["Title", "Abstract"] + [h for h, _ in sections] + ["References"],
-        "hypotheses_supported": ["H1", "H2", "H3"], "hypotheses_refuted": [], "hypotheses_inconclusive": [],
-        "citations_used": ["1"], "notes_for_review": [],
-        "generated_at": "2026-01-01T00:00:00+00:00", "model": "test-model",
+        "hypotheses_supported": ["H1", "H2", "H3"],
+        "hypotheses_refuted": [],
+        "hypotheses_inconclusive": [],
+        "citations_used": ["1"],
+        "notes_for_review": [],
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "model": "test-model",
     }
     return path, paper_summary
 
 
 def _literature_output() -> dict:
-    return {"papers": [{"title": "RAG Paper", "authors": ["A. Smith"], "abstract": "abc", "year": 2020, "arxiv_id": "1", "source": "arxiv"}]}
+    return {
+        "papers": [
+            {
+                "title": "RAG Paper",
+                "authors": ["A. Smith"],
+                "abstract": "abc",
+                "year": 2020,
+                "arxiv_id": "1",
+                "source": "arxiv",
+            }
+        ]
+    }
 
 
 def test_run_passes_when_paper_is_accurate_and_scores_are_high(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
-    coder_output = _coder_output([
-        _experiment("H1", "completed", accuracy=0.9, meets=True),
-        _experiment("H2", "completed", accuracy=0.9, meets=True),
-        _experiment("H3", "completed", accuracy=0.9, meets=True),
-    ])
+    coder_output = _coder_output(
+        [
+            _experiment("H1", "completed", accuracy=0.9, meets=True),
+            _experiment("H2", "completed", accuracy=0.9, meets=True),
+            _experiment("H3", "completed", accuracy=0.9, meets=True),
+        ]
+    )
     fake_model = FakeChatModel({"Score this research paper draft": _quality_response()})
     agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
 
     result = agent.run(
-        paper_path, paper_summary, _literature_output(), _hypothesis_output(),
-        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]), coder_output,
-        iteration=1, quality_threshold=4,
+        paper_path,
+        paper_summary,
+        _literature_output(),
+        _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]),
+        coder_output,
+        iteration=1,
+        quality_threshold=4,
     )
 
     assert result["overall_pass"] is True
@@ -322,18 +438,31 @@ def test_run_passes_when_paper_is_accurate_and_scores_are_high(tmp_path):
 
 def test_run_fails_when_quality_score_below_threshold(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
-    coder_output = _coder_output([
-        _experiment("H1", "completed", accuracy=0.9, meets=True),
-        _experiment("H2", "completed", accuracy=0.9, meets=True),
-        _experiment("H3", "completed", accuracy=0.9, meets=True),
-    ])
-    fake_model = FakeChatModel({"Score this research paper draft": _quality_response({"clarity": 2, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5})})
+    coder_output = _coder_output(
+        [
+            _experiment("H1", "completed", accuracy=0.9, meets=True),
+            _experiment("H2", "completed", accuracy=0.9, meets=True),
+            _experiment("H3", "completed", accuracy=0.9, meets=True),
+        ]
+    )
+    fake_model = FakeChatModel(
+        {
+            "Score this research paper draft": _quality_response(
+                {"clarity": 2, "flow": 5, "tone": 5, "structure": 5, "limitations_honesty": 5}
+            )
+        }
+    )
     agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
 
     result = agent.run(
-        paper_path, paper_summary, _literature_output(), _hypothesis_output(),
-        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]), coder_output,
-        iteration=1, quality_threshold=4,
+        paper_path,
+        paper_summary,
+        _literature_output(),
+        _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]),
+        coder_output,
+        iteration=1,
+        quality_threshold=4,
     )
 
     assert result["overall_pass"] is False
@@ -342,22 +471,40 @@ def test_run_fails_when_quality_score_below_threshold(tmp_path):
 
 def test_run_uses_llm_flagged_hallucination(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
-    coder_output = _coder_output([
-        _experiment("H1", "completed", accuracy=0.9, meets=True),
-        _experiment("H2", "completed", accuracy=0.9, meets=True),
-        _experiment("H3", "completed", accuracy=0.9, meets=True),
-    ])
-    hallucination_response = json.dumps({"hallucinations": [{"claim": "Motivating text (Smith, 2020).", "issue": "no such claim in the literature summary"}]})
-    fake_model = FakeChatModel({
-        "Score this research paper draft": _quality_response(),
-        'reviewing the "Introduction"': hallucination_response,
-    })
+    coder_output = _coder_output(
+        [
+            _experiment("H1", "completed", accuracy=0.9, meets=True),
+            _experiment("H2", "completed", accuracy=0.9, meets=True),
+            _experiment("H3", "completed", accuracy=0.9, meets=True),
+        ]
+    )
+    hallucination_response = json.dumps(
+        {
+            "hallucinations": [
+                {
+                    "claim": "Motivating text (Smith, 2020).",
+                    "issue": "no such claim in the literature summary",
+                }
+            ]
+        }
+    )
+    fake_model = FakeChatModel(
+        {
+            "Score this research paper draft": _quality_response(),
+            'reviewing the "Introduction"': hallucination_response,
+        }
+    )
     agent = ReviewerAgent(chat_model=fake_model, output_dir=tmp_path)
 
     result = agent.run(
-        paper_path, paper_summary, _literature_output(), _hypothesis_output(),
-        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]), coder_output,
-        iteration=1, quality_threshold=4,
+        paper_path,
+        paper_summary,
+        _literature_output(),
+        _hypothesis_output(),
+        _planner_output([_plan("H1"), _plan("H2"), _plan("H3")]),
+        coder_output,
+        iteration=1,
+        quality_threshold=4,
     )
 
     assert result["overall_pass"] is False
@@ -369,4 +516,63 @@ def test_run_rejects_malformed_hypothesis_input(tmp_path):
     paper_path, paper_summary = _build_good_paper(tmp_path)
     agent = ReviewerAgent(chat_model=FakeChatModel({}), output_dir=tmp_path)
     with pytest.raises(ReviewerAgentError, match="Hypothesis Agent's output schema"):
-        agent.run(paper_path, paper_summary, _literature_output(), {"hypotheses": "not a list"}, _planner_output([]), _coder_output([]))
+        agent.run(
+            paper_path,
+            paper_summary,
+            _literature_output(),
+            {"hypotheses": "not a list"},
+            _planner_output([]),
+            _coder_output([]),
+        )
+
+
+# -- check_citations must not scan the reference list ----------------------------------
+# Reference entries are rendered by pdf_builder from the paper index, so they cannot be
+# fabricated. Scanning them guarantees false positives: an entry reads
+# "<first author> and <last author> (YYYY).", so _NARRATIVE_CITE_RE captures the LAST
+# author's surname while build_surname_year_lookup is keyed on the FIRST, and every
+# multi-author entry fails to resolve. Batch 10454089 produced 3,518 citation issues
+# across 36 runs this way and never once reached overall_pass.
+
+
+def _index_with_one_paper():
+    return {
+        "p1": {
+            "id": "p1",
+            "title": "Hedging Maturity-Specific Risk in Forward Curve Derivatives",
+            "authors": ["Riccardo Alberti", "Sven Karbach"],
+            "year": 2026,
+        }
+    }
+
+
+def test_check_citations_ignores_the_references_section():
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    # Exactly the shape pdf_builder renders, and the shape that produced the storm.
+    sections = {
+        "References": (
+            "Riccardo Alberti and Sven Karbach (2026). Hedging Maturity-Specific Risk in "
+            "Forward Curve Derivatives under Stochastic Volatility."
+        )
+    }
+    assert check_citations(sections, _index_with_one_paper(), []) == []
+
+
+def test_check_citations_still_flags_a_fabricated_citation_in_prose():
+    # The check must keep doing its job everywhere else: a citation typed into a body
+    # section that matches no retrieved paper is still an issue.
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Introduction": "Prior work has shown this effect (Nonexistent, 1999)."}
+    issues = check_citations(sections, _index_with_one_paper(), [])
+    assert len(issues) == 1
+    assert issues[0]["location"] == "Introduction"
+    assert "Nonexistent" in issues[0]["issue"]
+
+
+def test_check_citations_accepts_a_first_author_match_in_prose():
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Introduction": "As Alberti et al. (2026) show, the effect holds."}
+    assert check_citations(sections, _index_with_one_paper(), []) == []

@@ -1,0 +1,22 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether integrating frequency-domain features via adaptive fusion improves the predictive accuracy of Python-based machine learning models for stock price forecasting compared to traditional econometric models, especially under volatile market conditions.",
+  "author": "coder-agent",
+  "baseline": "Performance of ARIMA models on the same dataset and forecasting horizon",
+  "success_criteria": "If ML models with adaptive fusion consistently achieve lower MAE/RMSE than ARIMA models across both stable and volatile conditions, the hypothesis is supported. If not, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-02T23:26:28.042731+00:00",
+  "status": "success",
+  "elapsed_seconds": 4.3259,
+  "metrics": {
+    "mae_lstm": 0.19812593679626644,
+    "mae_arima": 0.16623874718932896,
+    "rmse_lstm": 0.20050519279845622,
+    "rmse_arima": 0.1677307855131534,
+    "directional_accuracy_lstm": 0.6,
+    "directional_accuracy_arima": 0.4
+  },
+  "meets_success_criteria": false,
+  "notes": "LSTM model with adaptive fusion did not outperform ARIMA baseline in terms of forecasting accuracy.",
+  "error": null
+}

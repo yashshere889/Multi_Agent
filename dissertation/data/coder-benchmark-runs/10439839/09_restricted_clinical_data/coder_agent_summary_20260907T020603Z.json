@@ -1,0 +1,146 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H109",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109",
+      "assumptions_made": [
+        "The MIMIC-III database is not publicly accessible, so a synthetic dataset was created to mimic its characteristics",
+        "The synthetic data includes realistic correlations between length of stay, diagnosis, and readmission rates",
+        "The logistic regression model adequately captures the relationship between variables",
+        "The calibration slope calculation was fixed to properly handle array indexing issues"
+      ],
+      "results": {
+        "experiment_id": "H109",
+        "experiment_name": "Experiment H109",
+        "hypothesis": "Test whether length of stay predicts 30-day readmission independently of admission diagnosis.",
+        "author": "coder-agent",
+        "baseline": "A model using admission diagnosis alone.",
+        "success_criteria": "Length of stay remains associated with readmission after adjustment, improving AUC by at least 0.02.",
+        "timestamp_utc": "2026-09-07T02:06:03.793380+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0155,
+        "resumed": false,
+        "metrics": {
+          "baseline_auc": 0.5257936507936508,
+          "full_auc": 0.6091269841269842,
+          "auc_improvement": 0.08333333333333337,
+          "baseline_odds_ratio": 0.9840609201247658,
+          "full_odds_ratio": 1.037375866761235,
+          "baseline_calibration_slope": 0.3788212190102027,
+          "full_calibration_slope": 4.778052204272253
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Length of stay does not appear to be significantly associated with readmission (OR=1.037).",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: seline_calibration_slope = compute_calibration_slope(y_test, baseline_probs)\n      File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109/run_smoke.py\", line 416, in compute_calibration_slope\n        actual_rates.append(np.mean(y_true[mask]))\n                                    ~~~~~~^^^^^^\n    TypeError: only integer scalar arrays can be converted to a scalar index\n========================================================================\n\n\n:29 [INFO] H109 — Fitting diagnosis-only baseline model...\n2026-09-07T03:05:29 [INFO] H109 — Fitting model with length of stay added...\n2026-09-07T03:05:29 [ERROR] H109 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109/run_smoke.py\", line 659, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109/run_smoke.py\", line 429, in run_experiment\n    baseline_calibration_slope = compute_calibration_slope(y_test, baseline_probs)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109/run_smoke.py\", line 416, in compute_calibration_slope\n    actual_rates.append(np.mean(y_true[mask]))\n                                ~~~~~~^^^^^^\nTypeError: only integer scalar arrays can be converted to a scalar index This was found by a fast pre-run of this same code with its cost knobs at their minimum (max_iter: 1000 -> 100; max_iter: 1000 -> 100). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/H109/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Used synthetic data generation because the real MIMIC-III database requires credentialing and cannot be accessed directly",
+            "Generated synthetic data with realistic correlations between length of stay, diagnosis categories, and readmission outcomes",
+            "Assumed that the logistic regression model would be appropriate for this type of analysis",
+            "Used a fixed sample size of 200 patients for the synthetic dataset to ensure reproducibility",
+            "Applied standard preprocessing steps by encoding diagnosis categories and splitting data into train/test sets",
+            "Set arbitrary thresholds for determining statistical significance (OR difference from 1.0) and AUC improvement (0.02)"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset nannullna/ehrsql_mimic_iii",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=nannullna%2Fehrsql_mimic_iii&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/9f30e6932fd07b25/hugging_face_dataset_nannullna_ehrsql_mimic_iii.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/9f30e6932fd07b25/hugging_face_dataset_nannullna_ehrsql_mimic_iii.jsonl (200 rows, 75701 bytes, sha256 e87c8f113dd9)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=nannullna%2Fehrsql_mimic_iii&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/9f30e6932fd07b25/hugging_face_dataset_nannullna_ehrsql_mimic_iii.jsonl",
+              "sha256": "e87c8f113dd911570b3eebb4bcd2d3310e43fb22f22eb585402961041f220392",
+              "byte_count": 75701,
+              "data_format": "jsonl",
+              "columns": [
+                "inputs",
+                "labels",
+                "db_id",
+                "is_impossible",
+                "id"
+              ],
+              "row_count": 200,
+              "sample_rows": [
+                {
+                  "inputs": "tell me the method of intake of clobetasol propionate 0.05% ointment?",
+                  "labels": "select distinct prescriptions.route from prescriptions where prescriptions.drug = 'clobetasol propionate 0.05% ointment'",
+                  "db_id": "mimic_iii",
+                  "is_impossible": false,
+                  "id": "68659b55c98a46f7b6887a8f"
+                },
+                {
+                  "inputs": "what are the methods of consumption of send 500mg vial?",
+                  "labels": "select distinct prescriptions.route from prescriptions where prescriptions.drug = 'send 500mg vial'",
+                  "db_id": "mimic_iii",
+                  "is_impossible": false,
+                  "id": "908b5b18d58416e49d3ea2ba"
+                },
+                {
+                  "inputs": "tell me the intake method for triamcinolone acetonide 0.1% cream?",
+                  "labels": "select distinct prescriptions.route from prescriptions where prescriptions.drug = 'triamcinolone acetonide 0.1% cream'",
+                  "db_id": "mimic_iii",
+                  "is_impossible": false,
+                  "id": "c693348dfcbf22acebe39be5"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "MIMIC-III critical care database",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "MIMIC requires PhysioNet credentialing and a signed DUA. Nothing was staged for it, so a documented surrogate is generated instead.",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439839/09_restricted_clinical_data/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H109"
+  ],
+  "generated_at": "2026-09-07T02:06:03.947180+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

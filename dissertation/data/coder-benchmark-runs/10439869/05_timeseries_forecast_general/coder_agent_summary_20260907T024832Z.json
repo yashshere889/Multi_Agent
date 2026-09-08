@@ -1,0 +1,102 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H105",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/05_timeseries_forecast_general/experiments/H105",
+      "assumptions_made": [
+        "The synthetic time series is generated with a fixed seed for reproducibility.",
+        "The seasonal period is known and correctly specified.",
+        "The rolling origin evaluation uses a fixed window size based on 25% of the holdout set.",
+        "The naive persistence forecast is implemented by taking the previous observation as the prediction.",
+        "The differenced series is used for forecasting by simply predicting the last observed value in the window."
+      ],
+      "results": {
+        "experiment_id": "H105",
+        "experiment_name": "Experiment H105",
+        "hypothesis": "Test whether seasonal differencing improves one-step forecast error on a series with known seasonality.",
+        "author": "coder-agent",
+        "baseline": "Persistence forecast on the undifferenced series.",
+        "success_criteria": "Seasonal differencing reduces one-step MAE by at least 10% against persistence.",
+        "timestamp_utc": "2026-09-07T02:48:32.948494+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0122,
+        "resumed": false,
+        "metrics": {
+          "mae_no_diff": 1.8585816108284887,
+          "mae_diff": 4.181001986846927,
+          "improvement_pct": -124.95659929526511
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Seasonal differencing did not improve one-step MAE by -124.96%.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 177: undefined name 'np'; line 180: undefined name 'np'; line 186: undefined name 'np'; line 186: undefined name 'np'; line 189: undefined name 'np'; line 246: undefined name 'np'; line 252: undefined name 'np'; line 255: undefined name 'np'; line 255: undefined name 'np'; line 256: undefined name 'np'; line 256: undefined name 'np'; line 274: undefined name 'np'; line 275: undefined name 'np'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/05_timeseries_forecast_general/experiments/H105/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "run_experiment_function",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Generated synthetic series with fixed seed 42 for reproducibility",
+            "Seasonal period of 12 chosen to represent typical monthly seasonality",
+            "Used 1/4 of holdout set as rolling window size for computational efficiency",
+            "Implemented naive persistence forecast as predicting the previous observation",
+            "Assumed that differenced series can be handled by simple prediction of last observed value",
+            "Chose medium complexity to fit within 5-minute runtime budget"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10439869/05_timeseries_forecast_general/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H105"
+  ],
+  "generated_at": "2026-09-07T02:48:32.998574+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

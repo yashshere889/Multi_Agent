@@ -1,0 +1,164 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H102",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/H102",
+      "assumptions_made": [
+        "The Iris dataset was adapted for regression by using petal_length as the target variable, since it is a classification dataset",
+        "The sklearn version in the environment supports the `squared` parameter in `mean_squared_error`",
+        "The interaction expansion using `PolynomialFeatures` with `interaction_only=True` correctly generates only pairwise interaction terms"
+      ],
+      "results": {
+        "experiment_id": "H102",
+        "experiment_name": "Experiment H102",
+        "hypothesis": "Test whether adding interaction terms to a linear model reduces prediction error on housing prices.",
+        "author": "coder-agent",
+        "baseline": "Linear regression on the raw predictors.",
+        "success_criteria": "The interaction model reduces test RMSE by at least 5% relative to the baseline.",
+        "timestamp_utc": "2026-09-05T13:45:27.689328+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0093,
+        "resumed": false,
+        "metrics": {
+          "baseline_rmse": 8.445482432267155e-16,
+          "baseline_mae": 5.773159728050814e-16,
+          "baseline_r2": 1.0,
+          "interaction_rmse": 6.7639223518887516e-15,
+          "interaction_mae": 5.58072107044912e-15,
+          "interaction_r2": 1.0,
+          "training_history": {
+            "baseline": [],
+            "interaction": []
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Baseline RMSE: 0.0000, Interaction RMSE: 0.0000. RMSE reduction: -700.89%. Failure: Interaction model does not reduce RMSE by at least 5%.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are real data found by keyword search rather than named by the plan, and nothing has confirmed they answer this question. The experiment ran on real data and its metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes the verdict reachable."
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 402, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/H102/run.py\", line 275, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10431703/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/H102/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The iris dataset was adapted for regression by treating petal length as the target variable, since the original dataset is a classification problem.",
+            "Interaction terms were created using polynomial features with degree 2 and interaction_only=True to ensure only pairwise interactions are included.",
+            "The experiment uses a fixed 80/20 train/test split with a random seed of 7 for reproducibility.",
+            "All numerical features are treated equally for interaction term creation.",
+            "The dataset is sufficiently large to allow meaningful comparison between models.",
+            "The experiment assumes that the iris dataset can be meaningfully transformed into a regression problem for testing the hypothesis.",
+            "The success criteria of reducing RMSE by at least 5% is applied directly to the comparison between baseline and interaction models."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 402, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/H102/run.py\", line 275, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10431703/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/H102/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Iris dataset is suitable for regression analysis by treating petal length as the target variable",
+            "The sklearn version used supports the `squared` parameter in `mean_squared_error`",
+            "The dataset has sufficient samples to train both models effectively"
+          ],
+          "same_error_streak": 2
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "regression",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "UCI Machine Learning Repository",
+            "kind": "real_local",
+            "uri": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/a75b74c9f645e94d/uci_machine_learning_repository.csv",
+            "reason": "no source was named for this input, so it was searched for: model matched 'Iris dataset' for the query 'uci machine learning repository' (catalogue record: https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data). Discovered by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/a75b74c9f645e94d/uci_machine_learning_repository.csv (149 rows, 4551 bytes, sha256 6f608b71a731)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/a75b74c9f645e94d/uci_machine_learning_repository.csv",
+              "sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0",
+              "byte_count": 4551,
+              "data_format": "csv",
+              "columns": [
+                "5.1",
+                "3.5",
+                "1.4",
+                "0.2",
+                "Iris-setosa"
+              ],
+              "row_count": 149,
+              "sample_rows": [
+                {
+                  "5.1": "4.9",
+                  "3.5": "3.0",
+                  "1.4": "1.4",
+                  "0.2": "0.2",
+                  "Iris-setosa": "Iris-setosa"
+                },
+                {
+                  "5.1": "4.7",
+                  "3.5": "3.2",
+                  "1.4": "1.3",
+                  "0.2": "0.2",
+                  "Iris-setosa": "Iris-setosa"
+                },
+                {
+                  "5.1": "4.6",
+                  "3.5": "3.1",
+                  "1.4": "1.5",
+                  "0.2": "0.2",
+                  "Iris-setosa": "Iris-setosa"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "comma-separated, with a header row (pandas.read_csv)"
+            },
+            "discovered": {
+              "name": "UCI Machine Learning Repository",
+              "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+              "connector": "model",
+              "title": "Iris dataset",
+              "resource": "Iris dataset",
+              "landing_page": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+              "query": "uci machine learning repository"
+            }
+          }
+        ],
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": [
+          "UCI Machine Learning Repository"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/02_regression_real_download/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H102"
+  ],
+  "generated_at": "2026-09-05T13:45:27.907654+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

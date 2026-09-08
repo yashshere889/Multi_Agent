@@ -1,0 +1,85 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H112",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431840/12_embedding_benchmark_shared_infra/experiments/H112",
+      "assumptions_made": [
+        "Used first word of each document as a label to create meaningful relevance relationships for retrieval",
+        "Processed documents in batches to manage memory usage during similarity computations",
+        "Used cosine similarity as the distance metric for nearest neighbor search",
+        "Applied the same preprocessing pipeline to both raw counts and TF-IDF representations",
+        "Set maximum features to 5000 to balance performance and memory usage",
+        "Used a batch size of 100 for processing large datasets efficiently"
+      ],
+      "results": {
+        "experiment_id": "H112",
+        "experiment_name": "Experiment H112",
+        "hypothesis": "Test whether TF-IDF weighting improves nearest-neighbour retrieval precision over raw term counts.",
+        "author": "coder-agent",
+        "baseline": "Retrieval over raw term-count vectors.",
+        "success_criteria": "TF-IDF improves precision at 5 by at least 0.05 over raw counts.",
+        "timestamp_utc": "2026-09-05T15:18:06.500391+00:00",
+        "status": "success",
+        "elapsed_seconds": 1.2833,
+        "resumed": false,
+        "metrics": {
+          "raw_precision_at_5": 1.0,
+          "tfidf_precision_at_5": 1.0,
+          "raw_mrr": 1.0,
+          "tfidf_mrr": 1.0,
+          "improvement_precision_at_5": 0.0
+        },
+        "meets_success_criteria": "False",
+        "notes": "Raw counts precision@5: 1.000, TF-IDF precision@5: 1.000, Improvement: 0.000. Failure: TF-IDF improved precision by at least 0.05.",
+        "error": null
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset HuggingFaceFW/fineweb",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=HuggingFaceFW%2Ffineweb&config=default&split=train&offset=0&length=100",
+            "local_path": "",
+            "reason": "found by the Hugging Face lookup and read by the generated code",
+            "credentials": []
+          },
+          {
+            "name": "Hugging Face public dataset",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows",
+            "local_path": "",
+            "reason": "open source Hugging Face datasets, reachable from this node",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431840/12_embedding_benchmark_shared_infra/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H112"
+  ],
+  "generated_at": "2026-09-05T15:18:06.679771+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

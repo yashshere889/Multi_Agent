@@ -1898,6 +1898,7 @@ class CoderAgent:
             run_py=run_py,
             acquisitions=acquisitions,
             discoveries=discoveries,
+            assumptions=assumptions_made,
         )
         provenance_document = provenance.write(sources, experiment_dir / "data_provenance.json")
         results = provenance.apply_to_results(results, sources)
@@ -2751,6 +2752,7 @@ class CoderAgent:
         run_py: str | None = None,
         acquisitions: dict[str, dict] | None = None,
         discoveries: dict[str, dict] | None = None,
+        assumptions: list[str] | None = None,
     ) -> list[provenance.DataSource]:
         """Resolve this plan's data inputs to real-or-surrogate.
 
@@ -2845,6 +2847,11 @@ class CoderAgent:
         if run_py is not None:
             sources = provenance.verify_downloads_used(sources, run_py)
             sources = provenance.supersede_unresolved(sources, run_py)
+        # Last, and after superseding: the model's own account of what it used.
+        # A declared substitution withholds the verdict outright, so running it
+        # earlier would let `supersede_unresolved` promote a requirement back
+        # off an input the model has already said stands in for something else.
+        sources = provenance.honour_declared_substitution(sources, assumptions or [])
         return sources
 
     @staticmethod

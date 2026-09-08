@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    {
+      "name": "Yahoo Finance API or public financial datasets like the S&P 500 index data",
+      "kind": "synthetic_surrogate",
+      "uri": "",
+      "local_path": "",
+      "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1
+}

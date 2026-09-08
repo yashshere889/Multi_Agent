@@ -1,0 +1,170 @@
+\chapter{Requirements Analysis}
+\label{ch:requirements}
+
+% BUDGET: 2 pages.
+
+Before any code was written, a requirements analysis questionnaire was administered to
+academic staff. Its purpose was not to confirm that the proposed system was a good idea, but
+to establish what practising researchers would actually require of such a tool --- and, more
+usefully, what would stop them using it. Several of its findings changed the design
+substantially, and one of them remains the project's most significant unmet requirement.
+
+\section{Method}
+
+Participants were recruited from academic staff at the University of Liverpool. The study was
+restricted to lecturers, professors and other PhD holders on the grounds that supervisory
+experience is what makes a respondent able to judge a tool of this kind: a supervisor sees
+both their own research workflow and the failure modes of a doctoral researcher learning it.
+Recruitment was by direct invitation, and participation was voluntary and unpaid.
+
+The instrument was an online questionnaire of five sections --- background, current workflow,
+reactions to the proposed system, prospective use cases, and desired features --- combining
+five-point Likert items with free-text questions, and taking roughly 10--15 minutes. It opened
+with an information page describing the project and the intended use of responses, and
+required explicit consent before any question could be answered. Respondents could skip any
+question and stop at any time. No names, email addresses or other identifying fields were
+collected. The full instrument is reproduced in Appendix~\ref{app:ra-instrument} and the
+anonymised responses in Appendix~\ref{app:ra-responses}.
+
+Two members of academic staff completed the questionnaire, in July~2026, before implementation
+began. They are referred to below as Respondent~A and Respondent~B, and their disciplines are
+generalised to \emph{mathematical sciences} because the combination of exact field, position
+and institution would otherwise be identifying within a small population.
+
+\begin{itemize}[nosep]
+  \item \textbf{Respondent~A}: Senior Lecturer / Associate Professor, 6--10 years post-PhD,
+        currently supervises doctoral researchers, uses LLM tools \emph{often} and across
+        every part of their work.
+  \item \textbf{Respondent~B}: University Teacher, 2--5 years post-PhD, does not supervise,
+        and \emph{never} uses LLM tools.
+\end{itemize}
+
+Two respondents is a small sample, and no statistical claim is made from it. Its value lies
+elsewhere: the two occupy opposite ends of the disposition towards this technology, so where
+they agreed, the agreement is informative, and where they disagreed, the disagreement exposed
+a design requirement that neither alone would have revealed.
+
+\section{Findings}
+
+Table~\ref{tab:ra-likert} gives the Likert responses on the proposed system.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Responses to the attitudinal items (1 = strongly disagree, 5 = strongly agree).}
+\label{tab:ra-likert}
+\begin{tabularx}{\textwidth}{Xcc}
+\toprule
+\textbf{Statement} & \textbf{A} & \textbf{B} \\
+\midrule
+A tool like this could save significant time                              & 3 & 4 \\
+I would trust a literature review from such a system without checking it  & \textbf{1} & \textbf{1} \\
+I would be comfortable letting it run and modify experiment code autonomously & 4 & 1 \\
+I would want to review and approve outputs at every stage                 & 4 & 5 \\
+I am concerned about originality overlapping with existing work           & 4 & 5 \\
+I would be comfortable using its outputs with appropriate review          & 4 & 3 \\
+\midrule
+Importance of flagging overlap with existing literature (1--5)            & \textbf{5} & \textbf{5} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Nobody will trust unchecked output.} The only item on which both respondents chose
+an extreme of the scale, and the same extreme, was trusting a generated literature review
+without checking it: both strongly disagreed. Both also wanted to review and approve outputs at
+every stage. This is the single most consequential finding in the study, and it reframes the
+design problem. A system that asks to be trusted has already failed; the requirement is that
+its outputs be \emph{checkable}, and cheaply so.
+
+\paragraph{Verifiability matters more than autonomy.} Respondent~B, who does not use LLM tools
+at all, located the objection precisely: \emph{``By far, it's the interpretability of the LLM.
+I want to know why the LLM made a specific decision, I cannot accept a black box when it comes
+to research.''} Respondent~B also declined to endorse the premise of the tool in general
+terms, remarking that it is \emph{``good for lazy people''} and closing with a direct
+challenge: \emph{``I'm very cynical about LLMs in research, and your project can either cater
+to my concerns, or ignore me and focus on other customers.''} That challenge was taken
+seriously, and Section~\ref{sec:ra-decisions} describes what was done about it.
+
+\paragraph{The two respondents wanted incompatible things.} Respondent~A judged all stages
+equally valuable to automate, was comfortable with autonomous code execution, and wanted a
+checkpoint at every one of the five stages. Respondent~B wanted exactly one stage automated
+--- code generation and experiment execution --- was strongly opposed to autonomous code
+execution, wanted a checkpoint only at report writing, and stated plainly: \emph{``I would
+consider a tool like this for programming, but not academic writing.''} Notably, the stage
+Respondent~B was willing to delegate is the one their free-text answers identified as their
+own bottleneck (\emph{``my own programming abilities''}), while the stages they refused to
+delegate are those they regard as constitutive of scholarship.
+
+\paragraph{The multi-agent premise was itself questioned.} Respondent~A challenged the role
+metaphor inherited from Agent Laboratory~\cite{schmidgall2025agentlab} directly: \emph{``I
+don't know whether having PhD student as a role particularly works, as in their PhD they need
+to do every stage of the process\ldots{} I don't know whether you need individual agents for
+all the tasks anyway, can't you just have one LLM that does it all?''}
+
+\paragraph{Both wanted the same things visible during a run.} Both respondents selected every
+available option: live progress through each stage, intermediate outputs, confidence or
+uncertainty estimates, source citations with links to the retrieved papers, and compute cost
+and time estimates. On interface, Respondent~B preferred a simple web interface and
+Respondent~A was indifferent --- against a proposal that had specified a command-line tool
+with a graphical interface only if time permitted.
+
+\section{Requirements derived, and what they changed}
+\label{sec:ra-decisions}
+
+Six design decisions follow directly from the above, and are traceable to it.
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.35em]
+
+\item[D1 --- Personas were replaced by functional decomposition.] The proposal specified
+agents named for academic roles (PhD Student, ML Engineer, Postdoc, Reviewer). Respondent~A's
+objection is correct: the metaphor describes a team structure that does not match how doctoral
+research is actually done, and it says nothing about what each component is responsible for.
+The implemented system therefore names its seven agents after the function each performs ---
+Literature, Interdisciplinary Literature, Hypothesis, Experiment Planner, Coder, Writer,
+Reviewer --- and defines each by an explicit input/output contract rather than by a persona.
+
+\item[D2 --- Separate agents were retained, for a reason the questionnaire supplied.]
+Respondent~A's follow-up question (``can't you just have one LLM that does it all?'') deserves
+a direct answer, and the answer is a consequence of the trust finding. Stage boundaries are
+where deterministic validation can be placed: because each agent's output is a validated
+contract, the pipeline can check citations against retrieved papers, verdicts against executed
+code, and coverage against the hypothesis set. A single undifferentiated model has nowhere to
+put those checks.
+
+\item[D3 --- Verification was designed in preference to trust.] Given that neither respondent
+would accept unchecked output, and that Respondent~B's objection was specifically about
+opacity, every decision the system makes that \emph{can} be settled mechanically is settled in
+code rather than by the model: citation markers resolve only against papers actually retrieved,
+hypothesis verdicts are computed from execution results, and results computed on synthesised
+inputs withhold a verdict entirely. Chapter~\ref{ch:design} develops this as the central design
+principle of the system.
+
+\item[D4 --- The web interface was promoted from optional to core.] Given the interface
+preference and the demand for stage-by-stage visibility, the graphical interface ceased to be
+a stretch goal and became the primary means of interaction, showing live per-stage progress,
+intermediate outputs, retrieved papers, and every draft as it is produced.
+
+\item[D5 --- Co-pilot control became stage selection, not merely stage pausing.] The
+respondents' incompatible preferences cannot be satisfied by a single pause-and-confirm
+behaviour, because they disagree about \emph{which} stages should run at all. The implemented
+system therefore lets a user run a contiguous range of stages rather than the whole pipeline,
+supply their own papers instead of searching for them, and choose which hypothesis is carried
+forward. Respondent~B's stated preference --- experiment code only, no automated writing ---
+is expressible as a configuration rather than requiring a different tool.
+
+\item[D6 --- Overlap detection was specified, and not delivered.] Both respondents rated the
+importance of flagging overlap with existing literature at 5 out of 5, the only item to score
+the maximum from both, and both were independently concerned about originality. This
+corroborates Gupta and Pruthi's finding~\cite{gupta2025glitters} that a substantial share of
+agent-generated research documents contain undetected plagiarism. It is reported here rather
+than in the design chapter because it was \emph{not} implemented; it is the highest-priority
+unmet requirement in the project, and Section~\ref{sec:future-overlap} returns to it.
+
+\end{description}
+
+Two further requests were also not met: confidence or uncertainty estimates, and compute cost
+and time estimates, both of which every respondent wanted visible during a run. Neither is
+present in the delivered interface, and both are discussed in Chapter~\ref{ch:conclusion}.
+
+Finally, both respondents indicated willingness to evaluate a working prototype, and the
+evaluation reported in Chapter~\ref{ch:evaluation} draws on that undertaking.

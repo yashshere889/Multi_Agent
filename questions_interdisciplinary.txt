@@ -1,0 +1,60 @@
+# Interdisciplinary research questions for preference-pair collection.
+#   sbatch --array=0-N%C scripts/slurm/run_pipeline_batch.sbatch questions_interdisciplinary.txt SLICE_COUNT
+#
+# Written to a deliberate shape, following the 2026-09-07 benchmark finding that
+# a vague data_requirement ("a public dataset") sends dataset discovery matching
+# on a single word and attaching an irrelevant corpus. Each question below implies
+# a CONCRETE and COMMON data type — tabular records, a labelled text corpus, or a
+# univariate/multivariate time series — so the resolved input has a fair chance of
+# being the right one. Each also names a specific comparison, so the Experiment
+# Planner has a baseline to plan against rather than an open-ended exploration.
+
+# --- Finance x machine learning -------------------------------------------------
+Do transformer-based sequence models outperform classical ARIMA baselines at forecasting daily volatility of equity index returns once transaction costs are accounted for?
+Does sentiment extracted from financial news headlines improve next-day directional prediction of stock returns beyond price-derived features alone?
+Do gradient-boosted decision trees retain their accuracy advantage over neural networks on tabular credit-risk data as the training set grows past one hundred thousand records?
+How much does the choice of class-imbalance correction — resampling, class weighting, or decision-threshold tuning — change fraud-detection recall at a fixed false-positive budget?
+Does adding macroeconomic indicators as auxiliary prediction targets in a multi-task model improve credit default prediction over an equivalent single-task model?
+Can market regimes identified by unsupervised clustering of price and volume features improve the out-of-sample risk-adjusted return of a simple momentum rule?
+Does feature drift in consumer lending data degrade model calibration faster than it degrades ranking discrimination?
+Are ensemble-based uncertainty estimates for asset return models predictive of realised forecast error, or merely of input variance?
+Does quantile regression give better tail-risk estimates than a Gaussian error assumption on daily returns of individual equities?
+
+# --- Health and biology x machine learning --------------------------------------
+Does adding patient demographic features to clinical time-series models genuinely improve early deterioration prediction, or mainly encode dataset-specific bias?
+Can dimensionality reduction on gene-expression data preserve enough signal for tissue-type classification using a small fraction of the original features?
+How does label noise in clinical annotations affect the calibration of a classifier's confidence relative to its accuracy?
+Do survival models outperform binary classifiers for predicting hospital readmission when the follow-up window varies between patients?
+Does sequence length of electronic health record histories affect predictive accuracy more than the choice of model architecture?
+
+# --- Climate, energy and environment x machine learning -------------------------
+Can gradient-boosted models trained on historical weather records forecast seasonal crop yield more accurately than a simple degree-day growth model?
+Does including spatial autocorrelation as an explicit feature improve air-quality prediction over models using temporal features alone?
+How much does the temporal resolution of input measurements affect accuracy in short-horizon electricity demand forecasting?
+Can unsupervised anomaly detection on sensor time series identify equipment degradation earlier than fixed-threshold alarms?
+Does transfer learning from data-rich weather stations improve forecasting at stations with short observational histories?
+
+# --- Economics and social science x machine learning ----------------------------
+Does policy uncertainty derived from news text correlate with subsequent regional changes in unemployment more strongly than lagged unemployment alone?
+Can clustering of household survey responses recover income strata more reliably than predefined income thresholds?
+Do network centrality measures computed on trade flows predict economic shock propagation better than bilateral trade volume alone?
+Does the choice of fairness constraint materially change which applicants a lending model rejects, at equal overall accuracy?
+
+# --- Language and text x other disciplines --------------------------------------
+Does domain-specific vocabulary adaptation improve named-entity recognition in legal and regulatory text more than simply increasing model size?
+How does the readability of a source document affect the factual accuracy of extractive summarisation of it?
+Can cross-lingual transfer substitute for in-language training data in low-resource sentiment classification, and at what data ratio?
+Does the length of a document affect classification accuracy more than its vocabulary richness?
+Can topic models trained on scientific abstracts identify emerging interdisciplinary research areas earlier than citation-based measures?
+
+# --- Physical sciences x machine learning ---------------------------------------
+Can graph-based molecular representations predict compound solubility better than fingerprint-based features at an equal parameter budget?
+Does active learning reduce the number of simulations needed to map a materials property landscape compared with random sampling?
+Do physics-informed loss terms improve extrapolation beyond the training range in regression on experimental measurements?
+
+# --- Methodology questions that cut across domains -------------------------------
+Do probability calibration methods validated on balanced benchmarks transfer to heavily imbalanced real-world tabular data?
+Does feature-selection stability across resampled datasets correlate with downstream generalisation performance?
+How much of the reported benefit of data augmentation on tabular data survives when the evaluation split respects temporal ordering?
+Does model performance ranking on a small validation set reliably predict ranking on a held-out test set of the same distribution?
+Do simpler interpretable models match black-box accuracy on tabular tasks once hyperparameter search budgets are equalised?

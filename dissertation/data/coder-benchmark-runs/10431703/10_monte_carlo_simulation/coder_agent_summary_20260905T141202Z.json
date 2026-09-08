@@ -1,0 +1,143 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H110",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/10_monte_carlo_simulation/experiments/H110",
+      "assumptions_made": [
+        "The Hugging Face dataset was not suitable for this experiment's specific requirements, so synthetic data was generated instead",
+        "The synthetic data uses a reasonable range of trait values and correlations to simulate realistic group structures",
+        "The experiment assumes a fixed within-group variance of 1.0 for simplicity",
+        "The experiment uses 10 groups with 20 observations each to balance computational feasibility with statistical power",
+        "The experiment runs 1000 replicates per heterogeneity level to ensure stable estimates",
+        "The true population mean is assumed to be 0 for calculating bias",
+        "Confidence intervals are calculated using standard normal distribution with z-score of 1.96",
+        "The shrinkage estimator uses a simple variance-ratio approach for demonstration purposes"
+      ],
+      "results": {
+        "experiment_id": "H110",
+        "experiment_name": "Experiment H110",
+        "hypothesis": "Test whether a hierarchical estimator has lower variance than a pooled estimator under group heterogeneity.",
+        "author": "coder-agent",
+        "baseline": "The pooled estimator at the same heterogeneity level.",
+        "success_criteria": "The shrinkage estimator has lower variance at every heterogeneity level without coverage dropping below 0.90.",
+        "timestamp_utc": "2026-09-05T14:12:02.603411+00:00",
+        "status": "success",
+        "elapsed_seconds": 2.1095,
+        "resumed": false,
+        "metrics": {
+          "pooled_mean_variance": [
+            1.005186529555608,
+            1.220488917232693,
+            1.906265401606938,
+            4.644960917036424,
+            23.31600257585356
+          ],
+          "shrinkage_mean_variance": [
+            0.054221452405080695,
+            0.1721755520818329,
+            0.2386987550711625,
+            0.14788078122878695,
+            0.03308153229094482
+          ],
+          "pooled_coverage_rate": [
+            0.922,
+            0.633,
+            0.449,
+            0.343,
+            0.353
+          ],
+          "shrinkage_coverage_rate": [
+            0.916,
+            0.836,
+            0.641,
+            0.283,
+            0.061
+          ]
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "The shrinkage estimator's coverage drops below 0.90 at some heterogeneity levels.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset google/Synthetic-Persona-Chat",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl (5000 rows, 9302670 bytes, sha256 6a78aef9d8e3)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=google%2FSynthetic-Persona-Chat&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/d41eb380bd80e60a/hugging_face_dataset_google_synthetic-persona-chat.jsonl",
+              "sha256": "6a78aef9d8e3a7f09b63903c707ab20f76efe474abb035d12336bf0c4b5d8f36",
+              "byte_count": 9302670,
+              "data_format": "jsonl",
+              "columns": [
+                "user 1 personas",
+                "user 2 personas",
+                "Best Generated Conversation"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "user 1 personas": "I am 32.\nI do not want a job.\nI play video games all day.\nI still live at home with my parents.",
+                  "user 2 personas": "My favorite drink is iced coffee.\nI have a black belt in karate.\nI m in a jazz band and play the saxophone.\nI vacation along lake michigan every summer.",
+                  "Best Generated Conversation": "User 1: Hi! I'm [user 1's name].\nUser 2: Hi [user 1's name], I'm [user 2's name].\nUser 1: What do you do for fun?\nUser 2: I like to play video games, go to the beach, and read.\nUser 1: I like to play …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.",
+                  "user 2 personas": "I have a ford f150.\nI like ford cars.\nMy truck is black.\nI also like ford trucks.\nI own a ford truck.",
+                  "Best Generated Conversation": "User 1: Hey, how's it going?\nUser 2: Good, I'm just hanging out.\nUser 1: Nice. Me too. I'm playing video games.\nUser 2: Oh, cool. I like video games. What are you playing?\nUser 1: I'm playing Call of …"
+                },
+                {
+                  "user 1 personas": "I am 32.\nI play video games all day.\nI still live at home with my parents.\nI do not want a job.\nI eat all take out.",
+                  "user 2 personas": "I can recite the movie young frankenstein word for word.\nI like to make my own clothes.\nI am partially blind.\nI do volunteer work for human rights organizations.\nI can do convincing bird calls.",
+                  "Best Generated Conversation": "User 1: Hi, my name is John. What's your name?\nUser 2: Hi, John, my name is Mary.\nUser 1: It's nice to meet you, Mary. What do you do for a living?\nUser 2: I do volunteer work for human rights organiz…"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 300,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10431703/10_monte_carlo_simulation/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H110"
+  ],
+  "generated_at": "2026-09-05T14:12:02.811564+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

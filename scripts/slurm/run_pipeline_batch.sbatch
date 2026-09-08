@@ -141,6 +141,24 @@ uv sync --quiet --extra checkpoint-sqlite
 # later job reuses it from there. RERANK_DEVICE stays "cpu" — GPU 0 is the vLLM
 # server and GPU 1 is reserved for generated experiments.
 
+# Every other entry point that runs the Coder sets this — run_coder.sbatch,
+# run_coder_benchmark.sbatch, and webapp/runs.py all give their run its own
+# directory — and this one did not. CODER_EXPERIMENTS_DIR defaults to the
+# *relative* path "experiments", so with `#SBATCH -D ./` every array task wrote
+# into the repo's own experiments/ and every question overwrote the last one.
+# Batch 10454089 recorded 152 fix attempts across 36 questions and kept the
+# generated code for exactly one of them; the fix_history metadata survived in
+# each summary, but the code those attempts produced — the raw material for
+# preference pairs — did not.
+#
+# Per array task rather than per question, which is the best that can be done
+# here: `settings` is frozen at import and one task works through its whole
+# slice in a single process, so the directory cannot vary between questions
+# within a task. Run with a slice count equal to the question count if you need
+# per-question isolation.
+export CODER_EXPERIMENTS_DIR="$WORK_DIR/experiments/task_${SLURM_ARRAY_TASK_ID}"
+mkdir -p "$CODER_EXPERIMENTS_DIR"
+
 uv run research-pipeline orchestrate-batch \
     --questions-file "$QUESTIONS_FILE" \
     --output-dir "$WORK_DIR/outputs" \
