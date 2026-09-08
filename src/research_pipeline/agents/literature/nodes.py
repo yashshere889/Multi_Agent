@@ -21,9 +21,17 @@ from research_pipeline.agents.literature.clients import (
     search_semantic_scholar,
 )
 from research_pipeline.agents.literature.relevance import DIRECT_RELEVANCE_CRITERION, apply_threshold, score_papers
+from research_pipeline.agents.literature.clients import (
+    USER_AGENT,
+    search_arxiv,
+    search_core,
+    search_semantic_scholar,
+    search_semantic_scholar_snippets,
+)
 from research_pipeline.agents.literature.state import LiteratureState, Paper
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
+from research_pipeline.reranker import rerank_papers
 from research_pipeline.llm_json import strip_fences
 
 logger = logging.getLogger(__name__)
@@ -86,6 +94,30 @@ def search_core_node(state: LiteratureState) -> dict:
     return {"core_papers": search_core(state["search_queries"], max_results)}
 
 
+def search_semantic_scholar_snippets_node(state: LiteratureState) -> dict:
+    """Body-passage search, gated by ENABLE_SNIPPET_SEARCH.
+
+    Gated in the node rather than by leaving it out of the graph so the fan-in
+    shape is the same either way — disabled, it contributes an empty branch,
+    exactly like an unset SEMANTIC_SCHOLAR_API_KEY already does.
+
+    The endpoint's limit counts passages, not papers, and one paper commonly
+    matches several — so this asks for SNIPPET_PASSAGES_PER_RESULT passages per
+    result the run wanted, rather than for max_results_per_query directly (which
+    would under-return papers) or a flat count of its own (which would ignore
+    --max-results and let this one branch dominate a deliberately small run).
+    """
+    if not settings.enable_snippet_search:
+        logger.info("Skipping snippet search: ENABLE_SNIPPET_SEARCH is off")
+        return {"snippet_papers": []}
+    max_results = state.get("max_results_per_query", settings.default_max_results_per_query)
+    return {
+        "snippet_papers": search_semantic_scholar_snippets(
+            state["search_queries"], max_results * settings.snippet_passages_per_result
+        )
+    }
+
+
 def _normalize_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]", "", title.lower())
 
@@ -99,22 +131,51 @@ def dedupe_key(paper: Paper) -> str:
     the kind of thing that drifts.
     """
     return paper.get("doi") or _normalize_title(paper.get("title") or "")
+# What a losing duplicate is still allowed to contribute to the record that beat
+# it. Each of these is either present or absent — never two sources disagreeing
+# about the same fact — so filling a gap needs no judgment call. `full_text` is
+# why this exists: the snippet search is the only source carrying passages and
+# the only one carrying no DOI/year/PDF, so a paper found both ways must end up
+# with the richer record's metadata *and* the snippet record's body text,
+# whichever of the two happens to win the pdf_url tie-break below.
+_FILLABLE_FIELDS = ("abstract", "year", "doi", "url", "full_text")
+
+
+def _merge_duplicate(existing: Paper, incoming: Paper) -> Paper:
+    winner, loser = (
+        (incoming, existing)
+        if (not existing.get("pdf_url") and incoming.get("pdf_url"))
+        else (existing, incoming)
+    )
+    merged = dict(winner)
+    for field in _FILLABLE_FIELDS:
+        if not merged.get(field) and loser.get(field):
+            merged[field] = loser[field]
+    return merged  # type: ignore[return-value]
 
 
 def merge_and_dedupe_node(state: LiteratureState) -> dict:
-    all_papers = state["arxiv_papers"] + state["semantic_scholar_papers"] + state["core_papers"]
+    # Snippet results go last so the metadata-complete sources are seen first
+    # and win the tie-break on their own terms; a snippet-only paper is still
+    # kept, and a snippet duplicate still hands over its passages.
+    all_papers = (
+        state["arxiv_papers"]
+        + state["semantic_scholar_papers"]
+        + state["core_papers"]
+        + state.get("snippet_papers", [])
+    )
     merged: dict[str, Paper] = {}
     for paper in all_papers:
         if not paper.get("title"):
             continue
         key = dedupe_key(paper)
         if key in merged:
-            if not merged[key].get("pdf_url") and paper.get("pdf_url"):
-                merged[key] = paper
+            merged[key] = _merge_duplicate(merged[key], paper)
         else:
             merged[key] = paper
     merged_list = list(merged.values())
-    logger.info("Merged to %d unique papers", len(merged_list))
+    with_text = sum(1 for p in merged_list if p.get("full_text"))
+    logger.info("Merged to %d unique papers (%d carrying body passages)", len(merged_list), with_text)
     return {"merged_papers": merged_list}
 
 
@@ -224,6 +285,23 @@ def expand_citations_node(state: LiteratureState) -> dict:
         "merged_papers": list(papers) + list(kept),
         "papers_from_citations": len(kept),
         "papers_filtered_out": (state.get("papers_filtered_out") or 0) + len(dropped),
+    }
+
+
+def rerank_papers_node(state: LiteratureState) -> dict:
+    """Orders the merged pool by relevance to the research question.
+
+    Sits before download_papers rather than after it so a truncating rerank
+    (RERANK_TOP_K) never spends a PDF download on a paper it is about to drop.
+    Search here is recall-oriented by construction — four sources, three
+    generated queries each, everything merged — and until now nothing judged
+    whether what came back was actually about the question.
+
+    No RetryPolicy on this node: rerank_papers swallows its own failures and
+    returns the pool untouched, so there is nothing for a retry to catch.
+    """
+    return {
+        "merged_papers": rerank_papers(state.get("research_question"), state["merged_papers"])
     }
 
 

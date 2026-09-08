@@ -130,6 +130,20 @@ export LLM_CONTEXT_WINDOW="${MAXLEN:-131072}"
 # upstream work. Syncing it here costs nothing when it is already present.
 uv sync --quiet --extra checkpoint-sqlite
 
+# Cross-encoder reranking is off by default and its dependencies are not synced
+# above on purpose: torch is ~2GB and thousands of files, and `uv sync` unpacks
+# it through UV_CACHE_DIR, which on this cluster still points at a home already
+# over its inode quota. To turn it on, add `--extra rerank` to the sync above
+# and uncomment the two lines below — and point UV_CACHE_DIR at fastscratch in
+# the same breath, or the install lands in home.
+#   export UV_CACHE_DIR="/mnt/fastscratch/users/$USER/uv_cache"
+# export ENABLE_RERANK=true
+# export RERANK_TOP_K=30
+# The 2.2GB model itself needs no extra handling: it is fetched through
+# transformers, so HF_HOME above already puts it on fastscratch, and every
+# later job reuses it from there. RERANK_DEVICE stays "cpu" — GPU 0 is the vLLM
+# server and GPU 1 is reserved for generated experiments.
+
 uv run research-pipeline orchestrate "$QUESTION" \
     --download-dir "$WORK_DIR/papers" \
     --output-dir "$WORK_DIR/outputs"

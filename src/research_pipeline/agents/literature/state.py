@@ -17,6 +17,10 @@ class Paper(TypedDict, total=False):
     doi: Optional[str]
     url: Optional[str]
     local_path: Optional[str]
+    # Matched body passages, joined. Only the Semantic Scholar snippet
+    # search populates this; agents/hypothesis/papers.py has always
+    # preferred it over the abstract when it is there.
+    full_text: str
 
     # Bibliometric / provenance signal. Every search client fills these in with
     # whatever its own API actually knows and leaves the rest at None/[], so
@@ -48,6 +52,7 @@ class LiteratureState(TypedDict, total=False):
     search_queries: List[str]
     arxiv_papers: List[Paper]
     semantic_scholar_papers: List[Paper]
+    snippet_papers: List[Paper]
     core_papers: List[Paper]
     merged_papers: List[Paper]
     # How many papers score_relevance_node discarded, carried through to the

@@ -42,6 +42,20 @@ huggingface = [
     "torch>=2.4",
 ]
 
+# Only needed for ENABLE_RERANK=true, which scores the paper pool against the
+# research question with OpenScholar's cross-encoder reranker
+# (research_pipeline/reranker.py). Kept out of the base dependencies for the
+# same reason as the huggingface extra above — torch is several GB and thousands
+# of inodes, which matters on a quota'd HPC home — and additionally because it
+# is simply not installable everywhere: PyTorch publishes no wheels for macOS
+# x86_64, nor for a Python newer than its current release supports. The pipeline
+# runs unchanged without it; reranker.py degrades to leaving the pool untouched.
+#   uv sync --extra rerank
+rerank = [
+    "torch>=2.4",
+    "transformers>=4.44",
+]
+
 # Only needed for `research-pipeline serve`, the web UI for starting and
 # watching runs. Optional for the same reason as above: a headless SLURM sweep
 # has no use for an HTTP server, and the CLI must keep working without these.

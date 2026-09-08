@@ -31,6 +31,12 @@ class Settings:
     checkpointer_backend: str
     checkpointer_sqlite_path: str
     checkpointer_postgres_uri: str
+    enable_snippet_search: bool
+    snippet_passages_per_result: int
+    enable_rerank: bool
+    reranker_model: str
+    rerank_device: str
+    rerank_top_k: int
     enable_paper_search_cache: bool
     paper_search_cache_ttl_seconds: int
     enable_relevance_filter: bool
@@ -45,6 +51,7 @@ class Settings:
     interdisciplinary_output_dir: str
     interdisciplinary_max_fields: int
     interdisciplinary_relevance_min_score: int
+    interdisciplinary_rerank_top_k: int
     hypothesis_output_dir: str
     hypothesis_batch_max_chars: int
     experiment_planner_output_dir: str
@@ -176,6 +183,50 @@ def load_settings() -> Settings:
         # limits, which matters for a long batch sweep from one IP.
         huggingface_api_token=os.environ.get("HUGGINGFACE_API_TOKEN", ""),
         default_max_results_per_query=int(os.environ.get("MAX_RESULTS_PER_QUERY", "5")),
+        # Semantic Scholar's /snippet/search: passage-level retrieval over the
+        # S2ORC body-text index, the hosted equivalent of the retriever
+        # OpenScholar ships a 746GB local datastore for. It is the only search
+        # source that matches on a paper's body rather than its abstract, and
+        # the only one that returns text the Writer can quote — everything
+        # downstream has preferred `full_text` over `abstract` since
+        # agents/hypothesis/papers.py was written, and nothing populated it
+        # until this existed. On by default because it costs one more call
+        # against a key the pipeline already needs, and skips itself
+        # automatically when SEMANTIC_SCHOLAR_API_KEY is unset.
+        enable_snippet_search=_env_bool("ENABLE_SNIPPET_SEARCH", True),
+        # The snippet endpoint's limit counts *passages*, not papers, and
+        # several passages routinely come back from one paper — so asking it for
+        # MAX_RESULTS_PER_QUERY directly would return far fewer papers than
+        # every other source. This is the multiplier that converts one into the
+        # other: passages requested = MAX_RESULTS_PER_QUERY x this. A multiplier
+        # rather than its own absolute count so that `--max-results 2` narrows
+        # this branch too; at the default of 5, it asks for 20 passages, which
+        # in practice yields a paper count in the same range as the other three
+        # sources (per-paper contribution is capped by
+        # clients.MAX_SNIPPETS_PER_PAPER).
+        snippet_passages_per_result=int(os.environ.get("SNIPPET_PASSAGES_PER_RESULT", "4")),
+        # Cross-encoder reranking of a paper pool against the research question
+        # (research_pipeline.reranker) — OpenScholar's reranker, the one part of
+        # that system that transplants here without its 746GB datastore or a
+        # second served model. Off by default because it is the only feature in
+        # this repo needing torch + transformers: several GB and thousands of
+        # inodes (`uv sync --extra rerank`), which is a real cost on a quota'd
+        # HPC home and impossible on some machines outright. Everything degrades
+        # to the pool untouched when it is off or unavailable.
+        enable_rerank=_env_bool("ENABLE_RERANK", False),
+        reranker_model=os.environ.get("RERANKER_MODEL", "OpenSciLM/OpenScholar_Reranker"),
+        # CPU on purpose, not for lack of ambition: on the SLURM path GPU 0 is
+        # the vLLM server's card and GPU 1 is deliberately left free for
+        # generated experiments (see llm.py and scripts/slurm/_vllm_serve.sh),
+        # so a reranker that helpfully grabbed "cuda" would land on top of one
+        # of them. A 560M cross-encoder over a pool of tens of papers is seconds
+        # of CPU. Set RERANK_DEVICE=cuda deliberately, on a box with a spare card.
+        rerank_device=os.environ.get("RERANK_DEVICE", "cpu"),
+        # 0 = reorder the pool, drop nothing. Truncation is a separate decision
+        # from ordering and irreversible downstream (the Writer can only cite
+        # what reaches it), so enabling the reranker gets you the safe half and
+        # the destructive half is opted into by setting this.
+        rerank_top_k=int(os.environ.get("RERANK_TOP_K", "0")),
         # Where every graph's LangGraph checkpoints go — one of "memory",
         # "sqlite" or "postgres" (see checkpointer.get_checkpointer). "memory"
         # is the default and reproduces the behaviour every graph.py hardcoded
@@ -257,6 +308,13 @@ def load_settings() -> Settings:
             d.strip() for d in os.environ.get("CITATION_EXPANSION_DIRECTIONS", "references").split(",") if d.strip()
         ),
         interdisciplinary_output_dir=os.environ.get("INTERDISCIPLINARY_OUTPUT_DIR", "outputs"),
+        # How many *cross-field* papers this agent may contribute after
+        # reranking them against the research question — distinct from
+        # RERANK_TOP_K, which bounds a whole pool rather than one stage's
+        # additions. 0 keeps them all (reordered), same conservative default and
+        # same reason: dropping a paper is irreversible downstream. Inert unless
+        # ENABLE_RERANK is on.
+        interdisciplinary_rerank_top_k=int(os.environ.get("INTERDISCIPLINARY_RERANK_TOP_K", "0")),
         # How many adjacent fields the agent is allowed to explore. Each field
         # costs one arXiv + one Semantic Scholar + one CORE search per generated
         # query, so this is the knob that bounds the cross-field search fan-out;

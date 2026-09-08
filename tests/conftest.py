@@ -10,6 +10,11 @@ state, so without this reset one test's canned search results are served to the
 next test that happens to invoke with the same input, and the fakes it injected
 never run.
 
+`research_pipeline.reranker` memoizes its model — and, deliberately, its *load
+failure* — for the same one-factory reason, which without a reset would leak in
+both directions: a test that forces the missing-dependency path would leave
+every later test convinced reranking is unavailable.
+
 `research_pipeline.agents.coder.fix_pattern_store` memoizes its Store the same
 way and needs the same reset, for the same isolation reason. It also needs one
 thing checkpointer.py never did: CODER_FIX_STORE_BACKEND defaults to "sqlite",
@@ -35,12 +40,15 @@ from research_pipeline.agents.coder.fix_pattern_store import (  # noqa: E402
     reset_store as reset_fix_pattern_store,
 )
 from research_pipeline.checkpointer import reset_checkpointer  # noqa: E402
+from research_pipeline.reranker import reset_reranker  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
 def _isolate_checkpointer_singletons():
     reset_checkpointer()
     reset_fix_pattern_store()
+    reset_reranker()
     yield
     reset_checkpointer()
     reset_fix_pattern_store()
+    reset_reranker()

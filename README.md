@@ -5,10 +5,18 @@ standalone and chained by data shape rather than by coupling to each other
 (see "Chaining agents individually" below); a LangGraph orchestrator runs all
 seven end to end in one call (see "Running the whole pipeline"):
 
-- **literature** — searches arXiv + Semantic Scholar + CORE, dedupes, downloads
-  PDFs. Built as a [LangGraph](https://github.com/langchain-ai/langgraph)
-  `StateGraph` because it genuinely benefits from graph fan-out/fan-in (three
-  independent HTTP APIs queried in parallel).
+- **literature** — searches arXiv + Semantic Scholar + CORE + Semantic
+  Scholar's passage index, dedupes, downloads PDFs. Built as a
+  [LangGraph](https://github.com/langchain-ai/langgraph) `StateGraph` because it
+  genuinely benefits from graph fan-out/fan-in (four independent HTTP APIs
+  queried in parallel). The fourth is `/snippet/search`, which matches a paper's
+  *body* text rather than its abstract and returns the matched passages: it
+  finds work whose abstract never mentions the query, and it is the only source
+  that populates each paper's `full_text`, which every downstream agent prefers
+  over the abstract. Off with `ENABLE_SNIPPET_SEARCH=false`. With
+  `ENABLE_RERANK=true` the merged pool is then ordered by relevance to the
+  research question with OpenScholar's cross-encoder reranker — see
+  "Reranking" below.
 - **interdisciplinary-literature** — takes the literature agent's papers,
   identifies up to `INTERDISCIPLINARY_MAX_FIELDS` *adjacent* fields whose
   methods could inform the same problem, searches each of them with the same
@@ -141,7 +149,7 @@ src/research_pipeline/
 └── agents/
     ├── literature/         # LangGraph StateGraph agent
     │   ├── state.py         # graph state schema (TypedDict)
-    │   ├── clients.py        # arXiv / Semantic Scholar / CORE HTTP clients (no LangGraph coupling)
+    │   ├── clients.py        # arXiv / Semantic Scholar (keyword + passage) / CORE HTTP clients (no LangGraph coupling)
     │   ├── nodes.py          # LangGraph node functions
     │   └── graph.py          # StateGraph wiring + compile()
     ├── interdisciplinary_literature/  # LangGraph StateGraph agent
@@ -490,11 +498,69 @@ Get a key at https://www.semanticscholar.org/product/api#api-key and set
 skipped (logged as a warning) rather than failing the whole run — unauthenticated
 requests to that API are aggressively rate-limited / rejected with 403s.
 
+The same key covers **passage search** (`/snippet/search`), a dense+sparse index
+over the body text of ~12M open-access papers — the hosted equivalent of the
+retriever [OpenScholar](https://github.com/AkariAsai/OpenScholar) ships a 746GB
+local datastore for. It runs as a fourth search branch alongside arXiv /
+Semantic Scholar / CORE, and each paper it returns carries the matched passages
+as `full_text`; papers found by both it and another source keep the richer
+record's metadata *and* those passages. Because that endpoint returns only
+corpusId/title/authors, every paper it finds is hydrated through
+`/paper/batch` for the same fields keyword search returns, so it lands
+downstream indistinguishable from a paper found any other way — and if that
+hydration call fails, the paper is kept with its title, authors and passages
+rather than dropped. Turn it off with `ENABLE_SNIPPET_SEARCH=false`. The
+endpoint's limit counts *passages* rather than papers and one paper commonly
+matches several, so it is asked for `MAX_RESULTS_PER_QUERY` x
+`SNIPPET_PASSAGES_PER_RESULT` (default 4) of them — a multiplier rather than its
+own absolute count so `--max-results` narrows this branch along with the others.
+`clients.MAX_SNIPPETS_PER_PAPER` caps how many passages one paper may contribute.
+
 ### CORE
 
 Get a free key at https://core.ac.uk/services/api and set `CORE_API_KEY` in
 `.env`. CORE has no unauthenticated tier, so without a key CORE search is
 skipped entirely (logged as a warning) rather than failing the whole run.
+
+### Reranking
+
+Search here is recall-oriented by construction: four sources, three generated
+queries each, everything merged. Nothing judged whether a paper that came back
+was actually *about* the question — until this.
+
+`ENABLE_RERANK=true` scores every (question, paper) pair with
+[`OpenSciLM/OpenScholar_Reranker`](https://huggingface.co/OpenSciLM/OpenScholar_Reranker),
+a 560M XLM-RoBERTa cross-encoder fine-tuned from BAAI/bge-reranker-large — the
+one component of [OpenScholar](https://github.com/AkariAsai/OpenScholar) that
+transplants here without its 746GB datastore or a second served model. It runs
+in two places:
+
+- the **literature** agent, between the merge and the PDF downloads, so a
+  truncating rerank never spends a download on a paper it is about to drop;
+- the **interdisciplinary-literature** agent, over the cross-field papers it
+  adds — the recall-heavy half, chosen by the model for adjacency rather than
+  for answering the question. Its own `INTERDISCIPLINARY_RERANK_TOP_K`, since
+  `RERANK_TOP_K` bounds a whole pool rather than one stage's additions.
+
+Ordering and truncation are separate decisions. Both `*_TOP_K` settings default
+to `0` — reorder, drop nothing — because dropping a paper is irreversible
+downstream (the Writer can only cite what reaches it), so enabling the reranker
+gets you the safe half and the destructive half is opted into explicitly. Every
+paper carries its `rerank_score` into `metadata.json`, so an ordering is
+inspectable rather than implicit.
+
+It needs `uv sync --extra rerank` (torch + transformers). That is an extra and
+not a base dependency for two reasons: torch is several GB and thousands of
+inodes, which matters on a quota'd HPC home; and it is not installable
+everywhere at all — PyTorch publishes no wheels for macOS x86_64, nor for a
+Python newer than its current release supports. So the whole module degrades:
+with the feature off, the dependencies missing, the model unfetchable or scoring
+raising, the pool is passed through in the order the merge produced, logged
+once. On the SLURM path `HF_HOME` already points at fastscratch, so the 2.2GB
+model lands there rather than in your home directory, and `RERANK_DEVICE`
+defaults to `cpu` on purpose — GPU 0 is the vLLM server's card and GPU 1 is
+deliberately left free for generated experiments. See the commented block in
+`scripts/slurm/run_pipeline.sbatch` for turning it on there.
 
 ### Checkpointing and caching
 
@@ -579,7 +645,7 @@ Two smaller reliability settings sit alongside it:
   which is the number that justifies the extra requests or doesn't. See
   [expansion.py](src/research_pipeline/agents/literature/expansion.py).
 - **Paper-search caching.** `ENABLE_PAPER_SEARCH_CACHE` (default `true`) caches
-  the arXiv / Semantic Scholar / CORE search nodes and the interdisciplinary
+  the arXiv / Semantic Scholar / snippet / CORE search nodes and the interdisciplinary
   per-field search on their inputs, for `PAPER_SEARCH_CACHE_TTL_SECONDS`
   (default 3600). LangGraph's only cache backend is in-memory, so this pays off
   inside one long-lived process — the web app across runs, an `orchestrate-batch`
@@ -724,8 +790,10 @@ uv run research-pipeline literature "recent approaches to reducing hallucination
     --download-dir papers
 ```
 
-This searches arXiv + Semantic Scholar + CORE, dedupes by DOI/title, downloads
-available PDFs into `papers/`, and writes `papers/metadata.json`.
+This searches arXiv + Semantic Scholar (keyword and passage) + CORE, dedupes by
+DOI/title, downloads available PDFs into `papers/`, and writes
+`papers/metadata.json` — where a paper matched by passage search also carries a
+`full_text` field holding the passages themselves.
 
 ```bash
 uv run research-pipeline interdisciplinary-literature --from-file papers/metadata.json --output-dir outputs
@@ -1265,6 +1333,20 @@ would measure nothing. See [evals/README.md](evals/README.md).
 
 - LLM/Barkla config is env-driven (`.env`) instead of hardcoded/Kaggle-specific.
 - Semantic Scholar / arXiv / CORE requests retry transient failures (429/5xx) with backoff.
+- Added **cross-encoder reranking** (`research_pipeline/reranker.py`), the
+  second thing worth taking from OpenScholar: its reranker scores the pool
+  against the research question, in the literature agent (before downloads) and
+  over the interdisciplinary agent's cross-field additions. Ordering is on when
+  the feature is; truncation is a separate opt-in, because dropping a paper is
+  irreversible downstream. Optional dependency, and every failure path leaves
+  the pool exactly as the merge produced it.
+- Added **passage search** as a fourth literature source: Semantic Scholar's
+  `/snippet/search` over open-access body text, which is what finally populates
+  the `full_text` field the hypothesis/writer path has preferred over the
+  abstract since it was written. It costs one extra API call against a key the
+  pipeline already needs, degrades to "as before" whenever it is off, unkeyed or
+  failing, and needs no downstream change: its results are folded into the pool
+  on the existing doi/normalized-title dedupe key.
 - Query generation falls back to the raw research question on *any* LLM failure
   (not just bad JSON), and de-dupes near-identical generated queries.
 - Downloaded files are checked against their `Content-Type` / PDF magic bytes
