@@ -40,12 +40,14 @@ class CountingSearch:
 
 
 def _stub_everything_but_search(monkeypatch, tmp_path):
-    """Neutralizes the nodes around the searches: query generation would call
-    the LLM, downloads would hit the network, and save_metadata would write
-    outside tmp_path."""
+    """Neutralizes the nodes around the searches: query generation and
+    relevance scoring would call the LLM, citation expansion and downloads would
+    hit the network, and save_metadata would write outside tmp_path."""
     monkeypatch.setattr(
         literature_graph, "generate_queries", lambda state: {"search_queries": ["rag long context"]}
     )
+    monkeypatch.setattr(literature_graph, "score_relevance_node", lambda state: {})
+    monkeypatch.setattr(literature_graph, "expand_citations_node", lambda state: {})
     monkeypatch.setattr(literature_graph, "download_papers_node", lambda state: {})
     monkeypatch.setattr(literature_graph, "save_metadata_node", lambda state: {"metadata_path": str(tmp_path)})
 

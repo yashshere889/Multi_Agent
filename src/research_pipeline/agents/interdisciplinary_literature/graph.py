@@ -68,6 +68,10 @@ def build_interdisciplinary_literature_graph(agent: "InterdisciplinaryLiterature
     graph.add_node("identify_adjacent_fields", agent._node_identify_adjacent_fields, retry_policy=_RETRY)
     graph.add_node("search_field", agent._node_search_field, retry_policy=_RETRY, **search_cache)
     graph.add_node("merge_cross_field", agent._node_merge_cross_field)
+    # Screens the cross-field papers on transferability before they can be
+    # bridged from or cited. Retried like the other LLM-calling nodes: it writes
+    # nothing and its failure path only widens the pool.
+    graph.add_node("score_cross_field", agent._node_score_cross_field, retry_policy=_RETRY)
     graph.add_node("synthesize_bridges", agent._node_synthesize_bridges, retry_policy=_RETRY)
     graph.add_node("assemble_and_validate", agent._node_assemble_and_validate)
 
@@ -82,7 +86,11 @@ def build_interdisciplinary_literature_graph(agent: "InterdisciplinaryLiterature
     # `field_results` list.
     graph.add_edge("search_field", "merge_cross_field")
 
-    graph.add_edge("merge_cross_field", "synthesize_bridges")
+    # Filtering sits between the merge and the synthesis so a paper that fails
+    # the screen is gone before the model is ever asked to build an insight on
+    # it — and before it lands in the pool the Writer cites from.
+    graph.add_edge("merge_cross_field", "score_cross_field")
+    graph.add_edge("score_cross_field", "synthesize_bridges")
     graph.add_edge("synthesize_bridges", "assemble_and_validate")
     graph.add_edge("assemble_and_validate", END)
 
