@@ -1,0 +1,9 @@
+# Six questions drawn from questions_interdisciplinary.txt, re-run on the merged
+# pipeline so writer/reviewer convergence can be compared against batch 10454089,
+# which ran the same questions and never once reached overall_pass.
+Do transformer-based sequence models outperform classical ARIMA baselines at forecasting daily volatility of equity index returns once transaction costs are accounted for?
+How much does the choice of class-imbalance correction — resampling, class weighting, or decision-threshold tuning — change fraud-detection recall at a fixed false-positive budget?
+Does adding patient demographic features to clinical time-series models genuinely improve early deterioration prediction, or mainly encode dataset-specific bias?
+Can gradient-boosted models trained on historical weather records forecast seasonal crop yield more accurately than a simple degree-day growth model?
+Does policy uncertainty derived from news text correlate with subsequent regional changes in unemployment more strongly than lagged unemployment alone?
+Can graph-based molecular representations predict compound solubility better than fingerprint-based features at an equal parameter budget?

@@ -576,3 +576,67 @@ def test_check_citations_accepts_a_first_author_match_in_prose():
 
     sections = {"Introduction": "As Alberti et al. (2026) show, the effect holds."}
     assert check_citations(sections, _index_with_one_paper(), []) == []
+
+
+# -- check_citations must actually cover the citation forms the Writer renders ----------
+# The original patterns required a word after "and"/"et al.", so "(Smith et al., 2020)" —
+# the commonest form of all — was never examined. Measured over eight generated papers,
+# 199 of 299 parenthetical citations went unchecked, 169 of them "et al.". Widening the
+# patterns took those eight papers from 0 examined-and-clean to 13 genuine issues, all in
+# prose and none in References.
+
+
+def _one_paper_index():
+    return {
+        "p1": {
+            "id": "p1",
+            "title": "Realized Volatility and Correlation",
+            "authors": ["Torben G. Andersen", "Tim Bollerslev"],
+            "year": 2003,
+        }
+    }
+
+
+def test_check_citations_examines_the_et_al_form():
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Related Work": "Prior work reports this (Nonexistent et al., 2020)."}
+    issues = check_citations(sections, _one_paper_index(), [])
+    assert len(issues) == 1
+    assert "Nonexistent" in issues[0]["issue"]
+
+
+def test_check_citations_accepts_a_real_first_author_in_et_al_form():
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Related Work": "As shown previously (Andersen et al., 2003), this holds."}
+    assert check_citations(sections, _one_paper_index(), []) == []
+
+
+def test_check_citations_handles_a_line_break_inside_et_al():
+    """Text read back out of a rendered PDF wraps mid-citation."""
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Related Work": "This was reported (Nonexistent et\nal., 2025) previously."}
+    assert len(check_citations(sections, _one_paper_index(), [])) == 1
+
+
+def test_check_citations_examines_undated_citations():
+    """year_text renders a paper with no year as "n.d.", and CORE supplies a year for
+    well under half of what it returns, so the undated form is common rather than rare."""
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Related Work": "An earlier report (Nonexistent et al., n.d.) claims this."}
+    assert len(check_citations(sections, _one_paper_index(), [])) == 1
+
+    ok = {"Related Work": "An earlier report (Andersen et al., n.d.) claims this."}
+    # Still keyed on first-author surname; the year text has to match too, and this
+    # paper has one, so "n.d." correctly fails to resolve against it.
+    assert len(check_citations(ok, _one_paper_index(), [])) == 1
+
+
+def test_check_citations_still_accepts_the_two_author_and_form():
+    from research_pipeline.agents.reviewer.checks import check_citations
+
+    sections = {"Related Work": "Shown before (Andersen and Bollerslev, 2003)."}
+    assert check_citations(sections, _one_paper_index(), []) == []

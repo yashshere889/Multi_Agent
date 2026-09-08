@@ -76,12 +76,21 @@ _MAX_UNRESOLVED_NOTES_PER_KEY = 3
 # same patterns the Reviewer Agent uses to catch a citation the Writer typed
 # directly into prose despite SYSTEM_PROMPT's rule against it (see
 # strip_unverified_literal_citations below, and agents.reviewer.checks).
-_PARENTHETICAL_CITE_RE = re.compile(
-    r"\(([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?),\s*(\d{4})[a-z]?\)"
-)
-_NARRATIVE_CITE_RE = re.compile(
-    r"\b([A-Z][A-Za-z\-]+(?:\s+(?:and|et al\.)\s+[A-Za-z\-]+)?)\s+\((\d{4})[a-z]?\)"
-)
+# The author part of an author-year citation, in the three shapes this pipeline
+# renders (see _author_list_text): one surname, two joined by "and", or a surname
+# followed by "et al.". The previous pattern required a *word* after "and"/"et
+# al.", so it matched "(Smith and Jones, 2020)" but not "(Smith et al., 2020)" —
+# the commonest form of all. Measured over eight generated papers, that left 199
+# of 299 parenthetical citations unexamined, 169 of them "et al.". A check that
+# silently declines to look at two thirds of its subject is worse than no check,
+# because it reports the same clean result either way.
+_CITE_AUTHORS = r"[A-Z][A-Za-z\-]+(?:\s+(?:and|&)\s+[A-Z][A-Za-z\-]+)?(?:\s+et\s+al\.)?"
+# "n.d." as well as a year: a paper the search returned without one is rendered
+# that way by year_text, and CORE supplies a year for well under half of what it
+# returns.
+_CITE_YEAR = r"(?:\d{4}|n\.d\.)"
+_PARENTHETICAL_CITE_RE = re.compile(rf"\(({_CITE_AUTHORS}),\s*({_CITE_YEAR})[a-z]?\)")
+_NARRATIVE_CITE_RE = re.compile(rf"\b({_CITE_AUTHORS})\s+\(({_CITE_YEAR})[a-z]?\)")
 
 
 class IndexedPaper(TypedDict):
