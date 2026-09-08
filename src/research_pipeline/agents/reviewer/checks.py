@@ -188,14 +188,58 @@ def check_citations(
     return issues
 
 
-def _plausible_number_reprs(value: object) -> set[str]:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return {str(value)}
-    reprs = {str(value), f"{value:.1f}", f"{value:.2f}", f"{value:.3f}"}
+def _is_checkable_metric(value: object) -> bool:
+    """Whether a metric value can meaningfully be looked for in prose.
+
+    Only real numbers can. `numbers_in_text` is built by a digits-only regex, so
+    intersecting it with the string form of a bool, a status flag, a list or a
+    dict is empty by construction — such a metric is flagged on every draft, of
+    every run, forever, and no revision can clear it. Batch 10460726 carried 13
+    of these across its completed experiments (`hypothesis_supported='True'`,
+    `training_history={...}`), and they are pure noise: a check that cannot pass
+    is not a check.
+
+    Booleans are excluded before the numeric test because bool is a subclass of
+    int and `True` would otherwise be hunted for as the number 1.
+    """
+    return not isinstance(value, bool) and isinstance(value, (int, float))
+
+
+def _plausible_number_reprs(value: float) -> set[str]:
+    """Every textual form a paper might reasonably use for this number.
+
+    Rounding runs to five decimal places, not three. Papers quote four
+    significant figures constantly — a run reported `auc_roc=0.403609022556391`
+    and the paper said `0.4036`, which is correct reporting, and the check called
+    it a mismatch because it only generated 0.4, 0.40 and 0.404. Across batch
+    10460726 that accounted for 29 of the numeric metric fields and none were
+    covered by the old set.
+    """
+    reprs = {
+        str(value),
+        f"{value:.1f}",
+        f"{value:.2f}",
+        f"{value:.3f}",
+        f"{value:.4f}",
+        f"{value:.5f}",
+    }
+    # Significant figures, for values far from the decimal point either way.
+    for sig in (3, 4):
+        try:
+            reprs.add(f"%.{sig}g" % value)
+        except (TypeError, ValueError):
+            pass
     if 0 <= value <= 1:
         pct = value * 100
-        reprs |= {f"{pct:.0f}", f"{pct:.1f}", f"{pct:.0f}%", f"{pct:.1f}%", f"{pct:.2f}%"}
-    return reprs
+        reprs |= {
+            f"{pct:.0f}",
+            f"{pct:.1f}",
+            f"{pct:.2f}",
+            f"{pct:.0f}%",
+            f"{pct:.1f}%",
+            f"{pct:.2f}%",
+        }
+    return {r.rstrip("%") if r.endswith("%") else r for r in reprs} | reprs
 
 
 def check_results_accuracy(results_subsections: Dict[str, str], coder_output: dict) -> List[dict]:
@@ -243,6 +287,8 @@ def check_results_accuracy(results_subsections: Dict[str, str], coder_output: di
         metrics = (experiment.get("results") or {}).get("metrics", {})
         numbers_in_text = set(_NUMBER_RE.findall(text))
         for metric_name, metric_value in metrics.items():
+            if not _is_checkable_metric(metric_value):
+                continue
             expected = _plausible_number_reprs(metric_value)
             if expected & numbers_in_text:
                 continue

@@ -640,3 +640,62 @@ def test_check_citations_still_accepts_the_two_author_and_form():
 
     sections = {"Related Work": "Shown before (Andersen and Bollerslev, 2003)."}
     assert check_citations(sections, _one_paper_index(), []) == []
+
+
+# -- check_results_accuracy must only look for things it could find ---------------------
+# numbers_in_text is built by a digits-only regex, so a non-numeric metric value can
+# never intersect it: it is flagged on every draft of every run and no revision clears
+# it. Batch 10460726 carried 13 such fields. Separately, rounding stopped at three
+# decimal places while papers routinely quote four significant figures — 29 numeric
+# fields in that batch, none matchable by the old set.
+
+
+def _completed(metrics):
+    return {
+        "experiments": [
+            {
+                "hypothesis_id": "H1",
+                "status": "completed",
+                "reason": "",
+                "results": {"metrics": metrics},
+            }
+        ]
+    }
+
+
+def test_results_accuracy_ignores_non_numeric_metrics():
+    from research_pipeline.agents.reviewer.checks import check_results_accuracy
+
+    coder = _completed(
+        {
+            "hypothesis_supported": "True",
+            "training_history": {"transformer": [0.66, 0.41]},
+            "labels": ["a", "b"],
+            "converged": True,
+        }
+    )
+    assert check_results_accuracy({"H1": "The model reached 0.83 accuracy."}, coder) == []
+
+
+def test_results_accuracy_accepts_a_four_decimal_rounding():
+    """The exact case from batch 10460726: reported 0.4036, computed 0.403609022556391."""
+    from research_pipeline.agents.reviewer.checks import check_results_accuracy
+
+    coder = _completed({"xgb_auc_roc": 0.403609022556391})
+    assert check_results_accuracy({"H1": "AUC-ROC was 0.4036 for the model."}, coder) == []
+
+
+def test_results_accuracy_still_flags_a_figure_that_is_absent():
+    from research_pipeline.agents.reviewer.checks import check_results_accuracy
+
+    coder = _completed({"accuracy": 0.9134})
+    issues = check_results_accuracy({"H1": "Accuracy reached 0.2211 on the test set."}, coder)
+    assert len(issues) == 1
+    assert "accuracy" in issues[0]["actual"]
+
+
+def test_results_accuracy_accepts_a_percentage_rendering():
+    from research_pipeline.agents.reviewer.checks import check_results_accuracy
+
+    coder = _completed({"recall": 0.8712})
+    assert check_results_accuracy({"H1": "Recall was 87.12% overall."}, coder) == []
