@@ -1,14 +1,221 @@
 \chapter{Preference Optimisation from the Fix Loop}
 \label{ch:po}
+
 % BUDGET: 4 pages. Discharges proposal Requirement 5.
-% OUTLINE:
-%  4.1 Why the RL component was reframed. Quote the proposal's own
-%      justification (hallucination, self-evaluation, instruction
-%      following) and show all three were addressed deterministically.
-%      Claim: verification beats optimisation for this class of failure.
-%  4.2 Dataset construction -- each (rejected generation, rejecting
-%      error, accepted generation) triple is a preference pair by
-%      construction. Report the error_source distribution.
-%  4.3 Training -- LoRA + DPO on a small coder model. NOT the 30B.
-%  4.4 Results and honest limits on n.
-[TODO]
+
+The proposal for this project named a reinforcement learning component as its
+principal novelty. This chapter states why that component was not delivered in
+the form proposed, and what was delivered instead: an argument that the failures
+it targeted are better answered by verification than by optimisation, and a
+preference-optimisation experiment built on a dataset the pipeline generates as a
+byproduct of its own operation.
+
+\section{Why the component was reframed}
+\label{sec:po-reframe}
+
+The proposal justified the reinforcement learning stage by three specific
+failure modes: hallucination, poor self-evaluation, and failure to follow
+instructions. Agent behaviour was to be improved across iterations using reward
+signals derived from code execution outcomes and paper scores.
+
+Each of those three was addressed during implementation, and in each case the
+mechanism that addressed it moved the decision out of the model rather than
+optimising the model's behaviour within it.
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.3em,font=\normalfont\bfseries]
+  \item[Hallucination] The Writer emits citation markers naming paper
+    identifiers. Those markers are resolved against the identifiers the
+    Literature Agent actually returned; anything that does not resolve is
+    stripped before rendering and flagged, so a fabricated citation cannot reach
+    a PDF. The Reviewer then re-derives its own ground truth from upstream
+    outputs rather than reading the Writer's summary of them
+    (Section~\ref{sec:determinism}).
+  \item[Poor self-evaluation] No agent is asked whether its own work succeeded.
+    A hypothesis outcome is computed in Python from the Coder Agent's recorded
+    \texttt{status} and \texttt{meets\_success\_criteria} fields, and the
+    provenance gates withhold that verdict outright when the inputs were
+    synthesised, when the run was truncated to fit its budget, when training
+    never converged, or --- since the work in Section~\ref{sec:wrong-data} ---
+    when the data was real but found by keyword search rather than named.
+  \item[Instruction following] The generation prompt has long instructed the
+    model to guard every data read and fall back to synthesised data.
+    \texttt{sandbox.check\_data\_fallback} parses the generated
+    \texttt{load\_data} and routes any unguarded read back through the fix loop.
+    The instruction had been in the prompt for months and was silently ignored
+    until Python began checking it.
+\end{description}
+
+The general claim this supports is narrow and worth stating precisely: \emph{for
+a failure whose absence can be checked mechanically, verification dominates
+optimisation}. It is exact rather than probabilistic. It works on the first
+occurrence rather than after enough examples have accumulated. It requires no
+training data, no second served model and no held-out set. It can itself be
+tested. And when it is wrong it is wrong visibly, as Chapter~\ref{ch:evaluation}
+demonstrates at some length. Optimisation makes a failure rarer; verification
+makes it detectable. For a document that must not contain a fabricated citation,
+rarer is not the property required.
+
+There is also a structural reason. The pipeline serves one model through one
+endpoint, and every agent obtains its client from a single factory
+(Section~\ref{sec:architecture}). Fine-tuning one agent's behaviour would mean
+serving a second model, on a cluster where the served 30B model already occupies
+one of two available cards.
+
+None of this argues that preference optimisation has no place here --- only that
+it is the wrong instrument for the three failures the proposal named. What the
+project did find is that the machinery built to \emph{verify} generations
+produces, as a byproduct, exactly the data preference optimisation consumes.
+
+\section{The fix loop as a source of preference data}
+\label{sec:po-dataset}
+
+The Coder Agent's fix loop regenerates code that failed a check, feeding the
+concrete failure back to the model (Section~\ref{sec:coder}). Every round of
+that loop produces, by construction, the triple direct preference
+optimisation~\cite{rafailov2023dpo} requires: a generation that a deterministic
+check \emph{rejected}, the error that rejected it, and the regeneration that
+subsequently passed the same check. The rejection is not a human judgement or a
+model's opinion --- it is a compiler, a linter, or a process exit status.
+
+\texttt{scripts/dpo/build\_preference\_dataset.py} harvests these from run
+artefacts. Three decisions shape what it emits.
+
+A pair is produced only where the following attempt genuinely cleared the check
+that had failed. An unresolved attempt establishes that a generation was bad but
+not what a better one looks like, so it is counted and skipped rather than
+paired against a guess. Only the model-written region of each \texttt{run.py} is
+retained: a rendered experiment is mostly fixed template, byte-identical between
+the two halves of every pair, and including it would spend the context window
+teaching a model to reproduce text it never wrote. The region is located by
+anchoring on the template's own literal chunks either side of the splice
+points, so it survives template changes. Finally, the shared prompt is
+reconstructed from the experiment's framing plus the error that had to be
+answered, because the original generation prompt is not retained in run
+artefacts.
+
+Across every run recorded during this project the harvest yields 121 pairs.
+Table~\ref{tab:pair-sources} gives the check that did the rejecting.
+
+\begin{table}[htbp]
+\centering\small
+\caption{What rejected the rejected generation, over 121 preference pairs.}
+\label{tab:pair-sources}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{Rejecting check} & \textbf{Pairs} & \textbf{Nature of the check} \\
+\midrule
+\texttt{undefined\_name}        & 67 & pyflakes, before any environment is provisioned \\
+\texttt{run\_experiment}        & 29 & a traceback recorded by the executed program \\
+\texttt{resource\_limit}        &  7 & the run exceeded its time or memory budget \\
+\texttt{invalid\_format}        &  5 & the response did not parse into the expected sections \\
+\texttt{missing\_diagnostics}   &  3 & required progress output absent \\
+\texttt{implausible\_results}   &  3 & metrics failed a plausibility check \\
+\texttt{missing\_data\_fallback} &  3 & an unguarded data read \\
+other                           &  4 & dependency, configuration and batching checks \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two features of that distribution matter. More than half the rejections come
+from a static undefined-name check that runs before a virtual environment is
+provisioned and costs milliseconds --- the cheapest check in the system is also
+its most productive source of training signal. And the pairs divide almost
+evenly between plans that ultimately completed (65) and plans that never ran
+(56), because a pair's validity is local to the check that was cleared and does
+not depend on how the plan eventually turned out.
+
+The corpus is small, and small by construction rather than through insufficient
+collection: a pair requires both a rejection and a resolution, and the pipeline
+produces a few dozen such events per sweep. This bounds every claim in the next
+two sections.
+
+\section{Training}
+\label{sec:po-training}
+
+The experiment trains a LoRA adapter~\cite{hu2021lora} with DPO on
+Qwen2.5-Coder-1.5B-Instruct --- deliberately \emph{not} the 30B model the
+pipeline serves. The claim under test is whether the pipeline's own failure
+history is usable preference data at all, not that it improves the served model;
+121 pairs could not support the latter and no honest reading of the result would
+license it. The 1.5B model shares the served model's vendor and code
+specialisation while fitting one GPU alongside an adapter. Hyperparameters were
+LoRA rank 16, $\beta = 0.1$, learning rate $5\times10^{-5}$, three epochs, seed
+13, with 91 pairs for training and 30 held out.
+
+The evaluation is held-out \emph{preference accuracy}: on unseen pairs, does the
+policy assign higher implicit reward to the generation the check accepted?
+Arriving at a metric that could answer that question took two attempts, and both
+failures are worth recording because both produced clean-looking null results.
+
+The first version averaged log-probability over prompt and completion together
+and returned 0.286 before training and 0.286 after --- identical to three
+decimal places. That was a property of the metric, not of the model: a pair
+shares a prompt of a few hundred tokens and two completions of one to two
+thousand that differ in a single section, so a mean over every token dilutes the
+part under test by roughly an order of magnitude. Masking the prompt is the
+minimum needed to see anything at all.
+
+The second version scored completions only, and returned a summed accuracy of
+exactly 0.000. This too was the metric: 101 of the 121 pairs have a longer
+accepted completion than rejected one, and a summed log-probability necessarily
+favours the shorter sequence. The pre-training baseline of 0.1667 matched the
+value predicted by length bias alone, 0.1653, to three decimal places --- which
+is what identified the cause. The final metric reports both a summed and a
+length-normalised accuracy, since the two carry opposite length biases and
+neither alone is trustworthy, together with the continuous per-pair margin. At
+30 held-out pairs an accuracy can only take values in thirtieths, and the margin
+is what separates ``training had no effect'' from ``the effect was too small to
+flip a pair''.
+
+\section{Results}
+\label{sec:po-results}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Held-out preference metrics over 30 unseen pairs, before and after DPO.}
+\label{tab:dpo-results}
+\begin{tabularx}{\textwidth}{Xrr}
+\toprule
+\textbf{Metric} & \textbf{Before} & \textbf{After} \\
+\midrule
+Preference accuracy (summed)            & 0.167 & 0.633 \\
+Preference accuracy (length-normalised) & 0.367 & 0.900 \\
+Mean margin                             & 0.032 & 0.354 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Training moves all three, and moves the two independent ones together. The
+length-normalised accuracy reaches 0.900, and the mean margin --- the measure
+that does not quantise --- increases elevenfold, which establishes that the
+change is a shift in the whole distribution rather than a handful of pairs
+crossing a threshold. The summed accuracy remains the lower of the two figures
+throughout, consistent with the length bias identified above persisting after
+training rather than being learned away.
+
+\section{What this establishes, and what it does not}
+\label{sec:po-limits}
+
+It establishes that the artefacts a verification-heavy pipeline discards as
+debugging residue are usable preference data: rejections grounded in compilers
+and exit statuses rather than in human labelling or model self-report, and
+learnable by a model that has never seen them. That is the transferable finding,
+and it is a property of the architecture rather than of this experiment ---
+any system that regenerates on a deterministic check produces the same triples.
+
+It does not establish that preference optimisation would improve this pipeline,
+and four limits stand between the result and that claim. Thirty held-out pairs
+is a small evaluation, and the confidence interval around 0.633 is wide.
+Preference accuracy is not experiment success: a policy that ranks two known
+completions correctly has not been shown to generate better code. The pairs are
+off-policy with respect to the model trained on them --- they were produced by
+the served 30B model and trained into a 1.5B --- which is the weaker of the two
+regimes for DPO and was accepted because the alternative required serving a
+second model. And the corpus reflects the system's failure modes as they stood
+when it was harvested; several of the checks in Table~\ref{tab:pair-sources}
+have since been changed, and the guardrail work in
+Section~\ref{sec:wrong-data} changes which generations are rejected at all.
+
+The honest summary is that the proposal's requirement is discharged by a
+demonstration rather than by a deployed component, and that the demonstration's
+value lies in the dataset construction rather than in the training run.
