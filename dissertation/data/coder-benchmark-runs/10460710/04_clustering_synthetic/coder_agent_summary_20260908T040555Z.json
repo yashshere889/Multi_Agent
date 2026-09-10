@@ -1,0 +1,90 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H104",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/04_clustering_synthetic/experiments/H104",
+      "assumptions_made": [
+        "Used the synthetic dataset from gretelai/synthetic_text_to_sql if it contained numeric features suitable for clustering",
+        "When the synthetic dataset was unsuitable, fell back to generating synthetic point clouds with make_blobs",
+        "Generated three Gaussian blobs in two dimensions with configurable separation",
+        "Used the same number of clusters (3) for both k-means and random assignment",
+        "Tested three separation levels: 0.5 (low overlap), 1.0 (medium overlap), and 2.0 (high overlap)",
+        "Applied StandardScaler to normalize features when using the synthetic dataset",
+        "Used the same random seed for reproducibility across experiments",
+        "Used Adjusted Rand Index as the primary metric for comparing clustering quality",
+        "Used within-cluster inertia as a secondary measure of clustering quality",
+        "Implemented proper error handling for cases where the synthetic dataset is unavailable or unsuitable"
+      ],
+      "results": {
+        "experiment_id": "H104",
+        "experiment_name": "Experiment H104",
+        "hypothesis": "Test whether k-means recovers known cluster structure better than random assignment at increasing overlap.",
+        "author": "coder-agent",
+        "baseline": "Random assignment of points to the same number of clusters.",
+        "success_criteria": "k-means beats random assignment on adjusted Rand index at every separation level tested.",
+        "timestamp_utc": "2026-09-08T04:05:55.312144+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0188,
+        "resumed": false,
+        "metrics": {
+          "adjusted_rand_index_kmeans": 0.4195768592919737,
+          "adjusted_rand_index_random": 0.0022604668731975794,
+          "within_cluster_inertia": 6003.500290806052
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "K-means ARI: 0.420, Random ARI: 0.002. K-means performs better.",
+        "error": null,
+        "model_reported_meets_success_criteria": true,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "clustering",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset gretelai/synthetic_text_to_sql",
+            "kind": "synthetic_surrogate",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=gretelai%2Fsynthetic_text_to_sql&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/0f5f35bfdeae52dc/hugging_face_dataset_gretelai_synthetic_text_to_sql.jsonl",
+            "reason": "the generated code reports substituting for the data this plan requires: Implemented proper error handling for cases where the synthetic dataset is unavailable or unsuitable",
+            "credentials": []
+          },
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+            "reason": "the generated code reports substituting for the data this plan requires: Implemented proper error handling for cases where the synthetic dataset is unavailable or unsuitable",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 2,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/04_clustering_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H104"
+  ],
+  "generated_at": "2026-09-08T04:05:55.561503+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

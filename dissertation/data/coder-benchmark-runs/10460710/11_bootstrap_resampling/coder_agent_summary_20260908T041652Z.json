@@ -1,0 +1,111 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H111",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/11_bootstrap_resampling/experiments/H111",
+      "assumptions_made": [
+        "The synthetic data generation approach produces distributions with the intended skewness characteristics",
+        "The bootstrap percentile method is appropriate for estimating confidence intervals for the median",
+        "The sample size of 1000 per skewness level provides sufficient precision for coverage estimation",
+        "The number of bootstrap replications (1000) is adequate for stable confidence interval estimates",
+        "The experiment correctly implements the percentile bootstrap method as described in the literature"
+      ],
+      "results": {
+        "experiment_id": "H111",
+        "experiment_name": "Experiment H111",
+        "hypothesis": "Test whether the bootstrap confidence interval for a median achieves nominal coverage on skewed data.",
+        "author": "coder-agent",
+        "baseline": "The nominal 95% coverage the interval claims.",
+        "success_criteria": "Empirical coverage stays within 0.03 of nominal at every skewness level.",
+        "timestamp_utc": "2026-09-08T04:16:52.417266+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.2279,
+        "resumed": false,
+        "metrics": {
+          "coverage_by_skewness": {
+            "0.0": 1.0,
+            "0.5": 1.0,
+            "1.0": 1.0,
+            "1.5": 1.0,
+            "2.0": 1.0
+          },
+          "interval_width_by_skewness": {
+            "0.0": 0.13689303582012036,
+            "0.5": 0.35222278467252843,
+            "1.0": 0.1569848778366616,
+            "1.5": 0.1136782268866866,
+            "2.0": 0.07106531576396913
+          },
+          "nominal_coverage": 0.95,
+          "tolerance": 0.03
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "At skewness 0.0: observed coverage 1.000 is outside tolerance of 0.03 from nominal 0.95\nAt skewness 0.5: observed coverage 1.000 is outside tolerance of 0.03 from nominal 0.95\nAt skewness 1.0: observed coverage 1.000 is outside tolerance of 0.03 from nominal 0.95\nAt skewness 1.5: observed coverage 1.000 is outside tolerance of 0.03 from nominal 0.95\nAt skewness 2.0: observed coverage 1.000 is outside tolerance of 0.03 from nominal 0.95\nSome skewness levels do not meet the success criteria.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:             ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                              out=out, **kwargs)\n                              ^^^^^^^^^^^^^^^^^^\n      File \"/tmp/users/sgyshere/coder-venvs-10460710/2d2f8e6ffa874c0b/.venv/lib/python3.14/site-packages/numpy/_core/_methods.py\", line 144, in _mean\n        ret = ret / rcount\n              ~~~~^~~~~~~~\n    TypeError: unsupported operand type(s) for /: 'NoneType' and 'int'\n========================================================================\n\n\nsers/sgyshere/coder-benchmark-runs/10460710/11_bootstrap_resampling/experiments/H111/run.py\", line 516, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/11_bootstrap_resampling/experiments/H111/run.py\", line 346, in evaluate\n    avg_coverage[skewness] = np.mean(coverages)\n                             ~~~~~~~^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10460710/2d2f8e6ffa874c0b/.venv/lib/python3.14/site-packages/numpy/_core/fromnumeric.py\", line 3862, in mean\n    return _methods._mean(a, axis=axis, dtype=dtype,\n           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                          out=out, **kwargs)\n                          ^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10460710/2d2f8e6ffa874c0b/.venv/lib/python3.14/site-packages/numpy/_core/_methods.py\", line 144, in _mean\n    ret = ret / rcount\n          ~~~~^~~~~~~~\nTypeError: unsupported operand type(s) for /: 'NoneType' and 'int'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/11_bootstrap_resampling/experiments/H111/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Generated synthetic data to match the experiment's data requirements since the provided datasets don't fit",
+            "Used log-normal distributions to simulate various skewness levels",
+            "Set the number of bootstrap replications to 1000 for stable estimates",
+            "Set the number of samples per skewness level to 1000 for sufficient statistical power",
+            "Used the 95% confidence level as specified in the plan",
+            "For symmetric distributions, used normal distribution with zero skewness",
+            "For skewed distributions, used log-normal distribution with scale inversely proportional to skewness",
+            "Calculated coverage based on whether the true median falls within the bootstrap CI",
+            "Aggregated results by calculating mean coverage and interval width for each skewness level"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+            "reason": "the generated code reports substituting for the data this plan requires: The synthetic data generation approach produces distributions with the intended skewness characteristics",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/11_bootstrap_resampling/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H111"
+  ],
+  "generated_at": "2026-09-08T04:16:52.593094+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

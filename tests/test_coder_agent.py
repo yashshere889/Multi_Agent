@@ -798,6 +798,23 @@ def _plan(hid: str, feasible=True, complexity="low") -> dict:
     }
 
 
+def _plan_naming_data(hid: str) -> dict:
+    """A plan whose data_requirements name real data rather than ask for made-up data.
+
+    The default `_plan` asks for "synthetic", which is now a request the Hugging
+    Face lookup deliberately declines to search for — so a test about *which
+    field is queried in what order* needs a requirement that is actually a
+    dataset name.
+    """
+    plan = _plan(hid)
+    plan["data_requirements"] = {
+        "source": "national sleep survey responses",
+        "description": "self-reported sleep hours",
+        "preprocessing_steps": [],
+    }
+    return plan
+
+
 def _planner_output(plans: list[dict], shared_infrastructure=None) -> dict:
     return {
         "experiment_plans": plans,
@@ -2630,13 +2647,13 @@ def test_matched_hf_dataset_is_offered_to_the_model_with_a_rest_url(tmp_path):
     model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS_WITH_HF_DATASET)])
     lookup, queries = _recording_lookup(HF_DATASET_MATCH)
     _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
-        _planner_output([_plan("H1")])
+        _planner_output([_plan_naming_data("H1")])
     )
 
     # Queried with the plan's own data_requirements, not the objective, and
     # `source` first: it names the dataset while `description` is prose about
     # what it contains, and the Hub matches on names. Stops at the first hit.
-    assert queries == ["synthetic"]
+    assert queries == ["national sleep survey responses"]
     prompt = model.prompts_by_kind["codegen"][0]
     assert "acme/sleep-survey" in prompt
     assert "hours_slept (float32)" in prompt  # real column names and dtypes
@@ -2651,11 +2668,11 @@ def test_no_dataset_block_when_nothing_matched(tmp_path):
     model = RecordingScriptedChatModel(codegen=[_codegen_response()])
     lookup, queries = _recording_lookup(None)
     result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
-        _planner_output([_plan("H1")])
+        _planner_output([_plan_naming_data("H1")])
     )
 
     # Both fields tried before giving up — see the previous test for why.
-    assert queries == ["synthetic", "d"]
+    assert queries == ["national sleep survey responses", "self-reported sleep hours"]
     assert result["experiments"][0]["status"] == "completed"
     # The prompt reads exactly as it did before this lookup existed.
     assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
@@ -5004,6 +5021,135 @@ def test_a_dataset_the_code_reads_is_counted_as_a_real_input(tmp_path):
     # The plan's own "synthetic" requirement is a phantom here — the dataset
     # answered it under another name, and no synthesize_ generator was written.
     assert provenance.all_real(sources)
+
+
+def test_a_hub_matched_dataset_is_real_but_still_unconfirmed(tmp_path):
+    """The hole that made needs_confirmation almost inert in production.
+
+    The guardrail asks whether anyone confirmed a dataset *answers this
+    question*, and it fires on `discovered`, which only discover.apply set. The
+    Hugging Face lookup — the path that resolves most data in a real run —
+    produced a source without it, so a keyword hit on the Hub was treated as
+    though a human had named it. Across the 36-question batch 10460809 the flag
+    fired zero times in 36 experiments, and all three verdicts that batch
+    published rested on Hub matches that cannot answer their hypothesis: a
+    requirement reading "Public benchmark datasets" matched
+    gaia-benchmark/results_public, an LLM-agent leaderboard, and the paper
+    reported the hypothesis *supported*.
+    """
+    agent = _agent(tmp_path, FakeChatModel({}))
+    code = (
+        "resp = requests.get('https://datasets-server.huggingface.co/rows"
+        "?dataset=acme%2Fsleep-survey&config=default&split=train&offset=0&length=100')\n"
+    )
+
+    sources = agent._provenance_for(
+        _plan("H1"),
+        network_available=True,
+        hf_dataset={**HF_DATASET_MATCH, "query": "national sleep survey"},
+        run_py=code,
+    )
+
+    dataset = next(s for s in sources if "acme/sleep-survey" in s.name)
+    assert dataset.is_real, "still real data — the experiment runs on it and reports its metrics"
+    # ...and still not a verdict.
+    assert provenance.needs_confirmation(sources)
+    # The audit trail a human confirms it from: what was searched, and where the
+    # record lives. Same keys discover.apply writes, so data_provenance.json
+    # reads identically whichever search found the dataset.
+    assert dataset.discovered["connector"] == "huggingface:datasets-server"
+    assert dataset.discovered["query"] == "national sleep survey"
+    assert dataset.discovered["landing_page"] == "https://huggingface.co/datasets/acme/sleep-survey"
+
+    stamped = provenance.apply_to_results(
+        {"metrics": {"auc": 0.9}, "meets_success_criteria": True}, sources
+    )
+    assert stamped["meets_success_criteria"] == "unknown"
+    assert stamped["model_reported_meets_success_criteria"] is True
+
+
+def test_a_synthesis_request_is_never_searched_for_on_the_hub(tmp_path):
+    """ "synthetic" is an instruction, not a dataset name.
+
+    Left to itself the Hub matches the word: gretelai/synthetic_text_to_sql came
+    back for it in benchmark runs 10460710, 10460812 and 10460813 and became the
+    real input of a tabular-classification, a timeseries-forecasting and a
+    bootstrap-resampling experiment in the same run. Every hit here is wrong by
+    construction, so the honest outcome is not to look.
+    """
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    result = _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([_plan("H1")])  # data_requirements.source == "synthetic"
+    )
+
+    # The synthesis term never reaches the Hub; the plan's other field still
+    # does. Dropping the query rather than abandoning the lookup matters — one
+    # requirement asking for generated data says nothing about the rest.
+    assert queries == ["d"]
+    assert "Dataset Viewer" not in model.prompts_by_kind["codegen"][0]
+    assert result["experiments"][0]["status"] == "completed"
+    # And the input is a surrogate by design, not for want of a source.
+    source = result["experiments"][0]["data_provenance"]["inputs"][0]
+    assert source["kind"] == "synthetic_surrogate"
+    assert "asked for generated data" in source["reason"]
+
+
+def test_a_synthesis_request_is_never_searched_for_in_the_catalogues(tmp_path):
+    """The other search, held to the same rule.
+
+    `unresolved` alone cannot express this: it must stay true so that a real
+    input arriving under another name can still supersede the phantom, which is
+    the case supersede_unresolved exists for.
+    """
+    from research_pipeline.agents.coder import discover
+
+    sources = provenance.resolve(["synthetic"], network_available=True)
+    assert sources[0].unresolved is True, "still supersedable"
+
+    discoveries = discover.discover_sources(
+        sources,
+        cache_dir=tmp_path,
+        connectors=[("fake", lambda r: pytest.fail("a synthesis request must not be searched"))],
+    )
+    assert discoveries == {}
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        "synthetic",
+        "synthetic data",
+        "Synthetic tabular data",
+        "randomly generated samples",
+        "a toy dataset",
+        "simulated data",
+    ],
+)
+def test_requirements_that_ask_for_generated_data(requirement):
+    assert provenance.is_synthesis_request(requirement)
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        # Real datasets whose names contain the words. Anchored matching is what
+        # keeps these searchable; a substring test would swallow all of them and
+        # the cost is a real dataset nobody ever looks for.
+        # Deliberately not matched, though it does ask for generated data: the
+        # test is strict on purpose, and a wrong match here is a real dataset
+        # nobody ever searches for. A wrong miss is only a search whose result
+        # is withheld anyway, now that a Hub match is `discovered`.
+        "simulated portfolio returns",
+        "synthetic control estimates for German reunification",
+        "the GAIA synthetic reasoning benchmark",
+        "simulated annealing benchmark suite results from NIST",
+        "UCI Adult census income",
+        "MIMIC-III clinical notes",
+    ],
+)
+def test_requirements_that_merely_mention_generated_data(requirement):
+    assert not provenance.is_synthesis_request(requirement)
 
 
 def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):

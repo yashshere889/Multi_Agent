@@ -826,10 +826,18 @@ def discover_sources(
     with something else found by keyword is the over-claim this whole area of
     the codebase exists to prevent — the same rule, and the same reason, as
     `provenance.supersede_unresolved`.
+
+    A synthesis request is skipped for a stronger reason still: it is not a
+    request for data at all, so every hit is wrong by construction and an honest
+    miss is the best available outcome. `unresolved` alone cannot express that —
+    it stays true so a real input arriving under another name can still
+    supersede the phantom — which is why `synthesis_request` is its own flag.
     """
     discoveries: dict[str, dict] = {}
     for source in sources:
         if source.kind != provenance.KIND_SURROGATE or not source.unresolved:
+            continue
+        if source.synthesis_request:
             continue
         if source.name in discoveries:
             continue

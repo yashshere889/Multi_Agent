@@ -1,0 +1,260 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H101",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460811/01_tabular_classification_synthetic/experiments/H101",
+      "assumptions_made": [
+        "Added verification that the loaded dataset contains at least 2 classes to prevent training failures",
+        "Added fallback to synthetic data generation when the real dataset is insufficient or problematic"
+      ],
+      "results": {
+        "experiment_id": "H101",
+        "experiment_name": "Experiment H101",
+        "hypothesis": "Test whether class-weighted logistic regression improves minority-class recall over an unweighted baseline on imbalanced tabular data.",
+        "author": "coder-agent",
+        "baseline": "Unweighted logistic regression on the same split.",
+        "success_criteria": "Weighted model improves minority-class recall by at least 0.05 without losing more than 0.03 accuracy.",
+        "timestamp_utc": "2026-09-08T17:49:18.301914+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0605,
+        "resumed": false,
+        "metrics": {
+          "unweighted": {
+            "accuracy": 0.9,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "weighted": {
+            "accuracy": 0.54,
+            "precision": 0.08333333333333333,
+            "recall": 0.36,
+            "f1": 0.13533834586466165
+          },
+          "recall_improvement": 0.36,
+          "accuracy_loss": 0.36,
+          "training_history": {
+            "unweighted": [
+              0.0
+            ],
+            "weighted": [
+              0.0
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Unweighted recall: 0.000, Weighted recall: 0.360, Recall improvement: 0.360, Accuracy loss: 0.360. Accuracy loss exceeds threshold.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are real data found by keyword search rather than named by the plan, and nothing has confirmed they answer this question. The experiment ran on real data and its metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes the verdict reachable."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: py\", line 1403, in wrapper\n        return fit_method(estimator, *args, **kwargs)\n      File \"/tmp/users/sgyshere/coder-venvs-10460811/fead9c00e91c5b75/.venv/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py\", line 1523, in fit\n        raise ValueError(\n        ...<3 lines>...\n        )\n    ValueError: This solver needs samples of at least 2 classes in the data, but the data contains only one class: np.int64(0)\n========================================================================\n\n\neriment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460811/01_tabular_classification_synthetic/experiments/H101/run.py\", line 653, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460811/01_tabular_classification_synthetic/experiments/H101/run.py\", line 418, in run_experiment\n    lr_model.fit(X_train, y_train)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10460811/fead9c00e91c5b75/.venv/lib/python3.14/site-packages/sklearn/base.py\", line 1403, in wrapper\n    return fit_method(estimator, *args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10460811/fead9c00e91c5b75/.venv/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py\", line 1523, in fit\n    raise ValueError(\n    ...<3 lines>...\n    )\nValueError: This solver needs samples of at least 2 classes in the data, but the data contains only one class: np.int64(0)",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460811/01_tabular_classification_synthetic/experiments/H101/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Used the gretelai/synthetic_text_to_sql dataset as provided, converting it to a binary classification problem with imbalanced classes",
+            "Created a binary classification task by mapping SQL complexity levels to classes (10% positive class)",
+            "Used feature engineering to extract numerical features from text fields in the dataset",
+            "If the real dataset was unavailable or unsuitable, fell back to synthetic data generation",
+            "Applied stratified sampling to maintain class proportions in train/test splits",
+            "Used sklearn's LogisticRegression with balanced class weights",
+            "Used a fixed tolerance of 1e-4 for convergence checking (since sklearn doesn't expose per-epoch loss)",
+            "Set maximum epochs to 1000 with patience of 50 for convergence checking"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset gretelai/synthetic_text_to_sql",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=gretelai%2Fsynthetic_text_to_sql&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/0f5f35bfdeae52dc/hugging_face_dataset_gretelai_synthetic_text_to_sql.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/0f5f35bfdeae52dc/hugging_face_dataset_gretelai_synthetic_text_to_sql.jsonl (5000 rows, 6004670 bytes, sha256 9b777f45ed84)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=gretelai%2Fsynthetic_text_to_sql&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/0f5f35bfdeae52dc/hugging_face_dataset_gretelai_synthetic_text_to_sql.jsonl",
+              "sha256": "9b777f45ed84452aaf233af31b998d45d92c0b179d1d2dd7e60391d8fdab1e57",
+              "byte_count": 6004670,
+              "data_format": "jsonl",
+              "columns": [
+                "id",
+                "domain",
+                "domain_description",
+                "sql_complexity",
+                "sql_complexity_description",
+                "sql_task_type",
+                "sql_task_type_description",
+                "sql_prompt",
+                "sql_context",
+                "sql",
+                "sql_explanation"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "id": 5097,
+                  "domain": "forestry",
+                  "domain_description": "Comprehensive data on sustainable forest management, timber production, wildlife habitat, and carbon sequestration in forestry.",
+                  "sql_complexity": "single join",
+                  "sql_complexity_description": "only one join (specify inner, outer, cross)",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "What is the total volume of timber sold by each salesperson, sorted by salesperson?",
+                  "sql_context": "CREATE TABLE salesperson (salesperson_id INT, name TEXT, region TEXT); INSERT INTO salesperson (salesperson_id, name, region) VALUES (1, 'John Doe', 'North'), (2, 'Jane Smith', 'South'); CREATE TABLE …",
+                  "sql": "SELECT salesperson_id, name, SUM(volume) as total_volume FROM timber_sales JOIN salesperson ON timber_sales.salesperson_id = salesperson.salesperson_id GROUP BY salesperson_id, name ORDER BY total_vol…",
+                  "sql_explanation": "Joins timber_sales and salesperson tables, groups sales by salesperson, calculates total volume sold by each salesperson, and orders the results by total volume in descending order."
+                },
+                {
+                  "id": 5098,
+                  "domain": "defense industry",
+                  "domain_description": "Defense contract data, military equipment maintenance, threat intelligence metrics, and veteran employment stats.",
+                  "sql_complexity": "aggregation",
+                  "sql_complexity_description": "aggregation functions (COUNT, SUM, AVG, MIN, MAX, etc.), and HAVING clause",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "List all the unique equipment types and their corresponding total maintenance frequency from the equipment_maintenance table.",
+                  "sql_context": "CREATE TABLE equipment_maintenance (equipment_type VARCHAR(255), maintenance_frequency INT);",
+                  "sql": "SELECT equipment_type, SUM(maintenance_frequency) AS total_maintenance_frequency FROM equipment_maintenance GROUP BY equipment_type;",
+                  "sql_explanation": "This query groups the equipment_maintenance table by equipment_type and calculates the sum of maintenance_frequency for each group, then returns the equipment_type and the corresponding total_maintena…"
+                },
+                {
+                  "id": 5099,
+                  "domain": "marine biology",
+                  "domain_description": "Comprehensive data on marine species, oceanography, conservation efforts, and climate change impacts in marine biology.",
+                  "sql_complexity": "basic SQL",
+                  "sql_complexity_description": "basic SQL with a simple select statement",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "How many marine species are found in the Southern Ocean?",
+                  "sql_context": "CREATE TABLE marine_species (name VARCHAR(50), common_name VARCHAR(50), location VARCHAR(50));",
+                  "sql": "SELECT COUNT(*) FROM marine_species WHERE location = 'Southern Ocean';",
+                  "sql_explanation": "This query counts the number of marine species found in the Southern Ocean by using the COUNT() function with a WHERE clause."
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "synthetic",
+            "kind": "real_local",
+            "uri": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+            "reason": "no source was named for this input, so it was searched for: huggingface matched 'gretelai/synthetic_text_to_sql' for the query 'synthetic' (catalogue record: https://huggingface.co/datasets/gretelai/synthetic_text_to_sql). Discovered by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet (100000 rows, 32363736 bytes, sha256 2bee9ac07cf5)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+              "sha256": "2bee9ac07cf5057d36b5ea30fb47d948697e882f42bd1cc661185396287c0180",
+              "byte_count": 32363736,
+              "data_format": "parquet",
+              "columns": [
+                "id",
+                "domain",
+                "domain_description",
+                "sql_complexity",
+                "sql_complexity_description",
+                "sql_task_type",
+                "sql_task_type_description",
+                "sql_prompt",
+                "sql_context",
+                "sql",
+                "sql_explanation"
+              ],
+              "row_count": 100000,
+              "sample_rows": [
+                {
+                  "id": 5097,
+                  "domain": "forestry",
+                  "domain_description": "Comprehensive data on sustainable forest management, timber production, wildlife habitat, and carbon sequestration in forestry.",
+                  "sql_complexity": "single join",
+                  "sql_complexity_description": "only one join (specify inner, outer, cross)",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "What is the total volume of timber sold by each salesperson, sorted by salesperson?",
+                  "sql_context": "CREATE TABLE salesperson (salesperson_id INT, name TEXT, region TEXT); INSERT INTO salesperson (salesperson_id, name, region) VALUES (1, 'John Doe', 'North'), (2, 'Jane Smith', 'South'); CREATE TABLE …",
+                  "sql": "SELECT salesperson_id, name, SUM(volume) as total_volume FROM timber_sales JOIN salesperson ON timber_sales.salesperson_id = salesperson.salesperson_id GROUP BY salesperson_id, name ORDER BY total_vol…",
+                  "sql_explanation": "Joins timber_sales and salesperson tables, groups sales by salesperson, calculates total volume sold by each salesperson, and orders the results by total volume in descending order."
+                },
+                {
+                  "id": 5098,
+                  "domain": "defense industry",
+                  "domain_description": "Defense contract data, military equipment maintenance, threat intelligence metrics, and veteran employment stats.",
+                  "sql_complexity": "aggregation",
+                  "sql_complexity_description": "aggregation functions (COUNT, SUM, AVG, MIN, MAX, etc.), and HAVING clause",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "List all the unique equipment types and their corresponding total maintenance frequency from the equipment_maintenance table.",
+                  "sql_context": "CREATE TABLE equipment_maintenance (equipment_type VARCHAR(255), maintenance_frequency INT);",
+                  "sql": "SELECT equipment_type, SUM(maintenance_frequency) AS total_maintenance_frequency FROM equipment_maintenance GROUP BY equipment_type;",
+                  "sql_explanation": "This query groups the equipment_maintenance table by equipment_type and calculates the sum of maintenance_frequency for each group, then returns the equipment_type and the corresponding total_maintena…"
+                },
+                {
+                  "id": 5099,
+                  "domain": "marine biology",
+                  "domain_description": "Comprehensive data on marine species, oceanography, conservation efforts, and climate change impacts in marine biology.",
+                  "sql_complexity": "basic SQL",
+                  "sql_complexity_description": "basic SQL with a simple select statement",
+                  "sql_task_type": "analytics and reporting",
+                  "sql_task_type_description": "generating reports, dashboards, and analytical insights",
+                  "sql_prompt": "How many marine species are found in the Southern Ocean?",
+                  "sql_context": "CREATE TABLE marine_species (name VARCHAR(50), common_name VARCHAR(50), location VARCHAR(50));",
+                  "sql": "SELECT COUNT(*) FROM marine_species WHERE location = 'Southern Ocean';",
+                  "sql_explanation": "This query counts the number of marine species found in the Southern Ocean by using the COUNT() function with a WHERE clause."
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "Apache Parquet — columnar and binary (pandas.read_parquet)"
+            },
+            "discovered": {
+              "name": "synthetic",
+              "url": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+              "connector": "huggingface",
+              "title": "gretelai/synthetic_text_to_sql",
+              "resource": "default/train (parquet)",
+              "landing_page": "https://huggingface.co/datasets/gretelai/synthetic_text_to_sql",
+              "query": "synthetic"
+            }
+          }
+        ],
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": [
+          "synthetic"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460811/01_tabular_classification_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H101"
+  ],
+  "generated_at": "2026-09-08T17:49:18.470434+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

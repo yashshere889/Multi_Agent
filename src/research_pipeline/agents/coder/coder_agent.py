@@ -2551,11 +2551,26 @@ class CoderAgent:
             for text in (requirements.get("source"), requirements.get("description"))
             if str(text or "").strip()
         ] or [str(plan["objective"])]
+        # A plan asking for generated data is not asking for a dataset, and the
+        # Hub will match the word anyway: "synthetic" returned
+        # gretelai/synthetic_text_to_sql in three consecutive benchmark runs,
+        # which then became the real input of a tabular-classification, a
+        # timeseries and a bootstrap experiment. Same predicate provenance.resolve
+        # uses, so the two cannot disagree about what a synthesis request is.
+        queries = [query for query in queries if not provenance.is_synthesis_request(query)]
+        if not queries:
+            return {}
         try:
             dataset = None
             for query in dict.fromkeys(queries):
                 dataset = self.huggingface_lookup(query)
                 if dataset:
+                    # Kept here rather than in huggingface_client, which answers
+                    # "what did the Hub serve?" and should not also have to
+                    # remember what it was asked. The provenance record needs it:
+                    # a dataset found by keyword search is only as good as the
+                    # keywords, and the person confirming it reads them.
+                    dataset = {**dataset, "query": query}
                     break
         except Exception as exc:  # noqa: BLE001 — see the docstring
             logger.warning(
@@ -2819,11 +2834,35 @@ class CoderAgent:
                     # decides that, or the two disagree about the same input.
                     kind=provenance.KIND_REAL_DOWNLOAD,
                     uri=self._rows_url(hf_dataset or {}),
-                    reason="found by the Hugging Face lookup and read by the generated code",
+                    reason=(
+                        "found by the Hugging Face lookup and read by the generated code. "
+                        "Matched by keyword search, not named by the plan — check that it "
+                        "answers the question before reading the verdict as evidence."
+                    ),
                     # Reached only when run_py named the dataset (or at prompt
                     # time, when there is no code to check), so its use is
                     # already established more strongly than a URL-host match.
                     usage_verified=True,
+                    # The same `discovered` marker discover.apply sets, and for
+                    # the same reason: nobody named this dataset, a keyword
+                    # search found it, so whether it answers *this* question is
+                    # a judgment a human still has to make. Its absence here was
+                    # a hole straight through provenance.needs_confirmation —
+                    # the guardrail watched the catalogue connectors and missed
+                    # the one path that resolves most data in production. Across
+                    # the 36-question batch 10460809 it fired zero times, while
+                    # all three verdicts that batch published rested on Hub hits
+                    # that cannot answer their hypothesis: a requirement reading
+                    # "Public benchmark datasets" matched
+                    # gaia-benchmark/results_public, an LLM-agent leaderboard,
+                    # and the paper reported the hypothesis *supported*.
+                    discovered={
+                        "connector": "huggingface:datasets-server",
+                        "query": str((hf_dataset or {}).get("query") or ""),
+                        "title": dataset_id,
+                        "url": self._rows_url(hf_dataset or {}),
+                        "landing_page": f"https://huggingface.co/datasets/{dataset_id}",
+                    },
                 ),
             )
 

@@ -1,0 +1,167 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H106",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106",
+      "assumptions_made": [
+        "The experiment requires a GPU for training the transformer model",
+        "The dataset is fetched from Hugging Face server",
+        "If the dataset is not accessible, a synthetic dataset is used as fallback",
+        "Both models are trained for the same number of epochs with early stopping",
+        "The models are evaluated on the same test split",
+        "Fixed tensor device mismatch issue in BagOfEmbeddings model by ensuring dummy_output is on the correct device"
+      ],
+      "results": {
+        "experiment_id": "H106",
+        "experiment_name": "Experiment H106",
+        "hypothesis": "Test whether a small transformer outperforms a bag-of-embeddings baseline on topic classification.",
+        "author": "coder-agent",
+        "baseline": "The bag-of-embeddings classifier trained on the same data for the same number of epochs.",
+        "success_criteria": "The transformer improves test accuracy by at least 0.03 over the bag-of-embeddings baseline.",
+        "timestamp_utc": "2026-09-08T04:10:50.087179+00:00",
+        "status": "success",
+        "elapsed_seconds": 3.3897,
+        "resumed": false,
+        "metrics": {
+          "bow_accuracy": 0.45,
+          "bow_f1": 0.4468864468864469,
+          "transformer_accuracy": 0.4,
+          "transformer_f1": 0.3212121212121212,
+          "accuracy_difference": -0.04999999999999999,
+          "training_history": {
+            "bow": [
+              1.1994197130203248,
+              1.2613417625427246,
+              1.1659627318382264,
+              1.1834866523742675,
+              1.1462122678756714,
+              1.2476405382156373
+            ],
+            "transformer": [
+              1.128422212600708,
+              1.1129529237747193,
+              1.1194671392440796,
+              1.1075032949447632,
+              1.1319529294967652,
+              1.105863618850708,
+              1.1095312356948852,
+              1.1201849222183227
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Bag-of-embeddings accuracy: 0.4500, Transformer accuracy: 0.4000. Difference: -0.0500. Success criteria not met.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "Training did not converge, and raising the epoch budget as far as the compute budget allows did not reach convergence either. The run is real and its loss curves are reported, but a comparison between models that have not converged measures the training budget rather than the thing under test, so the verdict is withheld. See compute_provenance.json."
+      },
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 41, in <module>\n    from transformers import AutoTokenizer, AutoModel, AdamW, get_linear_schedule_with_warmup\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/transformers/__init__.py) This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 10 -> 1; batch_size: 16 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Using a simple heuristic to assign topics based on first character of text as a proxy for real topic labels",
+            "Using BERT-base as the transformer backbone with frozen pre-trained weights for efficiency",
+            "Implementing a simplified bag-of-embeddings approach due to time constraints",
+            "Using early stopping with patience of 3 epochs to prevent overfitting",
+            "Assuming the dataset provides sufficient samples for meaningful comparison",
+            "Using a fixed maximum sequence length of 128 tokens for both models",
+            "Training both models for up to 10 epochs with early stopping",
+            "Using accuracy and macro-F1 as primary metrics for comparison"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106/run_smoke.py\", line 42, in <module>\n    from transformers import AdamW as TransformersAdamW\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/transformers/__init__.py) This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 10 -> 1; batch_size: 16 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Fixed import issue with `AdamW` from `transformers` package by importing it as `TransformersAdamW`",
+            "Used the correct import path for `AdamW` from the `transformers` library"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: rs/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/torch/nn/modules/linear.py\", line 134, in forward\n        return F.linear(input, self.weight, self.bias)\n               ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cpu, different from other tensors on cuda:0 (when checking argument in method wrapper_CUDA_addmm)\n========================================================================\n\n\nnts/H106/run.py\", line 599, in forward\n    return self.classifier(dummy_output)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10460710/2294b8e6793e5726/.venv/lib/python3.14/site-packages/torch/nn/modules/linear.py\", line 134, in forward\n    return F.linear(input, self.weight, self.bias)\n           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Expected all tensors to be on the same device, but got mat1 is on cpu, different from other tensors on cuda:0 (when checking argument in method wrapper_CUDA_addmm)",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/H106/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Fixed the import issue by changing `from transformers import AdamW as TransformersAdamW` to `from torch.optim import AdamW` and removing the alias",
+            "The synthetic fallback data maintains the necessary structure for the experiment to run",
+            "The experiment will run successfully with the corrected import and the rest of the logic intact",
+            "The Hugging Face dataset is accessible and provides sufficient data for training",
+            "The models are properly configured and trained with appropriate hyperparameters"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset HuggingFaceFW/fineweb",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=HuggingFaceFW%2Ffineweb&config=default&split=train&offset=0&length=100",
+            "local_path": "",
+            "reason": "found by the Hugging Face lookup and read by the generated code",
+            "credentials": []
+          },
+          {
+            "name": "Hugging Face public dataset",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": true,
+        "changes": [
+          "epochs: 10 -> 20",
+          "epochs: 20 -> 40"
+        ],
+        "converged": false,
+        "convergence_findings": [
+          "'bow' trained for only 6 epoch(s), too few to show convergence",
+          "'transformer' trained for only 8 epoch(s), too few to show convergence",
+          "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+        ],
+        "measurement_changes": [
+          "epochs: 10 -> 20",
+          "epochs: 20 -> 40"
+        ],
+        "precision_changes": [],
+        "timeout_seconds": 1800,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "ran_at_full_size": false
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460710/06_deep_learning_gpu/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H106"
+  ],
+  "generated_at": "2026-09-08T04:10:51.214810+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

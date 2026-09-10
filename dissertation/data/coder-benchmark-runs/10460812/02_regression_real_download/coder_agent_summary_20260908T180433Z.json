@@ -1,0 +1,76 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H102",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 454, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/run.py\", line 281, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10460812/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared' after 3 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102",
+      "assumptions_made": [
+        "The Iris dataset was adapted for regression by mapping species to numeric values (0, 1, 2)",
+        "The dataset has sufficient samples to support both the baseline and interaction models",
+        "The sklearn version used supports the `squared=False` parameter in `mean_squared_error`"
+      ],
+      "results": null,
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 446, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/run.py\", line 273, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10460812/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Iris dataset is converted to a regression problem by mapping species names to integers (0, 1, 2).",
+            "We use degree-2 polynomial features to capture pairwise interactions.",
+            "The dataset contains at least 2 numeric features required for interaction terms.",
+            "The experiment assumes that the target variable can be meaningfully treated as continuous for regression purposes.",
+            "The 80/20 train/test split is appropriate for this small dataset.",
+            "The evaluation uses RMSE as the primary metric for comparing model performance."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 449, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/run.py\", line 276, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10460812/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Iris dataset's numeric features (sepal length, sepal width, petal length, petal width) are suitable for regression analysis.",
+            "The species labels ('Iris-setosa', 'Iris-versicolor', 'Iris-virginica') can be meaningfully converted to numeric values for regression purposes.",
+            "The sklearn version used supports the `squared=False` parameter in `mean_squared_error`.",
+            "The dataset has sufficient samples to perform meaningful train/test splits and model comparisons."
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n/run.py\", line 454, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/run.py\", line 281, in evaluate\n    baseline_rmse = mean_squared_error(y_true, baseline_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10460812/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/H102/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Iris dataset can be converted to a regression problem by mapping species to numeric values",
+            "The dataset has sufficient samples for reliable model training and evaluation",
+            "The preprocessing steps are correctly applied to ensure valid train/test splits"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "regression",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 4
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460812/02_regression_real_download/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H102"
+  ],
+  "generated_at": "2026-09-08T18:04:33.941831+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

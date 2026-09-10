@@ -1,0 +1,85 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H111",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460813/11_bootstrap_resampling/experiments/H111",
+      "assumptions_made": [
+        "The provided datasets (gretelai/synthetic_text_to_sql) do not match the data requirements for testing bootstrap confidence intervals on skewed data, so synthetic data was generated instead",
+        "Synthetic data was created using log-normal distributions to simulate increasing skewness",
+        "For symmetric data (skewness = 0), normal distribution was used",
+        "True median values were set based on theoretical properties of the distributions used",
+        "The experiment uses 1000 bootstrap replications for stable confidence interval estimation",
+        "The nominal coverage level is 95% (2.5th to 97.5th percentiles)",
+        "Each skewness level uses 1000 samples to ensure stable coverage estimates",
+        "Fixed random seed ensures reproducible results"
+      ],
+      "results": {
+        "experiment_id": "H111",
+        "experiment_name": "Experiment H111",
+        "hypothesis": "Test whether the bootstrap confidence interval for a median achieves nominal coverage on skewed data.",
+        "author": "coder-agent",
+        "baseline": "The nominal 95% coverage the interval claims.",
+        "success_criteria": "Empirical coverage stays within 0.03 of nominal at every skewness level.",
+        "timestamp_utc": "2026-09-08T19:14:54.750777+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.2351,
+        "resumed": false,
+        "metrics": {
+          "coverage_rate": 1.0,
+          "coverage_rates_by_skewness": {
+            "0.0": 1.0,
+            "0.5": 1.0,
+            "1.0": 1.0,
+            "1.5": 1.0,
+            "2.0": 1.0
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Skewness 0.0: coverage 1.000 differs from nominal 0.950 by 0.050 > 0.03; Skewness 0.5: coverage 1.000 differs from nominal 0.950 by 0.050 > 0.03; Skewness 1.0: coverage 1.000 differs from nominal 0.950 by 0.050 > 0.03; Skewness 1.5: coverage 1.000 differs from nominal 0.950 by 0.050 > 0.03; Skewness 2.0: coverage 1.000 differs from nominal 0.950 by 0.050 > 0.03",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+            "reason": "the generated code reports substituting for the data this plan requires: The provided datasets (gretelai/synthetic_text_to_sql) do not match the data requirements for testing bootstrap confidence intervals on skewed data, so synthetic data was generated instead; Synthetic data was created using log-normal distributions to simulate increasing skewness",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460813/11_bootstrap_resampling/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H111"
+  ],
+  "generated_at": "2026-09-08T19:14:54.932423+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

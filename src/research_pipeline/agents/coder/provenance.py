@@ -174,6 +174,15 @@ class DataSource:
     # name, so whether it answers the question is a judgment a human still has
     # to make. See discover.py's module docstring on the relevance gate.
     discovered: dict[str, Any] = field(default_factory=dict)
+    # Set by `resolve` when the requirement asks for data to be *generated*.
+    # Distinct from `unresolved`, which this keeps alongside it, because that
+    # flag answers two questions at once and only one of them changes here:
+    # "may a search look for this?" (no — see is_synthesis_request) and "may a
+    # real input that turned up under another name supersede it?" (yes, and it
+    # must — a plan naming synthetic data whose code demonstrably reads a real
+    # dataset instead has a phantom requirement, exactly the case
+    # supersede_unresolved exists for).
+    synthesis_request: bool = False
 
     @property
     def is_real(self) -> bool:
@@ -244,6 +253,112 @@ def _staged_file(staging_dir: Path | None, requirement: str) -> Path | None:
     return best[1] if best else None
 
 
+# A requirement that asks for data to be *made*, not found. Measured, not
+# guessed: across benchmark runs 10460710/10460812/10460813 the planner wrote
+# the bare word "synthetic" as a data requirement, and because no table matched
+# it the requirement became `unresolved` — which is this package's signal to go
+# looking. Both searches then obliged. The Hub matched
+# `gretelai/synthetic_text_to_sql` on the word itself and handed a text-to-SQL
+# corpus to tabular classification, timeseries forecasting, high-complexity CPU
+# and bootstrap resampling; the catalogue connectors searched for it too.
+#
+# Searching for a synthesis instruction is a category error, not a bad match:
+# there is no dataset anywhere that "is" the synthetic data a plan intends to
+# generate, so every hit is wrong by construction and the best possible outcome
+# is an honest miss. Recognising it here rather than in either search keeps one
+# answer to "is this a request for data at all?", the same way `dedupe_key` is
+# the one answer to "are these the same paper?".
+# The vocabulary a synthesis instruction is built from. Split into three sets
+# rather than one alternation because the rule is "the requirement says nothing
+# but this", not "the requirement contains one of these".
+_SYNTHESIS_WORDS = {
+    "artificial",
+    "dummy",
+    "fake",
+    "generated",
+    "mock",
+    "random",
+    "randomly",
+    "simulated",
+    "synthesised",
+    "synthesized",
+    "synthetic",
+    "toy",
+}
+# Nouns that name data in general rather than any particular data.
+_GENERIC_DATA_WORDS = {
+    "data",
+    "dataset",
+    "datasets",
+    "example",
+    "examples",
+    "input",
+    "inputs",
+    "matrices",
+    "matrix",
+    "observation",
+    "observations",
+    "record",
+    "records",
+    "row",
+    "rows",
+    "sample",
+    "samples",
+    "series",
+    "set",
+    "sets",
+    "value",
+    "values",
+}
+# Shape adjectives that still say nothing about provenance.
+_SHAPE_WORDS = {
+    "categorical",
+    "numeric",
+    "numerical",
+    "simple",
+    "small",
+    "tabular",
+    "test",
+}
+_FILLER_WORDS = {"a", "an", "the", "of", "with", "and", "some"}
+
+
+def is_synthesis_request(requirement: str) -> bool:
+    """Whether this requirement asks for data to be generated rather than found.
+
+    Measured, not guessed: across benchmark runs 10460710/10460812/10460813 the
+    planner wrote the bare word "synthetic" as a data requirement, and because
+    no table matched it the requirement became `unresolved` — this package's
+    signal to go looking. Both searches then obliged. The Hub matched
+    `gretelai/synthetic_text_to_sql` on the word itself and handed a text-to-SQL
+    corpus to tabular classification, timeseries forecasting, high-complexity
+    CPU and bootstrap resampling in the same run.
+
+    Searching for a synthesis instruction is a category error rather than a bad
+    match: no dataset anywhere "is" the synthetic data a plan intends to
+    generate, so every hit is wrong by construction and an honest miss is the
+    best available outcome.
+
+    The test is deliberately strict — every word must be synthesis vocabulary, a
+    generic data noun, a shape adjective or filler — so it recognises "synthetic
+    data" and declines to judge "simulated portfolio returns" or "synthetic
+    control estimates for German reunification". Those name, or may name, real
+    data. The asymmetry is on purpose: a requirement wrongly matched here is a
+    real dataset nobody ever searches for, while one wrongly missed is searched,
+    and since the Hub match is now `discovered` its verdict is withheld anyway.
+    Over-matching costs data; under-matching costs a search.
+    """
+    words = [w for w in re.split(r"[^a-z0-9]+", requirement.lower()) if w]
+    if not words:
+        return False
+    meaningful = [w for w in words if w not in _FILLER_WORDS]
+    if not any(w in _SYNTHESIS_WORDS for w in meaningful):
+        return False
+    return all(
+        w in _SYNTHESIS_WORDS or w in _GENERIC_DATA_WORDS or w in _SHAPE_WORDS for w in meaningful
+    )
+
+
 def resolve(
     requirements: list[str],
     *,
@@ -266,6 +381,21 @@ def resolve(
                     kind=KIND_REAL_LOCAL,
                     local_path=str(staged),
                     reason=f"staged locally at {staged}",
+                )
+            )
+            continue
+
+        if is_synthesis_request(requirement):
+            resolved.append(
+                DataSource(
+                    name=requirement,
+                    kind=KIND_SURROGATE,
+                    reason=(
+                        "the plan asked for generated data, so this input is synthesized "
+                        "by design rather than for want of a source"
+                    ),
+                    unresolved=True,
+                    synthesis_request=True,
                 )
             )
             continue

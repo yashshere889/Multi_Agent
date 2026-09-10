@@ -1,0 +1,99 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H104",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460813/04_clustering_synthetic/experiments/H104",
+      "assumptions_made": [
+        "Used the synthetic_text_to_sql dataset as a proxy for 2D point clouds, extracting numerical features",
+        "When the dataset didn't provide suitable numeric features, fell back to synthetic data generation",
+        "Generated synthetic data with three Gaussian blobs at different separation levels (0.5, 1.0, 2.0) to represent increasing overlap",
+        "Used Adjusted Rand Index as the primary metric to compare k-means against random assignment",
+        "Used the same number of clusters (3) for both k-means and random assignment",
+        "Applied StandardScaler to normalize features before clustering",
+        "Used KMeans from scikit-learn with default parameters except for fixed random seed"
+      ],
+      "results": {
+        "experiment_id": "H104",
+        "experiment_name": "Experiment H104",
+        "hypothesis": "Test whether k-means recovers known cluster structure better than random assignment at increasing overlap.",
+        "author": "coder-agent",
+        "baseline": "Random assignment of points to the same number of clusters.",
+        "success_criteria": "k-means beats random assignment on adjusted Rand index at every separation level tested.",
+        "timestamp_utc": "2026-09-08T18:50:20.090187+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.0419,
+        "resumed": false,
+        "metrics": {
+          "metrics": {
+            "separation_0.5": {
+              "kmeans_ari": 0.4825144121697027,
+              "kmeans_inertia": 209.95556391931137,
+              "kmeans_silhouette": 0.3720348808993649,
+              "random_ari": -0.0038580090236800535,
+              "random_silhouette": -0.030367522174421187
+            },
+            "separation_1.0": {
+              "kmeans_ari": 0.9596668992713081,
+              "kmeans_inertia": 266.2732253954843,
+              "kmeans_silhouette": 0.5761495494872074,
+              "random_ari": -0.011679260748467708,
+              "random_silhouette": -0.02852893227659648
+            },
+            "separation_2.0": {
+              "kmeans_ari": 1.0,
+              "kmeans_inertia": 276.49576934654164,
+              "kmeans_silhouette": 0.7878289126788903,
+              "random_ari": -0.0019515748502342977,
+              "random_silhouette": -0.04781615461636129
+            }
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Separation 0.5: k-means ARI=0.483, random ARI=-0.004, better; Separation 1.0: k-means ARI=0.960, random ARI=-0.012, better; Separation 2.0: k-means ARI=1.000, random ARI=-0.002, better",
+        "error": null,
+        "model_reported_meets_success_criteria": true,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "clustering",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "synthetic",
+            "kind": "synthetic_surrogate",
+            "uri": "https://huggingface.co/api/datasets/gretelai/synthetic_text_to_sql/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/054f269f530aa3ef/synthetic.parquet",
+            "reason": "the generated code reports substituting for the data this plan requires: Used the synthetic_text_to_sql dataset as a proxy for 2D point clouds, extracting numerical features; Generated synthetic data with three Gaussian blobs at different separation levels (0.5, 1.0, 2.0) to represent increasing overlap",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460813/04_clustering_synthetic/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H104"
+  ],
+  "generated_at": "2026-09-08T18:50:20.336991+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

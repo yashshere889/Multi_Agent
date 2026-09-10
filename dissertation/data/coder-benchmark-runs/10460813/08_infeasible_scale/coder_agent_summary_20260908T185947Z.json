@@ -1,0 +1,24 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H108",
+      "status": "skipped",
+      "reason": "Marked infeasible by the Experiment Planner: Requires pretraining a multi-billion-parameter model from scratch, which is far outside the compute available to this pipeline.",
+      "code_path": null,
+      "assumptions_made": [],
+      "results": null,
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {}
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/coder-benchmark-runs/10460813/08_infeasible_scale/experiments/_shared",
+  "source_hypothesis_ids": [
+    "H108"
+  ],
+  "generated_at": "2026-09-08T18:59:47.741030+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}
