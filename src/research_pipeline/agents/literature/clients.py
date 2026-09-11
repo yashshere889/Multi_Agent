@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 import time
+from collections.abc import Callable
 
 import arxiv
 import requests
@@ -45,17 +47,53 @@ CORE_SEARCH_URL = "https://api.core.ac.uk/v3/search/works/"
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_ATTEMPTS = 3
 BACKOFF_BASE_SECONDS = 1.5
+# A 429 is the server saying slow down, and 1.5s then 3s did not: with pacing in
+# place, Barkla job 10495925's snippet hydration still drew three 429s in five
+# seconds and lost the metadata of all 50 snippet papers.
+RATE_LIMIT_BACKOFF_SECONDS = 5.0
+
+# A Semantic Scholar API key is rate-limited to one request per second,
+# cumulative across every endpoint. The clients below used to space their own
+# requests 0.2s apart, which is five a second: Barkla job 10492707 had its
+# snippet search, its keyword search and all 36 snippet-paper hydrations
+# answered 429 on the first question of the run, and each retry — backing off
+# 1.5s while the next call went out regardless — only added to the load. So
+# every S2 request, retries included, waits for its slot here. Process-wide and
+# locked because the Interdisciplinary Agent fans its searches out across
+# threads, and a per-call-site sleep cannot see the others.
+SEMANTIC_SCHOLAR_MIN_INTERVAL_SECONDS = 1.05
+_semantic_scholar_lock = threading.Lock()
+_semantic_scholar_last_request = float("-inf")
 
 
-def _request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
+def _wait_for_semantic_scholar_slot() -> None:
+    global _semantic_scholar_last_request
+    with _semantic_scholar_lock:
+        wait = (
+            _semantic_scholar_last_request
+            + SEMANTIC_SCHOLAR_MIN_INTERVAL_SECONDS
+            - time.monotonic()
+        )
+        if wait > 0:
+            time.sleep(wait)
+        _semantic_scholar_last_request = time.monotonic()
+
+
+def _request_with_retry(
+    method: str, url: str, *, pace: Callable[[], None] | None = None, **kwargs
+) -> requests.Response:
     """requests.request with a small exponential backoff on transient failures.
 
     Non-retryable statuses (e.g. 403) are returned immediately so the caller
     can log the real cause instead of masking it behind three identical retries.
+    `pace`, when given, is called before every attempt — retries count against
+    a rate limit exactly as first tries do.
     """
     response: requests.Response | None = None
     last_exc: requests.RequestException | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
+        if pace is not None:
+            pace()
         try:
             response = requests.request(method, url, **kwargs)
         except requests.RequestException as exc:
@@ -75,7 +113,9 @@ def _request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
                 MAX_ATTEMPTS,
             )
         if attempt < MAX_ATTEMPTS:
-            time.sleep(BACKOFF_BASE_SECONDS * attempt)
+            rate_limited = response is not None and response.status_code == 429
+            base = RATE_LIMIT_BACKOFF_SECONDS if rate_limited else BACKOFF_BASE_SECONDS
+            time.sleep(base * attempt)
     if response is not None:
         return response
     raise last_exc  # every attempt raised — surface the last connection error
@@ -176,7 +216,12 @@ def search_semantic_scholar(queries: list[str], max_results: int) -> list[Paper]
         params = {"query": query, "limit": max_results, "fields": SEMANTIC_SCHOLAR_FIELDS}
         try:
             resp = _request_with_retry(
-                "GET", SEMANTIC_SCHOLAR_SEARCH_URL, params=params, headers=headers, timeout=30
+                "GET",
+                SEMANTIC_SCHOLAR_SEARCH_URL,
+                params=params,
+                headers=headers,
+                timeout=30,
+                pace=_wait_for_semantic_scholar_slot,
             )
         except requests.RequestException as exc:
             logger.error("Semantic Scholar query '%s' failed after retries: %s", query, exc)
@@ -196,7 +241,6 @@ def search_semantic_scholar(queries: list[str], max_results: int) -> list[Paper]
                 continue
             seen_ids.add(paper_id)
             papers.append(paper_from_semantic_scholar(paper))
-        time.sleep(0.2)
     logger.info("Semantic Scholar: found %d unique papers", len(papers))
     return papers
 
@@ -269,6 +313,12 @@ def search_core(queries: list[str], max_results: int) -> list[Paper]:
 # what a seed cites (foundational work); "citations" walks forward to what cites
 # it (newer follow-ups).
 _EDGE_TARGET = {"references": "citedPaper", "citations": "citingPaper"}
+# Fields the paper object carries on /paper/search and /paper/batch but that the
+# reference and citation edges reject. S2 answers an unknown field with a 400 for
+# the whole request, so requesting `citedPaper.tldr` made every hop of Barkla job
+# 10492707 fail with "Unrecognized or unsupported fields: [tldr]" — citation
+# expansion returned nothing at all, silently, on every run.
+_EDGE_UNSUPPORTED_FIELDS = frozenset({"tldr"})
 
 # S2 resolves `arXiv:1706.03762`, not `arXiv:1706.03762v2`.
 _ARXIV_VERSION_RE = re.compile(r"v\d+$")
@@ -309,7 +359,11 @@ def fetch_related(paper_id: str, direction: str, limit: int) -> list[Paper]:
         return []
 
     target = _EDGE_TARGET[direction]
-    fields = ",".join(f"{target}.{field}" for field in SEMANTIC_SCHOLAR_FIELDS.split(","))
+    fields = ",".join(
+        f"{target}.{field}"
+        for field in SEMANTIC_SCHOLAR_FIELDS.split(",")
+        if field not in _EDGE_UNSUPPORTED_FIELDS
+    )
     headers = {"x-api-key": settings.semantic_scholar_api_key, "User-Agent": USER_AGENT}
 
     try:
@@ -319,6 +373,7 @@ def fetch_related(paper_id: str, direction: str, limit: int) -> list[Paper]:
             params={"fields": fields, "limit": limit},
             headers=headers,
             timeout=30,
+            pace=_wait_for_semantic_scholar_slot,
         )
     except requests.RequestException as exc:
         logger.warning(
@@ -357,7 +412,6 @@ def fetch_related(paper_id: str, direction: str, limit: int) -> list[Paper]:
         papers.append(paper)
 
     logger.info("%s of %s: %d paper(s)", direction, paper_id, len(papers))
-    time.sleep(0.2)
     return papers
 
 
@@ -404,6 +458,7 @@ def _hydrate_snippet_papers(corpus_ids: list[str], headers: dict) -> dict:
                 json={"ids": [f"CorpusId:{cid}" for cid in chunk]},
                 headers=headers,
                 timeout=30,
+                pace=_wait_for_semantic_scholar_slot,
             )
         except requests.RequestException as exc:
             logger.warning("Snippet metadata hydration failed after retries: %s", exc)
@@ -432,7 +487,6 @@ def _hydrate_snippet_papers(corpus_ids: list[str], headers: dict) -> dict:
                 continue
             returned_id = (entry.get("externalIds") or {}).get("CorpusId")
             hydrated[str(returned_id) if returned_id is not None else requested_id] = entry
-        time.sleep(0.2)
     return hydrated
 
 
@@ -457,7 +511,12 @@ def search_semantic_scholar_snippets(queries: list[str], max_results: int) -> li
         params = {"query": query, "limit": max_results, "fields": SEMANTIC_SCHOLAR_SNIPPET_FIELDS}
         try:
             resp = _request_with_retry(
-                "GET", SEMANTIC_SCHOLAR_SNIPPET_URL, params=params, headers=headers, timeout=30
+                "GET",
+                SEMANTIC_SCHOLAR_SNIPPET_URL,
+                params=params,
+                headers=headers,
+                timeout=30,
+                pace=_wait_for_semantic_scholar_slot,
             )
         except requests.RequestException as exc:
             logger.error("Snippet query '%s' failed after retries: %s", query, exc)
@@ -493,7 +552,6 @@ def search_semantic_scholar_snippets(queries: list[str], max_results: int) -> li
             except (TypeError, ValueError):
                 score = 0.0
             entry["snippets"].append((score, text))
-        time.sleep(0.2)
 
     if not by_corpus_id:
         logger.info("Semantic Scholar snippets: found 0 papers")
