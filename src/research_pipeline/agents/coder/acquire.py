@@ -579,6 +579,169 @@ def _sample_from_delimited(text: str, data_format: str) -> list[dict]:
 
 
 # --------------------------------------------------------------------------
+# Staged files
+# --------------------------------------------------------------------------
+
+# A file someone staged under CODER_DATA_DIR reached the model as a bare path —
+# no columns, no rows, nothing read off the bytes — so load_data was written
+# against guessed column names, the failure acquisition already ended for
+# fetched files. Staged files get the same description plus what a fetched
+# preview never needed: the *last* rows. A staged time series routinely ends in
+# placeholders for periods not yet published — the Shiller S&P 500 file in
+# Barkla's staging directory closes with rows whose CPI, dividend and long rate
+# are all 0.0 — and a model shown only the first rows computes inflation off a
+# CPI of zero.
+STAGED_FULL_READ_BYTES = 8 * 1024 * 1024
+STAGED_HEAD_BYTES = 256 * 1024
+
+
+def _as_number(value: Any) -> float | None:
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def trailing_placeholders(rows: list[dict]) -> dict[str, int]:
+    """{column: n} for columns whose last n rows are 0 or blank though most rows are not.
+
+    Computed rather than left for the model to notice, so the prompt can state
+    it as a fact about the file. A column that is zero or blank throughout is a
+    real value, not a placeholder, and is not reported.
+    """
+    if len(rows) < 4:
+        return {}
+    found: dict[str, int] = {}
+    for column in rows[0]:
+        run = 0
+        for row in reversed(rows):
+            value = row.get(column)
+            if value is None or not str(value).strip() or _as_number(value) == 0.0:
+                run += 1
+            else:
+                break
+        if run == 0 or run == len(rows):
+            continue
+        populated = sum(1 for row in rows if _as_number(row.get(column)) not in (None, 0.0))
+        if populated * 2 >= len(rows):
+            found[column] = run
+    return found
+
+
+def _all_rows(payload: bytes, data_format: str) -> list[dict]:
+    try:
+        text = payload.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return []
+    if data_format in (FORMAT_CSV, FORMAT_TSV):
+        delimiter = "\t" if data_format == FORMAT_TSV else ","
+        try:
+            return [
+                {key: value for key, value in row.items() if key}
+                for row in csv.DictReader(io.StringIO(text), delimiter=delimiter)
+                if any(isinstance(value, str) and value.strip() for value in row.values())
+            ]
+        except csv.Error:
+            return []
+    if data_format == FORMAT_JSONL:
+        rows = []
+        for line in text.splitlines():
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(record, dict):
+                rows.append(record)
+        return rows
+    return []
+
+
+_README_NAMES = ("README.txt", "README.md", "README")
+DATA_SUFFIXES = (".csv", ".tsv", ".json", ".jsonl", ".parquet")
+MAX_NOTES_CHARS = 1200
+
+
+def _is_file_entry(line: str) -> bool:
+    words = line.split()
+    return bool(words) and not line[0].isspace() and words[0].lower().endswith(DATA_SUFFIXES)
+
+
+def readme_notes(path: Path) -> str:
+    """The staging README's own notes on this file — its source, units, caveats.
+
+    Units are what nothing read off the bytes can supply: the Fama-French files
+    staged on Barkla are percent per period, not decimals, and a first row
+    reading 2.96 looks equally plausible either way. Entries listed on
+    consecutive lines share the notes that follow them, as that README groups
+    the daily and monthly files. "" when there is no README or no entry.
+    """
+    readme = next(
+        (path.parent / name for name in _README_NAMES if (path.parent / name).is_file()), None
+    )
+    if readme is None:
+        return ""
+    try:
+        lines = readme.read_text(errors="replace").splitlines()
+    except OSError:
+        return ""
+    names = {path.name, path.resolve().name}
+    start = next(
+        (i for i, line in enumerate(lines) if _is_file_entry(line) and line.split()[0] in names),
+        None,
+    )
+    if start is None:
+        return ""
+    end = start + 1
+    while end < len(lines) and _is_file_entry(lines[end]):
+        end += 1
+    while end < len(lines) and not _is_file_entry(lines[end]) and not lines[end].startswith("---"):
+        end += 1
+    return "\n".join(line.rstrip() for line in lines[start:end]).strip()[:MAX_NOTES_CHARS]
+
+
+def describe_local(path: Path) -> dict[str, Any]:
+    """Columns, row count, first and last rows of a staged file; {} if unreadable.
+
+    A file past STAGED_FULL_READ_BYTES is described from its head only — a
+    multi-hundred-megabyte corpus is not parsed at prompt time — so it carries
+    no row count and no last rows rather than wrong ones.
+    """
+    try:
+        size = path.stat().st_size
+        complete = size <= STAGED_FULL_READ_BYTES
+        with path.open("rb") as handle:
+            body = handle.read(STAGED_FULL_READ_BYTES if complete else STAGED_HEAD_BYTES)
+    except OSError:
+        return {}
+    if not complete:
+        body = body[: body.rfind(b"\n") + 1]
+    described = describe(body)
+    if described is None:
+        return {}
+    data_format, columns, row_count, sample_rows, payload = described
+    preview: dict[str, Any] = {
+        "data_format": data_format,
+        "read_hint": READ_HINTS.get(data_format, ""),
+        "columns": columns,
+        "sample_rows": sample_rows,
+    }
+    notes = readme_notes(path)
+    if notes:
+        preview["notes"] = notes
+    if not complete:
+        return preview
+    rows = _all_rows(payload, data_format)
+    preview["row_count"] = row_count
+    preview["last_rows"] = [
+        {key: _truncate_cell(value) for key, value in row.items()} for row in rows[-SAMPLE_ROWS:]
+    ]
+    placeholders = trailing_placeholders(rows)
+    if placeholders:
+        preview["trailing_placeholders"] = placeholders
+    return preview
+
+
+# --------------------------------------------------------------------------
 # Paginated row APIs
 # --------------------------------------------------------------------------
 

@@ -1435,6 +1435,51 @@ def module_importable(python_executable: Path, module: str, cwd: Path) -> bool:
     return proc.returncode == 0
 
 
+_EXPORTS_PROBE = (
+    "import importlib, json, pkgutil, sys\n"
+    "module = importlib.import_module(sys.argv[1])\n"
+    "print(json.dumps({\n"
+    "    'names': sorted(n for n in dir(module) if not n.startswith('_')),\n"
+    "    'submodules': sorted(\n"
+    "        m.name for m in pkgutil.iter_modules(getattr(module, '__path__', None) or [])\n"
+    "    ),\n"
+    "}))\n"
+)
+
+
+def module_exports(python_executable: Path, module: str, cwd: Path) -> dict[str, list[str]] | None:
+    """The public names and submodules `module` really has, or None.
+
+    Read in the experiment's own interpreter from the directory run.py runs in —
+    same reasoning as module_importable: the answer has to describe the version
+    that runs the code, not whatever this process happens to have installed.
+    """
+    if not module or not re.fullmatch(r"[A-Za-z_][\w.]*", module):
+        return None
+    try:
+        proc = subprocess.run(
+            [_interpreter_path(python_executable), "-c", _EXPORTS_PROBE, module],
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    try:
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return {
+        "names": [str(name) for name in payload.get("names") or []],
+        "submodules": [str(name) for name in payload.get("submodules") or []],
+    }
+
+
 def install_into_env(python_executable: Path, packages: list[str]) -> tuple[bool, str]:
     """Install packages into an already-provisioned interpreter. Returns (ok, detail).
 

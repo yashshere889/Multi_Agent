@@ -603,6 +603,32 @@ def test_a_named_input_still_gets_a_verdict():
     assert provenance.verdict([staged]) == provenance.VERDICT_EVIDENCE
 
 
+def test_a_url_the_plan_named_itself_gets_a_verdict():
+    """search_direct fetched what the plan named — not a keyword search result."""
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+    named = provenance.DataSource(
+        name=f"FRED 10-year Treasury constant maturity yield {url}",
+        kind=provenance.KIND_REAL_LOCAL,
+        uri=url,
+        local_path="/cache/cd/dgs10.csv",
+        acquired={"sha256": "d" * 64, "row_count": 16000, "columns": ["observation_date", "DGS10"]},
+        discovered={"connector": "direct", "url": url, "title": url, "landing_page": url},
+    )
+    assert provenance.needs_confirmation([named]) is False
+    assert provenance.verdict([named]) == provenance.VERDICT_EVIDENCE
+    assert provenance.as_document([named])["unconfirmed_discovered_inputs"] == []
+    # A plan-named URL alongside a searched-for input still waits for a human.
+    assert provenance.needs_confirmation([named, _discovered_local()]) is True
+
+
+def test_apply_does_not_describe_a_plan_named_url_as_a_keyword_search():
+    sources = provenance.resolve(["returns at https://x.example/returns.csv"], network_available=True)
+    record = {"connector": "direct", "url": "https://x.example/returns.csv", "query": "returns"}
+    applied = discover.apply(sources, {sources[0].name: record})
+    assert "named by the plan" in applied[0].reason
+    assert "keyword search" not in applied[0].reason
+
+
 def test_a_discovered_input_withholds_the_hypothesis_verdict():
     """The measured reason this exists: a live sweep returned two datasets that
     were real, plausible and wrong. A refutation computed on the wrong real data

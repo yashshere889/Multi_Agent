@@ -4841,6 +4841,27 @@ def test_targeted_regeneration_keeps_the_sections_it_never_asked_for(tmp_path):
     assert "clobbered" not in run_py
 
 
+def test_a_targeted_fix_does_not_drop_an_import_the_reused_code_needs(tmp_path):
+    """Barkla 10496130: regenerating one section dropped an import another still used."""
+    broken = {
+        **GOOD_SECTIONS,
+        "imports": "import math\n",
+        "run_experiment_function": "def run_experiment(data, model):\n    return {'root': math.sqrt(4)}\n",
+        "evaluate_function": "def evaluate(experiment_output:\n    pass\n",
+    }
+    # The fix rewrites imports (always regenerated) and forgets `math`, which the
+    # run_experiment section it was never asked to touch still calls.
+    fixed = {**GOOD_SECTIONS, "imports": ""}
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(broken)], fix=[_codegen_response(fixed)]
+    )
+    result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
+
+    run_py = (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert "import math" in run_py
+    assert result["experiments"][0]["status"] == "completed"
+
+
 def test_an_unlocalized_failure_still_asks_for_every_section(tmp_path):
     # A logic bug at execution can live anywhere, so the whole program is fair
     # game — the behaviour every fix had before localization existed.
@@ -5448,6 +5469,11 @@ def test_a_synthesis_request_is_never_searched_for_in_the_catalogues(tmp_path):
         "simulated data",
         "synthetic generation",
         "data generation",
+        "simulation data",
+        "generating synthetic samples",
+        "data synthesis",
+        "simulations",
+        "simulate data",
     ],
 )
 def test_requirements_that_ask_for_generated_data(requirement):
@@ -5527,6 +5553,8 @@ def test_the_synthesis_predicate_against_every_requirement_a_real_batch_wrote():
         "simulated annealing benchmark suite results from NIST",
         "UCI Adult census income",
         "MIMIC-III clinical notes",
+        "electricity generation by fuel type",
+        "Monte Carlo simulations of historical portfolio returns",
     ],
 )
 def test_requirements_that_merely_mention_generated_data(requirement):
@@ -6865,6 +6893,55 @@ def test_an_acquired_dataset_the_code_reads_is_a_real_input(tmp_path, monkeypatc
     assert hub[0].kind == provenance.KIND_REAL_LOCAL
     assert hub[0].local_path == path
     assert provenance.verdict(sources) != provenance.VERDICT_SURROGATE
+
+
+def test_a_staged_file_reaches_the_prompt_with_its_columns_and_last_rows(tmp_path, monkeypatch):
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "historical_stock_market_prices.csv").write_text(
+        "Date,SP500,CPI\n1871-01-01,4.44,12.46\n1871-02-01,4.50,12.84\n"
+        "2026-06-01,7300.1,331.2\n2026-07-01,7481.3,0.0\n"
+    )
+    _patch_settings(monkeypatch, coder_data_dir=str(staged))
+    agent = _agent(tmp_path, FakeChatModel({}))
+    plan = {"hypothesis_id": "H1", "data_requirements": {"source": "historical stock market prices"}}
+
+    sources = agent._provenance_for(plan, network_available=False)
+
+    assert sources[0].kind == provenance.KIND_REAL_LOCAL
+    assert sources[0].preview["columns"] == ["Date", "SP500", "CPI"]
+    assert sources[0].preview["trailing_placeholders"] == {"CPI": 1}
+    assert "Last rows:" in provenance.prompt_block(sources)
+
+
+def test_the_hub_is_not_searched_when_every_input_is_already_staged(tmp_path, monkeypatch):
+    """Barkla 10496057: a plan naming a staged file still pulled a Hub copy of it."""
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "fama_french_three_factor_daily_returns.csv").write_text("date,Mkt-RF,RF\n1926-07-01,0.09,0.01\n")
+    _patch_settings(monkeypatch, coder_data_dir=str(staged), coder_enable_hf_dataset_search=True)
+
+    def _lookup(query):
+        pytest.fail(f"searched the Hub for {query!r} although the input is staged")
+
+    agent = _agent(tmp_path, FakeChatModel({}), huggingface_lookup_fn=_lookup)
+    plan = {
+        "hypothesis_id": "H1",
+        "objective": "x",
+        "data_requirements": {"source": "fama_french_three_factor_daily_returns.csv"},
+    }
+    assert agent._find_hf_dataset(plan, network_available=True) == {}
+
+
+def test_the_hub_is_still_searched_for_an_input_nothing_staged_answers(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_data_dir="", coder_enable_hf_dataset_search=True)
+    asked = []
+    agent = _agent(tmp_path, FakeChatModel({}), huggingface_lookup_fn=lambda q: asked.append(q) or None)
+    plan = {"hypothesis_id": "H1", "objective": "x", "data_requirements": {"source": "AG News topic corpus"}}
+
+    agent._find_hf_dataset(plan, network_available=True)
+
+    assert asked == ["AG News topic corpus"]
 
 
 # -- sandbox.check_training_batching -------------------------------------------

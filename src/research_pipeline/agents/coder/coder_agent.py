@@ -304,6 +304,11 @@ _MAX_API_PATCHES = 1
 # that, shrinking further degrades the experiment rather than rescuing it.
 _MAX_DOWNSCALES = 2
 
+# How many of a module's real names and submodules a missing-name failure lists
+# for the model. A package's public namespace can run to hundreds; the fix prompt
+# needs enough to find the right one, not the whole of dir().
+_MAX_EXPORTED_NAMES_SHOWN = 80
+
 # How many times a run that has not converged may have its training knobs
 # doubled before the result is accepted as-is with the verdict withheld. Two,
 # so `epochs` can quadruple — enough to clear a budget that was merely short,
@@ -1691,6 +1696,7 @@ class CoderAgent:
                 break
 
             failure = diagnose.classify_execution_failure(message)
+            failure = self._with_real_exports(failure, message, python_executable, experiment_dir)
 
             if failure.route == diagnose.ROUTE_ENV and env_repairs < settings.coder_max_env_repairs:
                 if not network_available:
@@ -1958,6 +1964,51 @@ class CoderAgent:
             )
         }
 
+    @staticmethod
+    def _with_real_exports(
+        failure: diagnose.ExecutionDiagnosis,
+        message: str,
+        python_executable: Path,
+        cwd: Path,
+    ) -> diagnose.ExecutionDiagnosis:
+        """Say what a module really exports when the code asked it for a name it lacks.
+
+        The traceback says `sample_saltelli` is not in `SALib.sample`; it does not
+        say what is, so the model rewrote the same import on the next attempt.
+        The lists come from the experiment's own interpreter, so they describe
+        the installed version rather than the one the model remembers. A removed
+        API keeps its own, more specific guidance.
+        """
+        if diagnose.removed_api(message):
+            return failure
+        missing = diagnose.missing_module_name(message)
+        if missing is None:
+            return failure
+        module, name = missing
+        exports = sandbox.module_exports(python_executable, module, cwd)
+        if not exports:
+            return failure
+        listing = (
+            f"`{module}` does not provide `{name}`. The installed `{module}` exports: "
+            f"{', '.join(exports['names'][:_MAX_EXPORTED_NAMES_SHOWN]) or '(no public names)'}."
+        )
+        if exports["submodules"]:
+            listing += (
+                f" Its submodules: {', '.join(exports['submodules'][:_MAX_EXPORTED_NAMES_SHOWN])}."
+            )
+        listing += (
+            f" Use only names that appear in these lists — a submodule is imported and its own "
+            f"functions called — and do not write `{name}` again."
+        )
+        return diagnose.ExecutionDiagnosis(
+            error_source=failure.error_source,
+            route=failure.route,
+            summary=f"{failure.summary} {listing}",
+            module=failure.module,
+            package=failure.package,
+            guidance=failure.guidance,
+        )
+
     def _smoke_failure(
         self,
         python_executable: Path,
@@ -2036,6 +2087,7 @@ class CoderAgent:
             return None
 
         failure = diagnose.classify_execution_failure(message)
+        failure = self._with_real_exports(failure, message, python_executable, experiment_dir)
         # The smoke run reports a failure only when the *model* is the right
         # answer to it. Anything the execution loop can repair on its own falls
         # through untouched, so those repairs stay in one place: an env failure
@@ -2418,11 +2470,36 @@ class CoderAgent:
                 return sections[name]
             return previous.get(name, empty)
 
+        run_py_sections = {
+            name: sections[name] if name in sections else previous_run_py.get(name, "")
+            for name in prompts.RUN_PY_SECTION_NAMES
+        }
+        if previous_run_py:
+            # A targeted fix rewrites imports/configuration/helpers every time and
+            # routinely drops something a section reused verbatim still needs —
+            # see repair.carry_over_definitions. Repeated so a carried helper's
+            # own imports and constants come back with it.
+            reused = [name for name in prompts.RUN_PY_SECTION_NAMES if name not in sections]
+            needed: set[str] = set()
+            for name in reused:
+                needed |= repair.referenced_names(run_py_sections[name])
+            for _ in range(len(_ALWAYS_REGENERATED)):
+                carried_any = False
+                for name in _ALWAYS_REGENERATED:
+                    if name not in sections or not previous_run_py.get(name):
+                        continue
+                    updated, carried = repair.carry_over_definitions(
+                        previous_run_py[name], run_py_sections[name], needed
+                    )
+                    if carried:
+                        run_py_sections[name] = updated
+                        needed |= repair.referenced_names(updated)
+                        carried_any = True
+                if not carried_any:
+                    break
+
         return {
-            "run_py_sections": {
-                name: sections[name] if name in sections else previous_run_py.get(name, "")
-                for name in prompts.RUN_PY_SECTION_NAMES
-            },
+            "run_py_sections": run_py_sections,
             "readme": kept("readme", ""),
             "requirements_txt": kept("requirements_txt", ""),
             "assumptions_made": (
@@ -2578,6 +2655,23 @@ class CoderAgent:
         # uses, so the two cannot disagree about what a synthesis request is.
         queries = [query for query in queries if not provenance.is_synthesis_request(query)]
         if not queries:
+            return {}
+        # Nothing to find when the plan already named files that are on disk.
+        # Barkla job 10496057's plan named fama_french_three_factor_daily_returns.csv
+        # exactly, the staged file resolved, and the Hub was searched anyway:
+        # "fama french" matched krishnakamath/fama_french_data, which was fetched
+        # and offered alongside the staged copy — and a Hub match is `discovered`,
+        # so the code reading it instead would withhold a verdict the staged
+        # file had earned.
+        staging = Path(settings.coder_data_dir) if settings.coder_data_dir else None
+        resolved = provenance.resolve(
+            provenance.split_requirements(
+                requirements.get("source") or "", requirements.get("description") or ""
+            ),
+            staging_dir=staging,
+            network_available=network_available,
+        )
+        if resolved and all(source.kind == provenance.KIND_REAL_LOCAL for source in resolved):
             return {}
         try:
             dataset = None
@@ -2811,6 +2905,15 @@ class CoderAgent:
         sources = provenance.resolve(
             requirements, staging_dir=staging, network_available=network_available
         )
+        # A staged file is otherwise handed over as a bare path. Read here, not
+        # in provenance, which does no file IO beyond its directory walk.
+        for source in sources:
+            if (
+                source.kind == provenance.KIND_REAL_LOCAL
+                and source.local_path
+                and not source.acquired
+            ):
+                source.preview = acquire.describe_local(Path(source.local_path))
 
         # A dataset the Hugging Face lookup found is a real input — but only if
         # the code actually reads it. It is offered, not imposed: the model may

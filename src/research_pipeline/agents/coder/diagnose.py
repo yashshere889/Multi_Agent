@@ -116,6 +116,30 @@ def removed_api(text: str) -> str | None:
     return None
 
 
+# A name the code imports from, or reads off, a module whose installed version
+# does not have it. Installing changes nothing — the package is there — and
+# regenerating blind changes nothing either, because the model writes the name
+# it remembers again. Barkla job 10496057 failed two consecutive fix attempts on
+# `from SALib.sample import sample_saltelli`, which SALib does not export.
+_CANNOT_IMPORT_NAME_RE = re.compile(
+    r"ImportError: cannot import name ['\"](\w+)['\"] from ['\"]([\w.]+)['\"]"
+)
+_MODULE_HAS_NO_ATTRIBUTE_RE = re.compile(
+    r"AttributeError: module ['\"]([\w.]+)['\"] has no attribute ['\"](\w+)['\"]"
+)
+
+
+def missing_module_name(text: str) -> tuple[str, str] | None:
+    """(module, name) when a traceback says a module lacks a name, else None."""
+    match = _CANNOT_IMPORT_NAME_RE.search(text or "")
+    if match:
+        return match.group(2), match.group(1)
+    match = _MODULE_HAS_NO_ATTRIBUTE_RE.search(text or "")
+    if match:
+        return match.group(1), match.group(2)
+    return None
+
+
 _MODULE_RE = re.compile(r"ModuleNotFoundError:\s*No module named ['\"]([\w.]+)['\"]")
 _IMPORT_NO_MODULE_RE = re.compile(r"ImportError:\s*No module named ['\"]?([\w.]+)")
 _SHARED_LIB_RE = re.compile(r"(lib[\w.+-]*\.so[\w.]*)[^\n]*cannot open shared object file")
