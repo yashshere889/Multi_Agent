@@ -41,6 +41,13 @@ Section text as printed in the paper:
 Flag every claim, statistic, method description, or result in the section \
 text that does NOT trace back to something in the ground truth above.
 
+A faithful paraphrase or summary of the ground truth IS grounded — different \
+wording, shorter phrasing or a reasonable generalisation of what it says is not \
+a hallucination. Flag a claim only when it adds, changes or contradicts a fact: \
+a method, dataset, number, result, scope or limitation that the ground truth \
+does not state. A limitation or shortcoming attributed to a specific cited \
+paper that its ground-truth text does not state is always a hallucination.
+
 Return ONLY a JSON object with this exact shape:
 {{
   "hallucinations": [

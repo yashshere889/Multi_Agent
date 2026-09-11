@@ -179,6 +179,79 @@ def test_check_results_accuracy_accepts_matching_metric_in_raw_form():
     assert checks.check_results_accuracy(results_subsections, coder_output) == []
 
 
+def _grouped_experiment(metrics: dict) -> dict:
+    experiment = _experiment("H1", "completed", accuracy=0.0, meets=True)
+    experiment["results"]["metrics"] = metrics
+    return {"experiments": [experiment]}
+
+
+def test_check_results_accuracy_checks_metrics_grouped_per_arm():
+    """Barkla job 10492707 nested every metric one level down, so none was checked."""
+    coder_output = _grouped_experiment(
+        {"deterministic_metrics": {"cv": 0.0276}, "stochastic_metrics": {"cv": 0.2065}}
+    )
+    issues = checks.check_results_accuracy({"H1": "The CV was 0.0276 versus 0.31."}, coder_output)
+    assert len(issues) == 1
+    assert "stochastic_metrics.cv" in issues[0]["actual"]
+
+
+def test_check_results_accuracy_ignores_the_training_history_trace():
+    coder_output = _grouped_experiment({"accuracy": 0.8, "training_history": {"epoch_1": 0.123}})
+    assert checks.check_results_accuracy({"H1": "Accuracy was 0.8."}, coder_output) == []
+
+
+def _related_work_grounding(section_text: str, raw_papers: list) -> dict:
+    return ReviewerAgent._grounding_for_section(
+        "Related Work", {}, [], {}, {}, {}, raw_papers, section_text
+    )
+
+
+def test_related_work_grounding_carries_the_text_the_writer_drafted_from():
+    """A snippet-found paper has passages and no abstract — the Writer read the passages."""
+    snippet_paper = {"title": "Actuarial Assumptions", "authors": ["R. Ibrahim"], "year": None,
+                     "abstract": "", "full_text": "Retirement age and salary growth " * 40}
+    abstract_paper = {"title": "Money in Motion", "authors": ["Horneff, Wolfram J."], "year": 2007,
+                      "abstract": "welfare gains " * 100}
+    uncited = {"title": "Unrelated", "authors": ["A. Nobody"], "year": 2020, "abstract": "x"}
+
+    grounding = _related_work_grounding(
+        "Ibrahim et al. (n.d.) and Horneff et al. (2007) study this.",
+        [snippet_paper, abstract_paper, uncited],
+    )
+
+    titles = [p["title"] for p in grounding["papers"]]
+    assert titles == ["Actuarial Assumptions", "Money in Motion"]
+    assert grounding["papers"][0]["abstract"].startswith("Retirement age")
+    assert len(grounding["papers"][1]["abstract"]) > 500
+
+
+def test_related_work_grounding_falls_back_to_the_whole_pool_when_nothing_is_cited():
+    papers = [{"title": f"P{i}", "authors": [f"A. Author{i}"], "abstract": "y" * 900} for i in range(3)]
+    grounding = _related_work_grounding("No citations here.", papers)
+    assert len(grounding["papers"]) == 3
+    assert all(len(p["abstract"]) == 500 for p in grounding["papers"])
+
+
+def test_future_work_grounding_names_the_papers_its_citations_point_at():
+    """Gaps carry supporting paper ids only, so "(Sun, 2026)" used to be unmatchable."""
+    papers = [
+        {"paper_id": "s2:1", "title": "Nonparametric VaR", "authors": ["Wei Sun"], "year": 2026},
+        {"paper_id": "s2:2", "title": "Uncited", "authors": ["Q. Other"], "year": 2020},
+    ]
+    grounding = ReviewerAgent._grounding_for_section(
+        "Future Work", {"gaps": []}, [], {}, {}, {}, papers, "As Sun (2026) notes, VaR fails."
+    )
+    assert grounding["cited_papers"] == [
+        {"paper_id": "s2:1", "title": "Nonparametric VaR", "authors": ["Wei Sun"], "year": 2026}
+    ]
+
+
+def test_check_results_accuracy_accepts_a_percent_metric_written_with_its_sign():
+    coder_output = _grouped_experiment({"computational_cost_reduction_percent": -1030.8879008353542})
+    text = "Adaptive sampling changed computational cost by -1030.89%."
+    assert checks.check_results_accuracy({"H1": text}, coder_output) == []
+
+
 def test_check_results_accuracy_flags_skipped_experiment_described_as_successful():
     coder_output = {"experiments": [_experiment("H2", "skipped", reason="infeasible")]}
     results_subsections = {"H2": "The experiment succeeded and results show strong performance."}

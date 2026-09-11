@@ -3,10 +3,26 @@ from types import SimpleNamespace
 
 import pytest
 
-from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index, strip_unverified_literal_citations
+from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index, strip_unverified_literal_citations, surname_of
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.coder.schema import VALID_STATUSES
 from research_pipeline.agents.writer.writer_agent import STATUS_MEANINGS, WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers
+
+
+@pytest.mark.parametrize(
+    "author, surname",
+    [
+        ("Wolfram J. Horneff", "Horneff"),
+        # CORE's surname-first form printed "J. et al. (2007)" in Barkla job 10492707.
+        ("Horneff, Wolfram J.", "Horneff"),
+        ("Mitchell, Olivia S", "Mitchell"),
+        ("R. Ibrahim", "Ibrahim"),
+        ("Plato", "Plato"),
+        ("", "Unknown"),
+    ],
+)
+def test_surname_of_reads_both_name_orders(author, surname):
+    assert surname_of(author) == surname
 
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -274,6 +290,19 @@ def test_compute_hypothesis_verdict_refuted_when_meets_criteria_false():
 def test_compute_hypothesis_verdict_inconclusive_when_meets_criteria_unknown():
     verdict, _ = compute_hypothesis_verdict("H1", {"H1": _experiment("H1", "completed", "unknown")})
     assert verdict == "inconclusive"
+
+
+def test_a_withheld_verdict_reason_says_the_experiment_ran_and_why_it_was_withheld():
+    """Barkla 10496057's Discussion called a completed run "not executed"."""
+    experiment = _experiment("H1", "completed", "unknown")
+    experiment["results"]["verdict_withheld_because"] = "One or more inputs are synthetic surrogates."
+
+    _, reason = compute_hypothesis_verdict("H1", {"H1": experiment})
+
+    assert "ran to completion" in reason and "'completed'" in reason
+    assert "metrics are reported" in reason
+    assert reason.endswith("One or more inputs are synthetic surrogates.")
+    assert "not run" not in reason and "not executed" not in reason
 
 
 def test_compute_hypothesis_verdict_inconclusive_when_skipped():

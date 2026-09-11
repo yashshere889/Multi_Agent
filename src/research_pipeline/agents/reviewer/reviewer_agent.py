@@ -82,6 +82,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,7 +100,7 @@ from research_pipeline.agents.reviewer import checks, prompts
 from research_pipeline.agents.reviewer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.reviewer.state import ReviewerState
 from research_pipeline.agents.writer import pdf_reader
-from research_pipeline.agents.writer.citations import build_paper_index
+from research_pipeline.agents.writer.citations import build_paper_index, first_author_surname
 from research_pipeline.agents.writer.writer_agent import compute_hypothesis_verdict, extract_literature_papers
 from research_pipeline.config import settings
 from research_pipeline.llm import get_chat_model
@@ -132,6 +133,44 @@ _CONTEXT_SAFETY_MARGIN = 1024
 # less abstract text per paper — the hallucination check needs "does this
 # claim roughly match what the paper says", not the full abstract verbatim.
 _GROUNDING_ABSTRACT_MAX_CHARS = 500
+# Once the block is narrowed to the papers a section actually cites, each one
+# can carry the text the Writer drafted from. At 500 characters of abstract the
+# check was judging claims against less than the Writer had read — and nothing
+# at all for a snippet-found paper, which has passages but no abstract — so
+# Barkla job 10492707's Related Work drew 119 "hallucinations", most of them
+# "the ground truth does not mention" details the Writer had in front of it.
+_GROUNDING_CITED_TEXT_MAX_CHARS = 3000
+
+
+def _papers_cited_in(section_text: str, raw_papers: List[dict]) -> List[dict]:
+    """Papers whose first-author surname appears in the section as a word.
+
+    Citations are rendered from exactly that surname (citations._author_list_text),
+    so this finds every cited paper; a surname shared by an uncited paper only
+    adds a paper to the block, never removes one.
+    """
+    cited = []
+    for paper in raw_papers:
+        surname = first_author_surname([str(a) for a in paper.get("authors") or []])
+        if surname != "Unknown" and re.search(rf"\b{re.escape(surname)}\b", section_text):
+            cited.append(paper)
+    return cited
+
+
+def _cited_paper_refs(section_text: str, raw_papers: List[dict]) -> List[dict]:
+    """Who and what a section's citations point at, for sections whose ground
+    truth is otherwise ids only. The gaps list names its supporting papers by id,
+    so a correct "(Sun, 2026)" in Future Work had nothing to be matched against
+    and was flagged as fabricated — nine times per draft in Barkla job 10492707."""
+    return [
+        {
+            "paper_id": p.get("paper_id"),
+            "title": p.get("title"),
+            "authors": p.get("authors"),
+            "year": p.get("year"),
+        }
+        for p in _papers_cited_in(section_text, raw_papers)
+    ]
 
 
 def _estimate_tokens(text: str) -> int:
@@ -303,6 +342,7 @@ class ReviewerAgent:
                 state["experiment_by_id"],
                 state["verdicts"],
                 state["raw_papers"],
+                sections[heading],
             )
             hallucinations += self._check_hallucinations(heading, sections[heading], grounding)
         return {"hallucinations": hallucinations}
@@ -393,23 +433,35 @@ class ReviewerAgent:
         experiment_by_id: Dict[str, dict],
         verdicts: Dict[str, dict],
         raw_papers: List[dict],
+        section_text: str = "",
     ) -> dict:
         if heading == "Introduction":
             return {
                 "literature_summary": hypothesis_output.get("literature_summary", ""),
                 "gaps": hypothesis_output.get("gaps", []),
                 "hypotheses": [{"id": h["id"], "statement": h["statement"]} for h in hypotheses],
+                "cited_papers": _cited_paper_refs(section_text, raw_papers),
             }
         if heading == "Related Work":
+            cited = _papers_cited_in(section_text, raw_papers)
+            # Falls back to the whole pool, trimmed, when nothing matched — a
+            # section citing no paper by surname is still checked against all.
+            papers, limit = (
+                (cited, _GROUNDING_CITED_TEXT_MAX_CHARS)
+                if cited
+                else (raw_papers, _GROUNDING_ABSTRACT_MAX_CHARS)
+            )
             return {
                 "papers": [
                     {
                         "title": p.get("title"),
                         "authors": p.get("authors"),
                         "year": p.get("year"),
-                        "abstract": (p.get("abstract") or "")[:_GROUNDING_ABSTRACT_MAX_CHARS],
+                        # The body the Writer drafted from: hypothesis.papers.paper_to_text
+                        # prefers full_text (snippet passages) over the abstract.
+                        "abstract": (p.get("full_text") or p.get("abstract") or "")[:limit],
                     }
-                    for p in raw_papers
+                    for p in papers
                 ],
                 "methods_overview": hypothesis_output.get("methods_overview", []),
                 "gaps": hypothesis_output.get("gaps", []),
@@ -435,7 +487,11 @@ class ReviewerAgent:
                 },
             }
         if heading == "Future Work":
-            return {"verdicts": list(verdicts.values()), "gaps": hypothesis_output.get("gaps", [])}
+            return {
+                "verdicts": list(verdicts.values()),
+                "gaps": hypothesis_output.get("gaps", []),
+                "cited_papers": _cited_paper_refs(section_text, raw_papers),
+            }
         return {}
 
     # -- LLM calls ---------------------------------------------------------------

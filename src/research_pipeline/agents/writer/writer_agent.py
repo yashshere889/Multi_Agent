@@ -169,7 +169,17 @@ def compute_hypothesis_verdict(hypothesis_id: str, experiment_by_id: Dict[str, d
         return "supported", "The Coder Agent reported meets_success_criteria=true."
     if meets is False:
         return "refuted", "The Coder Agent reported meets_success_criteria=false."
-    return "inconclusive", 'The Coder Agent reported meets_success_criteria="unknown".'
+    # Says outright that the experiment ran. The bare 'reported
+    # meets_success_criteria="unknown"' this used to be was read as "not run":
+    # Barkla job 10496057's Discussion told readers the experiment "was not
+    # executed" and carried status "code_generated_not_run" — neither true —
+    # while its Results section reported the metrics that run produced.
+    withheld = str(experiment["results"].get("verdict_withheld_because") or "").strip()
+    return "inconclusive", (
+        f"The experiment ran to completion (status '{status}') and its metrics are reported, "
+        'but no verdict is drawn from them (meets_success_criteria="unknown")'
+        + (f": {withheld}" if withheld else ".")
+    )
 
 
 def build_scanned_registry(
