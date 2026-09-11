@@ -22,6 +22,7 @@ from research_pipeline.agents.coder import (
     reconcile,
     repair,
     sandbox,
+    saturation,
     schema,
     slurm_submit,
 )
@@ -3572,6 +3573,151 @@ def test_a_truncated_run_does_not_overwrite_a_claim_the_data_gate_saved():
     assert "compute budget" in stamped["verdict_withheld_because"]
 
 
+# -- saturation: a measurement that could not have come out otherwise ---------
+
+
+def test_q026s_perfect_scores_are_withheld():
+    """Batch 10460809 q026, its metrics verbatim. The Planner split documents at
+    the median entropy and predicted the half from entropy, the Coder built it,
+    and the same design scores 0.99 on random numbers. Its False would have been
+    published as a refutation."""
+    metrics = {
+        "accuracy": 1.0,
+        "f1_score": 1.0,
+        "r2_score": 1.0,
+        "hypothesis_supported": "False",
+        "coefficients": {"entropy": -2.632, "length": -1.923},
+        "cv_accuracy_mean": 1.0,
+        "cv_accuracy_std": 0.0,
+    }
+    assert saturation.findings(metrics) == ["accuracy", "cv_accuracy_mean", "f1_score", "r2_score"]
+
+
+def test_two_arms_at_the_ceiling_are_withheld_and_their_zero_difference_is_not_a_metric():
+    """Benchmark case 12 in runs 10460812 and 10460813. The improvement of 0 is
+    what two saturated arms produce, so it neither counts toward the gate nor
+    stops it firing."""
+    metrics = {"raw_precision_at_5": 1.0, "tfidf_precision_at_5": 1.0, "precision_improvement": 0.0}
+    assert saturation.findings(metrics) == ["raw_precision_at_5", "tfidf_precision_at_5"]
+
+
+def test_correlations_saturate_at_either_sign():
+    """q034's shape: a correlation pinned at 1 in both arms, published as a
+    refutation. -1 is exactly as saturated as +1, and a p-value is never a
+    bounded score."""
+    metrics = {
+        "mean_small_correlation": 1.0,
+        "mean_large_correlation": -1.0,
+        "wilcoxon_p_value": 1.0,
+    }
+    assert saturation.findings(metrics) == ["mean_large_correlation", "mean_small_correlation"]
+
+
+def test_calibration_error_saturates_at_zero():
+    assert saturation.findings({"ece_platt": 0.0, "ece_isotonic": 0.0}) == [
+        "ece_isotonic",
+        "ece_platt",
+    ]
+
+
+@pytest.mark.parametrize(
+    "metrics",
+    [
+        # One perfect metric is an easy task, not a signature.
+        {"accuracy": 1.0},
+        # A real result that tops out on one measure and not another.
+        {"accuracy": 1.0, "f1": 0.97},
+        {"accuracy": 0.87, "f1": 0.81},
+        # Unbounded error metrics are not judged here.
+        {"rmse": 0.0, "mae": 0.0},
+        # Flags, not scores of 1.
+        {"converged": True, "early_stopped": True},
+        # Differences alone.
+        {"accuracy_difference": 0.0, "auc_delta": 0.0},
+        # NaN belongs to check_results_plausibility, and is not a perfect score.
+        {"accuracy": float("nan"), "f1": 1.0},
+        {},
+    ],
+)
+def test_metrics_that_can_still_discriminate_keep_their_verdict(metrics):
+    results = {"metrics": metrics, "meets_success_criteria": False}
+    assert saturation.findings(metrics) == []
+    assert saturation.apply_to_results(results) is results
+
+
+def test_a_saturated_run_cannot_report_a_refutation():
+    results = {
+        "metrics": {"raw_precision_at_5": 1.0, "tfidf_precision_at_5": 1.0},
+        "meets_success_criteria": False,
+    }
+    stamped = saturation.apply_to_results(results)
+
+    assert stamped["meets_success_criteria"] == "unknown"
+    assert stamped["model_reported_meets_success_criteria"] is False
+    assert stamped["measurement_validity"] == saturation.VERDICT_SATURATED
+    assert stamped["saturated_metrics"] == ["raw_precision_at_5", "tfidf_precision_at_5"]
+    assert "raw_precision_at_5, tfidf_precision_at_5" in stamped["verdict_withheld_because"]
+    # The numbers themselves are still reported.
+    assert stamped["metrics"] == results["metrics"]
+    assert results["meets_success_criteria"] is False, "the input dict is not mutated"
+
+
+def test_a_saturated_run_keeps_the_claim_an_earlier_gate_saved():
+    """All three gates can fire on one run. Whichever fired first recorded the
+    model's real claim, and this must not overwrite it with "unknown"."""
+    already_withheld = {
+        "metrics": {"accuracy": 1.0, "f1": 1.0},
+        "meets_success_criteria": "unknown",
+        "model_reported_meets_success_criteria": True,
+        "verdict_withheld_because": "Synthetic inputs.",
+    }
+    stamped = saturation.apply_to_results(already_withheld)
+
+    assert stamped["model_reported_meets_success_criteria"] is True
+    assert stamped["verdict_withheld_because"].startswith("Synthetic inputs.")
+    assert "perfect value" in stamped["verdict_withheld_because"]
+
+
+def test_a_saturated_result_reaches_the_writer_without_a_verdict_end_to_end(tmp_path, monkeypatch):
+    """Wired, not merely written: the gate runs in the local execution path,
+    after the data and compute gates, and what it decides is what lands in the
+    summary the Writer reads."""
+    fake_model = FakeChatModel({'"hypothesis_id":"H1"': _codegen_response()})
+
+    def fake_run_experiment(python_executable, script_path, cwd, timeout_seconds):
+        if script_path.name == "run.py":
+            (cwd / "results.json").write_text(
+                json.dumps(
+                    {
+                        "status": "success",
+                        "metrics": {"accuracy": 1.0, "f1": 1.0},
+                        "meets_success_criteria": False,
+                        "notes": "both arms perfect",
+                        "error": None,
+                    }
+                )
+            )
+        return True, ""
+
+    monkeypatch.setattr(sandbox, "run_experiment", fake_run_experiment)
+
+    agent = CoderAgent(
+        chat_model=fake_model,
+        experiments_dir=tmp_path / "experiments",
+        output_dir=tmp_path / "outputs",
+        network_check=lambda: False,
+        gpu_check=lambda: False,
+    )
+    result = agent.run(_planner_output([_plan("H1", complexity="low")]))
+
+    exp = result["experiments"][0]
+    assert exp["status"] == "completed"
+    assert exp["results"]["meets_success_criteria"] == "unknown"
+    assert exp["results"]["model_reported_meets_success_criteria"] is False
+    assert exp["results"]["saturated_metrics"] == ["accuracy", "f1"]
+    assert "perfect value" in exp["results"]["verdict_withheld_because"]
+
+
 def test_compute_provenance_document_records_the_split_and_the_budget():
     document = compute_provenance.as_document(
         ["draws: 4000 -> 2000", "epochs: 8 -> 4"], timeout_seconds=300
@@ -5124,10 +5270,69 @@ def test_a_synthesis_request_is_never_searched_for_in_the_catalogues(tmp_path):
         "randomly generated samples",
         "a toy dataset",
         "simulated data",
+        "synthetic generation",
+        "data generation",
     ],
 )
 def test_requirements_that_ask_for_generated_data(requirement):
     assert provenance.is_synthesis_request(requirement)
+
+
+# Every data requirement batch 10460809's Experiment Planner wrote, verbatim.
+# Real phrasing rather than invented phrasing is the point: the first version
+# of is_synthesis_request passed every test written for it and still missed
+# "synthetic generation", the only synthesis instruction this planner produced.
+_BATCH_10460809_DATA_SOURCES = (
+    "Yahoo Finance / Quandl equity index historical data",
+    "public dataset",
+    "public dataset",
+    "public dataset: Credit Card Fraud Detection (Kaggle)",
+    "synthetic generation",
+    "public financial dataset (e.g., Yahoo Finance or similar)",
+    "public dataset: UCI 'Credit Approval' dataset",
+    "public dataset",
+    "public dataset",
+    "public dataset from PhysioNet or MIMIC-III",
+    "public dataset",
+    "public medical imaging dataset (e.g., ChestX-ray14 or Camelyon16)",
+    "public dataset (e.g., MIMIC-III or eICU)",
+    "public EHR dataset (e.g., MIMIC-III or eICU)",
+    "synthetic generation",
+    "Public dataset from UCI Machine Learning Repository or similar (e.g., Air Quality dataset)",
+    "public dataset (e.g., PECAN Street or similar)",
+    "Public dataset: UCR Time Series Anomaly Archive",
+    "Public meteorological datasets (e.g., NOAA GHCN or ERA5 reanalysis)",
+    "Public dataset from academic literature (e.g., NBER EPU dataset + regional unemployment "
+    "data from BLS or OECD)",
+    "Cross-sectional microdata from SLID",
+    "Publicly available trade flow datasets (e.g., UN Comtrade)",
+    "public dataset (e.g., German Credit Dataset or similar lending dataset)",
+    "Public legal NER dataset (e.g., E-NER annotated corpus for legal NER)",
+    "public dataset name",
+    "Public dataset: FLORES-200 or subset of multilingual sentiment datasets (e.g., Amazon "
+    "Reviews, Sentiment140 in multiple languages)",
+    "public dataset (e.g., 20 Newsgroups or Reuters-21578)",
+    "Publicly available scientific abstracts (e.g., arXiv or PubMed) and citation data (e.g., "
+    "Scopus or Web of Science)",
+    "Public dataset: MoleculeNet solubility dataset (ESOL)",
+    "synthetic generation",
+    "synthetic generation",
+    "Public financial datasets (e.g., Credit Card Fraud Detection, UCI's Bank Marketing)",
+    "public high-dimensional, low-sample-size datasets (e.g., gene expression datasets from UCI "
+    "ML Repository or similar)",
+    "Public dataset: UCI Electricity Load Diagrams",
+    "public dataset (e.g., UCI Adult dataset or similar tabular dataset)",
+    "Public benchmark datasets",
+)
+
+
+def test_the_synthesis_predicate_against_every_requirement_a_real_batch_wrote():
+    """Exactly the four synthesis instructions, and none of the 32 that name or
+    gesture at real data — including the vague ones, which must still be
+    searched for."""
+    assert len(_BATCH_10460809_DATA_SOURCES) == 36
+    matched = [s for s in _BATCH_10460809_DATA_SOURCES if provenance.is_synthesis_request(s)]
+    assert matched == ["synthetic generation"] * 4
 
 
 @pytest.mark.parametrize(
@@ -5260,6 +5465,21 @@ def test_reconcile_withholds_the_verdict_when_the_summary_predates_provenance(tm
 
     assert updated["results"]["meets_success_criteria"] == "unknown"
     assert updated["results"]["model_reported_meets_success_criteria"] is True
+
+
+def test_reconcile_withholds_the_verdict_of_a_saturated_cluster_result(tmp_path):
+    """The third gate has to run here too, or a saturated result computed on
+    the cluster reaches the Writer carrying the verdict the identical result
+    computed locally is refused."""
+    experiment = _submitted_experiment(tmp_path)
+    _write_cluster_results(experiment, meets=False, metrics={"accuracy": 1.0, "f1": 1.0})
+
+    updated, outcome = reconcile.reconcile_experiment(experiment, _lookup(**{"12345": "COMPLETED"}))
+
+    assert outcome.action == reconcile.ACTION_COMPLETED
+    assert updated["results"]["meets_success_criteria"] == "unknown"
+    assert updated["results"]["model_reported_meets_success_criteria"] is False
+    assert updated["results"]["saturated_metrics"] == ["accuracy", "f1"]
 
 
 def test_reconcile_records_a_job_that_ended_badly(tmp_path):

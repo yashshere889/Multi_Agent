@@ -124,6 +124,7 @@ from research_pipeline.agents.coder import (
     provenance,
     repair,
     sandbox,
+    saturation,
     slurm_submit,
     starters,
 )
@@ -1932,6 +1933,16 @@ class CoderAgent:
                 hypothesis_id,
                 compute_document["compute_validity"],
             )
+
+        # The third question, asked of the numbers themselves: could they have
+        # come out any other way? Every bounded metric pinned at its perfect
+        # value is a label derived from an input, or two arms both at the
+        # ceiling — see saturation.py. Last of the three so that whichever
+        # earlier gate fired has already recorded the model's own claim, which
+        # this preserves rather than overwrites.
+        results = saturation.apply_to_results(results)
+        if saturation.saturated(results.get("metrics") or {}):
+            logger.info("[%s] verdict withheld — %s", hypothesis_id, saturation.VERDICT_SATURATED)
 
         return {
             "result": self._result(

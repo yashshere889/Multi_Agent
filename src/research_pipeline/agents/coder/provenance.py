@@ -276,10 +276,17 @@ _SYNTHESIS_WORDS = {
     "dummy",
     "fake",
     "generated",
+    # Nouns for the act rather than the product. Not a guess: batch 10460809's
+    # planner wrote "synthetic generation" as the entire data requirement in
+    # four of its 36 plans, and the first version of this list — built from
+    # phrasings invented for its own unit tests — missed every one.
+    "generation",
+    "generator",
     "mock",
     "random",
     "randomly",
     "simulated",
+    "simulation",
     "synthesised",
     "synthesized",
     "synthetic",

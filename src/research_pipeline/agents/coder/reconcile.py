@@ -51,7 +51,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import compute_provenance, provenance, sandbox, slurm_submit
+from . import compute_provenance, provenance, sandbox, saturation, slurm_submit
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ def reconcile_experiment(
             return updated, failure
         return experiment, failure
 
-    # The same two gates a locally-executed experiment goes through, in the
+    # The same three gates a locally-executed experiment goes through, in the
     # same order. The data one reads the document the submitting run already
     # wrote rather than re-resolving inputs here, where the staging directory
     # may not even be mounted — an absent document withholds, which is the safe
@@ -184,6 +184,11 @@ def reconcile_experiment(
     # truncated success, so "ran at full size" is the honest record here.
     compute_document = compute_provenance.as_document([])
     results = compute_provenance.apply_to_results(results, [])
+    # Needs nothing the submitting machine knew: it reads only the metrics just
+    # imported, so it is exactly as decidable here as it would have been there.
+    # Without it a saturated result run on the cluster would reach the Writer
+    # carrying the verdict the same result run locally is refused.
+    results = saturation.apply_to_results(results)
 
     updated = dict(experiment)
     updated["status"] = STATUS_COMPLETED
