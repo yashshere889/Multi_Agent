@@ -94,6 +94,7 @@ from typing import Dict, List, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from research_pipeline import staged_data
 from research_pipeline.agents.experiment_planner import prompts
 from research_pipeline.agents.experiment_planner.schema import (
     SchemaValidationError,
@@ -283,6 +284,7 @@ class ExperimentPlannerAgent:
             literature_summary=hypothesis_output["literature_summary"],
             methods_overview_block=json.dumps(hypothesis_output["methods_overview"], indent=2),
             gaps_block=json.dumps(hypothesis_output["gaps"], indent=2),
+            staged_data_block=staged_data.prompt_block(prompts.STAGED_DATA_PLAN_INSTRUCTION),
         )
         return self._call_json(prompt)
 

@@ -69,9 +69,21 @@ Methods overview (JSON):
 
 Gaps (JSON):
 {gaps_block}
-{interdisciplinary_block}
+{interdisciplinary_block}{staged_data_block}
 Each hypothesis must:
-- Be specific and testable (not a vague research direction)
+- Be specific and testable (not a vague research direction), with an outcome that \
+could genuinely go either way, and testable on real, publicly available data \
+wherever the phenomenon is measured in the real world
+- Be internally coherent: never contrast a method with a family it belongs to \
+(Sobol' indices are themselves a variance-based method), and give no mechanism \
+that does not follow from the claim
+- When the research question names a system or model to study (a retirement \
+model, a climate model), be a claim about that system — which inputs drive its \
+outcomes, and by how much — rather than a comparison of analysis methods, whose \
+result is settled by the thresholds and settings chosen rather than by any data
+- When real datasets are listed above, be a claim the data itself decides: the \
+data must be able to make it false, not merely feed a model whose conclusion its \
+own assumptions already fix
 - Reference which gap(s) and/or method(s) above it builds on
 - Include a brief rationale grounded in the literature summary and gaps above — do not invent evidence
 - Note expected independent/dependent variables where applicable (empty lists if not applicable)
@@ -109,6 +121,20 @@ hypothesis it doesn't fit, and do not treat a bridge insight as evidence in its 
 own right.
 """
 
+# Closing lines of staged_data.prompt_block, rendered only when real data is
+# staged. Generation and ranking get different instructions because they ask
+# different questions of the same inventory.
+STAGED_DATA_HYPOTHESIS_INSTRUCTION = (
+    "Where the research question allows, prefer hypotheses one of these real datasets can "
+    "test: a result computed on real data can support or refute a hypothesis, and one computed "
+    "on synthetic data cannot. Judge the fit from the listed columns, and do not force a dataset "
+    "onto a hypothesis it does not fit."
+)
+STAGED_DATA_RANKING_INSTRUCTION = (
+    "Count it towards feasibility when one of these datasets can genuinely test a hypothesis, "
+    "judged from the listed columns only — never assume a column that is not listed."
+)
+
 RANKING_PROMPT = """{research_question_line}Below are 3 hypotheses that were just \
 generated from the same literature synthesis, plus the synthesis they came from.
 
@@ -120,13 +146,23 @@ Literature summary:
 
 Gaps (JSON):
 {gaps_block}
-{interdisciplinary_block}
+{interdisciplinary_block}{staged_data_block}
 Rank all 3 against each other so exactly one can be taken forward to an \
 experiment. Judge each on:
 - feasibility: can it realistically be tested on a shared university GPU cluster, \
-with data that plausibly exists?
+with data that plausibly exists? A hypothesis testable on real, publicly \
+available data outranks one that could only ever run on synthetic data, whose \
+result can neither support nor refute anything.
 - testability: is the claim specific enough that a result would clearly support \
-or refute it?
+or refute it — and could the result genuinely come out either way, rather than \
+being true or false by construction?
+- coherence: is the claim internally consistent — no method contrasted with a \
+family it belongs to, no mechanism that does not follow from the claim — and, \
+when the research question names a system to study, is it a claim about that \
+system rather than about the analysis methods? A hypothesis failing this ranks \
+below every hypothesis that passes it, whatever its other merits.
+- data: if real datasets are listed, would the data actually decide the claim, \
+or would it only feed a model whose answer is fixed by its own assumptions?
 - grounding: how well the literature above (and any bridge insights) actually \
 supports it — not how interesting it sounds.
 

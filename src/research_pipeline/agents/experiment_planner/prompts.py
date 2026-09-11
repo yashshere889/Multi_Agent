@@ -34,6 +34,24 @@ hypothesis isn't practically testable as stated, set "feasible": false, explain 
 exactly why in "feasibility_notes", and still produce a full plan for a \
 reasonable simplified version of it — state the simplification you made in \
 "feasibility_notes" too.
+- Use real data wherever the hypothesis concerns something measured in the \
+world (market returns, interest rates, inflation, demographics, text, images). \
+Name the specific public dataset and its publisher in data_requirements.source, \
+and add a direct https URL to a CSV or JSON file when you are confident of one \
+— never a landing page, a search page or a guessed URL. Write "synthetic \
+generation" only when the hypothesis is about a simulated system itself or no \
+public data could exist: a result computed on invented inputs can neither \
+support nor refute a hypothesis, so its verdict is withheld.
+- When a real dataset is used, it must decide the result: estimate the model's \
+inputs from it (return and inflation distributions, volatilities, correlations) \
+or evaluate outcomes on its historical paths. Never load it and then run a \
+model whose driving parameters are made up — that result is decided by the \
+made-up parameters, and calling it real-data evidence is false.
+- Make the success criteria a result that could genuinely come out either way. \
+Never compare quantities that differ by construction — the spread of a \
+stochastic model against a deterministic model that has none, or an error \
+metric with no ground truth to measure error against. Every metric must be \
+computable from the data and the models the plan itself builds.
 - Return ONLY valid JSON matching the schema described in the user prompt. No \
 markdown fences, no commentary before or after the JSON.
 """
@@ -54,7 +72,7 @@ Methods overview (JSON) — reuse these where relevant instead of inventing new 
 
 Gaps (JSON):
 {gaps_block}
-
+{staged_data_block}
 Return ONLY a JSON object with this exact shape:
 {{
   "hypothesis_id": "{hypothesis_id}",
@@ -64,7 +82,7 @@ Return ONLY a JSON object with this exact shape:
   "variables": {{"independent": ["..."], "dependent": ["..."]}},
   "design": "the experimental design, e.g. control vs treatment groups, ablation study, comparative benchmark, simulation, A/B test",
   "data_requirements": {{
-    "source": "public dataset name | synthetic generation | existing pipeline output, etc.",
+    "source": "named public dataset and publisher, with a direct CSV/JSON URL if you are sure of one | synthetic generation (only if no real data could answer this)",
     "description": "what the data is and why it fits this experiment",
     "preprocessing_steps": ["concrete preprocessing step", "..."]
   }},
@@ -134,3 +152,12 @@ mentioned it before.
 Your previous response was:
 {previous_response}
 """
+
+# Closing line of staged_data.prompt_block in PLAN_PROMPT, rendered only when
+# real data is staged. The file name is what the Coder's staged-file match keys
+# on, so naming it exactly is what makes the plan resolve to it.
+STAGED_DATA_PLAN_INSTRUCTION = (
+    "If one of these fits the hypothesis, use it: put its file name, exactly as listed, in "
+    "data_requirements.source, and design the experiment around its listed columns and notes "
+    "(units especially). It is already on disk, so nothing needs downloading."
+)
