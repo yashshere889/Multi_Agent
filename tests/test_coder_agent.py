@@ -4011,6 +4011,165 @@ def test_a_staged_file_beats_a_restricted_source(tmp_path):
     assert sources[0].kind == provenance.KIND_REAL_LOCAL
 
 
+# -- what a requirement names, and the staged file it answers to --------------
+
+
+@pytest.mark.parametrize(
+    "requirement, expected",
+    [
+        (
+            "public dataset (e.g., UCI Adult dataset or similar tabular dataset)",
+            ["UCI Adult dataset"],
+        ),
+        (
+            "public dataset (e.g., 20 Newsgroups or Reuters-21578)",
+            ["20 Newsgroups", "Reuters-21578"],
+        ),
+        ("public dataset: UCI Electricity Load Diagrams", ["UCI Electricity Load Diagrams"]),
+        (
+            "Public dataset from UCI Machine Learning Repository or similar (e.g., Air Quality dataset)",
+            ["Air Quality dataset", "UCI Machine Learning Repository"],
+        ),
+        ("Cross-sectional microdata from SLID", ["SLID"]),
+        (
+            "Yahoo Finance / Quandl equity index historical data",
+            ["Yahoo Finance", "Quandl equity index historical data"],
+        ),
+        (
+            "Public dataset: MoleculeNet solubility dataset (ESOL)",
+            ["MoleculeNet solubility dataset ESOL"],
+        ),
+        # A URL is one alternative, never three.
+        (
+            "public dataset (e.g., https://example.org/data/values.csv)",
+            ["https://example.org/data/values.csv"],
+        ),
+        # Nothing named: callers fall back to the requirement itself.
+        ("public dataset", []),
+        ("Public benchmark datasets", []),
+        ("synthetic generation", []),
+    ],
+)
+def test_named_alternatives(requirement, expected):
+    assert provenance.named_alternatives(requirement) == expected
+
+
+_NEWSGROUPS_TRAIN = "twenty_newsgroups_document_text_category_classification_train.csv"
+# The alias staged on Barkla on 5 Sep, verbatim, so that vague requirements would
+# find 20 Newsgroups. It found far more than that.
+_CATCH_ALL_ALIAS = (
+    "dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_"
+    "topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_"
+    "newsgroups_train.csv"
+)
+
+
+def _barkla_staging(tmp_path):
+    """CODER_DATA_DIR as it stood on the cluster from 5 Sep, symlinked alias included."""
+    staging = tmp_path / "coder-data"
+    staging.mkdir()
+    for name in (
+        _NEWSGROUPS_TRAIN,
+        "twenty_newsgroups_document_text_category_classification_test.csv",
+        "ag_news_document_text_category_classification_train.csv",
+        "fama_french_three_factor_daily_returns.csv",
+        "fama_french_three_factor_monthly_returns.csv",
+        "historical_stock_market_daily_closing_price_financial_data.csv",
+        "README.txt",
+    ):
+        (staging / name).write_text("a,b\n1,2\n")
+    (staging / _CATCH_ALL_ALIAS).symlink_to(_NEWSGROUPS_TRAIN)
+    return staging
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        # Each of these resolved to a staged file under the one-shared-word rule,
+        # and the experiments that used them published nine "supported" and ten
+        # "refuted" verdicts between them.
+        "public dataset",
+        "public dataset name",
+        "Public benchmark datasets",
+        "public dataset (e.g., UCI Adult dataset or similar tabular dataset)",
+        "UCI Credit Approval Dataset",
+        "Public consumer lending dataset (e.g., German Credit Dataset)",
+        "Public gene expression dataset from GEO (e.g., GSE123814)",
+        "Public agricultural datasets (e.g., USDA NASS, Climate Forecast System)",
+        "Public legal NER dataset (e.g., E-NER annotated corpus for legal NER)",
+    ],
+)
+def test_a_requirement_is_not_answered_by_whatever_happens_to_be_staged(tmp_path, requirement):
+    sources = provenance.resolve(
+        [requirement], staging_dir=_barkla_staging(tmp_path), network_available=True
+    )
+    assert sources[0].kind != provenance.KIND_REAL_LOCAL, sources[0].reason
+
+
+def test_a_restricted_requirement_is_no_longer_answered_by_a_staged_corpus(tmp_path):
+    """The worst of the old matches: patient records answered by newsgroup posts,
+    as real named data, before the restricted-source rule was ever asked."""
+    sources = provenance.resolve(
+        ["public EHR dataset (e.g., MIMIC-III or eICU)"],
+        staging_dir=_barkla_staging(tmp_path),
+        network_available=True,
+    )
+    assert sources[0].kind == provenance.KIND_SURROGATE
+    assert "MIMIC" in sources[0].reason
+
+
+@pytest.mark.parametrize(
+    "requirement, expected",
+    [
+        ("public dataset (e.g., 20 Newsgroups or Reuters-21578)", _NEWSGROUPS_TRAIN),
+        # The real file, not the alias symlinked to it, and the train split.
+        ("20 Newsgroups", _NEWSGROUPS_TRAIN),
+        # "AG" only counted as a word in upper case, which a filename never is.
+        ("AG News", "ag_news_document_text_category_classification_train.csv"),
+        ("Fama-French three-factor daily returns", "fama_french_three_factor_daily_returns.csv"),
+        # "monthly" can break a tie it cannot make.
+        ("Fama-French monthly factors", "fama_french_three_factor_monthly_returns.csv"),
+        (
+            "Public equity return dataset (e.g., S&P 500 daily closing prices)",
+            "historical_stock_market_daily_closing_price_financial_data.csv",
+        ),
+    ],
+)
+def test_a_named_dataset_still_finds_its_staged_file(tmp_path, requirement, expected):
+    sources = provenance.resolve(
+        [requirement], staging_dir=_barkla_staging(tmp_path), network_available=True
+    )
+    assert sources[0].kind == provenance.KIND_REAL_LOCAL
+    assert sources[0].local_path.rsplit("/", 1)[-1] == expected
+
+
+def test_a_staged_match_records_which_named_dataset_it_matched(tmp_path):
+    sources = provenance.resolve(
+        ["public dataset (e.g., 20 Newsgroups or Reuters-21578)"],
+        staging_dir=_barkla_staging(tmp_path),
+        network_available=True,
+    )
+    assert "matched on the dataset the plan named: '20 Newsgroups'" in sources[0].reason
+
+
+def test_discovery_searches_for_the_dataset_the_plan_named_before_its_description(tmp_path):
+    from research_pipeline.agents.coder import discover
+
+    searched = []
+
+    def catalogue(requirement):
+        searched.append(requirement)
+        return []
+
+    requirement = "public dataset (e.g., UCI Adult dataset or similar tabular dataset)"
+    sources = provenance.resolve([requirement], network_available=True)
+    assert sources[0].unresolved
+
+    discover.discover_sources(sources, cache_dir=tmp_path, connectors=[("fake", catalogue)])
+
+    assert searched == ["UCI Adult dataset", requirement]
+
+
 def test_the_verdict_is_withheld_as_unknown_not_false(monkeypatch):
     """The distinction the Writer actually reads.
 
@@ -5212,6 +5371,23 @@ def test_a_hub_matched_dataset_is_real_but_still_unconfirmed(tmp_path):
     )
     assert stamped["meets_success_criteria"] == "unknown"
     assert stamped["model_reported_meets_success_criteria"] is True
+
+
+def test_the_hub_is_asked_for_the_dataset_the_plan_named_first(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    plan = _plan("H1")
+    source = "public dataset (e.g., UCI Adult dataset or similar tabular dataset)"
+    plan["data_requirements"] = {
+        "source": source,
+        "description": "census income records",
+        "preprocessing_steps": [],
+    }
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+
+    assert queries == ["UCI Adult dataset", source, "census income records"]
 
 
 def test_a_synthesis_request_is_never_searched_for_on_the_hub(tmp_path):

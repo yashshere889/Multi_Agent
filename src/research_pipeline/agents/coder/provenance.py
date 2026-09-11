@@ -231,43 +231,256 @@ def _match(patterns, text: str):
     return None
 
 
-def _staged_file(staging_dir: Path | None, requirement: str) -> Path | None:
-    """A file the user staged for this requirement, matched on shared keywords.
+# ---------------------------------------------------------------------------
+# Reading a requirement: its content words, the datasets it names, and the
+# staged file it answers to. Content words live here rather than in discover.py
+# — which imports this module — so the staged-file matcher and the catalogue
+# relevance gate cannot drift into two definitions of "a word worth matching".
+# ---------------------------------------------------------------------------
 
-    Not an exact name match: somebody staging data names the file after the
-    data, not after the planner's phrasing of it.
+# Dropped when turning a prose requirement into a catalogue query, and when
+# measuring overlap. Same idea as huggingface_client's stop list.
+_STOPWORDS = frozenset(
+    """
+    a an the and or of for from with without to in on at by per over under between
+    is are was were be been has have had its it this that these those not
+    data dataset datasets database records record source sources file files
+    about into using use used via across during within all any new one two
+    real public open historical recent daily monthly yearly annual
+    """.split()
+)
+
+
+def _is_content_word(token: str) -> bool:
+    """Whether `token` is worth searching or matching on.
+
+    The length floor is 3, not 4, and there are two exceptions above it —
+    because a data requirement's most discriminating terms are routinely short.
+    A plain `len > 3` rule drops `pm2` (from PM2.5), `co2`, `no2`, `EEG`, `GDP`,
+    `CMS`, i.e. exactly the words that distinguish "PM2.5 concentrations" from
+    every other environmental dataset in a catalogue.
+
+    - a token mixing letters and digits is a measure or a code (`pm2`, `co2`,
+      `covid19`), never noise;
+    - an all-caps token is an acronym (`EEG`, `GDP`), so case is read from the
+      original text rather than after lowercasing;
+    - a pure number is dropped, which is what keeps the `5` of "PM2.5" out.
+    """
+    if token.lower() in _STOPWORDS:
+        return False
+    if not any(character.isalpha() for character in token):
+        return False
+    if len(token) >= 3:
+        return True
+    return token.isupper()
+
+
+def keywords(text: str) -> set[str]:
+    """Content words of `text`, lowercased, stopwords and noise dropped."""
+    tokens = re.split(r"[^A-Za-z0-9]+", text or "")
+    return {token.lower() for token in tokens if _is_content_word(token)}
+
+
+# What introduces an example in a planner's data requirement. The parenthesised
+# "(e.g., X or Y)" is the dominant shape: 17 of batch 10460809's 36
+# requirements used it, and most of the rest named their dataset after a colon.
+_EXAMPLE_MARKER = re.compile(
+    r"(?:\(\s*|\b)(?:e\.\s?g\.?|i\.\s?e\.?|such as|for example|for instance)\s*[,:]?\s*"
+    r"(?P<span>[^()]*)\)?",
+    re.IGNORECASE,
+)
+# An alternative that opens with one of these is a hedge, not a name: "or
+# similar lending dataset", "other public repositories".
+_FILLER_LEADS = frozenset({"any", "comparable", "equivalent", "etc", "other", "others", "similar"})
+# More named alternatives than this and a search is being asked to guess.
+MAX_NAMED_ALTERNATIVES = 3
+
+
+def _alternatives_in(span: str) -> list[str]:
+    """The alternatives one span lists, hedges dropped. A URL is never split."""
+    parts = [span] if "://" in span else re.split(r",|;|\s+or\s+|\s*/\s*", span)
+    found: list[str] = []
+    for part in parts:
+        cleaned = re.sub(r"\s+", " ", part).strip(" .")
+        if not cleaned or cleaned.split()[0].lower() in _FILLER_LEADS or not keywords(cleaned):
+            continue
+        found.append(cleaned)
+    return found
+
+
+def named_alternatives(requirement: str) -> list[str]:
+    """The specific datasets a requirement names, in the order worth trying them.
+
+    The planner usually knows which dataset it means, and says so in a clause
+    nothing was reading: "public dataset (e.g., UCI Adult dataset or similar
+    tabular dataset)", "public dataset: UCI Electricity Load Diagrams". Every
+    matcher downstream was handed the whole string, and the words most of them
+    could act on were the generic ones at the front.
+
+    Order: a name after a colon, then examples, then a "from" clause — the first
+    two name *datasets*, the last usually names a *repository* ("from UCI Machine
+    Learning Repository"). Returns [] when nothing is named, and never the
+    requirement itself, which every caller tries last anyway.
+    """
+    text = requirement or ""
+    found: list[str] = []
+    colon = re.match(r"^(?P<head>[^:()]+):\s*(?P<span>.+)$", text)
+    if colon and colon.group("span").startswith("//"):
+        colon = None
+    if colon:
+        span = _EXAMPLE_MARKER.sub("", colon.group("span"))
+        found += _alternatives_in(re.sub(r"\(([^)]*)\)", r" \1", span))
+    for example in _EXAMPLE_MARKER.finditer(text):
+        found += _alternatives_in(example.group("span"))
+    source = re.search(r"\bfrom\s+(?P<span>[^()]+)", text)
+    if source and not colon:
+        found += _alternatives_in(source.group("span"))
+    if not found and " / " in text:
+        found += _alternatives_in(text)
+
+    ordered: list[str] = []
+    seen = {text.strip().lower()}
+    for alternative in found:
+        if alternative.lower() not in seen:
+            seen.add(alternative.lower())
+            ordered.append(alternative)
+    return ordered
+
+
+# Words a staged *filename* attracts because it describes data rather than
+# naming it. Someone staging a file writes a description, and on 5 September a
+# set of keyword-packed aliases was staged so vague requirements would find 20
+# Newsgroups. One of them —
+# dataset_benchmark_standard_collection_annotated_labeled_..._newsgroups_train.csv
+# — then answered every requirement that said "benchmark" or "standard", and
+# "Public benchmark datasets" published a *supported* verdict off 20 Newsgroups.
+_STAGING_STOPWORDS = _STOPWORDS | frozenset(
+    {
+        "available",
+        "benchmark",
+        "benchmarks",
+        "collection",
+        "collections",
+        "instance",
+        "instances",
+        "name",
+        "names",
+        "publicly",
+        "repository",
+        "sample",
+        "samples",
+        "similar",
+        "standard",
+    }
+)
+# Never enough to make a match on their own — "daily" is in half the staged
+# filenames — but the only thing that tells the daily and monthly versions of one
+# series apart, so they break ties.
+_FREQUENCY_WORDS = frozenset(
+    {"annual", "daily", "hourly", "monthly", "quarterly", "weekly", "yearly"}
+)
+# Content words a phrase must share with a filename, or all of them when it has
+# fewer. See _staged_file for how this number was chosen.
+STAGED_MATCH_MIN_WORDS = 2
+
+
+def _singular(word: str) -> str:
+    """Fold a plural — "documents" to "document" — so the two sides need not agree.
+
+    Crude on purpose, and harmless for it: applied to both sides alike, a word it
+    mangles ("categories" to "categorie") is mangled identically on each.
+    """
+    if len(word) > 4 and word.endswith("s") and not word.endswith(("ss", "us", "is")):
+        return word[:-1]
+    return word
+
+
+def _staging_words(text: str) -> set[str]:
+    """Content words for matching a phrase against a staged filename.
+
+    `keywords` with three differences, each measured against the cluster's own
+    staging directory. Two-letter tokens count on both sides: `keywords` keeps
+    "AG" only in upper case, which a filename never is, so "AG News" could not
+    find ag_news_*.csv. Plurals are folded. And `_STAGING_STOPWORDS` drops the
+    descriptive vocabulary a staged filename attracts.
+    """
+    words: set[str] = set()
+    for token in re.split(r"[^A-Za-z0-9]+", text or ""):
+        lowered = token.lower()
+        if len(lowered) < 2 or lowered in _STAGING_STOPWORDS:
+            continue
+        if not any(character.isalpha() for character in lowered):
+            continue
+        words.add(_singular(lowered))
+    return words
+
+
+def _frequency_words(text: str) -> set[str]:
+    return {token.lower() for token in re.split(r"[^A-Za-z0-9]+", text or "")} & _FREQUENCY_WORDS
+
+
+def _staged_file(staging_dir: Path | None, requirement: str) -> tuple[Path, str] | None:
+    """A file the user staged for this requirement, and the phrase that matched it.
+
+    Not an exact name match — somebody staging data names the file after the
+    data, not after the planner's phrasing of it — but not one shared word
+    either, which is what this was until it resolved 28 of batch 10460809's 36
+    requirements to a staged file, most of them to one alias of 20 Newsgroups.
+    Across every requirement that has ever hit a staged file (38 distinct), that
+    rule matched 25 that could not answer their question, and 19 experiments
+    published a verdict off one of them: nine "supported", ten "refuted". "public
+    EHR dataset (e.g., MIMIC-III or eICU)" was among them, reaching 20 Newsgroups
+    before the restricted-source rule was ever consulted — and a staged input is
+    `real_local` and named, so no confirmation gate could catch it afterwards.
+
+    So the datasets the requirement names are tried before the requirement
+    itself, and a file must share `STAGED_MATCH_MIN_WORDS` content words with the
+    phrase (all of them, when it has fewer). Measured against the same 38: no
+    implausible match survives, and the four correct ones do — the S&P 500 series
+    for "S&P 500 daily closing prices" (twice), AG News for a financial-news
+    requirement, 20 Newsgroups for "20 Newsgroups". `discover.is_relevant`'s
+    majority rule was measured too and rejected: it loses "CMS Medicare claims
+    for admissions" against a file named medicare_claims_2020.
+
+    Ties go to the file whose frequency ("daily", "monthly") agrees, then to the
+    real file over an alias symlinked to it, then to the shorter — more specific
+    — filename, then to a training split.
     """
     if not staging_dir or not staging_dir.is_dir():
         return None
-    words = {w for w in re.split(r"[^a-z0-9]+", requirement.lower()) if len(w) > 3}
-    if not words:
-        return None
-    best: tuple[int, Path] | None = None
-    for candidate in staging_dir.rglob("*"):
-        if not candidate.is_file() or candidate.name.startswith("."):
+    files = [
+        path
+        for path in sorted(staging_dir.rglob("*"))
+        if path.is_file()
+        and not path.name.startswith(".")
+        and not path.name.lower().startswith("readme")
+    ]
+    for phrase in [*named_alternatives(requirement)[:MAX_NAMED_ALTERNATIVES], requirement]:
+        wanted = _staging_words(phrase)
+        if not wanted:
             continue
-        name_words = {w for w in re.split(r"[^a-z0-9]+", candidate.stem.lower()) if len(w) > 3}
-        overlap = len(words & name_words)
-        if overlap and (best is None or overlap > best[0]):
-            best = (overlap, candidate)
-    return best[1] if best else None
+        needed = min(STAGED_MATCH_MIN_WORDS, len(wanted))
+        frequency = _frequency_words(phrase)
+        best: tuple[tuple[int, int, bool, int, bool], Path] | None = None
+        for path in files:
+            offered = _staging_words(path.stem)
+            overlap = len(wanted & offered)
+            if overlap < needed:
+                continue
+            rank = (
+                overlap,
+                len(frequency & _frequency_words(path.stem)),
+                not path.is_symlink(),
+                -len(offered),
+                "train" in path.stem.lower(),
+            )
+            if best is None or rank > best[0]:
+                best = (rank, path)
+        if best is not None:
+            return best[1], phrase
+    return None
 
 
-# A requirement that asks for data to be *made*, not found. Measured, not
-# guessed: across benchmark runs 10460710/10460812/10460813 the planner wrote
-# the bare word "synthetic" as a data requirement, and because no table matched
-# it the requirement became `unresolved` — which is this package's signal to go
-# looking. Both searches then obliged. The Hub matched
-# `gretelai/synthetic_text_to_sql` on the word itself and handed a text-to-SQL
-# corpus to tabular classification, timeseries forecasting, high-complexity CPU
-# and bootstrap resampling; the catalogue connectors searched for it too.
-#
-# Searching for a synthesis instruction is a category error, not a bad match:
-# there is no dataset anywhere that "is" the synthetic data a plan intends to
-# generate, so every hit is wrong by construction and the best possible outcome
-# is an honest miss. Recognising it here rather than in either search keeps one
-# answer to "is this a request for data at all?", the same way `dedupe_key` is
-# the one answer to "are these the same paper?".
 # The vocabulary a synthesis instruction is built from. Split into three sets
 # rather than one alternation because the rule is "the requirement says nothing
 # but this", not "the requirement contains one of these".
@@ -382,12 +595,18 @@ def resolve(
     for requirement in requirements:
         staged = _staged_file(staging_dir, requirement)
         if staged:
+            path, matched_on = staged
             resolved.append(
                 DataSource(
                     name=requirement,
                     kind=KIND_REAL_LOCAL,
-                    local_path=str(staged),
-                    reason=f"staged locally at {staged}",
+                    local_path=str(path),
+                    reason=f"staged locally at {path}"
+                    + (
+                        f", matched on the dataset the plan named: {matched_on!r}"
+                        if matched_on != requirement
+                        else ""
+                    ),
                 )
             )
             continue

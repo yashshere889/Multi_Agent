@@ -2557,10 +2557,18 @@ class CoderAgent:
         # "no viewer-servable dataset" for a benchmark that is on the Hub, and
         # both fell through to a model-proposed URL that 404s.
         requirements = plan.get("data_requirements") or {}
+        # The datasets `source` names come first, ahead of `source` itself: the
+        # Hub matches on names, and "public dataset (e.g., UCI Adult dataset or
+        # similar tabular dataset)" puts the one name it contains behind two
+        # words every dataset on the Hub could claim.
+        named = provenance.named_alternatives(str(requirements.get("source") or ""))
         queries = [
-            str(text).strip()
-            for text in (requirements.get("source"), requirements.get("description"))
-            if str(text or "").strip()
+            *named[: provenance.MAX_NAMED_ALTERNATIVES],
+            *(
+                str(text).strip()
+                for text in (requirements.get("source"), requirements.get("description"))
+                if str(text or "").strip()
+            ),
         ] or [str(plan["objective"])]
         # A plan asking for generated data is not asking for a dataset, and the
         # Hub will match the word anyway: "synthetic" returned

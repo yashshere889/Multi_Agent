@@ -93,6 +93,11 @@ import requests
 
 from research_pipeline.agents.coder import acquire, huggingface_client, provenance
 
+# One definition of a content word, shared with the staged-file matcher. It
+# lives in provenance.py because this module imports that one, and is
+# re-exported here for the relevance gate and the query builders below.
+from research_pipeline.agents.coder.provenance import _is_content_word, keywords
+
 logger = logging.getLogger(__name__)
 
 USER_AGENT = acquire.USER_AGENT
@@ -184,18 +189,6 @@ EXCLUDED_FORMATS = {"GEOJSON", "TOPOJSON"}
 # Extensions that veto a resource whatever the catalogue declares it to be.
 NON_TABULAR_EXTENSIONS = (".zip", ".gz", ".7z", ".tar", ".xlsx", ".xls", ".pdf", ".xml", ".html")
 
-# Dropped when turning a prose requirement into a catalogue query, and when
-# measuring overlap. Same idea as huggingface_client's stop list.
-_STOPWORDS = frozenset(
-    """
-    a an the and or of for from with without to in on at by per over under between
-    is are was were be been has have had its it this that these those not
-    data dataset datasets database records record source sources file files
-    about into using use used via across during within all any new one two
-    real public open historical recent daily monthly yearly annual
-    """.split()
-)
-
 
 # Injected by `coder_agent`, never constructed here. Given the requirement and
 # the candidates, returns the indices it would probe, best first — a subset, so
@@ -233,36 +226,6 @@ class Candidate:
 # --------------------------------------------------------------------------
 # Keywords and relevance
 # --------------------------------------------------------------------------
-
-
-def _is_content_word(token: str) -> bool:
-    """Whether `token` is worth searching or matching on.
-
-    The length floor is 3, not 4, and there are two exceptions above it —
-    because a data requirement's most discriminating terms are routinely short.
-    A plain `len > 3` rule drops `pm2` (from PM2.5), `co2`, `no2`, `EEG`, `GDP`,
-    `CMS`, i.e. exactly the words that distinguish "PM2.5 concentrations" from
-    every other environmental dataset in a catalogue.
-
-    - a token mixing letters and digits is a measure or a code (`pm2`, `co2`,
-      `covid19`), never noise;
-    - an all-caps token is an acronym (`EEG`, `GDP`), so case is read from the
-      original text rather than after lowercasing;
-    - a pure number is dropped, which is what keeps the `5` of "PM2.5" out.
-    """
-    if token.lower() in _STOPWORDS:
-        return False
-    if not any(character.isalpha() for character in token):
-        return False
-    if len(token) >= 3:
-        return True
-    return token.isupper()
-
-
-def keywords(text: str) -> set[str]:
-    """Content words of `text`, lowercased, stopwords and noise dropped."""
-    tokens = re.split(r"[^A-Za-z0-9]+", text or "")
-    return {token.lower() for token in tokens if _is_content_word(token)}
 
 
 def query_for(requirement: str) -> str:
@@ -841,15 +804,22 @@ def discover_sources(
             continue
         if source.name in discoveries:
             continue
-        candidate = find_source(
-            source.name,
-            cache_dir=cache_dir,
-            max_bytes=max_bytes,
-            connectors=connectors,
-            chooser=chooser,
-        )
-        if candidate is not None:
-            discoveries[source.name] = {**candidate.to_dict(), "query": query_for(source.name)}
+        # The datasets the requirement names, before the requirement itself.
+        # "UCI Adult dataset" is a search; "public dataset (e.g., UCI Adult
+        # dataset or similar tabular dataset)" is, to a keyword matcher, mostly
+        # the words "public" and "dataset". See provenance.named_alternatives.
+        named = provenance.named_alternatives(source.name)[: provenance.MAX_NAMED_ALTERNATIVES]
+        for searched in [*named, source.name]:
+            candidate = find_source(
+                searched,
+                cache_dir=cache_dir,
+                max_bytes=max_bytes,
+                connectors=connectors,
+                chooser=chooser,
+            )
+            if candidate is not None:
+                discoveries[source.name] = {**candidate.to_dict(), "query": query_for(searched)}
+                break
     return discoveries
 
 
