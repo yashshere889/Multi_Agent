@@ -189,19 +189,110 @@ A surrogate withholds a verdict; wrong real data claims one. This is the
 over-claiming direction the entire provenance design exists to prevent, arriving
 through a route it did not cover.
 
-Two responses were implemented. The model had \emph{declared} what it did, in
-\texttt{assumptions\_made}, and nothing read the declaration; a deterministic pass
-now does, withholding the verdict when the text asserts a substitution while
-ignoring the conditional fallback the prompt requires. Separately, an input that
-was \emph{discovered} rather than named is now marked as needing confirmation
-before its verdict stands, on the grounds that a keyword match is not evidence
-that a dataset answers a question. Neither closes the case where the model
-substitutes silently, which cannot be caught by reading prose.
+Two responses were implemented immediately. The model had \emph{declared} what it
+did, in \texttt{assumptions\_made}, and nothing read the declaration; a
+deterministic pass now does, withholding the verdict when the text asserts a
+substitution while ignoring the conditional fallback the prompt requires.
+Separately, an input that was \emph{discovered} rather than named is now marked as
+needing confirmation before its verdict stands, on the grounds that a keyword match
+is not evidence that a dataset answers a question. Neither closes the case where the
+model substitutes silently, which cannot be caught by reading prose.
+
+Both were implemented correctly, and neither was measured until later. The three
+subsections that follow report what measuring them found, and they are the most
+consequential results in this evaluation: in each case a mechanism that reads
+correctly in the source was doing nothing, or the wrong thing, in production.
+
+\subsection{A guardrail with no coverage}
+\label{sec:guardrail-coverage}
+
+A confirmation gate is worth only the set of inputs it can see, and asked of a
+whole sweep this one had seen none. Across the thirty-six experiments of the second
+sweep it fired \emph{zero} times, while all three verdicts that sweep published
+rested on datasets found by keyword search. One requirement reading ``Public
+benchmark datasets'' resolved to \texttt{gaia-benchmark/results\_public}, a
+leaderboard of language-model agent scores, for a hypothesis about gradient-boosted
+trees on tabular data; the paper reported it \emph{supported}. A second reported a
+refutation off an expected calibration error of exactly $0.0000$ in every arm, and
+a third off a Spearman correlation of $1.0$ in both arms.
+
+The cause was a marker written in one place and read in another.
+\texttt{needs\_confirmation} tests a \texttt{discovered} field that only the
+catalogue connectors ever set, while the Hugging Face lookup --- the path that
+resolves most inputs in production --- built its source without it. A keyword hit on
+the Hub was therefore indistinguishable from a dataset a human had named. The repair
+is a single field. The mechanism's design was never wrong; its coverage was, and
+nothing in the test suite could have revealed that, because each half behaved
+exactly as its own tests specified.
+
+\subsection{Real data, staged, and still wrong}
+\label{sec:staged-hijack}
+
+\texttt{CODER\_DATA\_DIR} is what makes a real verdict reachable at all: data a
+human has placed on disk is named rather than found, so its verdict stands. That
+property is what made the next defect the most serious one this evaluation found.
+
+Staged files were matched to a requirement by a single shared word of more than
+three letters. To help vague requirements find a text corpus, an alias of the 20
+Newsgroups corpus had been staged under a filename packing every phrasing the Coder
+might use: \texttt{dataset\_benchmark\_standard\_collection\_\ldots\_newsgroups\_%
+train.csv}. Under a one-word rule, that filename answers almost any requirement
+containing ``dataset'', ``benchmark'' or ``standard''. Twenty-eight of the second
+sweep's thirty-six requirements resolved to a staged file, most of them to that one
+alias, and across every run recorded in this project nineteen experiments published
+a verdict computed on a staged file that could not answer their question --- nine
+\emph{supported} and ten \emph{refuted}. A requirement reading ``public EHR dataset
+(e.g., MIMIC-III or eICU)'' reached newsgroup posts, because staging is consulted
+before the restricted-source rule that exists precisely to refuse that request.
+
+No later gate could catch any of this. A staged input is real and named by
+construction, which is the case the entire provenance design treats as trustworthy.
+
+The remedy follows the ablation's conclusion in Section~\ref{sec:ablation}: stricter
+matching, not removal. The planner routinely names the dataset it means, in a clause
+nothing was reading --- ``public dataset (e.g., UCI Adult dataset or similar tabular
+dataset)'', ``public dataset: UCI Electricity Load Diagrams''. Those names are now
+extracted and tried first, by the staged-file matcher, the catalogue search and the
+Hub lookup alike. A staged file must share two content words with the phrase rather
+than one, and vocabulary describing data in general (``benchmark'', ``collection'',
+``repository'') is not counted at all.
+
+The threshold was chosen by measurement rather than taste. Over the thirty-eight
+distinct requirements that ever reached a staged file, one shared word admitted
+twenty-five that could not answer their question while two words admitted none of
+them and kept all four correct matches. The majority rule already used by the
+catalogue relevance gate was measured too and rejected: it loses the case the
+matcher exists for, a requirement naming CMS Medicare claims against a file named
+\texttt{medicare\_claims\_2020.csv}.
+
+\subsection{Metrics that could not have come out otherwise}
+\label{sec:saturation}
+
+A third route to an unearned verdict needs neither wrong data nor a broken check.
+One study in the second sweep was designed --- by the Experiment Planner, not the
+Coder --- to split documents at the median entropy and then predict which half a
+document fell in, using entropy as a model input. The Coder implemented that plan
+faithfully, and accuracy, F1 and $R^2$ all returned exactly $1.0$. The same design
+scores $0.99$ on random numbers: the classifier learns a threshold on its own input.
+
+Neither that nor the unit correlation above is a provenance failure or a coding
+failure. The measurement had nowhere to go --- a label derived from one of the
+model's own inputs, or two arms both pinned at the ceiling, where a difference of
+zero is not evidence that one fails to beat the other. Of the 184 completed
+experiments recorded in this project, seventeen report every recognisably bounded
+metric at exactly its perfect value, and nine of those published a verdict.
+
+A third gate now withholds the verdict in that case, beside the data and compute
+gates, and deliberately does not route back to the fix loop. The defect is usually a
+sound implementation of an unsound plan, and regenerating code does not touch the
+plan: one run spent seven consecutive attempts failing the existing hollow-metrics
+check without ever escaping it.
 
 \section{End-to-end runs}
 \label{sec:end-to-end}
 
-Thirty-six interdisciplinary research questions were run through the complete
+Thirty-six interdisciplinary research questions (sweep~1 of the three compared in
+Section~\ref{sec:three-sweeps}) were run through the complete
 pipeline, spanning finance, health, climate, economics, language and the physical
 sciences. All thirty-six completed, producing 108 drafted papers across three
 writer/reviewer iterations each, with a mean of 3.9 cross-field bridge insights
@@ -257,6 +348,83 @@ checker that cries wolf is not merely noisy; it destroys the signal it exists to
 provide. Reference entries are rendered mechanically from the retrieved paper
 index and so cannot be fabricated by construction; they are now excluded.
 
+\section{Three sweeps of the same questions}
+\label{sec:three-sweeps}
+
+The thirty-six questions were run three times over five days: once before the
+mechanisms of Section~\ref{sec:wrong-data} existed (sweep~1, the sweep reported
+above), once after the three verification checks were repaired (sweep~2), and once
+after the three data gates of Sections~\ref{sec:guardrail-coverage}
+to~\ref{sec:saturation} were closed (sweep~3). The questions, the model and the
+cluster are identical across all three, so the columns of
+Table~\ref{tab:three-sweeps} differ only by which guardrails were in force.
+
+\begin{table}[htbp]
+\centering\small
+\caption{The same thirty-six questions under three sets of guardrails. Review
+findings are totals over three iterations per question; deterministic findings are
+the citation, results-accuracy and hypothesis-coverage checks, which the pipeline
+owns, as distinct from the model-judged hallucination check.}
+\label{tab:three-sweeps}
+\begin{tabularx}{\textwidth}{Xccc}
+\toprule
+& \textbf{Sweep 1} & \textbf{Sweep 2} & \textbf{Sweep 3} \\
+\midrule
+Questions completed                & 36/36 & 33/36 & 34/36 \\
+Experiments that ran               & 25    & 25    & 26 \\
+Verdicts published                 & 16    & 3     & \textbf{0} \\
+\quad of which \emph{supported}    & 9     & 1     & 0 \\
+Verdicts withheld                  & 9     & 22    & 26 \\
+Inputs taken from a staged file    & 19    & 19    & \textbf{1} \\
+Inputs flagged as found by search  & 0     & 0     & \textbf{17} \\
+Deterministic review findings      & 3{,}871 & 267 & 353 \\
+Hallucination findings             & 8{,}483 & 7{,}126 & 7{,}341 \\
+Papers passing review              & 0     & 0     & 0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The middle rows are the intended direction and the third column is its cost.
+Published verdicts fall from sixteen to three to none, and each fall removes claims
+the run had not earned: sweep~1's sixteen include nine \emph{supported} verdicts
+computed on staged files that could not answer their question, and sweep~2's three
+are the leaderboard, the perfect-calibration and the unit-correlation results
+described above. By sweep~3 nothing is over-claimed, because nothing is claimed.
+
+That is the honest state of the system and it should not be dressed up.
+Twenty-six experiments ran to completion in sweep~3 and every one had its verdict
+withheld: sixteen for synthetic inputs, ten for real data found by keyword search
+that no human has confirmed. What stands between this pipeline and a usable result
+is therefore not reliability --- it completes more experiments than it did at the
+start, with fewer failures --- but \emph{confirmation}. A verdict requires data
+somebody has vouched for, and the only two mechanisms that produce such data today
+are a human staging a file and a human approving a discovered one. Chapter~\ref{ch:conclusion}
+returns to this as the project's clearest unfinished business.
+
+The name extraction works, and works best where it was aimed. Where a plan names a
+dataset in an example clause the search now asks for that dataset: ``(e.g., German
+Credit Dataset\ldots)'' fetched \texttt{AiresPucrs/german-credit-data} on three
+separate questions, ``(e.g., XNLI\ldots)'' fetched \texttt{facebook/xnli}, and
+``(e.g., arXiv CS category\ldots)'' fetched an arXiv category corpus --- against a
+baseline in which ``public dataset'' had fetched a web-crawl corpus and a
+text-to-SQL corpus. The failure that remains is visible in the same trace and is the
+obvious next increment: a plan naming a \emph{repository} rather than a dataset
+(``public dataset repositories (e.g., UCI ML Repository)'') is taken literally, and
+the search returned the Iris dataset for three unrelated questions, one of them on
+probability calibration for imbalanced financial data. Those verdicts were withheld
+--- the system behaving correctly on data it should never have fetched.
+
+The writer/reviewer loop is unmoved by all of this, as it should be: every mechanism
+above is data-side. No paper passed review in any sweep. What changed is the
+composition of what remains, and it is stark. In sweep~3 the three deterministic
+checks account for 353 findings against 7{,}341 from the model-judged hallucination
+check --- 95\% of the total --- and in sweep~2, where the locations were tabulated,
+86\% of those fell in a single section, Related Work.
+Section~\ref{sec:end-to-end} showed one deterministic check failing by
+over-reporting. What sweeps~2 and~3 show is that repairing it exposes a second,
+much larger over-reporting problem underneath it, in the one check no deterministic
+rule can replace.
+
 \section{Human evaluation}
 \label{sec:human-eval}
 
@@ -281,12 +449,16 @@ index and so cannot be fabricated by construction; they are now excluded.
   \item[\textbf{A1}] \emph{Question to draft paper without writing code.} Met: 36
     of 36 questions produced drafted papers with no human intervention.
     Whether the result is \emph{usable} is the human evaluation's question.
-  \item[\textbf{A2}] \emph{No unverifiable claim.} Substantially met, with one
-    documented gap. Citations cannot resolve to unretrieved papers, verdicts
-    derive from execution, and synthesised inputs withhold conclusions --- but
-    Section~\ref{sec:wrong-data} shows real-but-wrong data asserting verdicts
-    until the guardrails described there were added, and a silent substitution
-    remains uncaught.
+  \item[\textbf{A2}] \emph{No unverifiable claim.} Met as of sweep~3, and only
+    after three separate failures of the same kind. Citations cannot resolve to
+    unretrieved papers, verdicts derive from execution, and synthesised inputs
+    withhold conclusions --- but real-but-wrong data asserted verdicts through a
+    confirmation gate with no coverage (Section~\ref{sec:guardrail-coverage}),
+    through a staged-file match on one shared word
+    (Section~\ref{sec:staged-hijack}), and through measurements that could not have
+    come out otherwise (Section~\ref{sec:saturation}). Sweep~3 published no verdict
+    at all, which satisfies this aim in the only way it can currently be satisfied.
+    A silent substitution the model never declares remains uncaught.
   \item[\textbf{A3}] \emph{Independently usable and steerable stages.} Met in
     the implementation; its value to a researcher is for the evaluation to say.
   \item[\textbf{A4}] \emph{Institutional infrastructure, open weights.} Met: every
