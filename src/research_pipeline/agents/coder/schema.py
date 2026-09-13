@@ -43,6 +43,9 @@ VALID_ERROR_SOURCES = {
     # using it, and it wasn't declined in assumptions_made either — see
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
+    # An excess-return column (Mkt-RF beside RF) is compounded into a value as
+    # though it were a total return — see sandbox.check_excess_return_usage.
+    "excess_return_as_total",
     # A torch training loop takes one optimizer step per epoch over the whole
     # tensor: as many gradient updates as epochs, which measures the training
     # budget rather than the thing under test. See sandbox.check_training_batching.
