@@ -52,6 +52,11 @@ Never compare quantities that differ by construction — the spread of a \
 stochastic model against a deterministic model that has none, or an error \
 metric with no ground truth to measure error against. Every metric must be \
 computable from the data and the models the plan itself builds.
+- Never measure a quantity your own design censors. "Years until depletion" \
+against a fixed horizon reports the horizon rather than any difference once \
+most runs survive it, and every arm then reports the same number: choose a \
+horizon long enough that outcomes vary, or measure something that still varies \
+at the ceiling (failure probability, terminal value, the spread across runs).
 - Return ONLY valid JSON matching the schema described in the user prompt. No \
 markdown fences, no commentary before or after the JSON.
 """

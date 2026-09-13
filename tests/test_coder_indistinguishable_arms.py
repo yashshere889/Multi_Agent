@@ -81,7 +81,28 @@ def test_the_fix_loop_is_told_what_is_wrong():
     findings = sandbox.check_results_plausibility(JOB_10496137_METRICS)
     assert len(findings) == 1
     assert "cannot be told apart" in findings[0]
-    assert "compounded rather than averaged" in findings[0]
+    assert "averaged across periods rather than compounded" in findings[0]
+    assert "raise the cap" in findings[0]
+
+
+def test_the_censoring_constant_is_named_when_the_code_has_one():
+    """Barkla 10510222: every path survived to a 30-year horizon, so both arms read 30.0."""
+    metrics = {
+        "fixed_mean_longevity": 30.0,
+        "dynamic_mean_longevity": 30.0,
+        "fixed_std_longevity": 0.0,
+        "dynamic_std_longevity": 0.0,
+    }
+    source = "SEED = 7\nRETIREMENT_PERIOD_YEARS = 30\nNUM_SIMULATIONS = 10000\n"
+
+    findings = sandbox.check_results_plausibility(metrics, source)
+
+    assert "(RETIREMENT_PERIOD_YEARS = 30)" in findings[0]
+
+
+def test_no_constant_is_named_when_nothing_matches():
+    findings = sandbox.check_results_plausibility(JOB_10496137_METRICS, "SEED = 7\n")
+    assert "every path reached the cap," in findings[0]
 
 
 def test_the_verdict_is_withheld_and_the_claim_kept():

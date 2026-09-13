@@ -1041,7 +1041,31 @@ def _nonfinite_within(value: object, _depth: int = 0) -> list[str]:
     return []
 
 
-def check_results_plausibility(metrics: dict) -> list[str]:
+# The constant a censored outcome is pinned to, named for the fix prompt when the
+# code has one: Barkla job 10510222 measured "years until depletion" against a
+# 30-year horizon, and once its returns were right every path survived to 30, so
+# both withdrawal rules reported exactly 30.0 with zero spread. Four fix attempts
+# went on guessing because the finding did not mention the ceiling.
+_CONSTANT_ASSIGNMENT_RE = re.compile(r"^([A-Z][A-Z0-9_]*)\s*=\s*(\d+(?:\.\d+)?)\s*$", re.MULTILINE)
+
+
+def _ceiling_hint(metrics: dict, source: str) -> str:
+    """ " (every path reached NAME = N)" when a shared metric equals a constant."""
+    if not source:
+        return ""
+    values: set[float] = set()
+    for value in metrics.values():
+        if isinstance(value, dict):
+            values.update(v for v in value.values() if isinstance(v, (int, float)))
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            values.add(value)
+    for name, literal in _CONSTANT_ASSIGNMENT_RE.findall(source):
+        if float(literal) in values:
+            return f" ({name} = {literal})"
+    return ""
+
+
+def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
     """Sanity-checks a completed experiment's own reported metrics before
     read_results_json_for_diagnosis's success is trusted as a real result.
     Returns human-readable findings; empty means clean.
@@ -1118,10 +1142,13 @@ def check_results_plausibility(metrics: dict) -> list[str]:
         findings.append(
             "the compared arms cannot be told apart: every metric they share is identical and "
             f"their spread is exactly 0 ({', '.join(identical)}). A stochastic comparison whose "
-            "outcomes never varied did not exercise the difference it measures — check that each "
-            "simulated path draws its own varying inputs (resampled returns, not a constant or an "
-            "average), that returns are compounded rather than averaged across periods, and that "
-            "the outcome can actually respond to them"
+            "outcomes never varied did not exercise the difference it measures. Three causes, in "
+            "the order they are worth checking: the outcome is capped and every path reached the "
+            f"cap{_ceiling_hint(metrics, source)}, so raise the cap until some paths fail (or "
+            "measure a quantity that still varies, such as terminal wealth or failure "
+            "probability); each path is not drawing its own varying inputs (resample per path, "
+            "never a constant or an average); or returns are averaged across periods rather than "
+            "compounded"
         )
 
     return findings
