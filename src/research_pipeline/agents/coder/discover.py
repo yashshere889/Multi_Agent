@@ -847,20 +847,27 @@ def apply(
         if record is None or source.kind != provenance.KIND_SURROGATE or not source.unresolved:
             applied.append(source)
             continue
+        if record.get("connector") == "direct":
+            reason = (
+                f"named by the plan as {record.get('url')!r}, and fetched and parsed as "
+                "tabular data by the pipeline"
+            )
+        else:
+            reason = (
+                f"no source was named for this input, so it was searched for: "
+                f"{record.get('connector', '?')} matched "
+                f"{record.get('title') or record.get('url')!r} "
+                f"for the query {record.get('query', '')!r} "
+                f"(catalogue record: {record.get('landing_page') or 'n/a'}). "
+                "Discovered by keyword search, not named by the plan — check that it "
+                "answers the question before reading the verdict as evidence."
+            )
         applied.append(
             provenance.DataSource(
                 name=source.name,
                 kind=provenance.KIND_REAL_DOWNLOAD,
                 uri=str(record.get("url") or ""),
-                reason=(
-                    f"no source was named for this input, so it was searched for: "
-                    f"{record.get('connector', '?')} matched "
-                    f"{record.get('title') or record.get('url')!r} "
-                    f"for the query {record.get('query', '')!r} "
-                    f"(catalogue record: {record.get('landing_page') or 'n/a'}). "
-                    "Discovered by keyword search, not named by the plan — check that it "
-                    "answers the question before reading the verdict as evidence."
-                ),
+                reason=reason,
                 discovered=dict(record),
             )
         )

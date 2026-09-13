@@ -132,7 +132,14 @@ def build_paper_index(raw_papers: List[dict]) -> Dict[str, IndexedPaper]:
 
 
 def surname_of(author: str) -> str:
-    parts = author.strip().split()
+    # CORE writes names surname-first ("Horneff, Wolfram J."), arXiv and S2
+    # given-name-first ("Wolfram J. Horneff"). Taking the last token of the
+    # first form printed "J. et al. (2007)" in Barkla job 10492707's paper.
+    name = author.strip()
+    head = name.split(",", 1)[0].strip()
+    if "," in name and head:
+        return head.split()[-1]
+    parts = name.split()
     return parts[-1].rstrip(",") if parts else "Unknown"
 
 

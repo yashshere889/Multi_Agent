@@ -183,6 +183,10 @@ class DataSource:
     # dataset instead has a phantom requirement, exactly the case
     # supersede_unresolved exists for).
     synthesis_request: bool = False
+    # Set by `coder_agent` for a staged file: its columns, first and last rows
+    # and any trailing placeholder columns, read off the bytes by
+    # `acquire.describe_local`. Empty for everything else.
+    preview: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_real(self) -> bool:
@@ -203,6 +207,8 @@ class DataSource:
             document["acquired"] = self.acquired
         if self.discovered:
             document["discovered"] = self.discovered
+        if self.preview:
+            document["preview"] = self.preview
         return document
 
 
@@ -488,18 +494,25 @@ _SYNTHESIS_WORDS = {
     "artificial",
     "dummy",
     "fake",
+    "generate",
     "generated",
+    "generating",
     # Nouns for the act rather than the product. Not a guess: batch 10460809's
     # planner wrote "synthetic generation" as the entire data requirement in
     # four of its 36 plans, and the first version of this list — built from
-    # phrasings invented for its own unit tests — missed every one.
+    # phrasings invented for its own unit tests — missed every one. Barkla job
+    # 10492707's planner wrote the same phrase and both searches went looking,
+    # returning a code-generation corpus for a pension-liability experiment.
     "generation",
     "generator",
     "mock",
     "random",
     "randomly",
+    "simulate",
     "simulated",
     "simulation",
+    "simulations",
+    "synthesis",
     "synthesised",
     "synthesized",
     "synthetic",
@@ -795,6 +808,19 @@ def all_real(sources: list[DataSource]) -> bool:
     return bool(sources) and all(s.is_real for s in sources)
 
 
+def _unconfirmed(source: DataSource) -> bool:
+    # A URL the plan wrote into its own `source` field is not a search result:
+    # `discover.search_direct` fetched exactly what the plan named, which is the
+    # standing a table match has. Counting it as found-by-search withheld the
+    # verdict from precisely the plans that did the right thing and named their
+    # data. `verify_downloads_used` still checks the code actually read it.
+    return (
+        source.is_real
+        and bool(source.discovered)
+        and source.discovered.get("connector") != "direct"
+    )
+
+
 def needs_confirmation(sources: list[DataSource]) -> bool:
     """Whether any input is real but was *found* rather than named.
 
@@ -820,7 +846,7 @@ def needs_confirmation(sources: list[DataSource]) -> bool:
     the confirmed file under CODER_DATA_DIR is what turns it into a `real_local`
     nobody has to second-guess.
     """
-    return any(s.is_real and s.discovered for s in sources)
+    return any(_unconfirmed(s) for s in sources)
 
 
 # Phrases in which the model reports having *substituted* for the data the plan
@@ -948,7 +974,7 @@ def as_document(sources: list[DataSource]) -> dict[str, Any]:
         "surrogate_count": sum(1 for s in sources if s.kind == KIND_SURROGATE),
         # Separate from all_inputs_real on purpose: these inputs *are* real. What
         # is missing is a human confirming that they answer the question asked.
-        "unconfirmed_discovered_inputs": [s.name for s in sources if s.is_real and s.discovered],
+        "unconfirmed_discovered_inputs": [s.name for s in sources if _unconfirmed(s)],
     }
 
 
@@ -1060,6 +1086,40 @@ def _acquired_lines(source: DataSource) -> list[str]:
     return lines
 
 
+def _staged_lines(source: DataSource) -> list[str]:
+    """What the model is told about a staged file: read off its bytes, first and
+    last rows both, and — stated as fact — any columns ending in placeholders."""
+    preview = source.preview
+    if not preview:
+        return []
+    count = preview.get("row_count")
+    size = f" — {count} rows" if count is not None else ""
+    lines = [
+        f"   Staged file{size}. Format: {preview.get('read_hint') or preview.get('data_format', '')}"
+    ]
+    columns = preview.get("columns") or []
+    if columns:
+        lines.append(f"   Columns: {', '.join(str(column) for column in columns)}")
+    if preview.get("sample_rows"):
+        lines.append(f"   First rows: {json.dumps(preview['sample_rows'], default=str)[:1200]}")
+    if preview.get("last_rows"):
+        lines.append(f"   Last rows: {json.dumps(preview['last_rows'], default=str)[:1200]}")
+    if preview.get("notes"):
+        lines.append(
+            "   Notes from the staging README (source, units, caveats — follow them): "
+            + " ".join(str(preview["notes"]).split())
+        )
+    placeholders = preview.get("trailing_placeholders") or {}
+    if placeholders:
+        detail = ", ".join(f"{column} (last {n} rows)" for column, n in placeholders.items())
+        lines.append(
+            "   PLACEHOLDERS: these columns are 0 or blank at the end of the file although "
+            f"populated elsewhere — unpublished periods, not real values: {detail}. Drop those "
+            "rows, or that column, before computing anything from it."
+        )
+    return lines
+
+
 def _discovered_lines(source: DataSource) -> list[str]:
     """Told to the model because a discovered dataset can be real and wrong.
 
@@ -1101,6 +1161,7 @@ def prompt_block(sources: list[DataSource]) -> str:
         if source.kind == KIND_REAL_LOCAL:
             lines.append(f"   REAL, already on disk at: {source.local_path}")
             lines.extend(_acquired_lines(source))
+            lines.extend(_staged_lines(source))
             lines.extend(_discovered_lines(source))
             lines.append("   Read it directly. Do not download anything for this input.")
         elif source.kind == KIND_REAL_DOWNLOAD:

@@ -274,3 +274,22 @@ def test_fetch_related_skips_untitled_entries():
 def test_an_unknown_direction_is_a_programming_error():
     with pytest.raises(ValueError, match="direction must be one of"):
         clients.fetch_related("abc", "sideways", 50)
+
+
+@pytest.mark.parametrize("direction", ["references", "citations"])
+def test_fetch_related_never_requests_a_field_the_edges_reject(direction):
+    """S2 400s the whole hop on `citedPaper.tldr` — Barkla job 10492707 lost every one."""
+    with patch.object(clients, "_request_with_retry", return_value=_response({"data": []})) as request:
+        clients.fetch_related("abc", direction, 10)
+
+    fields = request.call_args.kwargs["params"]["fields"].split(",")
+    assert not any(field.endswith(".tldr") for field in fields)
+    # Everything else the search endpoint asks for is still asked for here.
+    assert len(fields) == len(clients.SEMANTIC_SCHOLAR_FIELDS.split(",")) - 1
+
+
+def test_fetch_related_waits_for_a_semantic_scholar_slot():
+    with patch.object(clients, "_request_with_retry", return_value=_response({"data": []})) as request:
+        clients.fetch_related("abc", "references", 10)
+
+    assert request.call_args.kwargs["pace"] is clients._wait_for_semantic_scholar_slot

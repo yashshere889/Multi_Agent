@@ -242,6 +242,31 @@ def _plausible_number_reprs(value: float) -> set[str]:
     return {r.rstrip("%") if r.endswith("%") else r for r in reprs} | reprs
 
 
+# Per-epoch traces the template records for every run; no paper reports them
+# value by value, so hunting for each one would flag every draft forever.
+_UNREPORTED_METRIC_KEYS = frozenset({"training_history"})
+
+
+def _flatten_metrics(metrics: dict, prefix: str = "") -> Dict[str, object]:
+    """Nested metric groups as dotted leaf names.
+
+    Generated experiments group metrics per arm as often as not — Barkla job
+    10492707 reported `deterministic_metrics={"std": ..., "cv": ...}` and
+    `stochastic_metrics={...}` — and a dict is not a checkable metric, so every
+    number that run produced went unverified against the paper.
+    """
+    flat: Dict[str, object] = {}
+    for name, value in metrics.items():
+        if name in _UNREPORTED_METRIC_KEYS:
+            continue
+        key = f"{prefix}{name}"
+        if isinstance(value, dict):
+            flat.update(_flatten_metrics(value, f"{key}."))
+        else:
+            flat[key] = value
+    return flat
+
+
 def check_results_accuracy(results_subsections: Dict[str, str], coder_output: dict) -> List[dict]:
     """Per experiment:
     - if status != "completed": the hypothesis's Results text must read like
@@ -284,8 +309,12 @@ def check_results_accuracy(results_subsections: Dict[str, str], coder_output: di
                 )
             continue
 
-        metrics = (experiment.get("results") or {}).get("metrics", {})
-        numbers_in_text = set(_NUMBER_RE.findall(text))
+        metrics = _flatten_metrics((experiment.get("results") or {}).get("metrics") or {})
+        found = _NUMBER_RE.findall(text)
+        # "-1030.89%" for computational_cost_reduction_percent=-1030.888 is a
+        # correct report (Barkla job 10495925); only a 0-1 value's percentage
+        # forms were compared without the sign before.
+        numbers_in_text = set(found) | {number.rstrip("%") for number in found}
         for metric_name, metric_value in metrics.items():
             if not _is_checkable_metric(metric_value):
                 continue

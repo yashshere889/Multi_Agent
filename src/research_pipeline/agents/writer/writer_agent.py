@@ -169,7 +169,17 @@ def compute_hypothesis_verdict(hypothesis_id: str, experiment_by_id: Dict[str, d
         return "supported", "The Coder Agent reported meets_success_criteria=true."
     if meets is False:
         return "refuted", "The Coder Agent reported meets_success_criteria=false."
-    return "inconclusive", 'The Coder Agent reported meets_success_criteria="unknown".'
+    # Says outright that the experiment ran. The bare 'reported
+    # meets_success_criteria="unknown"' this used to be was read as "not run":
+    # Barkla job 10496057's Discussion told readers the experiment "was not
+    # executed" and carried status "code_generated_not_run" — neither true —
+    # while its Results section reported the metrics that run produced.
+    withheld = str(experiment["results"].get("verdict_withheld_because") or "").strip()
+    return "inconclusive", (
+        f"The experiment ran to completion (status '{status}') and its metrics are reported, "
+        'but no verdict is drawn from them (meets_success_criteria="unknown")'
+        + (f": {withheld}" if withheld else ".")
+    )
 
 
 def build_scanned_registry(
@@ -612,7 +622,9 @@ class WriterAgent:
             return ""
         return (
             "\n\n" + "\n\n".join(parts) + "\n\nWrite a revised version that fixes the issues above. Keep everything "
-            "that was already accurate and well-grounded — only change what the feedback requires."
+            "that was already accurate and well-grounded — only change what the feedback requires. "
+            "Add no new claims, citations or papers: a revision that introduces material the "
+            "previous review never faulted is how a draft gets worse instead of better."
         )
 
     def _draft_introduction(
@@ -659,7 +671,8 @@ class WriterAgent:
                 "\n\nReviewer feedback on the previous Related Work draft (this may or may not "
                 "concern the specific papers in this batch — only act on what's relevant to them; "
                 "in particular, if the feedback flags a fabricated or unverifiable citation, make "
-                "sure no such citation appears in your answer either):\n" + feedback_lines
+                "sure no such citation appears in your answer either). Add no claims, papers or "
+                "citations beyond what you wrote before: say less, not more:\n" + feedback_lines
             )
 
         def _draft_batch(batch: list) -> str:

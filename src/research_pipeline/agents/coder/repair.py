@@ -28,9 +28,96 @@ the budgets and does the dispatching.
 
 from __future__ import annotations
 
+import ast
 import re
 
 from . import diagnose, sandbox
+
+# ---------------------------------------------------------------------------
+# Targeted regeneration: keeping what the untouched sections still use
+# ---------------------------------------------------------------------------
+#
+# A targeted fix always rewrites imports, configuration and helpers alongside
+# the section that failed, and the rewrite routinely drops something a section
+# it did NOT touch still uses. Barkla job 10496130 ping-ponged three attempts on
+# exactly that: regenerating load_data dropped `from sklearn.decomposition import
+# PCA`, which the reused run_experiment needed; regenerating run_experiment then
+# dropped `requests`, `StringIO` and DATA_URL, which the reused load_data needed.
+# An unused import costs nothing and a dropped one is a certain NameError, so the
+# dropped definitions are put back — but only the ones reused code references, so
+# an import a fix deliberately removed (a name that does not exist) stays gone.
+
+
+def _top_level_definitions(source: str) -> list[tuple[set[str], str]] | None:
+    """(names defined, statement text) for each top-level definition; None if unparseable."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    lines = source.splitlines()
+    definitions: list[tuple[set[str], str]] = []
+    for node in tree.body:
+        names: set[str] = set()
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = {
+                (alias.asname or alias.name).split(".")[0]
+                for alias in node.names
+                if alias.name != "*"
+            }
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names = {node.name}
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names = {
+                name.id
+                for target in targets
+                for name in ast.walk(target)
+                if isinstance(name, ast.Name)
+            }
+        if not names:
+            continue
+        decorators = getattr(node, "decorator_list", None) or []
+        start = decorators[0].lineno if decorators else node.lineno
+        definitions.append((names, "\n".join(lines[start - 1 : node.end_lineno])))
+    return definitions
+
+
+def referenced_names(source: str) -> set[str]:
+    """Every bare name `source` reads or writes; empty if it does not parse."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+
+
+def carry_over_definitions(
+    previous: str, regenerated: str, needed: set[str]
+) -> tuple[str, list[str]]:
+    """Re-append the top-level definitions `regenerated` dropped that `needed` names.
+
+    Returns (section text, names carried over). A definition the regenerated
+    section already provides is never duplicated, and either side failing to
+    parse leaves the regenerated text untouched — the compile check reports it.
+    """
+    old = _top_level_definitions(previous)
+    new = _top_level_definitions(regenerated)
+    if old is None or new is None:
+        return regenerated, []
+    defined = set().union(*(names for names, _ in new))
+    blocks: list[str] = []
+    carried: list[str] = []
+    for names, text in old:
+        missing = (names & needed) - defined
+        if missing:
+            blocks.append(text)
+            carried.extend(sorted(missing))
+            defined |= names
+    if not blocks:
+        return regenerated, []
+    body = regenerated.rstrip("\n")
+    return (f"{body}\n" if body else "") + "\n".join(blocks) + "\n", carried
+
 
 # Knobs that make a run smaller, split by what shrinking one actually costs.
 # The split is not cosmetic: it decides whether the metrics that come back may

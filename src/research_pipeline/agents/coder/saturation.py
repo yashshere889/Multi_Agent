@@ -175,14 +175,105 @@ def saturated(metrics: dict) -> bool:
     return bool(findings(metrics))
 
 
+# A third shape of "could not have come out otherwise", and the one bounded
+# metrics cannot see: arms that never differed at all. Barkla job 10496137
+# compared a fixed 4% withdrawal rule with a dynamic one over 10,000 Monte Carlo
+# paths of real Fama-French returns and reported mean longevity 40.0 and 40.0,
+# variance 0.0 and 0.0, success probability 1.0 and 1.0 — the simulation had
+# averaged daily returns into monthly ones and no path ever depleted. That went
+# out as a real-data *refutation*. A spread of exactly zero across paths of a
+# stochastic comparison says the outcome never varied, and identical arms on
+# every shared measure say the difference under test was never exercised.
+VERDICT_INDISTINGUISHABLE = (
+    "the compared arms are identical on every metric they share and their spread is exactly zero "
+    "— the comparison never exercised the difference it measures, so the metrics are NOT "
+    "interpretable as evidence for or against the hypothesis"
+)
+
+WITHHELD_INDISTINGUISHABLE = (
+    "Every metric the compared arms share is identical across them and their spread is exactly 0 "
+    "({names}). Outcomes that never varied cannot show one arm differing from the other, so the "
+    "verdict is withheld."
+)
+
+_SPREAD_TOKENS = frozenset({"iqr", "sd", "spread", "std", "stdev", "var", "variance"})
+
+
+def _finite_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _arm_groupings(metrics: dict) -> list[dict[str, dict[str, tuple[float, str]]]]:
+    """{measure: {arm: (value, reported name)}} under each observed naming.
+
+    Three namings, all seen in generated experiments: an arm prefix
+    (`fixed_mean_longevity`), an arm suffix (`longevity_fixed`), and one dict
+    per arm (`deterministic_metrics={"std": ...}`).
+    """
+    nested: dict[str, dict[str, tuple[float, str]]] = {}
+    prefix: dict[str, dict[str, tuple[float, str]]] = {}
+    suffix: dict[str, dict[str, tuple[float, str]]] = {}
+    for name, value in metrics.items():
+        name = str(name)
+        if isinstance(value, dict):
+            for inner, inner_value in value.items():
+                if _finite_number(inner_value):
+                    nested.setdefault(str(inner), {})[name] = (
+                        float(inner_value),
+                        f"{name}.{inner}",
+                    )
+            continue
+        tokens = name.lower().split("_")
+        if not _finite_number(value) or len(tokens) < 2:
+            continue
+        prefix.setdefault("_".join(tokens[1:]), {})[tokens[0]] = (float(value), name)
+        suffix.setdefault("_".join(tokens[:-1]), {})[tokens[-1]] = (float(value), name)
+    return [nested, prefix, suffix]
+
+
+def indistinguishable(metrics: dict) -> list[str]:
+    """The per-arm metrics, when the arms match on every shared measure and every spread is 0.
+
+    Empty unless there are at least two shared measures, all of them identical
+    across arms, and at least one of them a spread. A single shared measure is
+    too weak to judge on, and identical arms with a real spread are a finding.
+    """
+    if not isinstance(metrics, dict):
+        return []
+    for grouping in _arm_groupings(metrics):
+        shared = {measure: arms for measure, arms in grouping.items() if len(arms) >= 2}
+        if len(shared) < MIN_BOUNDED_METRICS:
+            continue
+        if any(len({value for value, _ in arms.values()}) > 1 for arms in shared.values()):
+            continue
+        spreads = [
+            measure
+            for measure in shared
+            if {token for token in re.split(r"[^a-z0-9]+", measure.lower()) if token}
+            & _SPREAD_TOKENS
+        ]
+        if spreads and all(
+            value == 0 for measure in spreads for value, _ in shared[measure].values()
+        ):
+            return sorted(name for arms in shared.values() for _, name in arms.values())
+    return []
+
+
 def apply_to_results(results: dict) -> dict:
-    """Withhold the verdict when every bounded metric sits at its perfect value.
+    """Withhold the verdict when the metrics could not have come out otherwise:
+    every bounded metric at its perfect value, or arms that never differed.
 
     Returns `results` itself, untouched, otherwise — so a run this has nothing to
     say about is identical to one that predates it.
     """
-    pinned = findings(results.get("metrics") or {})
-    if not pinned:
+    metrics = results.get("metrics") or {}
+    pinned = findings(metrics)
+    identical = [] if pinned else indistinguishable(metrics)
+    if not pinned and not identical:
         return results
 
     stamped = dict(results)
@@ -193,9 +284,14 @@ def apply_to_results(results: dict) -> dict:
         "model_reported_meets_success_criteria", results.get("meets_success_criteria")
     )
     stamped["meets_success_criteria"] = "unknown"
-    stamped["measurement_validity"] = VERDICT_SATURATED
-    stamped["saturated_metrics"] = pinned
-    reason = WITHHELD_BECAUSE.format(names=", ".join(pinned))
+    if pinned:
+        stamped["measurement_validity"] = VERDICT_SATURATED
+        stamped["saturated_metrics"] = pinned
+        reason = WITHHELD_BECAUSE.format(names=", ".join(pinned))
+    else:
+        stamped["measurement_validity"] = VERDICT_INDISTINGUISHABLE
+        stamped["indistinguishable_metrics"] = identical
+        reason = WITHHELD_INDISTINGUISHABLE.format(names=", ".join(identical))
     existing = stamped.get("verdict_withheld_because")
     stamped["verdict_withheld_because"] = f"{existing} {reason}" if existing else reason
     return stamped

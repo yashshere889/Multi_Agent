@@ -102,6 +102,39 @@ def _consolidate_unresolved(review: dict, quality_threshold: int) -> List[str]:
     return items
 
 
+# What the Reviewer counted, as opposed to what it scored: each entry of these
+# lists is a check's own finding or a claim it matched against the ground truth,
+# while the 1-5 quality dimensions are model judgment. Ranking iterations on the
+# former only is the same split the rest of the pipeline makes.
+ISSUE_CATEGORIES = (
+    "hallucinations",
+    "citation_issues",
+    "results_accuracy_issues",
+    "hypothesis_coverage_issues",
+)
+
+
+def issue_count(review: dict) -> int:
+    return sum(len(review.get(category) or []) for category in ISSUE_CATEGORIES)
+
+
+def best_iteration(history: List[dict]) -> dict:
+    """The iteration to hand over: the one whose review found fewest issues.
+
+    A revision is not monotonic, the same reason `coder_agent._best_candidate`
+    exists for the fix loop. Barkla job 10496143's three reviews found 64, 89
+    and 111 issues — Related Work alone went 26, 53, 78 as each revision rewrote
+    text the previous review had not faulted — and the paper handed over was the
+    third. Ties go to the later iteration, so a loop that never regressed hands
+    over its newest draft exactly as before this existed, and a passing
+    iteration always wins (the loop stops at one, so it is also the last).
+    """
+    passing = [entry for entry in history if (entry.get("review") or {}).get("overall_pass")]
+    if passing:
+        return passing[-1]
+    return min(history, key=lambda entry: (issue_count(entry.get("review") or {}), -entry["iteration"]))
+
+
 def run_writer_reviewer_loop(
     literature_output: object,
     hypothesis_output: dict,
@@ -177,13 +210,23 @@ def run_writer_reviewer_loop(
             converged = True
             break
 
-    unresolved_issues = [] if converged else _consolidate_unresolved(review, quality_threshold)
+    chosen = best_iteration(history)
+    unresolved_issues = [] if converged else _consolidate_unresolved(chosen["review"], quality_threshold)
+    if chosen["iteration"] != history[-1]["iteration"]:
+        logger.info(
+            "Handing over iteration %d rather than %d: its review found %d issues against %d",
+            chosen["iteration"],
+            history[-1]["iteration"],
+            issue_count(chosen["review"]),
+            issue_count(history[-1]["review"]),
+        )
 
     review_log_path = resolved_output_dir / "review_log.json"
     review_log_path.write_text(json.dumps(history, indent=2, ensure_ascii=False))
 
     result = {
-        "final_paper_path": history[-1]["paper_path"],
+        "final_paper_path": chosen["paper_path"],
+        "final_iteration": chosen["iteration"],
         "iterations_run": len(history),
         "converged": converged,
         "unresolved_issues": unresolved_issues,

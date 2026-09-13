@@ -87,6 +87,10 @@ Hypotheses this paper tests (id and one-line statement only):
 
 Paper ids you may cite (JSON array): {valid_paper_ids}
 
+When you cite papers for a gap, cite only the paper ids that gap lists as its \
+supporting evidence, and say no more about those papers than the gap and the \
+literature summary say about them.
+
 Write 3-5 paragraphs.
 """
 
@@ -106,17 +110,26 @@ Gaps across the full literature (JSON, for context only):
 
 Write a draft of part of the Related Work section covering ONLY the papers in \
 this batch. Group and synthesize by theme/method rather than listing papers \
-one by one; say how each contributes and, where relevant, where it falls \
-short (motivating this paper's gaps). Cite every paper in this batch at least \
-once using [[cite:PAPER_ID]] or [[citet:PAPER_ID]] (see the citation rule \
-above). 2-4 paragraphs.
+one by one, and say what each contributes. Cite every paper in this batch at \
+least once using [[cite:PAPER_ID]] or [[citet:PAPER_ID]] (see the citation \
+rule above). 2-4 paragraphs.
+
+Every statement about a cited paper must be something that paper's own text \
+above says — its method, data, scope and findings as written there, with no \
+detail, number or method name added. Never attribute a limitation, omission or \
+shortcoming to a specific paper unless its own text states it: the gaps list \
+describes the literature as a whole, so present a gap as a gap in the \
+literature, not as a failing of whichever paper you cited nearby.
 """
 
 RELATED_WORK_SYNTHESIS_PROMPT = """You previously drafted the following partial \
 Related Work passages, batch by batch, covering the full literature set. \
 Merge them into one coherent Related Work section — remove redundancy, add \
 transitions, and end with a short paragraph positioning this paper's \
-hypotheses relative to the prior work just discussed. Preserve every \
+hypotheses relative to the prior work just discussed. Merging must not add \
+claims: keep each statement about a cited paper as the drafts state it, and do \
+not attribute a limitation to any individual paper that the drafts did not. \
+Preserve every \
 [[cite:PAPER_ID]] / [[citet:PAPER_ID]] marker exactly as written; do not add, remove, or alter any \
 citation marker's paper id.
 
@@ -222,6 +235,10 @@ Suggest natural next steps: experiments that weren't run and should be, \
 follow-ups to supported/refuted findings, and any unaddressed gaps above. \
 Ground every suggestion in the data given — do not propose work unrelated to \
 what's above. 2-3 paragraphs.
+
+Do not cite papers or name their authors in this section. It is given no paper \
+list to cite from, so any citation written here could not be checked against \
+the literature this paper is built on.
 """
 
 ABSTRACT_PROMPT = """Write the Abstract for this paper (150-250 words, one \

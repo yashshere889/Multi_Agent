@@ -94,6 +94,7 @@ from typing import List, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from research_pipeline import staged_data
 from research_pipeline.agents.hypothesis import prompts
 from research_pipeline.agents.hypothesis.papers import NormalizedPaper, chunk_papers, normalize_papers, paper_to_text
 from research_pipeline.agents.hypothesis.schema import SchemaValidationError, validate_output
@@ -296,6 +297,7 @@ class HypothesisAgent:
             methods_overview_block=json.dumps(methods_overview, indent=2),
             gaps_block=json.dumps(gaps, indent=2),
             interdisciplinary_block=self._interdisciplinary_block(interdisciplinary_context),
+            staged_data_block=staged_data.prompt_block(prompts.STAGED_DATA_HYPOTHESIS_INSTRUCTION),
         )
         return self._call_json(prompt)
 
@@ -313,6 +315,7 @@ class HypothesisAgent:
             literature_summary=literature_summary,
             gaps_block=json.dumps(gaps, indent=2),
             interdisciplinary_block=self._interdisciplinary_block(interdisciplinary_context),
+            staged_data_block=staged_data.prompt_block(prompts.STAGED_DATA_RANKING_INSTRUCTION),
         )
         return self._call_json(prompt)
 
