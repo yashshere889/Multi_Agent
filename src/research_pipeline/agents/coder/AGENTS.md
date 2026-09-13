@@ -24,6 +24,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `schema.py` | Output contract + `validate_output()`. Dependency-free, no LLM. |
 | `sandbox.py` | Execution primitives: env probes, `uv venv` provisioning, subprocess running, `compile_check`, `check_undefined_names`, `static_safety_check`, `check_data_fallback`, `check_required_function_names`, template rendering (`render_experiment_with_spans` and its line map). No LLM calls, no settings reads — unit-testable anywhere. |
 | `huggingface_client.py` | Hub search + Dataset Viewer REST lookup, so a generated experiment can read real rows instead of inventing data. Finds and describes only — every download in this package belongs to `acquire.py`. Every failure degrades to `None`; never raises. |
+| `paperswithcode_client.py` | The same contract on the other axis: catalog search + paper details over the read-only API behind [`pwc-cli`](https://github.com/huggingface/pwc-cli), so a plan's established method is grounded in the paper that introduced it and the authors' own repository. Every failure degrades to `[]`; never raises. |
 | `slurm_submit.py` | `squeue`/`sbatch`/`sacct` shell-outs. Split from `sandbox.py` because those binaries only exist on a cluster; `sandbox.py` must stay runnable on a laptop. |
 | `reconcile.py` | The other half of submission: asks `sacct` what became of the jobs a previous run recorded, and imports a finished job's `results.json` back into its summary (`submitted_to_slurm` -> `completed`/`slurm_job_failed`). A separate pass, not a wait — see its module docstring. No LLM. |
 | `diagnose.py` | `classify_execution_failure` — what *kind* of failure a non-zero exit was. Pure text in, route out; no LLM, no filesystem, no network. |
@@ -182,6 +183,25 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   *and* the fix prompt from state, so a three-attempt fix loop doesn't re-search or re-download.
   Don't fold either back into the generation call — a run whose experiments silently stopped
   getting real data should be visible in the trace.
+- **The reference-implementation lookup is the same shape, one node later.**
+  `search_reference_implementations` sits on the *generate* side of
+  `acquire_data`'s `_route_after_data_lookup`, deliberately: that branch owns the
+  `CODER_REQUIRE_REAL_DATA` decision (acquisition and discovery are the last things that can
+  turn a surrogate into a real input), so putting this ahead of it would spend HTTP calls on
+  plans about to be skipped. It queries only the plan's `reused_from_literature: true` methods — searching for
+  a published implementation of a method the plan itself calls novel would ground the model
+  in whatever happened to be nearest — and parks the answer in
+  `current_reference_implementations` for both the codegen and the fix prompt, same threading
+  as `current_hf_dataset`. What comes back is recorded on the finished `ExperimentResult` as
+  `reference_implementations`, for the same traceability reason `starter_used` is.
+- **A repository URL in a prompt is a hazard, and the block says so.** `prompts.py`'s
+  `REFERENCE_IMPLEMENTATION_NOTE` forbids cloning, fetching or pip-installing from the
+  repositories it names, because a code model reads a GitHub URL as an invitation and the
+  resulting experiment would fail on any host with no outbound network — expensively, three
+  fix attempts later, rather than never being written. If you edit that note, keep the
+  prohibition and keep it adjacent to the URLs; there is no deterministic check behind it
+  (unlike `check_hf_dataset_usage`, there is nothing in the rendered `run.py` to verify a
+  reference *against*), so the prompt is the whole guard.
 - **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
   real network call with its own cache/retry policy), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside
@@ -457,6 +477,12 @@ cluster, or the network.
 - `HF_DATASET_MATCH` + `_recording_lookup()` — a fake `huggingface_lookup_fn` and the queries it
   was asked. `_fake_hf()` routes `huggingface_client`'s `requests.get` by URL substring for the
   client's own unit tests. No test touches the real network.
+- `PWC_REFERENCE` + `_recording_pwc_lookup()` / `_fake_pwc()` — the same pair for
+  `paperswithcode_client`. `_agent()` stubs `pwc_lookup_fn` to a miss **by default**, unlike
+  `huggingface_lookup_fn`: both lookups are gated behind the one `network_check`, and the
+  default `_plan()` names a reused-from-literature method, so every test that turns the network
+  on would otherwise reach the real catalog as a side effect. `_pwc_agent()` is the inverse
+  helper — network on, dataset lookup stubbed to a miss — so these tests see only this block.
 - `_patch_settings` and the `auto_submit` fixture — the fixture flips
   `CODER_AUTO_SUBMIT_SLURM` on and stubs `slurm_submit.count_running_jobs`/`submit_job`, and
   yields the list of what would have been submitted. Never let a test reach real `sbatch`.

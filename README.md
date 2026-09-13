@@ -1128,6 +1128,51 @@ question is not something Python can verify, so a discovered input stays
 inconclusive whoever picked it. What the model buys is fewer wrong datasets
 reaching an experiment, and more requirements resolved rather than missed.
 
+#### Real reference implementations instead of remembered ones
+
+Everything above answers "what real data can this experiment read?". One last
+lookup, after the data is settled, answers the other half of what a plan
+underspecifies: "what does the established version of its method actually look
+like?"
+
+An experiment plan names its methods in prose and marks each one
+`reused_from_literature: true|false`, and the codegen prompt has always told the
+model to implement a reused method "as an established technique (say which one,
+in a comment)". Nothing checked that the model knew *which*, and a small
+quantized model asked to reimplement a named method from memory will confidently
+produce something adjacent to it. So before generating, the agent queries the
+read-only [Papers with Code](https://paperswithcode.co) catalog API — the same
+anonymous endpoint behind Hugging Face's
+[`pwc` CLI](https://github.com/huggingface/pwc-cli) — for published papers that
+match the plan's *reused* methods **and** have an official public
+implementation, and puts the top couple in the codegen and fix prompts: title,
+arXiv id, the catalog's TL;DR, its canonical method names, and the URL of the
+authors' own repository.
+
+Methods the plan marks `reused_from_literature: false` are left out of the
+query on purpose — those are the pipeline's own novel contribution, and
+searching for a published implementation of something the plan calls novel would
+ground the model in whatever happened to be nearest.
+
+The generated experiment never fetches those repositories, and the prompt says
+so explicitly next to the URLs: it has to be self-contained, and the host that
+runs it may have no outbound network at all. The reference is there to fix what
+the method *is* — its real name, its algorithm's shape, the hyperparameters and
+evaluation protocol its authors used — and to be named in a comment, in
+`assumptions_made` and in the README next to the method it grounds, along with
+any deliberate divergence (a smaller model, fewer epochs, a simplified variant
+that fits the timeout). A reader has to be able to tell the published method
+from this experiment's own simplification.
+
+Same contract as the dataset lookup, for the same reasons: plain HTTP with
+`requests` rather than installing the `pwc` binary on every host, only attempted
+when the runtime network probe succeeds, and every failure degrading silently to
+generating exactly as before. `CODER_ENABLE_PWC_SEARCH=false` turns it off;
+`PWC_API_URL` points it at a local mirror of the catalog (the CLI's own env var
+name, so one value configures both). What it found is recorded on each finished
+experiment as `reference_implementations`, so a reviewer can check the generated
+method against the implementation it was supposed to follow.
+
 Whether or not a dataset was found, `load_data()` must not *assume* its data is
 there. `sandbox.check_data_fallback` parses the generated `load_data` and flags
 any `open`/`pandas.read_*`/`numpy.load` that isn't inside a `try` block, routing

@@ -104,6 +104,14 @@ class CoderState(TypedDict, total=False):
     # current_acquisitions — a fix attempt must not re-run four catalogue
     # searches to reach the answer the first generation already had.
     current_discoveries: dict
+    # What the Papers with Code lookup found for this plan: up to a couple of
+    # published papers whose method matches the plan's and whose official code
+    # is public (paper_id, title, tldr, repositories, methods), or [] when
+    # nothing matched, the network probe failed, or CODER_ENABLE_PWC_SEARCH is
+    # off. Same threading as current_hf_dataset — looked up once per plan,
+    # carried into both the codegen and the fix prompt so a fix attempt doesn't
+    # re-search, and plain JSON-able because it is checkpointed.
+    current_reference_implementations: list[dict]
     # The id of the starters.STARTERS entry chosen for this plan by
     # starters.select_starter (a pure function of the plan's own text — no LLM
     # call), or "" for "general" (no match, no worked example shown). Set once

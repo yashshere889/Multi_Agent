@@ -61,11 +61,11 @@ if TYPE_CHECKING:  # avoids a circular import — coder_agent imports this modul
 # level would re-execute generated code or re-provision a venv — this module's
 # whole point is that the loop is sequential and each step's effects are real
 # (and CLAUDE.md is explicit that env-provisioning failures are not retried).
-# `probe_environment`, `search_hf_dataset` and `acquire_data` are best-effort
-# probes that already degrade gracefully, so a retry buys nothing — and
-# `acquire_data` writes files, which a node-level retry would redo for every
-# input that had already succeeded (the same reason `download_papers` is
-# excluded in the literature graph).
+# `probe_environment`, `search_hf_dataset`, `acquire_data` and
+# `search_reference_implementations` are best-effort probes that already degrade
+# gracefully, so a retry buys nothing — and `acquire_data` writes files, which a
+# node-level retry would redo for every input that had already succeeded (the
+# same reason `download_papers` is excluded in the literature graph).
 _RETRY = RetryPolicy(max_attempts=2)
 
 
@@ -99,6 +99,10 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_node("process_current_plan", agent._node_process_current_plan)
     graph.add_node("search_hf_dataset", agent._node_search_hf_dataset)
     graph.add_node("acquire_data", agent._node_acquire_data)
+    graph.add_node(
+        "search_reference_implementations",
+        agent._node_search_reference_implementations,
+    )
     graph.add_node("skip_no_real_data", agent._node_skip_no_real_data)
     graph.add_node(
         "generate_experiment_code",
@@ -152,8 +156,17 @@ def build_coder_graph(agent: CoderAgent):
     graph.add_conditional_edges(
         "acquire_data",
         agent._route_after_data_lookup,
-        {"generate": "generate_experiment_code", "skip": "skip_no_real_data"},
+        {"generate": "search_reference_implementations", "skip": "skip_no_real_data"},
     )
+    # The last lookup, on the "this plan is worth generating" side of that
+    # branch so a skipped plan costs no HTTP call: it asks the Papers with Code
+    # catalog what the published version of this plan's established methods
+    # looks like, and parks the answer for both the codegen and the fix prompt.
+    # A miss is an empty list and generation proceeds unchanged, exactly like a
+    # dataset miss. It is a node for the same reason the dataset lookup is —
+    # "did this experiment get grounded in real published work?" belongs in the
+    # trace, not in log archaeology.
+    graph.add_edge("search_reference_implementations", "generate_experiment_code")
     # The skip is a per-plan exit like finalize/give_up: record and move on.
     graph.add_conditional_edges("skip_no_real_data", route_plan_loop, _plan_loop_targets)
     graph.add_edge("generate_experiment_code", "attempt")

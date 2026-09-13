@@ -69,6 +69,8 @@ class Settings:
     coder_venv_root: str
     coder_share_venvs: bool
     coder_enable_hf_dataset_search: bool
+    coder_enable_pwc_search: bool
+    coder_pwc_api_url: str
     coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
     coder_fix_store_backend: str
@@ -428,6 +430,20 @@ def load_settings() -> Settings:
         # offline runs (and to opt a whole batch out of the extra HTTP calls),
         # not because the lookup is risky.
         coder_enable_hf_dataset_search=_env_bool("CODER_ENABLE_HF_DATASET_SEARCH", True),
+        # The same switch, same reasons, for the other half of what a plan
+        # underspecifies: CODER_ENABLE_HF_DATASET_SEARCH answers "what real data
+        # can this experiment read?", this answers "what real implementation is
+        # its method supposed to look like?". Two settings rather than one
+        # because the two lookups fail independently — an air-gapped run wants
+        # both off, but a run whose plans name no established method at all only
+        # wants this one off, and an offline mirror of one catalog is no reason
+        # to lose the other. See agents/coder/paperswithcode_client.py.
+        coder_enable_pwc_search=_env_bool("CODER_ENABLE_PWC_SEARCH", True),
+        # Read under the `pwc` CLI's own env var name, not a CODER_-prefixed one,
+        # so a local mirror of the catalog API (PWC_API_URL=http://localhost:8000/api/v1)
+        # is configured here exactly as it is for that CLI. Empty means the public
+        # endpoint the client defaults to.
+        coder_pwc_api_url=os.environ.get("PWC_API_URL", ""),
         # Off by default, and a policy choice rather than a repair: when set, a
         # plan whose every data input resolves to a surrogate is skipped before
         # a single codegen call, instead of being generated, run, and reported
