@@ -1811,7 +1811,9 @@ class CoderAgent:
         # A real result on disk isn't the same as a meaningful one — see
         # sandbox.check_results_plausibility for exactly what this does and
         # doesn't catch.
-        plausibility_findings = sandbox.check_results_plausibility(results.get("metrics") or {})
+        plausibility_findings = sandbox.check_results_plausibility(
+            results.get("metrics") or {}, run_py
+        )
         if plausibility_findings:
             return {
                 "error_source": "implausible_results",
