@@ -20,6 +20,8 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+
+from research_pipeline.agents.coder import saturation
 from typing import Any
 from urllib.parse import quote
 
@@ -1059,6 +1061,22 @@ def check_results_plausibility(metrics: dict) -> list[str]:
             findings.append(
                 f"metric '{name}' is the placeholder value {value!r}, not a real number"
             )
+
+    # Sent back to the model rather than only withheld (saturation.apply_to_results
+    # withholds it too, for results that never pass through here): the defect this
+    # shape has shown is in the code — a simulation whose paths never vary — which
+    # regeneration can fix, unlike a saturated result from a sound build of an
+    # unsound plan.
+    identical = saturation.indistinguishable(metrics)
+    if identical:
+        findings.append(
+            "the compared arms cannot be told apart: every metric they share is identical and "
+            f"their spread is exactly 0 ({', '.join(identical)}). A stochastic comparison whose "
+            "outcomes never varied did not exercise the difference it measures — check that each "
+            "simulated path draws its own varying inputs (resampled returns, not a constant or an "
+            "average), that returns are compounded rather than averaged across periods, and that "
+            "the outcome can actually respond to them"
+        )
 
     return findings
 
