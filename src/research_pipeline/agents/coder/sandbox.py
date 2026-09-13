@@ -1041,6 +1041,57 @@ def _nonfinite_within(value: object, _depth: int = 0) -> list[str]:
     return []
 
 
+# A statistic computed from single numbers rather than from samples. Barkla job
+# 10510222's successor (r10, job 10510508) reduced each strategy's sensitivity to
+# one scalar — a difference of scenario means — then ran
+# `ttest_ind([fixed], [dynamic])` and bootstrapped a one-element array: t exactly
+# 0.0, p exactly 1.0, and a "confidence interval" whose bounds were equal. The
+# numbers around it were sound, so no other gate had anything to say, and the
+# model declined to judge its own hypothesis.
+_INTERVAL_KEYS = (("lower", "upper"), ("ci_lower", "ci_upper"), ("low", "high"))
+_STATISTIC_KEYS = ("t_statistic", "statistic", "z_statistic", "f_statistic")
+
+
+def _degenerate_statistics(metrics: dict, prefix: str = "") -> list[str]:
+    """Intervals with equal bounds and tests reporting no difference at all."""
+    findings: list[str] = []
+    for name, value in metrics.items():
+        path = f"{prefix}{name}"
+        if not isinstance(value, dict):
+            continue
+        findings.extend(_degenerate_statistics(value, f"{path}."))
+        for low_key, high_key in _INTERVAL_KEYS:
+            low, high = value.get(low_key), value.get(high_key)
+            if _is_real_number(low) and _is_real_number(high) and float(low) == float(high):
+                findings.append(
+                    f"the interval {path!r} has {low_key} == {high_key} ({low}) — resampling a "
+                    "single number cannot produce an interval. Compute the quantity once per "
+                    "simulated path and resample those paths, not the aggregate"
+                )
+        p_value = value.get("p_value")
+        statistic = next((value[key] for key in _STATISTIC_KEYS if key in value), None)
+        if (
+            _is_real_number(p_value)
+            and _is_real_number(statistic)
+            and float(p_value) == 1.0
+            and float(statistic) == 0.0
+        ):
+            findings.append(
+                f"the test {path!r} reports a statistic of exactly 0 with p = 1.0 — the signature "
+                "of comparing two single numbers rather than two samples. Compare the per-path "
+                "values of each arm"
+            )
+    return findings
+
+
+def _is_real_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
 # The constant a censored outcome is pinned to, named for the fix prompt when the
 # code has one: Barkla job 10510222 measured "years until depletion" against a
 # 30-year horizon, and once its returns were right every path survived to 30, so
@@ -1137,6 +1188,8 @@ def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
     # shape has shown is in the code — a simulation whose paths never vary — which
     # regeneration can fix, unlike a saturated result from a sound build of an
     # unsound plan.
+    findings.extend(_degenerate_statistics(metrics))
+
     identical = saturation.indistinguishable(metrics)
     if identical:
         findings.append(
