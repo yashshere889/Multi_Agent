@@ -20,10 +20,10 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-
-from research_pipeline.agents.coder import saturation
 from typing import Any
 from urllib.parse import quote
+
+from research_pipeline.agents.coder import saturation
 
 logger = logging.getLogger(__name__)
 
@@ -585,6 +585,52 @@ def _unguarded_read_calls(node: ast.AST, inside_try: bool) -> list[ast.Call]:
             child_inside_try = inside_try or (isinstance(node, ast.Try) and field == "body")
             found.extend(_unguarded_read_calls(child, child_inside_try))
     return found
+
+
+# A column named like `Mkt-RF` beside a column named `RF` is a return *in excess
+# of* that one — the Fama-French factors and everything built the same way — so a
+# portfolio's total return is their sum. Barkla job 10509628 grew a retirement
+# portfolio on `Mkt-RF` alone, dropping ~3%/yr of risk-free return: a 4%
+# withdrawal rule then failed in 10,000 of 10,000 paths where the literature
+# reports about 95% success, and nothing downstream could tell those numbers from
+# real ones. Checked here because the column names are read off the actual bytes
+# (acquire.describe_local) before the code runs.
+_EXCESS_COLUMN_RE = re.compile(r"^[A-Za-z][\w.]*[-_ ]RF$", re.IGNORECASE)
+# `value *= (1 + r)` / `value = value * (1.0 + r)`: compounding a return into a
+# quantity, as opposed to regressing on it or reporting it.
+_COMPOUNDS_RETURN_RE = re.compile(r"\*=?\s*\(\s*1(?:\.0+)?\s*\+")
+
+
+def check_excess_return_usage(source: str, columns: Sequence[str]) -> list[str]:
+    """Flag code that compounds an excess-return column as if it were a total return.
+
+    Silent when the input carries no `RF` column (nothing says the other column
+    is an excess return), when the code compounds nothing, or when it adds `RF`
+    back somewhere — a study of excess returns that never grows a value is not
+    what this catches.
+    """
+    names = [str(column).strip() for column in columns]
+    if not any(name.upper() == "RF" for name in names):
+        return []
+    if not _COMPOUNDS_RETURN_RE.search(source):
+        return []
+    findings = []
+    for name in names:
+        if not _EXCESS_COLUMN_RE.match(name) or name not in source:
+            continue
+        quoted = re.escape(name)
+        combined = re.search(
+            rf"{quoted}[^\n]{{0,80}}\+[^\n]{{0,40}}\bRF\b|\bRF\b[^\n]{{0,40}}\+[^\n]{{0,80}}{quoted}",
+            source,
+        )
+        if combined:
+            continue
+        findings.append(
+            f"{name!r} is a return in excess of 'RF' — this input has both columns — but the code "
+            f"compounds it into a value without ever adding 'RF' back. A total return is "
+            f"{name} + RF: build it explicitly (total = df['{name}'] + df['RF']) and compound that."
+        )
+    return findings
 
 
 def check_data_fallback(load_data_function_source: str) -> list[str]:
