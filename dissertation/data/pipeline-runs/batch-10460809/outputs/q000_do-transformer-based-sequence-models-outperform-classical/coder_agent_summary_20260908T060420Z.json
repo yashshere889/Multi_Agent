@@ -1,0 +1,178 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_0/H1",
+      "assumptions_made": [
+        "The financial data at /mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv contains SP500_Close and FTSE100_Close columns for computing returns and volatility. If not, synthetic data is generated.",
+        "Transaction costs are modeled as a fixed percentage per trade plus a proportional fee.",
+        "The experiment uses a 60-day input sequence length and 1-day prediction horizon.",
+        "The Transformer model is trained for 50 epochs with Adam optimizer and learning rate 0.001.",
+        "Both models are evaluated using a simulated trading strategy with transaction costs applied to trades.",
+        "The net profit is calculated as cumulative returns minus transaction costs.",
+        "The Hugging Face dataset is not used in this experiment as it does not match the data requirements."
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To empirically determine whether Transformer-based models outperform ARIMA baselines in forecasting daily equity index volatility when transaction costs are explicitly incorporated into the model evaluation framework, as measured by net profit adjusted for trading frictions.",
+        "author": "coder-agent",
+        "baseline": "ARIMA baseline model performance on the same dataset and transaction cost framework",
+        "success_criteria": "If the Transformer model achieves higher net profit adjusted for transaction costs than ARIMA, the hypothesis is supported. If ARIMA performs better or similarly, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-08T06:04:19.357415+00:00",
+        "status": "success",
+        "elapsed_seconds": 5.2388,
+        "resumed": false,
+        "metrics": {
+          "metrics": {
+            "transformer_net_profit": 0.3274056949643678,
+            "arima_net_profit": -1.1465543007895753,
+            "profit_difference": 1.473959995753943,
+            "sharpe_ratio_transformer": 0.4442531567545907,
+            "sharpe_ratio_arima": -1.5557468161076309
+          },
+          "hypothesis_supported": "True",
+          "training_history": {
+            "transformer": [
+              0.6760269648888532,
+              0.3169892246232313,
+              0.24150331581340118,
+              0.22446185657206705,
+              0.2205290733014836,
+              0.2552880408132778,
+              0.23901540128623738,
+              0.20909443935927222,
+              0.21960287146708546,
+              0.2062394001028117,
+              0.20060681507867925,
+              0.18926987051963806,
+              0.17686580647440517,
+              0.19919123895028057,
+              0.18100515533896053,
+              0.17819456317845514,
+              0.17276939092313542,
+              0.16475197891978657,
+              0.1618390679359436,
+              0.1760865520028507,
+              0.17038191372857375,
+              0.15389035072396784,
+              0.15934810436823788,
+              0.15142698235371532,
+              0.16551119878011591,
+              0.14761746718603022,
+              0.13492519452291377,
+              0.13406697551117225,
+              0.1349340848186437,
+              0.15116946706000498,
+              0.15291677897467332,
+              0.1357419333037208,
+              0.11487823461785036,
+              0.1137396035825505,
+              0.11634457593455035,
+              0.13097749168381972,
+              0.11355546511271421,
+              0.11050132793538711,
+              0.11254894382813398,
+              0.09423921827007742,
+              0.09755772417959045,
+              0.09678650515920975,
+              0.10750449667958652,
+              0.11252593775005902,
+              0.10993640891769353,
+              0.09957357298801928,
+              0.08648372200482032,
+              0.10437069942846018,
+              0.10575263070709565,
+              0.09839958566076615
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Transformer net profit: 0.3274\nARIMA net profit: -1.1466\nDifference: 1.4740\nTransformer outperforms ARIMA: True\nTransformer Sharpe ratio: 0.4443\nARIMA Sharpe ratio: -1.5557",
+        "error": null,
+        "model_reported_meets_success_criteria": "unknown",
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "Training did not converge, and raising the epoch budget as far as the compute budget allows did not reach convergence either. The run is real and its loss curves are reported, but a comparison between models that have not converged measures the training budget rather than the thing under test, so the verdict is withheld. See compute_provenance.json."
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: \"===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nimport torch\\nimport torch.nn as nn\\nfrom torch.utils.data import DataLoader, TensorDataset\\nfrom sklearn.preprocessing import StandardScaler\\nfrom statsmodels.tsa.arima.model import ARIMA\\nfrom statsmodels.tsa.stattools import adfuller\\nfrom datetime import datetime\\nimport warnings\\nwarnings.filterwarnings('ignore')\\n===END imports===\\n\\n===BEGIN configuration===\\n# Data processing parameters\\nTRAIN_SPLIT = 0.6\\nVALIDATION_SPLIT = 0.2\\nTEST_SPLIT = 0\"",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_0/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_0/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The financial data file at /mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv contains columns named 'SP500_Close' and 'FTSE100_Close' for the respective equity indices.",
+            "If the expected columns are not found in the financial data, the code falls back to generating synthetic data that mimics the expected structure.",
+            "The Hugging Face dataset is not used in this experiment as it does not match the data requirements for volatility forecasting.",
+            "The experiment uses a fixed transaction cost structure of 0.1% per trade for both models.",
+            "The Transformer model is trained for 50 epochs to fit within the compute budget.",
+            "The ARIMA model uses an order=(1,1,1) specification for simplicity.",
+            "The trading strategy assumes a simple buy/sell signal based on volatility predictions."
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset ugursa/yahooFinanceNews",
+            "kind": "real_download",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=ugursa%2FyahooFinanceNews&config=default&split=train&offset=0&length=100",
+            "local_path": "",
+            "reason": "found by the Hugging Face lookup and read by the generated code",
+            "credentials": []
+          },
+          {
+            "name": "Yahoo Finance / Quandl equity index historical data",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": false,
+        "convergence_findings": [
+          "'transformer' was still improving when training stopped — mean loss fell 20.6% over the final quarter of 50 epochs (0.1286 -> 0.1021), so the epoch budget ran out before the model converged",
+          "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+        ],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_0/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T06:04:20.291599+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

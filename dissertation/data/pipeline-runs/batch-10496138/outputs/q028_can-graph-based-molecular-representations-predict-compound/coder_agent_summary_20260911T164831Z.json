@@ -1,0 +1,171 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_28/H1",
+      "assumptions_made": [
+        "The FreeSolv dataset is replaced with a synthetic surrogate since no public dataset is available",
+        "The synthetic dataset maintains realistic correlations between molecular structure and solubility",
+        "All models are constrained to approximately 10,000 parameters for fair comparison",
+        "Training uses early stopping with patience of 5 epochs to prevent overfitting",
+        "The bandit-based attention mechanism is simplified for demonstration purposes"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether a graph-based molecular representation enhanced with a bandit-based attention mechanism achieves higher solubility prediction accuracy than a fingerprint-based method when both are constrained to the same number of trainable parameters.",
+        "author": "coder-agent",
+        "baseline": "A fingerprint-based model (ECFP + Random Forest) constrained to the same number of parameters as the GNN baselines",
+        "success_criteria": "If the graph-based GNN with bandit-based attention achieves lower MAE and RMSE and higher R² than the fingerprint-based baseline, the hypothesis is supported. If not, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T16:48:30.960786+00:00",
+        "status": "success",
+        "elapsed_seconds": 2.9175,
+        "resumed": false,
+        "metrics": {
+          "standard_gnn_mae": "0.7808986",
+          "standard_gnn_rmse": "1.001218",
+          "standard_gnn_r2": "-65.95015",
+          "bandit_gnn_mae": "0.78948927",
+          "bandit_gnn_rmse": "1.0090792",
+          "bandit_gnn_r2": "-67.005615",
+          "fingerprint_mae": "0.7785289",
+          "fingerprint_rmse": "0.99926394",
+          "fingerprint_r2": "-0.025985837",
+          "training_history": {
+            "standard_gnn": [
+              0.9619660412563997,
+              0.9015939305810368,
+              0.9313461710424984,
+              0.9314036018708173,
+              0.9504124557270723,
+              0.8990959130665835,
+              0.9263823067440706,
+              0.91154786418466,
+              0.9030354434953016,
+              0.8957166630117332,
+              0.9072327789138345,
+              0.9487896736930398,
+              0.9039106868645724,
+              0.9339925103327807
+            ],
+            "bandit_gnn": [
+              0.9859975611462313,
+              0.8943654964951908,
+              0.9873979933121625,
+              0.9310673124649945,
+              0.9168576896190643,
+              0.903951404725804,
+              0.9129611902377185,
+              0.948730840402491,
+              1.0556160842671114,
+              0.9060727287741268,
+              0.8947316565934349,
+              0.9044713246471742,
+              1.172807877554613,
+              0.9558494652018827
+            ],
+            "fingerprint": [
+              1.0391265153884888,
+              0.9733841524404638,
+              0.8973259566461339,
+              0.8932069772854447,
+              0.9244605863795561,
+              0.9495567398912766,
+              0.9083647026735193,
+              1.1264875811689041,
+              0.9900331567315495,
+              0.8938145617790082,
+              0.9753081658307243,
+              0.9021667855627397,
+              0.8951443273793248,
+              0.9443124567761141
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Standard GNN - MAE: 0.7809, RMSE: 1.0012, R²: -65.9501\nBandit GNN - MAE: 0.7895, RMSE: 1.0091, R²: -67.0056\nFingerprint - MAE: 0.7785, RMSE: 0.9993, R²: -0.0260\nBandit GNN better than fingerprint (MAE): False\nBandit GNN better than fingerprint (RMSE): False\nBandit GNN better than fingerprint (R²): False\nHypothesis supported: False",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport random\\nimport numpy as np\\nimport torch\\nimport torch.nn as nn\\nfrom sklearn.ensemble import RandomForestRegressor\\nfrom sklearn.preprocessing import StandardScaler\\nfrom sklearn.model_selection import train_test_split\\nfrom rdkit import Chem\\nfrom rdkit.Chem import AllChem\\nfrom collections import defaultdict\\nimport json\\nfrom typing import List, Tuple, Dict, Any\\nimport hashlib\\n===END imports===\\n\\n===BEGIN configuration===\\n# Set seeds for reproducibility\\nSEED = 42\\nrandom.seed(S'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_28/H1/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['load_data_function', 'build_model_function', 'run_experiment_function', 'evaluate_function', 'helpers', 'readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport random\\nimport numpy as np\\nimport torch\\nimport torch.nn as nn\\nfrom sklearn.ensemble import RandomForestRegressor\\nfrom sklearn.preprocessing import StandardScaler\\nfrom sklearn.model_selection import train_test_split\\nfrom rdkit import Chem\\nfrom rdkit.Chem import AllChem\\nfrom collections import defaultdict\\nimport json\\nfrom typing import List, Tuple, Dict, Any\\nimport hashlib\\nimport logging\\nfrom pathlib import Path\\nimport os\\n===END imports===\\n\\n===BEGIN configuration===\\n# Set'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_28/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 3,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_28/H1/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic FreeSolv dataset captures realistic molecular properties and correlations",
+            "Parameter constraints are approximately equivalent across models despite architectural differences",
+            "Training convergence is achieved within 50 epochs with early stopping",
+            "GPU acceleration is available for training (fallback to CPU if unavailable)",
+            "The bandit-based attention mechanism can be meaningfully implemented with simplified logic",
+            "The experiment runs successfully on a shared HPC cluster with limited GPU resources"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "public dataset name",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "no open source identified for this input and nothing staged locally; a documented surrogate is generated instead",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_28/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T16:48:31.846670+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

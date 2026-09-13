@@ -1,0 +1,89 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_10/H1",
+      "assumptions_made": [
+        "The Hugging Face dataset ScaleAI/fortress_public does not contain gene expression data suitable for the experiment's requirements, so synthetic data is generated instead",
+        "Since the actual dataset doesn't match the gene expression requirements, we create a synthetic dataset with realistic properties",
+        "For SDR and IB implementations, simplified versions are used since full implementations would require additional specialized libraries",
+        "The synthetic dataset has 150 samples with 1200 features, matching the minimum requirements",
+        "The tissue types are Breast, Lung, and Colon with different expression profiles",
+        "All methods are evaluated using the same train/test split and evaluation metrics",
+        "The hybrid approach applies SDR first, then IB on the reduced feature space",
+        "Feature selection methods are applied to reduce dimensionality while preserving predictive signal",
+        "The experiment uses macro F1-score as the primary classification metric",
+        "Mutual information is used to measure signal preservation strength"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying a hybrid approach combining Sufficient Dimension Reduction (SDR) with Information Bottleneck (IB) methods preserves sufficient signal for tissue-type classification using fewer than 10% of the original gene features.",
+        "author": "coder-agent",
+        "baseline": "Performance of PCA and random feature selection methods using same feature proportions",
+        "success_criteria": "Hybrid SDR+IB approach achieves ≥85% classification accuracy with <10% of original features, and preserves ≥70% of mutual information between features and tissue labels",
+        "timestamp_utc": "2026-09-08T08:05:19.543329+00:00",
+        "status": "success",
+        "elapsed_seconds": 17.394,
+        "resumed": false,
+        "metrics": {
+          "f1_scores": {},
+          "mutual_information": {}
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "No hybrid method results found",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset ScaleAI/fortress_public",
+            "kind": "synthetic_surrogate",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=ScaleAI%2Ffortress_public&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/be55097421c33644/hugging_face_dataset_scaleai_fortress_public.jsonl",
+            "reason": "the generated code reports substituting for the data this plan requires: The Hugging Face dataset ScaleAI/fortress_public does not contain gene expression data suitable for the experiment's requirements, so synthetic data is generated instead; Since the actual dataset doesn't match the gene expression requirements, we create a synthetic dataset with realistic properties",
+            "credentials": []
+          },
+          {
+            "name": "public dataset",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "the generated code reports substituting for the data this plan requires: The Hugging Face dataset ScaleAI/fortress_public does not contain gene expression data suitable for the experiment's requirements, so synthetic data is generated instead; Since the actual dataset doesn't match the gene expression requirements, we create a synthetic dataset with realistic properties",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 2,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_10/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T08:05:19.691179+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

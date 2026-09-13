@@ -1,0 +1,101 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_5/H1",
+      "assumptions_made": [
+        "The sliced_wasserstein package is not available in the environment, so we fall back to a simple implementation of the sliced Wasserstein distance",
+        "Since yfinance is not available, we generate synthetic financial data for demonstration purposes",
+        "The experiment uses a simplified momentum strategy for computational efficiency",
+        "We assume that the synthetic data provides enough variation to demonstrate the concept",
+        "The statistical significance test uses a two-sample t-test to compare the performance of the two strategies"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying sliced Wasserstein k-means clustering on price and volume features to identify market regimes leads to a statistically significant improvement in out-of-sample risk-adjusted returns for a simple momentum strategy compared to a baseline strategy without regime filtering.",
+        "author": "coder-agent",
+        "baseline": "Out-of-sample risk-adjusted returns of a simple momentum strategy without any regime filtering",
+        "success_criteria": "If the Sharpe Ratio, Information Ratio, or Calmar Ratio of the regime-filtered momentum strategy is statistically significantly higher (p < 0.05) than the baseline, the hypothesis is supported. Otherwise, it is refuted.",
+        "timestamp_utc": "2026-09-08T07:13:12.078285+00:00",
+        "status": "success",
+        "elapsed_seconds": 12.6326,
+        "resumed": false,
+        "metrics": {
+          "filtered_sharpe": -15.275191880683094,
+          "baseline_sharpe": 0.0764479755592168,
+          "filtered_information": -0.9595808422609842,
+          "baseline_information": 0.009694879598240278,
+          "filtered_calmar": -0.9595808422609842,
+          "baseline_calmar": 0.009694879598240278,
+          "p_value": 3.6816381922363533e-66,
+          "improved_metrics": []
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Filtered Sharpe: -15.2752, Baseline Sharpe: 0.0764\nFiltered Information: -0.9596, Baseline Information: 0.0097\nFiltered Calmar: -0.9596, Baseline Calmar: 0.0097\nP-value: 0.0000\nImproved metrics: None\nSuccess criteria met: False",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: \"===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nimport json\\nimport os\\nimport logging\\nfrom datetime import datetime, timedelta\\nfrom typing import Any, Tuple, List, Dict\\nfrom sklearn.preprocessing import StandardScaler\\nfrom sklearn.model_selection import train_test_split\\nimport warnings\\nwarnings.filterwarnings('ignore')\\n\\n# For sliced Wasserstein k-means\\ntry:\\n    from sliced_wasserstein import sliced_wasserstein_distance\\n    HAS_SLICED_WASSERSTEIN = True\\nexcept ImportError:\\n    HAS_SLICE\"",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_5/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "clustering",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset zalizedata/us-public-company-financials-dataset",
+            "kind": "synthetic_surrogate",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=zalizedata%2Fus-public-company-financials-dataset&config=companies&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/2d39079c6e057690/hugging_face_dataset_zalizedata_us-public-company-financials.jsonl",
+            "reason": "the generated code reports substituting for the data this plan requires: We assume that the synthetic data provides enough variation to demonstrate the concept",
+            "credentials": []
+          },
+          {
+            "name": "public financial dataset (e.g., Yahoo Finance or similar)",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv",
+            "reason": "the generated code reports substituting for the data this plan requires: We assume that the synthetic data provides enough variation to demonstrate the concept",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 2,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_5/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T07:13:12.866369+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

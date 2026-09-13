@@ -1,0 +1,263 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1",
+      "assumptions_made": [
+        "The Electricity Load Diagrams dataset is available at the specified path and contains the expected structure",
+        "The dataset has sufficient temporal structure to observe meaningful differences in performance gain",
+        "The synthetic dataset generation approach provides adequate representation for experimental purposes",
+        "The frequency '15min' is compatible with the pandas version installed"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying data augmentation to tabular time-series classification results in a performance gain that decreases by at least 20% when evaluated using a temporal train-test split versus a random split, due to disruption of temporal dependencies during augmentation.",
+        "author": "coder-agent",
+        "baseline": "Model trained without data augmentation on both temporal and random splits",
+        "success_criteria": "If the performance gain from augmentation drops by at least 20% when using a temporal split compared to a random split, the hypothesis is supported. If the drop is less than 20%, or if there is no significant difference, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T18:58:43.074743+00:00",
+        "status": "success",
+        "elapsed_seconds": 2.7512,
+        "resumed": false,
+        "metrics": {
+          "baseline_temporal_accuracy": 1.0,
+          "baseline_random_accuracy": 1.0,
+          "avg_gain_temporal": -0.0025000000000000022,
+          "avg_gain_random": -0.0025000000000000022,
+          "percent_drop_in_performance_gain": -0.0,
+          "training_history": {
+            "baseline_temporal": [
+              0.4152977500970547,
+              0.07710955779139812,
+              0.024502623826265335,
+              0.0087041081681561,
+              0.004850554667287865,
+              0.0026445284915658143,
+              0.001751335288505428,
+              0.0012176128780433477,
+              0.0009887585698519475,
+              0.0008073096553114458,
+              0.0007207489319485971,
+              0.0006262539536692202,
+              0.00047861890589746717,
+              0.0004151311116472173,
+              0.0003590694205530991,
+              0.0003486482880991669,
+              0.00033011040348076046,
+              0.00026395218670726393
+            ],
+            "baseline_random": [
+              0.0029391737200337676,
+              0.00028143869768917706,
+              9.828989970208987e-05,
+              4.6284175158899205e-05,
+              3.1328188714933975e-05,
+              3.2749918493489254e-05,
+              2.73707333130565e-05,
+              2.3602411881886208e-05,
+              1.794965239171758e-05,
+              1.8181384488203687e-05,
+              6.890114412691708e-06,
+              8.594028573637703e-06
+            ],
+            "augmented_temporal_perm": [
+              3.847400226238034e-06,
+              6.680903694882107e-07,
+              1.0516723336628786e-07,
+              1.0631279149327847e-07,
+              2.9659013356386765e-08,
+              6.189674782975683e-08,
+              1.2278791834578857e-07,
+              5.014811702649306e-09,
+              2.5790310152442085e-08,
+              1.533098361082243e-08,
+              4.728252080464192e-09
+            ],
+            "augmented_temporal_mask": [
+              1.8640584281265788e-07,
+              4.900173419167905e-08,
+              7.694024482486948e-08,
+              6.877456049103614e-09,
+              6.461876103433731e-08,
+              3.4387282252459692e-09,
+              2.5790454899903965e-09,
+              1.0029624908369783e-09,
+              8.596823253270713e-10,
+              1.0029626103994578e-09,
+              8.59682222844946e-10
+            ],
+            "augmented_random_perm": [
+              5.7312085419361285e-09,
+              1.002962618939635e-09,
+              4.298411199626501e-10,
+              2.8656075802866954e-10,
+              0.0,
+              1.432803875545119e-10,
+              2.005924033714297e-09,
+              2.435765298859958e-09,
+              4.2984114558318143e-10,
+              2.865604642465769e-09,
+              1.1462426221861768e-09
+            ],
+            "augmented_random_mask": [
+              0.0001699212533506313,
+              1.752198211396178e-07,
+              2.292485927586523e-09,
+              3.7252882744399383e-09,
+              2.0059249731337796e-09,
+              1.0029626616405205e-09,
+              2.149205403389177e-09,
+              5.731214477359222e-10,
+              7.16401903611851e-10,
+              1.002962627479812e-09,
+              4.2984116266353567e-10
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Performance gain from augmentation decreased by only -0.0% when using temporal split vs random split. This is less than the required 20% threshold, so the hypothesis is not supported.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json. Training did not converge, and raising the epoch budget as far as the compute budget allows did not reach convergence either. The run is real and its loss curves are reported, but a comparison between models that have not converged measures the training budget rather than the thing under test, so the verdict is withheld. See compute_provenance.json. Every bounded metric this experiment reported sits exactly at its perfect value (baseline_random_accuracy, baseline_temporal_accuracy). That is the signature of a label derived from one of the model's own inputs, or of a comparison whose arms are both at the ceiling and so cannot differ; either way the numbers could not have come out otherwise, so the verdict is withheld.",
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "measurement_validity": "every bounded metric sits exactly at its perfect value — the measurement could not have come out differently, so the metrics are NOT interpretable as evidence for or against the hypothesis",
+        "saturated_metrics": [
+          "baseline_random_accuracy",
+          "baseline_temporal_accuracy"
+        ]
+      },
+      "fix_attempts": 4,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_parquet(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using a simple neural network as a proxy for MiniRocket since the actual implementation isn't provided",
+            "Binary classification task created by binning average load values around the median",
+            "Temporal permutation introduces slight timestamp perturbations while preserving temporal order",
+            "Temporal masking randomly masks segments of time series to simulate missing data",
+            "20% drop in performance gain is a meaningful threshold for detecting temporal dependency disruption",
+            "The dataset has sufficient temporal structure to observe the effects of augmentation",
+            "All augmentation methods are applied consistently across both temporal and random splits"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: sing: 'pyarrow', 'fastparquet'.\n    A suitable version of pyarrow or fastparquet is required for parquet support.\n    Trying to import the above resulted in these errors:\n     - `Import pyarrow` failed. pyarrow is required for parquet support. Use pip or conda to install the pyarrow package.\n     - `Import fastparquet` failed. fastparquet is required for parquet support. Use pip or conda to install the fastparquet package.\n========================================================================\n\n\n \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/run_smoke.py\", line 202, in load_data\n    df = pd.read_parquet(DATA_PATH)\n  File \"/tmp/users/sgyshere/coder-venvs-10501894/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/io/parquet.py\", line 668, in read_parquet\n    impl = get_engine(engine)\n  File \"/tmp/users/sgyshere/coder-venvs-10501894/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/io/parquet.py\", line 68, in get_engine\n    raise ImportError(\n    ...<7 lines>...\n    )\nImportError: Unable to find a usable engine; tried using: 'pyarrow', 'fastparquet'.\nA suitable version of pyarrow or fastparquet is required for parquet support.\nTrying to import the above resulted in these errors:\n - `Import pyarrow` failed. pyarrow is required for parquet support. Use pip or conda to install the pyarrow package.\n - `Import fastparquet` failed. fastparquet is required for parquet support. Use pip or conda to install the fastparquet package. This was found by a fast pre-run of this same code with its cost knobs at their minimum (n_samples: 1000 -> 500; epochs: 100 -> 1; batch_size: 64 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment falls back to a synthetic dataset when the real dataset is not available at the specified path",
+            "The synthetic dataset mimics the structure of the UCI Electricity Load Diagrams dataset with 370 MT columns",
+            "The synthetic dataset includes temporal structure through sine wave components",
+            "The synthetic dataset has sufficient samples (1000) to perform meaningful classification experiments",
+            "The classification task is binary, based on the median split of average load values",
+            "The temporal and random splits are created using the same underlying data but different index arrangements",
+            "Data augmentation methods (temporal permutation and masking) are applied consistently to both splits",
+            "The MiniRocket model is approximated with a simple neural network architecture for computational feasibility",
+            "The experiment uses a fixed random seed for reproducibility",
+            "The experiment uses early stopping to prevent overfitting during training",
+            "The experiment evaluates performance using accuracy as the primary metric",
+            "The experiment compares performance gains between temporal and random splits to test the hypothesis"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: h-10496138/experiments/task_33/H1/run_smoke.py\", line 721, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/run_smoke.py\", line 225, in load_data\n        df[col] = np.random.randn(n_samples) * 100 + np.sin(np.arange(n_samples) / 24) * 50\n        ^^\n    UnboundLocalError: cannot access local variable 'df' where it is not associated with a value\n========================================================================\n\n\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10501894/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/io/common.py\", line 930, in get_handle\n    handle = open(\n        handle,\n    ...<3 lines>...\n        newline=\"\",\n    )\nFileNotFoundError: [Errno 2] No such file or directory: '/mnt/fastscratch/users/sgyshere/coder-data-cache/5c1098c3b3967452/public_dataset_uci_s_electricity_load_diagrams_dataset_or_si.csv'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/run_smoke.py\", line 721, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/run_smoke.py\", line 225, in load_data\n    df[col] = np.random.randn(n_samples) * 100 + np.sin(np.arange(n_samples) / 24) * 50\n    ^^\nUnboundLocalError: cannot access local variable 'df' where it is not associated with a value This was found by a fast pre-run of this same code with its cost knobs at their minimum (n_samples: 1000 -> 500; epochs: 100 -> 1; batch_size: 64 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset is loaded successfully either as parquet or as CSV fallback",
+            "The synthetic dataset generation matches the expected structure for the experiment",
+            "The model architecture is appropriate for time series classification",
+            "The augmentation methods are correctly implemented to disrupt temporal dependencies",
+            "The experiment can be completed within the compute budget"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: in pandas._libs.tslibs.offsets.to_offset\n      File \"pandas/_libs/tslibs/offsets.pyx\", line 6377, in pandas._libs.tslibs.offsets.to_offset\n      File \"pandas/_libs/tslibs/offsets.pyx\", line 6162, in pandas._libs.tslibs.offsets.raise_invalid_freq\n    ValueError: Invalid frequency: 15T. Failed to parse with error message: ValueError(\"Invalid frequency: T. Failed to parse with error message: KeyError('T'). Did you mean min?\")\n========================================================================\n\n\nn.py\", line 722, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/run.py\", line 229, in load_data\n    df['datetime'] = pd.date_range(start='2011-01-01', periods=n_samples, freq='15T')\n                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10501894/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexes/datetimes.py\", line 1442, in date_range\n    freq = to_offset(freq)\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6254, in pandas._libs.tslibs.offsets.to_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6377, in pandas._libs.tslibs.offsets.to_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6162, in pandas._libs.tslibs.offsets.raise_invalid_freq\nValueError: Invalid frequency: 15T. Failed to parse with error message: ValueError(\"Invalid frequency: T. Failed to parse with error message: KeyError('T'). Did you mean min?\")",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/H1/fix_attempts/attempt_4/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Electricity Load Diagrams dataset is available at the specified path and contains the expected structure",
+            "The dataset has sufficient temporal structure to observe meaningful differences in performance gain",
+            "The synthetic dataset generation approach provides adequate data for experimentation",
+            "The MiniRocket model is approximated well enough by a simple neural network for this experiment",
+            "The temporal permutation and masking augmentations are correctly implemented to disrupt temporal dependencies",
+            "The experiment will run successfully on the available compute resources"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "public dataset (UCI's Electricity Load Diagrams dataset or similar)",
+            "kind": "synthetic_surrogate",
+            "uri": "https://huggingface.co/api/datasets/sxj1024/electricity_load_2011_2014/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/5c1098c3b3967452/public_dataset_uci_s_electricity_load_diagrams_dataset_or_si.parquet",
+            "reason": "the generated code reports substituting for the data this plan requires: The synthetic dataset generation approach provides adequate representation for experimental purposes",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": true,
+        "changes": [
+          "epochs: 100 -> 200",
+          "epochs: 200 -> 400"
+        ],
+        "converged": false,
+        "convergence_findings": [
+          "'baseline_temporal' was still improving when training stopped — mean loss fell 41.9% over the final quarter of 18 epochs (0.0005602 -> 0.0003254), so the epoch budget ran out before the model converged",
+          "'baseline_random' was still improving when training stopped — mean loss fell 51.2% over the final quarter of 12 epochs (2.297e-05 -> 1.122e-05), so the epoch budget ran out before the model converged",
+          "'augmented_temporal_perm' was still improving when training stopped — mean loss fell 34.9% over the final quarter of 11 epochs (1.54e-08 -> 1.003e-08), so the epoch budget ran out before the model converged",
+          "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+        ],
+        "measurement_changes": [
+          "epochs: 100 -> 200",
+          "epochs: 200 -> 400"
+        ],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "ran_at_full_size": false
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_33/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T18:58:44.291486+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

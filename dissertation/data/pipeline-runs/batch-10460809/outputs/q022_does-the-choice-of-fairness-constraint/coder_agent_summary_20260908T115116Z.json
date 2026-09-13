@@ -1,0 +1,143 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_22/H1",
+      "assumptions_made": [
+        "The dataset contains sufficient samples to maintain balanced representation of protected groups",
+        "The model can be trained with fairness constraints without significant performance degradation",
+        "The concept of fairness constraints can be meaningfully applied to this lending scenario",
+        "The synthetic data generation creates a realistic enough scenario for demonstrating the concept",
+        "The experiment will run successfully on the shared HPC cluster with single-GPU jobs"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying different fairness constraints (demographic parity vs. equalized odds) to a lending model trained at equal overall accuracy results in systematically different subsets of applicants being rejected, as measured by the intersection of protected group membership and rejection status.",
+        "author": "coder-agent",
+        "baseline": "Model trained without any fairness constraints (standard logistic regression or neural network)",
+        "success_criteria": "Supporting the hypothesis: Different fairness constraints lead to significantly different rejection patterns (e.g., higher rejection rates for certain groups under one constraint vs. another). Refuting the hypothesis: No statistically significant difference in rejection patterns across fairness constraints when overall accuracy is held constant.",
+        "timestamp_utc": "2026-09-08T11:51:15.348164+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.1348,
+        "resumed": false,
+        "metrics": {
+          "baseline_results": {
+            "accuracy": 0.9733333333333334,
+            "rejection_rates": {
+              "male": 0.5352112676056338,
+              "female": 0.46835443037974683
+            },
+            "intersection_stats": {
+              "male": {
+                "rejected_count": "38",
+                "total_count": "71",
+                "rejection_rate": 0.5352112676056338
+              },
+              "female": {
+                "rejected_count": "37",
+                "total_count": "79",
+                "rejection_rate": 0.46835443037974683
+              }
+            }
+          },
+          "demographic_parity_results": {
+            "accuracy": 0.9666666666666667,
+            "rejection_rates": {
+              "male": 0.5070422535211268,
+              "female": 0.4810126582278481
+            },
+            "intersection_stats": {
+              "male": {
+                "rejected_count": 36.0,
+                "total_count": "71",
+                "rejection_rate": 0.5070422535211268
+              },
+              "female": {
+                "rejected_count": 38.0,
+                "total_count": "79",
+                "rejection_rate": 0.4810126582278481
+              }
+            }
+          },
+          "equalized_odds_results": {
+            "accuracy": 0.9666666666666667,
+            "rejection_rates": {
+              "male": 0.5070422535211268,
+              "female": 0.4810126582278481
+            },
+            "intersection_stats": {
+              "male": {
+                "rejected_count": 36.0,
+                "total_count": "71",
+                "rejection_rate": 0.5070422535211268
+              },
+              "female": {
+                "rejected_count": 38.0,
+                "total_count": "79",
+                "rejection_rate": 0.4810126582278481
+              }
+            }
+          },
+          "hypothesis_supported": "False"
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Baseline Accuracy: 0.9733\nDemographic Parity Accuracy: 0.9667\nEqualized Odds Accuracy: 0.9667\nBaseline Rejection Rate Difference (Male-Female): 0.0669\nDemographic Parity Rejection Rate Difference: 0.0260\nEqualized Odds Rejection Rate Difference: 0.0260\nAccuracy Consistency: True\nPattern Differences: False\nHypothesis supported: False",
+        "error": null,
+        "model_reported_meets_success_criteria": "unknown",
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\n===END imports===\\n\\n===BEGIN configuration===\\nSEED = 42\\nMAX_EPOCHS = 100\\nPATIENCE = 10\\nACCURACY_TARGET = 0.75\\n===END configuration===\\n\\n===BEGIN load_data_function===\\ndef load_data():\\n    import pandas as pd\\n    import numpy as np\\n    from sklearn.preprocessing import StandardScaler, LabelEncoder\\n    from sklearn.model_selection import train_test_split\\n    \\n    # Load the dataset\\n    df = pd.read_csv(\"/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collect'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_22/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "public dataset (e.g., German Credit Dataset or similar lending dataset)",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "the generated code reports substituting for the data this plan requires: The synthetic data generation creates a realistic enough scenario for demonstrating the concept",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_22/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T11:51:16.061234+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,103 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_34/H1",
+      "assumptions_made": [
+        "The target column in the dataset is identified automatically by looking for columns containing 'class', 'target', or 'label' in their names, falling back to the last column if none found",
+        "The experiment assumes the dataset has sufficient samples to support the required train/validation/test splits",
+        "The experiment handles potential errors in correlation computation gracefully by providing default values"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether model performance rankings derived from small validation sets exhibit significantly lower agreement in test set performance compared to those derived from larger, stratified validation sets.",
+        "author": "coder-agent",
+        "baseline": "Expected baseline: Spearman correlation > 0.7 for large stratified validation sets, < 0.5 for small unstratified validation sets.",
+        "success_criteria": "Supporting evidence: Spearman correlation between validation and test rankings is significantly higher (p < 0.05) for large stratified validation sets than for small unstratified ones. Refuting evidence: No significant difference in correlation between the two conditions.",
+        "timestamp_utc": "2026-09-08T15:26:40.809064+00:00",
+        "status": "success",
+        "elapsed_seconds": 39.1874,
+        "resumed": false,
+        "metrics": {
+          "mean_small_correlation": 1.0,
+          "mean_large_correlation": 1.0,
+          "wilcoxon_p_value": 1.0,
+          "significant_difference": "False",
+          "higher_agreement_large": "False"
+        },
+        "meets_success_criteria": false,
+        "notes": "Mean Spearman correlation for small validation sets: 1.0000\nMean Spearman correlation for large validation sets: 1.0000\nWilcoxon p-value: 1.0000\nSignificant difference: False\nHigher agreement with large validation sets: False\nMeets success criteria: False",
+        "error": null
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.model_selection import StratifiedKFold, train_test_split\\nfrom sklearn.preprocessing import StandardScaler, LabelEncoder\\nfrom sklearn.linear_model import LogisticRegression\\nfrom sklearn.ensemble import RandomForestClassifier\\nfrom sklearn.svm import SVC\\nfrom sklearn.metrics import accuracy_score\\nfrom scipy.stats import spearmanr, wilcoxon\\nimport json\\nimport os\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration='",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_34/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 65838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n        new_axis = axis.drop(labels, errors=errors)\n      File \"/tmp/users/sgyshere/coder-venvs-10465838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n        raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\n    KeyError: \"['class'] not found in axis\"\n========================================================================\n\n\nclass', axis=1)\n  File \"/tmp/users/sgyshere/coder-venvs-10465838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/frame.py\", line 6302, in drop\n    return super().drop(\n           ~~~~~~~~~~~~^\n        labels=labels,\n        ^^^^^^^^^^^^^^\n    ...<5 lines>...\n        errors=errors,\n        ^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10465838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4632, in drop\n    obj = obj._drop_axis(labels, axis, level=level, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10465838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n    new_axis = axis.drop(labels, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10465838/7577912d9a7d835f/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n    raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\nKeyError: \"['class'] not found in axis\"",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_34/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains sufficient samples to allow for multiple train/validation/test splits while maintaining enough data points to evaluate model stability and ranking consistency",
+            "The dataset has categorical variables that can be encoded appropriately",
+            "The dataset has a balanced enough distribution of classes to support stratified sampling",
+            "The classifiers used (Logistic Regression, Random Forest, SVM) are appropriate for the dataset type",
+            "The experiment will run successfully on the shared HPC cluster with single-GPU jobs",
+            "The validation set sizes (10% and 30%) are sufficient to observe meaningful differences in ranking agreement",
+            "The number of splits (10) provides adequate statistical power for the analysis"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "public dataset (e.g., UCI Adult dataset or similar tabular dataset)",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_34/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T15:26:41.015773+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

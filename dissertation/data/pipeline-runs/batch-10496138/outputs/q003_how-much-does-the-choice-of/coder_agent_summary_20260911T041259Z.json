@@ -1,0 +1,92 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_3/H1",
+      "assumptions_made": [
+        "The Hugging Face dataset was successfully loaded and matches the expected structure for fraud detection",
+        "If the real dataset fails to load, a synthetic dataset is generated with realistic feature distributions and class imbalance",
+        "The synthetic dataset preserves the key characteristics of the real dataset including feature correlations and class imbalance",
+        "The Random Forest classifier is appropriate for this type of tabular fraud detection problem",
+        "The false positive rate constraint of 5% is suitable for fraud detection applications",
+        "The evaluation metrics (recall and ECE) are sufficient to assess the relative performance of the different techniques"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether decision threshold tuning achieves higher fraud-detection recall than random undersampling and random oversampling under a fixed false-positive budget, while maintaining better model calibration.",
+        "author": "coder-agent",
+        "baseline": "No correction (i.e., default classifier output without any resampling or threshold adjustment)",
+        "success_criteria": "If threshold tuning achieves significantly higher recall than undersampling/oversampling under the same false-positive constraint AND maintains lower ECE than either resampling technique, then the hypothesis is supported. If not, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T04:12:58.961502+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.5616,
+        "resumed": false,
+        "metrics": {
+          "baseline_recall": 0.0,
+          "undersample_recall": 0.0,
+          "oversample_recall": 0.0,
+          "baseline_ece": 0.0006846846846846847,
+          "undersample_ece": 0.39762162162162157,
+          "oversample_ece": 0.0012612612612612614
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Baseline Recall: 0.0000\nUndersample Recall: 0.0000\nOversample Recall: 0.0000\nBaseline ECE: 0.0007\nUndersample ECE: 0.3976\nOversample ECE: 0.0013\nThreshold tuning better recall: False\nThreshold tuning better calibration: True\nOverall Success: False",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport json\\nimport logging\\nimport random\\nimport sys\\nfrom collections import defaultdict\\nfrom datetime import datetime\\nfrom pathlib import Path\\nfrom typing import Any, Dict, List, Tuple, Union\\n\\nimport numpy as np\\nimport pandas as pd\\nfrom sklearn.calibration import CalibratedClassifierCV\\nfrom sklearn.ensemble import RandomForestClassifier\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.preprocessing import StandardScaler\\nfrom sklearn.utils import resample\\nfrom'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_3/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset alphuuuu02/Machine-Learning-Credit-Card-Fraud-Detection-Project",
+            "kind": "synthetic_surrogate",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=alphuuuu02%2FMachine-Learning-Credit-Card-Fraud-Detection-Project&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/eff8ea880cc94684/hugging_face_dataset_alphuuuu02_machine-learning-credit-card.jsonl",
+            "reason": "the generated code reports substituting for the data this plan requires: The synthetic dataset preserves the key characteristics of the real dataset including feature correlations and class imbalance",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_3/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T04:12:59.855572+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

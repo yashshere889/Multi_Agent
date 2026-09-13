@@ -1,0 +1,212 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_24/H1",
+      "assumptions_made": [
+        "The rouge library was not properly imported in the run_experiment function scope, causing an undefined name error. This has been fixed by ensuring the Rouge instance is created within the function scope where it's used.",
+        "The helper functions that were previously defined outside the function scope have been moved inside the helpers section to ensure proper encapsulation and availability.",
+        "Added missing dependencies to requirements_txt to ensure all required packages are available."
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether extractive summaries generated from highly readable source documents exhibit higher factual accuracy when evaluated using reference-free readability metrics compared to summaries from less readable sources, assuming the same summarization method is applied.",
+        "author": "coder-agent",
+        "baseline": "Baseline performance using average FKGL/FRE scores of summaries from all documents without considering readability grouping",
+        "success_criteria": "If summaries from high-readability sources have significantly lower FKGL scores (indicating higher readability) and higher FRE scores (indicating easier reading), and if ROUGE-L scores are higher for those summaries, then the hypothesis is supported. Conversely, if no significant difference exists in either readability or factual accuracy, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-08T12:20:19.276386+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.3865,
+        "resumed": false,
+        "metrics": {
+          "hypothesis_supported": false
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Insufficient data for evaluation",
+        "error": null
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport json\\nimport math\\nimport random\\nimport re\\nfrom collections import Counter\\nfrom typing import Any, Dict, List, Tuple, Optional\\nfrom pathlib import Path\\nimport logging\\n\\n# For readability metrics\\nimport nltk\\nfrom nltk.tokenize import sent_tokenize, word_tokenize\\nfrom nltk.corpus import stopwords\\n\\n# For extractive summarization\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nfrom sklearn.metrics.pairwise import cosine_similarity\\nimport numpy as np\\n\\n# Download re'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_24/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 493: undefined name 'rouge'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_24/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "run_experiment_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The Reuters-21578 dataset was used as specified, but due to potential issues with the actual data format, a synthetic fallback was created that maintains the same structural properties",
+            "The Flesch-Kincaid Grade Level and Flesch Reading Ease metrics are appropriate readability indicators for this experiment",
+            "TextRank extractive summarization is suitable for this type of comparison",
+            "Statistical significance is determined by absolute differences exceeding certain thresholds",
+            "The experiment uses a sample size of 50 documents per group to balance computational constraints with statistical validity"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset rjjan/reuters21578",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=rjjan%2Freuters21578&config=ModApte&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/e9ea4502a06f8e92/hugging_face_dataset_rjjan_reuters21578.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/e9ea4502a06f8e92/hugging_face_dataset_rjjan_reuters21578.jsonl (5000 rows, 5546452 bytes, sha256 8ecda079f29e)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=rjjan%2Freuters21578&config=ModApte&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/e9ea4502a06f8e92/hugging_face_dataset_rjjan_reuters21578.jsonl",
+              "sha256": "8ecda079f29e2853c038169ed747c043fce88bb9570ca7ca0d349b2a31ece702",
+              "byte_count": 5546452,
+              "data_format": "jsonl",
+              "columns": [
+                "text",
+                "text_type",
+                "topics",
+                "lewis_split",
+                "cgis_split",
+                "old_id",
+                "new_id",
+                "places",
+                "people",
+                "orgs",
+                "exchanges",
+                "date",
+                "title"
+              ],
+              "row_count": 5000,
+              "sample_rows": [
+                {
+                  "text": "Showers continued throughout the week in\nthe Bahia cocoa zone, alleviating the drought since early\nJanuary and improving prospects for the coming temporao,\nalthough normal humidity levels have not bee…",
+                  "text_type": "\"NORM\"",
+                  "topics": [
+                    "cocoa"
+                  ],
+                  "lewis_split": "\"TRAIN\"",
+                  "cgis_split": "\"TRAINING-SET\"",
+                  "old_id": "\"5544\"",
+                  "new_id": "\"1\"",
+                  "places": [
+                    "el-salvador",
+                    "usa",
+                    "uruguay"
+                  ],
+                  "people": [],
+                  "orgs": [],
+                  "exchanges": [],
+                  "date": "26-FEB-1987 15:01:01.79",
+                  "title": "BAHIA COCOA REVIEW"
+                },
+                {
+                  "text": "The U.S. Agriculture Department\nreported the farmer-owned reserve national five-day average\nprice through February 25 as follows (Dlrs/Bu-Sorghum Cwt) -\n         Natl   Loan           Release   Call\n …",
+                  "text_type": "\"NORM\"",
+                  "topics": [
+                    "grain",
+                    "wheat",
+                    "corn",
+                    "barley",
+                    "oat",
+                    "sorghum"
+                  ],
+                  "lewis_split": "\"TRAIN\"",
+                  "cgis_split": "\"TRAINING-SET\"",
+                  "old_id": "\"5548\"",
+                  "new_id": "\"5\"",
+                  "places": [
+                    "usa"
+                  ],
+                  "people": [],
+                  "orgs": [],
+                  "exchanges": [],
+                  "date": "26-FEB-1987 15:10:44.60",
+                  "title": "NATIONAL AVERAGE PRICES FOR FARMER-OWNED RESERVE"
+                },
+                {
+                  "text": "Argentine grain board figures show\ncrop registrations of grains, oilseeds and their products to\nFebruary 11, in thousands of tonnes, showing those for futurE\nshipments month, 1986/87 total and 1985/86…",
+                  "text_type": "\"NORM\"",
+                  "topics": [
+                    "veg-oil",
+                    "linseed",
+                    "lin-oil",
+                    "soy-oil",
+                    "sun-oil",
+                    "soybean",
+                    "oilseed",
+                    "corn",
+                    "sunseed",
+                    "grain",
+                    "sorghum",
+                    "wheat"
+                  ],
+                  "lewis_split": "\"TRAIN\"",
+                  "cgis_split": "\"TRAINING-SET\"",
+                  "old_id": "\"5549\"",
+                  "new_id": "\"6\"",
+                  "places": [
+                    "argentina"
+                  ],
+                  "people": [],
+                  "orgs": [],
+                  "exchanges": [],
+                  "date": "26-FEB-1987 15:14:36.41",
+                  "title": "ARGENTINE 1986/87 GRAIN/OILSEED REGISTRATIONS"
+                }
+              ],
+              "from_cache": false,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            }
+          },
+          {
+            "name": "public dataset name",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/dataset_benchmark_standard_collection_annotated_labeled_ground_truth_samples_instances_topic_multiclass_document_classification_accuracy_proportion_percentage_fraction_portion_newsgroups_train.csv",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_24/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T12:20:19.547653+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,188 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_6/H1",
+      "assumptions_made": [
+        "Used the German Credit dataset from AiresPucrs/german-credit-data as it matches the required structure",
+        "Generated synthetic temporal data by repeating the base dataset and simulating drift every 3 months",
+        "Used logistic regression as baseline model for comparison",
+        "Implemented early stopping to prevent overfitting during training",
+        "Assumed that the dataset has enough samples to support 24 months of training",
+        "Since the dataset is small, we repeated it to simulate 24 months of data",
+        "Used a simple approach to simulate feature drift by slightly modifying numerical features",
+        "Trained models with early stopping based on validation loss to ensure convergence",
+        "Used standard evaluation metrics (Brier score and AUC-ROC) as specified in the plan"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether adaptive ensemble methods maintain superior calibration performance (as measured by Brier score) compared to ranking discrimination (as measured by AUC-ROC) over a 24-month deployment period in consumer lending datasets subject to feature drift.",
+        "author": "coder-agent",
+        "baseline": "Performance of static models trained once on initial data without drift adaptation",
+        "success_criteria": "If ensemble methods show consistently lower Brier scores and higher AUC-ROC values over time compared to baseline static models, the hypothesis is supported. If there is no significant difference or if ranking performance degrades faster than calibration, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T05:11:02.560180+00:00",
+        "status": "success",
+        "elapsed_seconds": 9.0792,
+        "resumed": false,
+        "metrics": {
+          "aggregated_metrics": {
+            "random_forest": {
+              "avg_brier_score": 0.22258681249999998,
+              "std_brier_score": 0.005810210172282397,
+              "avg_auc_roc": 0.5653062678062678,
+              "std_auc_roc": 0.03174662983206163
+            },
+            "xgboost": {
+              "avg_brier_score": 0.27954214438796043,
+              "std_brier_score": 0.005990652629985329,
+              "avg_auc_roc": 0.5464672364672365,
+              "std_auc_roc": 0.023362361886642792
+            },
+            "logistic_regression": {
+              "avg_brier_score": 0.22098700266570118,
+              "std_brier_score": 6.687762370434005e-05,
+              "avg_auc_roc": 0.4902279202279202,
+              "std_auc_roc": 0.0008822713713505576
+            }
+          },
+          "final_metrics": {
+            "random_forest": {
+              "final_brier_score": 0.2188305,
+              "final_auc_roc": 0.4841269841269842
+            },
+            "xgboost": {
+              "final_brier_score": 0.29294344782829285,
+              "final_auc_roc": 0.4888392857142857
+            },
+            "logistic_regression": {
+              "final_brier_score": 0.2083344051659738,
+              "final_auc_roc": 0.4522569444444444
+            }
+          },
+          "training_history": {
+            "random_forest": [],
+            "xgboost": [],
+            "logistic_regression": []
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Ensemble methods did not improve calibration (higher Brier score) compared to baseline.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are real data found by keyword search rather than named by the plan, and nothing has confirmed they answer this question. The experiment ran on real data and its metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes the verdict reachable."
+      },
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Public consumer lending dataset (e.g., German Credit or similar) with temporal annotations and feature drift indicators",
+            "kind": "real_local",
+            "uri": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet",
+            "reason": "no source was named for this input, so it was searched for: huggingface matched 'AiresPucrs/german-credit-data' for the query 'german credit' (catalogue record: https://huggingface.co/datasets/AiresPucrs/german-credit-data). Discovered by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet (1000 rows, 13955 bytes, sha256 34ade5fa893a)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet",
+              "sha256": "34ade5fa893ac88467b27831850569edbb301cd14a25bb104c23edb0fb828fcc",
+              "byte_count": 13955,
+              "data_format": "parquet",
+              "columns": [
+                "Age",
+                "Sex",
+                "Job",
+                "Housing",
+                "Saving accounts",
+                "Checking account",
+                "Credit amount",
+                "Duration",
+                "Purpose",
+                "Risk"
+              ],
+              "row_count": 1000,
+              "sample_rows": [
+                {
+                  "Age": 67,
+                  "Sex": "male",
+                  "Job": 2,
+                  "Housing": "own",
+                  "Saving accounts": null,
+                  "Checking account": "little",
+                  "Credit amount": 1169,
+                  "Duration": 6,
+                  "Purpose": "radio/TV",
+                  "Risk": "good"
+                },
+                {
+                  "Age": 22,
+                  "Sex": "female",
+                  "Job": 2,
+                  "Housing": "own",
+                  "Saving accounts": "little",
+                  "Checking account": "moderate",
+                  "Credit amount": 5951,
+                  "Duration": 48,
+                  "Purpose": "radio/TV",
+                  "Risk": "bad"
+                },
+                {
+                  "Age": 49,
+                  "Sex": "male",
+                  "Job": 1,
+                  "Housing": "own",
+                  "Saving accounts": "little",
+                  "Checking account": null,
+                  "Credit amount": 2096,
+                  "Duration": 12,
+                  "Purpose": "education",
+                  "Risk": "good"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "Apache Parquet — columnar and binary (pandas.read_parquet)"
+            },
+            "discovered": {
+              "name": "German Credit",
+              "url": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+              "connector": "huggingface",
+              "title": "AiresPucrs/german-credit-data",
+              "resource": "default/train (parquet)",
+              "landing_page": "https://huggingface.co/datasets/AiresPucrs/german-credit-data",
+              "query": "german credit"
+            }
+          }
+        ],
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": [
+          "Public consumer lending dataset (e.g., German Credit or similar) with temporal annotations and feature drift indicators"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_6/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T05:11:03.023438+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

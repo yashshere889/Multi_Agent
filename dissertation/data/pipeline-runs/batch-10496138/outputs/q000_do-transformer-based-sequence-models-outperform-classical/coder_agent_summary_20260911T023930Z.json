@@ -1,0 +1,923 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1",
+      "assumptions_made": [
+        "The financial dataset from /mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl was successfully loaded and processed",
+        "The dataset contains enough data points for meaningful volatility forecasting and portfolio optimization",
+        "The synthetic fallback dataset is representative enough for testing purposes",
+        "The Transformer model architecture is appropriate for the volatility forecasting task",
+        "Transaction cost modeling accurately reflects real-world trading constraints"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether Transformer-based models outperform ARIMA models in forecasting daily equity index volatility when transaction costs are explicitly incorporated into the evaluation framework via dynamic portfolio optimization.",
+        "author": "coder-agent",
+        "baseline": "Performance of ARIMA model with no transaction cost adjustment and baseline Sharpe ratio without dynamic optimization",
+        "success_criteria": "If the Transformer model achieves lower adjusted RMSE and higher Sharpe ratio than ARIMA when transaction costs are included, the hypothesis is supported. If not, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T02:39:28.838044+00:00",
+        "status": "success",
+        "elapsed_seconds": 5.8944,
+        "resumed": false,
+        "metrics": {
+          "arima_rmse": 1.0591508935654521,
+          "transformer_rmse": 0.31287569844601065,
+          "rmse_improvement": 0.7462751951194415,
+          "arima_sharpe": -3.7449849243000184,
+          "transformer_sharpe": -14.787768879785599,
+          "sharpe_improvement": -11.04278395548558,
+          "training_history": {
+            "transformer": [
+              1.8125325292348862,
+              0.6856043696403503,
+              0.3140276730060577,
+              0.17874323576688766,
+              0.12176058627665043,
+              0.09726816304028034,
+              0.08521163128316403,
+              0.08238680884242058,
+              0.06769862323999405,
+              0.06803635079413653,
+              0.05507551319897175,
+              0.052405036985874176,
+              0.05753208957612514,
+              0.06329606445506215,
+              0.06895585581660271,
+              0.060374538972973825,
+              0.057254182174801826,
+              0.06469709668308496,
+              0.07813325338065624,
+              0.06540012191981077,
+              0.07559883035719395
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "ARIMA RMSE: 1.0592\nTransformer RMSE: 0.3129\nRMSE Improvement: 0.7463\nARIMA Sharpe Ratio: -3.7450\nTransformer Sharpe Ratio: -14.7878\nSharpe Ratio Improvement: -11.0428\nBetter RMSE: True\nBetter Sharpe Ratio: False\nOverall Success: False",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are real data found by keyword search rather than named by the plan, and nothing has confirmed they answer this question. The experiment ran on real data and its metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes the verdict reachable."
+      },
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport json\\nimport math\\nimport random\\nimport requests\\nimport statistics\\nimport time\\nfrom datetime import datetime, timedelta\\nfrom typing import Any, Dict, List, Tuple, Optional\\nimport numpy as np\\nimport pandas as pd\\nfrom scipy import stats\\nfrom sklearn.preprocessing import StandardScaler\\nfrom statsmodels.tsa.arima.model import ARIMA\\nimport torch\\nimport torch.nn as nn\\nimport torch.optim as optim\\nfrom torch.utils.data import DataLoader, TensorDataset\\n===END imports===\\n\\n===BEGIN'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: db34384367cc8/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n        return forward_call(*args, **kwargs)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/run.py\", line 436, in forward\n        seq_len, batch_size, input_size = x.shape\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ValueError: not enough values to unpack (expected 3, got 2)\n========================================================================\n\n\nre/pipeline-runs/batch-10496138/experiments/task_0/H1/run.py\", line 765, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/run.py\", line 467, in run_experiment\n    outputs = model(batch_x)\n  File \"/tmp/users/sgyshere/coder-venvs-10496140/828db34384367cc8/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10496140/828db34384367cc8/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/run.py\", line 436, in forward\n    seq_len, batch_size, input_size = x.shape\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: not enough values to unpack (expected 3, got 2)",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The financial dataset from Zenodo was used as the primary data source, with appropriate preprocessing to extract returns and volatility",
+            "Since the Hugging Face dataset didn't match the experiment's requirements, a synthetic financial dataset was created as a fallback",
+            "The Transformer model architecture was simplified to ensure it runs within the compute budget",
+            "Transaction cost modeling was implemented with stochastic turnover and fixed per-trade fees",
+            "Portfolio optimization was simplified to focus on the core comparison between models",
+            "The experiment uses a small sample size to ensure it completes within the time constraints"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/H1/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The financial dataset from /mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl was successfully loaded and processed",
+            "The dataset contains sufficient data points for training and testing the models",
+            "The Transformer model architecture was correctly modified to handle the input tensor dimensions properly",
+            "The reshaping of tensors for the Transformer model was corrected to ensure proper batch, sequence, and feature dimensions"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Public financial dataset (e.g., S&P 500 daily returns and volatility data from Yahoo Finance or similar)",
+            "kind": "real_local",
+            "uri": "https://zenodo.org/api/records/15304512/files/yfinance_collection_vix.json/content",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl",
+            "reason": "no source was named for this input, so it was searched for: zenodo matched 'Yahoo Finance Dataset' for the query 'yahoo finance' (catalogue record: https://doi.org/10.5281/zenodo.15304512). Discovered by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl (7 rows, 48345 bytes, sha256 22ead4b8de9d)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://zenodo.org/api/records/15304512/files/yfinance_collection_vix.json/content",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl",
+              "sha256": "22ead4b8de9d80ef69b58a10f1c5fd01ea9a365e28cc460fc604870d8911a93a",
+              "byte_count": 48345,
+              "data_format": "jsonl",
+              "columns": [
+                "_id",
+                "scenario",
+                "start_date",
+                "end_date",
+                "data"
+              ],
+              "row_count": 7,
+              "sample_rows": [
+                {
+                  "_id": {
+                    "$oid": "677d32f3b55fba0a207bc4d6"
+                  },
+                  "scenario": "Covid-19 Lockdowns",
+                  "start_date": "2020-01-01",
+                  "end_date": "2020-03-31",
+                  "data": [
+                    {
+                      "Date": {
+                        "$date": "2020-01-02T00:00:00Z"
+                      },
+                      "Open": 13.460000038146973,
+                      "High": 13.720000267028809,
+                      "Low": 12.420000076293945,
+                      "Close": 12.470000267028809,
+                      "Adj Close": 12.470000267028809,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-03T00:00:00Z"
+                      },
+                      "Open": 15.010000228881836,
+                      "High": 16.200000762939453,
+                      "Low": 13.130000114440918,
+                      "Close": 14.020000457763672,
+                      "Adj Close": 14.020000457763672,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-06T00:00:00Z"
+                      },
+                      "Open": 15.449999809265137,
+                      "High": 16.389999389648438,
+                      "Low": 13.539999961853027,
+                      "Close": 13.850000381469727,
+                      "Adj Close": 13.850000381469727,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-07T00:00:00Z"
+                      },
+                      "Open": 13.84000015258789,
+                      "High": 14.460000038146973,
+                      "Low": 13.390000343322754,
+                      "Close": 13.789999961853027,
+                      "Adj Close": 13.789999961853027,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-08T00:00:00Z"
+                      },
+                      "Open": 15.15999984741211,
+                      "High": 15.239999771118164,
+                      "Low": 12.829999923706055,
+                      "Close": 13.449999809265137,
+                      "Adj Close": 13.449999809265137,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-09T00:00:00Z"
+                      },
+                      "Open": 12.949999809265137,
+                      "High": 13.239999771118164,
+                      "Low": 12.529999732971191,
+                      "Close": 12.539999961853027,
+                      "Adj Close": 12.539999961853027,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-10T00:00:00Z"
+                      },
+                      "Open": 12.420000076293945,
+                      "High": 12.869999885559082,
+                      "Low": 12.09000015258789,
+                      "Close": 12.5600004196167,
+                      "Adj Close": 12.5600004196167,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-13T00:00:00Z"
+                      },
+                      "Open": 12.84000015258789,
+                      "High": 13.09000015258789,
+                      "Low": 12.319999694824219,
+                      "Close": 12.319999694824219,
+                      "Adj Close": 12.319999694824219,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-14T00:00:00Z"
+                      },
+                      "Open": 12.720000267028809,
+                      "High": 13.819999694824219,
+                      "Low": 12.050000190734863,
+                      "Close": 12.390000343322754,
+                      "Adj Close": 12.390000343322754,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-15T00:00:00Z"
+                      },
+                      "Open": 12.789999961853027,
+                      "High": 12.829999923706055,
+                      "Low": 11.949999809265137,
+                      "Close": 12.420000076293945,
+                      "Adj Close": 12.420000076293945,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-16T00:00:00Z"
+                      },
+                      "Open": 12.199999809265137,
+                      "High": 12.420000076293945,
+                      "Low": 11.779999732971191,
+                      "Close": 12.319999694824219,
+                      "Adj Close": 12.319999694824219,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-17T00:00:00Z"
+                      },
+                      "Open": 12.210000038146973,
+                      "High": 12.479999542236328,
+                      "Low": 11.75,
+                      "Close": 12.100000381469727,
+                      "Adj Close": 12.100000381469727,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-21T00:00:00Z"
+                      },
+                      "Open": 13.229999542236328,
+                      "High": 13.329999923706055,
+                      "Low": 12.319999694824219,
+                      "Close": 12.850000381469727,
+                      "Adj Close": 12.850000381469727,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-22T00:00:00Z"
+                      },
+                      "Open": 12.449999809265137,
+                      "High": 13.010000228881836,
+                      "Low": 12.3100004196167,
+                      "Close": 12.90999984741211,
+                      "Adj Close": 12.90999984741211,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-23T00:00:00Z"
+                      },
+                      "Open": 13.260000228881836,
+                      "High": 14.149999618530273,
+                      "Low": 12.9399995803833,
+                      "Close": 12.979999542236328,
+                      "Adj Close": 12.979999542236328,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-24T00:00:00Z"
+                      },
+                      "Open": 12.75,
+                      "High": 15.979999542236328,
+                      "Low": 12.619999885559082,
+                      "Close": 14.5600004196167,
+                      "Adj Close": 14.5600004196167,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-27T00:00:00Z"
+                      },
+                      "Open": 17.420000076293945,
+                      "High": 19.020000457763672,
+                      "Low": 16.81999969482422,
+                      "Close": 18.229999542236328,
+                      "Adj Close": 18.229999542236328,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-28T00:00:00Z"
+                      },
+                      "Open": 16.940000534057617,
+                      "High": 18.030000686645508,
+                      "Low": 15.6899995803833,
+                      "Close": 16.280000686645508,
+                      "Adj Close": 16.280000686645508,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-29T00:00:00Z"
+                      },
+                      "Open": 15.680000305175781,
+                      "High": 16.649999618530273,
+                      "Low": 14.9399995803833,
+                      "Close": 16.389999389648438,
+                      "Adj Close": 16.389999389648438,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-30T00:00:00Z"
+                      },
+                      "Open": 17.81999969482422,
+                      "High": 18.389999389648438,
+                      "Low": 15.300000190734863,
+                      "Close": 15.489999771118164,
+                      "Adj Close": 15.489999771118164,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-01-31T00:00:00Z"
+                      },
+                      "Open": 16.25,
+                      "High": 19.989999771118164,
+                      "Low": 16.18000030517578,
+                      "Close": 18.84000015258789,
+                      "Adj Close": 18.84000015258789,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-03T00:00:00Z"
+                      },
+                      "Open": 18.639999389648438,
+                      "High": 18.8799991607666,
+                      "Low": 17.100000381469727,
+                      "Close": 17.969999313354492,
+                      "Adj Close": 17.969999313354492,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-04T00:00:00Z"
+                      },
+                      "Open": 16.450000762939453,
+                      "High": 16.459999084472656,
+                      "Low": 15.630000114440918,
+                      "Close": 16.049999237060547,
+                      "Adj Close": 16.049999237060547,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-05T00:00:00Z"
+                      },
+                      "Open": 16.290000915527344,
+                      "High": 16.31999969482422,
+                      "Low": 15.020000457763672,
+                      "Close": 15.149999618530273,
+                      "Adj Close": 15.149999618530273,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-06T00:00:00Z"
+                      },
+                      "Open": 15.130000114440918,
+                      "High": 15.65999984741211,
+                      "Low": 14.699999809265137,
+                      "Close": 14.960000038146973,
+                      "Adj Close": 14.960000038146973,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-07T00:00:00Z"
+                      },
+                      "Open": 15.069999694824219,
+                      "High": 16.15999984741211,
+                      "Low": 14.8100004196167,
+                      "Close": 15.470000267028809,
+                      "Adj Close": 15.470000267028809,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-10T00:00:00Z"
+                      },
+                      "Open": 15.880000114440918,
+                      "High": 16.43000030517578,
+                      "Low": 15.010000228881836,
+                      "Close": 15.039999961853027,
+                      "Adj Close": 15.039999961853027,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-11T00:00:00Z"
+                      },
+                      "Open": 14.90999984741211,
+                      "High": 15.270000457763672,
+                      "Low": 14.380000114440918,
+                      "Close": 15.180000305175781,
+                      "Adj Close": 15.180000305175781,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-12T00:00:00Z"
+                      },
+                      "Open": 14.859999656677246,
+                      "High": 14.880000114440918,
+                      "Low": 13.729999542236328,
+                      "Close": 13.739999771118164,
+                      "Adj Close": 13.739999771118164,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-13T00:00:00Z"
+                      },
+                      "Open": 14.430000305175781,
+                      "High": 15.4399995803833,
+                      "Low": 14,
+                      "Close": 14.149999618530273,
+                      "Adj Close": 14.149999618530273,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-14T00:00:00Z"
+                      },
+                      "Open": 14.119999885559082,
+                      "High": 14.539999961853027,
+                      "Low": 13.380000114440918,
+                      "Close": 13.680000305175781,
+                      "Adj Close": 13.680000305175781,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-18T00:00:00Z"
+                      },
+                      "Open": 14.979999542236328,
+                      "High": 15.489999771118164,
+                      "Low": 14.529999732971191,
+                      "Close": 14.829999923706055,
+                      "Adj Close": 14.829999923706055,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-19T00:00:00Z"
+                      },
+                      "Open": 14.65999984741211,
+                      "High": 14.739999771118164,
+                      "Low": 14.210000038146973,
+                      "Close": 14.380000114440918,
+                      "Adj Close": 14.380000114440918,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-20T00:00:00Z"
+                      },
+                      "Open": 14.539999961853027,
+                      "High": 17.209999084472656,
+                      "Low": 14.489999771118164,
+                      "Close": 15.5600004196167,
+                      "Adj Close": 15.5600004196167,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-21T00:00:00Z"
+                      },
+                      "Open": 17.329999923706055,
+                      "High": 18.209999084472656,
+                      "Low": 16.190000534057617,
+                      "Close": 17.079999923706055,
+                      "Adj Close": 17.079999923706055,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-24T00:00:00Z"
+                      },
+                      "Open": 22.25,
+                      "High": 26.350000381469727,
+                      "Low": 22,
+                      "Close": 25.030000686645508,
+                      "Adj Close": 25.030000686645508,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-25T00:00:00Z"
+                      },
+                      "Open": 23.280000686645508,
+                      "High": 30.25,
+                      "Low": 22.6200008392334,
+                      "Close": 27.850000381469727,
+                      "Adj Close": 27.850000381469727,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-26T00:00:00Z"
+                      },
+                      "Open": 26.6299991607666,
+                      "High": 29.56999969482422,
+                      "Low": 24.760000228881836,
+                      "Close": 27.559999465942383,
+                      "Adj Close": 27.559999465942383,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-27T00:00:00Z"
+                      },
+                      "Open": 32.13999938964844,
+                      "High": 39.310001373291016,
+                      "Low": 29.3700008392334,
+                      "Close": 39.15999984741211,
+                      "Adj Close": 39.15999984741211,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-02-28T00:00:00Z"
+                      },
+                      "Open": 42.02000045776367,
+                      "High": 49.47999954223633,
+                      "Low": 39.369998931884766,
+                      "Close": 40.11000061035156,
+                      "Adj Close": 40.11000061035156,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-02T00:00:00Z"
+                      },
+                      "Open": 38.540000915527344,
+                      "High": 40.40999984741211,
+                      "Low": 31.5,
+                      "Close": 33.41999816894531,
+                      "Adj Close": 33.41999816894531,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-03T00:00:00Z"
+                      },
+                      "Open": 33.650001525878906,
+                      "High": 41.060001373291016,
+                      "Low": 24.93000030517578,
+                      "Close": 36.81999969482422,
+                      "Adj Close": 36.81999969482422,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-04T00:00:00Z"
+                      },
+                      "Open": 34.439998626708984,
+                      "High": 35.58000183105469,
+                      "Low": 30.299999237060547,
+                      "Close": 31.989999771118164,
+                      "Adj Close": 31.989999771118164,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-05T00:00:00Z"
+                      },
+                      "Open": 33.61000061035156,
+                      "High": 42.84000015258789,
+                      "Low": 33.540000915527344,
+                      "Close": 39.619998931884766,
+                      "Adj Close": 39.619998931884766,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-06T00:00:00Z"
+                      },
+                      "Open": 48.93000030517578,
+                      "High": 54.38999938964844,
+                      "Low": 40.84000015258789,
+                      "Close": 41.939998626708984,
+                      "Adj Close": 41.939998626708984,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-09T00:00:00Z"
+                      },
+                      "Open": 41.939998626708984,
+                      "High": 62.119998931884766,
+                      "Low": 41.939998626708984,
+                      "Close": 54.459999084472656,
+                      "Adj Close": 54.459999084472656,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-10T00:00:00Z"
+                      },
+                      "Open": 49.68000030517578,
+                      "High": 55.65999984741211,
+                      "Low": 43.560001373291016,
+                      "Close": 47.29999923706055,
+                      "Adj Close": 47.29999923706055,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-11T00:00:00Z"
+                      },
+                      "Open": 52.2400016784668,
+                      "High": 55.81999969482422,
+                      "Low": 49.97999954223633,
+                      "Close": 53.900001525878906,
+                      "Adj Close": 53.900001525878906,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-12T00:00:00Z"
+                      },
+                      "Open": 61.459999084472656,
+                      "High": 76.83000183105469,
+                      "Low": 59.90999984741211,
+                      "Close": 75.47000122070312,
+                      "Adj Close": 75.47000122070312,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-13T00:00:00Z"
+                      },
+                      "Open": 71.30999755859375,
+                      "High": 77.56999969482422,
+                      "Low": 55.16999816894531,
+                      "Close": 57.83000183105469,
+                      "Adj Close": 57.83000183105469,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-16T00:00:00Z"
+                      },
+                      "Open": 57.83000183105469,
+                      "High": 83.55999755859375,
+                      "Low": 57.83000183105469,
+                      "Close": 82.69000244140625,
+                      "Adj Close": 82.69000244140625,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-17T00:00:00Z"
+                      },
+                      "Open": 82.69000244140625,
+                      "High": 84.83000183105469,
+                      "Low": 70.37000274658203,
+                      "Close": 75.91000366210938,
+                      "Adj Close": 75.91000366210938,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-18T00:00:00Z"
+                      },
+                      "Open": 69.37000274658203,
+                      "High": 85.47000122070312,
+                      "Low": 69.37000274658203,
+                      "Close": 76.44999694824219,
+                      "Adj Close": 76.44999694824219,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-19T00:00:00Z"
+                      },
+                      "Open": 80.62000274658203,
+                      "High": 84.26000213623047,
+                      "Low": 68.56999969482422,
+                      "Close": 72,
+                      "Adj Close": 72,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-20T00:00:00Z"
+                      },
+                      "Open": 67.86000061035156,
+                      "High": 69.51000213623047,
+                      "Low": 57.41999816894531,
+                      "Close": 66.04000091552734,
+                      "Adj Close": 66.04000091552734,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-23T00:00:00Z"
+                      },
+                      "Open": 74.08000183105469,
+                      "High": 76.73999786376953,
+                      "Low": 60.459999084472656,
+                      "Close": 61.59000015258789,
+                      "Adj Close": 61.59000015258789,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-24T00:00:00Z"
+                      },
+                      "Open": 58.7599983215332,
+                      "High": 61.880001068115234,
+                      "Low": 36.2400016784668,
+                      "Close": 61.66999816894531,
+                      "Adj Close": 61.66999816894531,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-25T00:00:00Z"
+                      },
+                      "Open": 61.439998626708984,
+                      "High": 68.86000061035156,
+                      "Low": 58.029998779296875,
+                      "Close": 63.95000076293945,
+                      "Adj Close": 63.95000076293945,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-26T00:00:00Z"
+                      },
+                      "Open": 65.66999816894531,
+                      "High": 67.05999755859375,
+                      "Low": 57.65999984741211,
+                      "Close": 61,
+                      "Adj Close": 61,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-27T00:00:00Z"
+                      },
+                      "Open": 64.94999694824219,
+                      "High": 69.0999984741211,
+                      "Low": 61.79999923706055,
+                      "Close": 65.54000091552734,
+                      "Adj Close": 65.54000091552734,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2020-03-30T00:00:00Z"
+                      },
+                      "Open": 66.30000305175781,
+                      "High": 67.69000244140625,
+                      "Low": 56.599998474121094,
+                      "Close": 57.08000183105469,
+                      "Adj Close": 57.08000183105469,
+                      "Volume": 0
+                    }
+                  ]
+                },
+                {
+                  "_id": {
+                    "$oid": "677d32f4b55fba0a207bc4da"
+                  },
+                  "scenario": "Turkey Earthquake",
+                  "start_date": "2023-02-04",
+                  "end_date": "2023-02-08",
+                  "data": [
+                    {
+                      "Date": {
+                        "$date": "2023-02-06T00:00:00Z"
+                      },
+                      "Open": 19.229999542236328,
+                      "High": 19.809999465942383,
+                      "Low": 19.209999084472656,
+                      "Close": 19.43000030517578,
+                      "Adj Close": 19.43000030517578,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2023-02-07T00:00:00Z"
+                      },
+                      "Open": 19.540000915527344,
+                      "High": 19.989999771118164,
+                      "Low": 18.43000030517578,
+                      "Close": 18.65999984741211,
+                      "Adj Close": 18.65999984741211,
+                      "Volume": 0
+                    }
+                  ]
+                },
+                {
+                  "_id": {
+                    "$oid": "677d32f6b55fba0a207bc4de"
+                  },
+                  "scenario": "Indonesia Tsunami",
+                  "start_date": "2018-09-27",
+                  "end_date": "2018-09-30",
+                  "data": [
+                    {
+                      "Date": {
+                        "$date": "2018-09-27T00:00:00Z"
+                      },
+                      "Open": 12.770000457763672,
+                      "High": 13,
+                      "Low": 11.9399995803833,
+                      "Close": 12.40999984741211,
+                      "Adj Close": 12.40999984741211,
+                      "Volume": 0
+                    },
+                    {
+                      "Date": {
+                        "$date": "2018-09-28T00:00:00Z"
+                      },
+                      "Open": 12.59000015258789,
+                      "High": 13.220000267028809,
+                      "Low": 12.09000015258789,
+                      "Close": 12.119999885559082,
+                      "Adj Close": 12.119999885559082,
+                      "Volume": 0
+                    }
+                  ]
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            },
+            "discovered": {
+              "name": "Yahoo Finance",
+              "url": "https://zenodo.org/api/records/15304512/files/yfinance_collection_vix.json/content",
+              "connector": "zenodo",
+              "title": "Yahoo Finance Dataset",
+              "resource": "yfinance_collection_vix.json",
+              "landing_page": "https://doi.org/10.5281/zenodo.15304512",
+              "query": "yahoo finance"
+            }
+          }
+        ],
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": [
+          "Public financial dataset (e.g., S&P 500 daily returns and volatility data from Yahoo Finance or similar)"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_0/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T02:39:30.106517+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

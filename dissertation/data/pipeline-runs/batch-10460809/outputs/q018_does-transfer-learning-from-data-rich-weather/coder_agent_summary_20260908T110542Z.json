@@ -1,0 +1,158 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: er learning\n2026-09-08T12:05:41 [INFO] H1 — Training transfer learning model for station_19\n2026-09-08T12:05:41 [WARNING] H1 — Source model not found for station_9, skipping transfer learning\n2026-09-08T12:05:41 [WARNING] H1 — No successful transfer learning attempts made\n2026-09-08T12:05:41 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-08T12:05:41 [INFO] H1 — Experiment completed in 1.39 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 846, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 840, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 781, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs. after 7 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1",
+      "assumptions_made": [
+        "The synthetic meteorological data generation produces realistic ranges and correlations for weather variables",
+        "The spatial relationships between stations are adequately captured by geographic proximity and climatic similarity measures",
+        "The LSTM model architecture is suitable for the time-series forecasting task",
+        "Transfer learning benefits are measurable through the specified metrics (MAE, RMSE, R²)",
+        "The experiment will run successfully on the shared HPC cluster with the specified compute resources"
+      ],
+      "results": null,
+      "fix_attempts": 7,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "undefined_name",
+          "error_summary": "Generated code uses name(s) it never defines, so it would fail with a NameError at runtime: line 194: undefined name 'np'; line 197: undefined name 'np'; line 207: undefined name 'np'; line 208: undefined name 'np'; line 209: undefined name 'np'; line 210: undefined name 'np'; line 213: undefined name 'np'; line 213: undefined name 'np'; line 214: undefined name 'np'; line 214: undefined name 'np'; line 215: undefined name 'np'; line 215: undefined name 'np'; line 216: undefined name 'np'; line 216: undefined name 'np'; line 219: undefined name 'np'; line 220: undefined name 'np'; line 221: undefined name 'np'; line 222: undefined name 'np'; line 225: undefined name 'np'; line 235: undefined name 'np'; line 239: undefined name 'np'; line 239: undefined name 'np'; line 239: undefined name 'np'; line 244: undefined name 'np'; line 244: undefined name 'np'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Generated synthetic meteorological data uses realistic ranges and correlations for temperature, humidity, pressure, and wind speed",
+            "Geographic proximity is modeled using Euclidean distance between station coordinates",
+            "Climatic similarity is approximated using exponential decay of geographic distances",
+            "Source stations are selected as those with the longest historical data (simulated by having more data points)",
+            "Target stations are those with shorter historical data (simulated by having fewer data points)",
+            "Transfer learning uses the closest source station based on geographic proximity",
+            "Early stopping prevents overfitting during fine-tuning while respecting time constraints",
+            "LSTM model architecture is appropriate for sequential meteorological data",
+            "The experiment assumes that spatial dependencies can be captured through simple geographic proximity",
+            "All computations are performed on CPU due to time constraints of the experiment",
+            "The synthetic data provides sufficient realism to validate the experimental approach",
+            "Transfer learning benefits from source station knowledge when spatial relationships exist",
+            "The experiment uses a simplified version of the Latent Dependency Factor (LDF) method through spatial similarity weighting"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: /coder-venvs-10462470/41862af299e5b4c1/.venv/lib/python3.14/site-packages/torch/serialization.py\", line 828, in __init__\n    torch._C.PyTorchFileWriter(\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        self.name, get_crc32_options(), _get_storage_alignment()\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nRuntimeError: Parent directory ./experiment_output does not exist.\n\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 817, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 811, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 752, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic meteorological data generation uses realistic ranges and correlations for temperature, humidity, pressure, and wind speed measurements",
+            "Geographic distances are calculated using Euclidean distance in latitude/longitude space",
+            "Climatic similarity is approximated using an exponential decay function of geographic distance",
+            "The LSTM model architecture is suitable for sequential meteorological data forecasting",
+            "Transfer learning uses the best source station based on geographic proximity for each target station",
+            "All necessary imports are properly handled within their respective functions to avoid undefined name errors"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: core/fromnumeric.py:3862: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n/tmp/users/sgyshere/coder-venvs-10462470/67072f043cecc924/.venv/lib/python3.14/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide\n  ret = ret.dtype.type(ret / rcount)\n2026-09-08T12:01:34 [INFO] H1 — Experiment completed in 3.88 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 821, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 815, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 756, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic data generation produces realistic meteorological patterns with appropriate correlations",
+            "The spatial relationships between stations are adequately captured by geographic distance and climatic similarity measures",
+            "The LSTM model architecture is suitable for the time-series forecasting task",
+            "Transfer learning benefits are measurable through the specified evaluation metrics",
+            "The experiment can be completed within the allocated computational resources"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: -08T12:02:26 [WARNING] H1 — Source model not found for station_8, skipping transfer learning\n2026-09-08T12:02:26 [INFO] H1 — Training transfer learning model for station_19\n2026-09-08T12:02:26 [WARNING] H1 — Source model not found for station_9, skipping transfer learning\n2026-09-08T12:02:26 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-08T12:02:26 [INFO] H1 — Experiment completed in 1.45 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 839, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 833, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 774, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic meteorological data generation produces realistic patterns for testing transfer learning concepts",
+            "Geographic proximity and climatic similarity are adequately captured by distance-based measures",
+            "LSTM models are appropriate for the time-series forecasting task in this context",
+            "The experiment can be executed with the specified computational resources",
+            "All necessary packages are available in the Python environment"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: er learning\n2026-09-08T12:03:15 [INFO] H1 — Training transfer learning model for station_19\n2026-09-08T12:03:15 [WARNING] H1 — Source model not found for station_9, skipping transfer learning\n2026-09-08T12:03:15 [WARNING] H1 — No successful transfer learning attempts made\n2026-09-08T12:03:15 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-08T12:03:15 [INFO] H1 — Experiment completed in 1.35 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 846, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 840, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 781, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic meteorological data is generated with realistic ranges and correlations to exercise the pipeline properly",
+            "Geographic proximity and climatic similarity are adequately captured through Euclidean distance and exponential decay functions",
+            "The LSTM model architecture is appropriate for the time-series forecasting task",
+            "Transfer learning benefits can be demonstrated with the synthetic setup despite being simplified",
+            "All necessary model weights and intermediate results are saved correctly to disk"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: er learning\n2026-09-08T12:04:04 [INFO] H1 — Training transfer learning model for station_19\n2026-09-08T12:04:04 [WARNING] H1 — Source model not found for station_9, skipping transfer learning\n2026-09-08T12:04:04 [WARNING] H1 — No successful transfer learning attempts made\n2026-09-08T12:04:04 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-08T12:04:04 [INFO] H1 — Experiment completed in 1.38 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 846, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 840, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 781, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic meteorological data generation produces realistic ranges and correlations for weather variables",
+            "All source stations have sufficient data to train robust baseline models",
+            "The spatial relationships between stations are adequately captured by geographic proximity and climatic similarity measures",
+            "The LSTM model architecture is suitable for the time series forecasting task",
+            "Transfer learning from source to target stations is possible when they share spatial characteristics"
+          ],
+          "same_error_streak": 5
+        },
+        {
+          "attempt": 7,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: er learning\n2026-09-08T12:04:53 [INFO] H1 — Training transfer learning model for station_19\n2026-09-08T12:04:53 [WARNING] H1 — Source model not found for station_9, skipping transfer learning\n2026-09-08T12:04:53 [WARNING] H1 — No successful transfer learning attempts made\n2026-09-08T12:04:53 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-08T12:04:53 [INFO] H1 — Experiment completed in 1.39 s.\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 846, in <module>\n    outcome = run()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 840, in run\n    out_path = _save_results(results)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/run_smoke.py\", line 781, in _save_results\n    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n    ^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'mkdir' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 50 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/H1/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The synthetic meteorological data generation produces realistic ranges and correlation structures for weather variables",
+            "The experiment uses a fixed number of stations (20 total) with a balanced split between source and target stations",
+            "The LSTM model architecture is suitable for the time-series nature of weather data",
+            "Geographic proximity and climatic similarity are adequately captured through distance-based measures",
+            "The transfer learning approach successfully identifies and utilizes relevant source stations for each target station"
+          ],
+          "same_error_streak": 6
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 8
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_18/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T11:05:42.751548+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

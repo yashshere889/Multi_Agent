@@ -1,0 +1,110 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/H1",
+      "assumptions_made": [
+        "Fixed the AgglomerativeClustering API issue by removing the deprecated 'affinity' parameter",
+        "The Hugging Face dataset was used as primary data source, falling back to synthetic data when unavailable",
+        "Energy distance clustering was implemented using pairwise Euclidean distances as a proxy",
+        "Synthetic stock data was generated to match the expected structure of financial features",
+        "The momentum strategies were implemented with appropriate rebalancing and ranking mechanisms",
+        "Performance metrics were calculated using standard financial formulas"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying energy distance-based clustering to identify market regimes from price and volume features leads to higher out-of-sample risk-adjusted returns for a momentum strategy compared to a static momentum rule.",
+        "author": "coder-agent",
+        "baseline": "Static cross-sectional momentum strategy without regime adjustment",
+        "success_criteria": "If the dynamic momentum strategy (with regime classification) achieves a higher Sharpe ratio and Information ratio than the static strategy, the hypothesis is supported. If not, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T04:50:21.609824+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.1906,
+        "resumed": false,
+        "metrics": {
+          "static_sharpe_ratio": 3.774593047051964,
+          "dynamic_sharpe_ratio": 2.293522136195797,
+          "static_information_ratio": 3.774593047051964,
+          "dynamic_information_ratio": 2.293522136195797,
+          "static_annualized_return": 1.2125642329609332,
+          "dynamic_annualized_return": 0.46637600984813443,
+          "static_max_drawdown": 0.0,
+          "dynamic_max_drawdown": 0.0
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Dynamic momentum strategy does not outperform static strategy. Sharpe ratio decreased from 3.775 to 2.294 Information ratio decreased from 3.775 to 2.294 Static strategy: Sharpe=3.775, Information=3.775 Dynamic strategy: Sharpe=2.294, Information=2.294",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: utput = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/H1/run.py\", line 367, in run_experiment\n        clustering = AgglomerativeClustering(\n            n_clusters=model[\"n_clusters\"],\n            affinity='precomputed',\n            linkage='ward'\n        )\n    TypeError: AgglomerativeClustering.__init__() got an unexpected keyword argument 'affinity'\n========================================================================\n\n\n26-09-11T05:49:34 [INFO] H1 — Falling back to synthetic data generation...\n2026-09-11T05:49:34 [INFO] H1 — Phase 2/4 — Building model...\n2026-09-11T05:49:34 [INFO] H1 — Building model...\n2026-09-11T05:49:34 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-11T05:49:34 [INFO] H1 — Running experiment...\n2026-09-11T05:49:34 [INFO] H1 — Performing energy distance clustering...\n2026-09-11T05:49:34 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/H1/run.py\", line 753, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/H1/run.py\", line 367, in run_experiment\n    clustering = AgglomerativeClustering(\n        n_clusters=model[\"n_clusters\"],\n        affinity='precomputed',\n        linkage='ward'\n    )\nTypeError: AgglomerativeClustering.__init__() got an unexpected keyword argument 'affinity'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The Hugging Face dataset did not contain the required financial features for price/volume analysis, so synthetic data was generated that mimics realistic financial characteristics",
+            "Energy distance clustering was approximated using squared Euclidean distance due to computational simplicity and the experimental nature",
+            "Synthetic stock returns were generated based on cluster assignments to simulate different market regimes",
+            "The experiment uses a simplified momentum strategy that focuses on the core concept rather than complex trading mechanics",
+            "All data preprocessing steps were applied to create consistent features for clustering",
+            "The clustering approach was chosen to be agglomerative hierarchical clustering with Ward linkage as a standard approach",
+            "Performance metrics are calculated using standard financial formulas with appropriate risk-free rate assumptions"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset ugursa/yahooFinanceNews",
+            "kind": "synthetic_surrogate",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=ugursa%2FyahooFinanceNews&config=default&split=train&offset=0&length=100",
+            "local_path": "",
+            "reason": "the generated code reports substituting for the data this plan requires: Energy distance clustering was implemented using pairwise Euclidean distances as a proxy",
+            "credentials": []
+          },
+          {
+            "name": "public dataset from Yahoo Finance or similar",
+            "kind": "synthetic_surrogate",
+            "uri": "https://zenodo.org/api/records/15304512/files/yfinance_collection_vix.json/content",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/74c8b62aa63daec6/yahoo_finance.jsonl",
+            "reason": "the generated code reports substituting for the data this plan requires: Energy distance clustering was implemented using pairwise Euclidean distances as a proxy",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 2,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_5/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T04:50:21.876326+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,159 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_19/H1",
+      "assumptions_made": [
+        "The Hugging Face dataset argilla/synthetic-text-classification-news was used as the primary source for news text and sentiment labels, falling back to synthetic generation if loading failed",
+        "The BERT-based sentiment analysis model was initialized with cardiffnlp/twitter-roberta-base-sentiment-latest",
+        "The weak supervision framework was simulated through direct aggregation of sentiment labels into a policy uncertainty index",
+        "Synthetic unemployment and macroeconomic data were generated with realistic temporal dependencies and correlations",
+        "The sklearn metrics functions were modified to avoid the 'squared' parameter issue by manually computing RMSE",
+        "The experiment was designed to run on a single GPU node with sufficient memory for the BERT model"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether policy uncertainty derived from news text using a BERT-based sentiment analysis model and aggregated via a weak supervision framework exhibits a stronger predictive correlation with subsequent regional unemployment changes compared to lagged unemployment alone, while controlling for macroeconomic trends.",
+        "author": "coder-agent",
+        "baseline": "Model using only lagged unemployment as predictor",
+        "success_criteria": "If the model incorporating policy uncertainty from news text achieves significantly higher R-squared values and lower MAE/RMSE compared to the baseline model, the hypothesis is supported. If not, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T12:27:44.195946+00:00",
+        "status": "success",
+        "elapsed_seconds": 1.6395,
+        "resumed": false,
+        "metrics": {
+          "r2_baseline": 0.16422377322206327,
+          "r2_policy": 0.4589000043929732,
+          "mae_baseline": 0.00987456388136737,
+          "mae_policy": 0.00811453733323964,
+          "rmse_baseline": 0.011578934542646913,
+          "rmse_policy": 0.009316705273791161,
+          "r2_improvement": 0.2946762311709099,
+          "mae_improvement": 0.0017600265481277303,
+          "rmse_improvement": 0.002262229268855751,
+          "training_history": {
+            "baseline": [],
+            "policy": []
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Policy uncertainty from news text did not show significant improvement.\nMAE did not improve by at least 0.5%.\nRMSE did not improve by at least 0.5%.",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: .py\", line 3245, in bind\n        return self._bind(args, kwargs)\n               ~~~~~~~~~~^^^^^^^^^^^^^^\n      File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n        raise TypeError(\n            'got an unexpected keyword argument {arg!r}'.format(\n                arg=next(iter(kwargs))))\n    TypeError: got an unexpected keyword argument 'squared'\n========================================================================\n\n\n8/experiments/task_19/H1/run.py\", line 671, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_19/H1/run.py\", line 444, in run_experiment\n    rmse_1 = mean_squared_error(y_test, y1_pred, squared=False)\n  File \"/tmp/users/sgyshere/coder-venvs-10500530/9b08981e6c20d437/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 196, in wrapper\n    params = func_sig.bind(*args, **kwargs)\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3245, in bind\n    return self._bind(args, kwargs)\n           ~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 3234, in _bind\n    raise TypeError(\n        'got an unexpected keyword argument {arg!r}'.format(\n            arg=next(iter(kwargs))))\nTypeError: got an unexpected keyword argument 'squared'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_19/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Used the provided Hugging Face dataset argilla/synthetic-text-classification-news as the primary source for news text and sentiment labels",
+            "Generated synthetic unemployment and macroeconomic data to simulate real-world economic conditions",
+            "Implemented a simplified version of weak supervision by aggregating sentiment labels into a policy uncertainty index",
+            "Used Twitter RoBERTa model for sentiment analysis due to availability and efficiency",
+            "Assumed that the temporal alignment between news sentiment and unemployment data is appropriate for the experiment",
+            "Used a simple linear regression model for prediction, as specified in the design",
+            "Applied standard scaling to features to ensure fair comparison between different scales",
+            "Set conservative thresholds for determining statistical significance (5% improvement in R-squared, 0.5% improvement in MAE/RMSE)",
+            "Used synthetic data generation for the macroeconomic variables to ensure realistic correlations",
+            "Implemented a basic approach to policy uncertainty aggregation rather than complex weak supervision framework",
+            "Assumed that the synthetic data captures the essential relationships needed for the experiment"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Hugging Face dataset argilla/synthetic-text-classification-news",
+            "kind": "real_local",
+            "uri": "https://datasets-server.huggingface.co/rows?dataset=argilla%2Fsynthetic-text-classification-news&config=default&split=train&offset=0&length=100",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/cd77ad94610419db/hugging_face_dataset_argilla_synthetic-text-classification-n.jsonl",
+            "reason": "found by the Hugging Face lookup and read by the generated code. Matched by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/cd77ad94610419db/hugging_face_dataset_argilla_synthetic-text-classification-n.jsonl (102 rows, 34198 bytes, sha256 8480406f7ba6)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://datasets-server.huggingface.co/rows?dataset=argilla%2Fsynthetic-text-classification-news&config=default&split=train&offset=0&length=100",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/cd77ad94610419db/hugging_face_dataset_argilla_synthetic-text-classification-n.jsonl",
+              "sha256": "8480406f7ba65b78a37ef8fd0fea43375256b1a7cb23caf5c0168af4f2ae4cc3",
+              "byte_count": 34198,
+              "data_format": "jsonl",
+              "columns": [
+                "text",
+                "label",
+                "feature_idx",
+                "name",
+                "type"
+              ],
+              "row_count": 102,
+              "sample_rows": [
+                {
+                  "text": "A star-studded cast, including Leonardo DiCaprio and Jennifer Lawrence, has been announced for the upcoming biographical drama film about the life of the famous musician, Elvis Presley. The movie, dir…",
+                  "label": 4
+                },
+                {
+                  "text": "The recent study suggests a correlation between increased sugar consumption and a higher risk of cardiovascular disease, but more research is needed to confirm the causal relationship. The American He…",
+                  "label": 3
+                },
+                {
+                  "text": "Rising sea levels threaten the homes of millions of people worldwide, with coastal cities like Miami and Bangkok already experiencing frequent flooding. Climate change is the main culprit behind this …",
+                  "label": 5
+                }
+              ],
+              "from_cache": false,
+              "read_hint": "JSON Lines — one JSON object per line (pandas.read_json(..., lines=True))"
+            },
+            "discovered": {
+              "connector": "huggingface:datasets-server",
+              "query": "Synthetic news text data and regional unemployment time series data generated to simulate cross-country economic conditions. News text is annotated with sentiment labels using a BERT-based model, and weak supervision techniques are applied to aggregate these into a policy uncertainty index.",
+              "title": "argilla/synthetic-text-classification-news",
+              "url": "https://datasets-server.huggingface.co/rows?dataset=argilla%2Fsynthetic-text-classification-news&config=default&split=train&offset=0&length=100",
+              "landing_page": "https://huggingface.co/datasets/argilla/synthetic-text-classification-news"
+            }
+          },
+          {
+            "name": "synthetic generation",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "",
+            "reason": "the plan asked for generated data, so this input is synthesized by design rather than for want of a source",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "mixed real and synthetic inputs — findings are NOT interpretable as evidence; the synthetic inputs are listed in data_provenance.json",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": [
+          "Hugging Face dataset argilla/synthetic-text-classification-news"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_19/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T12:27:45.144657+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

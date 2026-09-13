@@ -1,0 +1,168 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: nt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 562, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 268, in load_data\n        raise ValueError(\"Not enough data points for train/test split after windowing\")\n    ValueError: Not enough data points for train/test split after windowing\n========================================================================\n\n\nNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:34 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 562, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 268, in load_data\n    raise ValueError(\"Not enough data points for train/test split after windowing\")\nValueError: Not enough data points for train/test split after windowing after 8 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1",
+      "assumptions_made": [
+        "The dataset has sufficient temporal structure to observe meaningful differences in performance between split types",
+        "The linear regression model is appropriate for this type of data",
+        "The Gaussian noise augmentation is a reasonable approximation of time series augmentation techniques",
+        "The temporal validation preserves the integrity of time-series relationships",
+        "The original dataset is properly formatted with numeric columns for features and target"
+      ],
+      "results": null,
+      "fix_attempts": 8,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset has a 'load' column that serves as the target variable",
+            "The dataset has sufficient rows to create sliding windows of size 24",
+            "All numerical columns are normalized using standard scaling",
+            "The augmentation technique is adding Gaussian noise with standard deviation 0.01",
+            "The experiment uses a simple linear regression model as a baseline",
+            "The temporal validation preserves the chronological order of data points",
+            "The random validation splits are done without considering temporal order",
+            "The experiment uses a fixed window size of 24 for creating sequences",
+            "The test and validation fractions are set to 0.2 each",
+            "The random seed is fixed for reproducibility"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ~~~~~~~~~~~~^^^^^\n      File \"/tmp/users/sgyshere/coder-venvs-10465704/64aac26a0d83e525/.venv/lib/python3.14/site-packages/pandas/core/series.py\", line 1046, in _get_value\n        loc = self.index.get_loc(label)\n      File \"/tmp/users/sgyshere/coder-venvs-10465704/64aac26a0d83e525/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 3648, in get_loc\n        raise KeyError(key) from err\n    KeyError: 'load'\n========================================================================\n\n\n (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 523, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 233, in load_data\n    y.append(df.iloc[i]['load'])  # Assuming 'load' is the target column\n             ~~~~~~~~~~^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/64aac26a0d83e525/.venv/lib/python3.14/site-packages/pandas/core/series.py\", line 959, in __getitem__\n    return self._get_value(key)\n           ~~~~~~~~~~~~~~~^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/64aac26a0d83e525/.venv/lib/python3.14/site-packages/pandas/core/series.py\", line 1046, in _get_value\n    loc = self.index.get_loc(label)\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/64aac26a0d83e525/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 3648, in get_loc\n    raise KeyError(key) from err\nKeyError: 'load'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The original data file was not accessible, so a synthetic dataset was created to ensure the experiment can run with minimal dependencies.",
+            "The synthetic dataset mimics the structure of the UCI Electricity Load Diagrams dataset with time-series features and a load target variable.",
+            "The synthetic dataset is smaller (200 samples) than the original to allow for quick experimentation while maintaining the core functionality."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: order, dtype=dtype, xp=xp)\n      File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 976, in _asarray_with_order\n        array = numpy.asarray(array, order=order, dtype=dtype)\n    ValueError: could not convert string to float: '^^^^^^^^^^^^^^^^^^^^^^^ I first heard rumors of a similar government proposal (in Risks Digest???) in 1987 or 1988.'\n========================================================================\n\n\nsklearn/utils/validation.py\", line 3055, in validate_data\n    X, y = check_X_y(X, y, **check_params)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1327, in check_X_y\n    X = check_array(\n        X,\n    ...<12 lines>...\n        input_name=\"X\",\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1035, in check_array\n    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 976, in _asarray_with_order\n    array = numpy.asarray(array, order=order, dtype=dtype)\nValueError: could not convert string to float: '^^^^^^^^^^^^^^^^^^^^^^^ I first heard rumors of a similar government proposal (in Risks Digest???) in 1987 or 1988.'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset may not contain a column named 'load', so we detect and use the last numeric column as the target",
+            "The dataset must have at least one numeric column to use as target variable",
+            "The dataset must have sufficient samples to support windowing and train/validation/test splits",
+            "The experiment assumes the data is structured as a time series with multiple features"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ^^^^^^^^^^^^^^\n        )\n        ^\n      File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/model_selection/_split.py\", line 2511, in _validate_shuffle_split\n        raise ValueError(\n        ...<3 lines>...\n        )\n    ValueError: With n_samples=0, test_size=0.2 and train_size=None, the resulting train set will be empty. Adjust any of the aforementioned parameters.\n========================================================================\n\n\n^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 218, in wrapper\n    return func(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/model_selection/_split.py\", line 2946, in train_test_split\n    n_train, n_test = _validate_shuffle_split(\n                      ~~~~~~~~~~~~~~~~~~~~~~~^\n        n_samples, test_size, train_size, default_test_size=0.25\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10465704/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/model_selection/_split.py\", line 2511, in _validate_shuffle_split\n    raise ValueError(\n    ...<3 lines>...\n    )\nValueError: With n_samples=0, test_size=0.2 and train_size=None, the resulting train set will be empty. Adjust any of the aforementioned parameters.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset at the specified path contains valid numerical data that can be processed into sliding windows",
+            "The target variable for prediction is named 'load' or can be inferred from numeric columns",
+            "The sliding window approach creates sufficient temporal dependencies for meaningful evaluation",
+            "The linear regression model serves as an adequate baseline for this experimental design",
+            "The Gaussian noise augmentation is appropriate for this type of tabular time series data"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: ecent call last):\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 559, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 265, in load_data\n        raise ValueError(\"Not enough data points for train/test split\")\n    ValueError: Not enough data points for train/test split\n========================================================================\n\n\n window\n2026-09-08T15:55:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:55:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:55:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:55:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:55:34 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:55:34 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 559, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 265, in load_data\n    raise ValueError(\"Not enough data points for train/test split\")\nValueError: Not enough data points for train/test split",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset contains sufficient temporal structure to observe meaningful differences in performance between split types",
+            "The augmentation technique (Gaussian noise) is effective and consistent across different data segments",
+            "The linear regression model is appropriate for the underlying data patterns",
+            "The experiment can be completed within the allocated compute budget",
+            "The data preprocessing steps properly handle potential issues with the real dataset",
+            "Edge cases in train/test splits are handled to prevent empty sets"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: nt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 560, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 266, in load_data\n        raise ValueError(\"Not enough data points for train/test split after windowing\")\n    ValueError: Not enough data points for train/test split after windowing\n========================================================================\n\n\nNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:04 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 560, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 266, in load_data\n    raise ValueError(\"Not enough data points for train/test split after windowing\")\nValueError: Not enough data points for train/test split after windowing",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has sufficient temporal structure to observe meaningful differences in performance between split types",
+            "The linear regression model is appropriate for this type of data",
+            "Data augmentation with Gaussian noise is a reasonable baseline technique",
+            "The temporal validation preserves the integrity of time-series relationships",
+            "The dataset contains enough samples to support both random and temporal splits after windowing"
+          ],
+          "same_error_streak": 5
+        },
+        {
+          "attempt": 7,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: nt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 560, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 266, in load_data\n        raise ValueError(\"Not enough data points for train/test split after windowing\")\n    ValueError: Not enough data points for train/test split after windowing\n========================================================================\n\n\nNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:33 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:33 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:33 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:33 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:56:33 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 560, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 266, in load_data\n    raise ValueError(\"Not enough data points for train/test split after windowing\")\nValueError: Not enough data points for train/test split after windowing",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has sufficient temporal structure to observe meaningful differences in performance between split types",
+            "The linear regression model is appropriate for this type of data",
+            "The Gaussian noise augmentation is effective for this dataset",
+            "The temporal validation preserves the integrity of time-series relationships",
+            "The data preprocessing steps (windowing, normalization) produce valid numerical features"
+          ],
+          "same_error_streak": 6
+        },
+        {
+          "attempt": 8,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: nt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 562, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 268, in load_data\n        raise ValueError(\"Not enough data points for train/test split after windowing\")\n    ValueError: Not enough data points for train/test split after windowing\n========================================================================\n\n\nNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:04 [WARNING] __main__ — Non-numeric values found in window data, skipping this window\n2026-09-08T15:57:04 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 562, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/run.py\", line 268, in load_data\n    raise ValueError(\"Not enough data points for train/test split after windowing\")\nValueError: Not enough data points for train/test split after windowing",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/H1/fix_attempts/attempt_8/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset has sufficient temporal structure to observe meaningful differences in model performance between split strategies",
+            "The linear regression model is appropriate for the underlying data patterns in the electricity load dataset",
+            "The Gaussian noise augmentation is representative of typical time series augmentation techniques",
+            "Temporal validation properly prevents data leakage by preserving chronological order",
+            "The original dataset contains numeric features that can be meaningfully windowed"
+          ],
+          "same_error_streak": 7
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "regression",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 9
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_33/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T14:57:34.993704+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

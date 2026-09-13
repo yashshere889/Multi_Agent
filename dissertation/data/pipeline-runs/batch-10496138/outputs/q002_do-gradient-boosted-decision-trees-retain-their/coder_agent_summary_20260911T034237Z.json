@@ -1,0 +1,270 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1",
+      "assumptions_made": [
+        "The experiment uses the German Credit dataset from Hugging Face as the primary data source, which matches the plan's data requirements.",
+        "Since the original dataset is small (700 rows), we use the larger German Credit dataset from parquet format (1000 rows) as the base and replicate samples to simulate larger datasets.",
+        "The synthetic fallback dataset is only used if the real dataset loading fails.",
+        "Training history is captured for neural network model to provide diagnostic information about learning progress.",
+        "All models are trained with fixed hyperparameters as specified in the plan."
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To evaluate whether gradient-boosted decision trees (XGBoost, LightGBM) maintain or improve their accuracy advantage over neural networks on large-scale tabular credit-risk datasets, and whether this advantage plateaus or diminishes as dataset size increases beyond 1 million records.",
+        "author": "coder-agent",
+        "baseline": "Performance of all models on the smallest dataset size (100k records) to establish relative performance trends.",
+        "success_criteria": "If gradient boosting models maintain higher accuracy than neural networks across all dataset sizes, and if their advantage decreases or plateaus at 1M records, then the hypothesis is supported. If neural networks surpass gradient boosting at large scales, or if the advantage does not diminish, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-11T03:42:36.041320+00:00",
+        "status": "success",
+        "elapsed_seconds": 2.9922,
+        "resumed": false,
+        "metrics": {
+          "xgboost": {
+            "accuracy": 0.65,
+            "precision": 0.2,
+            "recall": 0.06896551724137931,
+            "f1": 0.10256410256410257
+          },
+          "lightgbm": {
+            "accuracy": 0.6,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "neural_network": {
+            "accuracy": 0.68,
+            "precision": 0.36363636363636365,
+            "recall": 0.13793103448275862,
+            "f1": 0.2
+          },
+          "training_history": {
+            "xgboost": [],
+            "lightgbm": [],
+            "neural_network": [
+              0.6271502757072449,
+              0.6007916712760926,
+              0.6003055226802826,
+              0.6017118704319,
+              0.6000797235965729,
+              0.5950911593437195,
+              0.5958958387374877,
+              0.5939223110675812,
+              0.5984003794193268,
+              0.5936585140228271,
+              0.5949686288833618,
+              0.589665070772171,
+              0.5917819523811341,
+              0.5866852009296417,
+              0.5857773458957672,
+              0.5804757952690125,
+              0.5822611629962922,
+              0.5776032710075378,
+              0.5751281070709229,
+              0.5830260694026947,
+              0.5756416511535645,
+              0.5759480845928192,
+              0.5775547325611115,
+              0.5713391983509064,
+              0.5631650066375733,
+              0.5653260612487793,
+              0.5660584092140197,
+              0.561932018995285,
+              0.5584710466861725,
+              0.5641211581230163,
+              0.5657868456840515,
+              0.5619391238689423,
+              0.5576818573474884,
+              0.5524125385284424,
+              0.5520744061470032,
+              0.5506448638439179,
+              0.5542835128307343,
+              0.5528365707397461,
+              0.546904228925705,
+              0.5441050088405609,
+              0.5444149243831634,
+              0.5430556750297546,
+              0.5514137101173401,
+              0.5412922835350037,
+              0.5380027675628662,
+              0.5476941847801209,
+              0.5442895245552063,
+              0.5306132757663726,
+              0.5310190689563751,
+              0.533370395898819
+            ]
+          }
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "XGBoost Accuracy: 0.6500\nLightGBM Accuracy: 0.6000\nNeural Network Accuracy: 0.6800\nXGBoost better than NN: False\nLightGBM better than NN: False\nOverall Success: False",
+        "error": null,
+        "model_reported_meets_success_criteria": false,
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "verdict_withheld_because": "One or more inputs are real data found by keyword search rather than named by the plan, and nothing has confirmed they answer this question. The experiment ran on real data and its metrics are reported, but a verdict would be a claim about a dataset nobody chose. Check the landing pages in data_provenance.json; staging the confirmed file under CODER_DATA_DIR makes the verdict reachable. Training did not converge, and raising the epoch budget as far as the compute budget allows did not reach convergence either. The run is real and its loss curves are reported, but a comparison between models that have not converged measures the training budget rather than the thing under test, so the verdict is withheld. See compute_provenance.json.",
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis"
+      },
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport json\\nimport logging\\nimport os\\nimport random\\nimport sys\\nfrom datetime import datetime\\nfrom pathlib import Path\\nfrom typing import Any, Dict, List, Tuple, Union\\n\\nimport numpy as np\\nimport pandas as pd\\nfrom sklearn.compose import ColumnTransformer\\nfrom sklearn.impute import SimpleImputer\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 42\\nDAT'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: pred\"],\n            experiment_output[\"xgboost\"][\"y_prob\"]\n        )\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/run.py\", line 442, in calculate_metrics\n        accuracy = (tp + tn) / len(y_true) if y_true else 0.0\n                                              ^^^^^^\n    ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()\n========================================================================\n\n\nloatTensor(data[\"y_train\"]).unsqueeze(1)\n2026-09-11T04:40:52 [INFO] H1 — Phase 4/4 — Evaluating...\n2026-09-11T04:40:52 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/run.py\", line 642, in run\n    eval_output = evaluate(experiment_output)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/run.py\", line 454, in evaluate\n    xgb_metrics = calculate_metrics(\n        experiment_output[\"xgboost\"][\"y_true\"],\n        experiment_output[\"xgboost\"][\"y_pred\"],\n        experiment_output[\"xgboost\"][\"y_prob\"]\n    )\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/run.py\", line 442, in calculate_metrics\n    accuracy = (tp + tn) / len(y_true) if y_true else 0.0\n                                          ^^^^^^\nValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Using the German Credit dataset from Hugging Face as the primary data source",
+            "Since the original dataset is small (1000 rows), we're using it as a base for synthetic data generation when needed",
+            "All models are trained with fixed hyperparameters for fair comparison",
+            "The experiment focuses on accuracy as the primary metric for model comparison",
+            "Neural network training is limited to 50 epochs for computational efficiency"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "missing_diagnostics",
+          "error_summary": "The run reports no training diagnostics: the experiment trains with an iterative optimizer but results.json has no 'training_history' — return it from evaluate() as {'<arm name>': [mean training loss per epoch, ...]} for every arm you train, so a reader can tell a model that learned something worse from one that never learned",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/H1/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The German Credit dataset from Hugging Face (`AiresPucrs/german-credit-data`) was successfully loaded from the provided parquet file path",
+            "The dataset contains the required columns for credit risk modeling: Age, Sex, Job, Housing, Saving accounts, Checking account, Credit amount, Duration, Purpose, Risk",
+            "The Risk column is properly encoded as binary (good=1, bad=0)",
+            "Missing values in the Saving accounts column are handled appropriately by filling with 'unknown'",
+            "Categorical variables are properly encoded using one-hot encoding",
+            "Numerical features are normalized using StandardScaler",
+            "The synthetic fallback dataset matches the structure of the real dataset for testing purposes",
+            "The evaluation function correctly handles tensor/array conversion to avoid the \"ambiguous truth value\" error"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "Public tabular credit-risk datasets (e.g., German Credit, UCI Credit Approval)",
+            "kind": "real_local",
+            "uri": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet",
+            "reason": "no source was named for this input, so it was searched for: huggingface matched 'AiresPucrs/german-credit-data' for the query 'german credit' (catalogue record: https://huggingface.co/datasets/AiresPucrs/german-credit-data). Discovered by keyword search, not named by the plan — check that it answers the question before reading the verdict as evidence.; fetched by the pipeline to /mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet (1000 rows, 13955 bytes, sha256 34ade5fa893a)",
+            "credentials": [],
+            "acquired": {
+              "url": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+              "path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/ca53c6e7ec38a6eb/german_credit.parquet",
+              "sha256": "34ade5fa893ac88467b27831850569edbb301cd14a25bb104c23edb0fb828fcc",
+              "byte_count": 13955,
+              "data_format": "parquet",
+              "columns": [
+                "Age",
+                "Sex",
+                "Job",
+                "Housing",
+                "Saving accounts",
+                "Checking account",
+                "Credit amount",
+                "Duration",
+                "Purpose",
+                "Risk"
+              ],
+              "row_count": 1000,
+              "sample_rows": [
+                {
+                  "Age": 67,
+                  "Sex": "male",
+                  "Job": 2,
+                  "Housing": "own",
+                  "Saving accounts": null,
+                  "Checking account": "little",
+                  "Credit amount": 1169,
+                  "Duration": 6,
+                  "Purpose": "radio/TV",
+                  "Risk": "good"
+                },
+                {
+                  "Age": 22,
+                  "Sex": "female",
+                  "Job": 2,
+                  "Housing": "own",
+                  "Saving accounts": "little",
+                  "Checking account": "moderate",
+                  "Credit amount": 5951,
+                  "Duration": 48,
+                  "Purpose": "radio/TV",
+                  "Risk": "bad"
+                },
+                {
+                  "Age": 49,
+                  "Sex": "male",
+                  "Job": 1,
+                  "Housing": "own",
+                  "Saving accounts": "little",
+                  "Checking account": null,
+                  "Credit amount": 2096,
+                  "Duration": 12,
+                  "Purpose": "education",
+                  "Risk": "good"
+                }
+              ],
+              "from_cache": true,
+              "read_hint": "Apache Parquet — columnar and binary (pandas.read_parquet)"
+            },
+            "discovered": {
+              "name": "German Credit",
+              "url": "https://huggingface.co/api/datasets/AiresPucrs/german-credit-data/parquet/default/train/0.parquet",
+              "connector": "huggingface",
+              "title": "AiresPucrs/german-credit-data",
+              "resource": "default/train (parquet)",
+              "landing_page": "https://huggingface.co/datasets/AiresPucrs/german-credit-data",
+              "query": "german credit"
+            }
+          }
+        ],
+        "methodological_validity": "real data, but from a source nobody named — it was found by keyword search and has not been confirmed to answer this question, so the findings are NOT interpretable as evidence until a human checks the discovered sources listed in data_provenance.json",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": [
+          "Public tabular credit-risk datasets (e.g., German Credit, UCI Credit Approval)"
+        ]
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": false,
+        "convergence_findings": [
+          "'xgboost' trained for only 0 epoch(s), too few to show convergence",
+          "'lightgbm' trained for only 0 epoch(s), too few to show convergence",
+          "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+        ],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it — the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+        "ran_at_full_size": true
+      }
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_2/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T03:42:37.489645+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

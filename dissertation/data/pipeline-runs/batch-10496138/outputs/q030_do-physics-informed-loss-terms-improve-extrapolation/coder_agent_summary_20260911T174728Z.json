@@ -1,0 +1,32 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "failed to provision an isolated environment for ['tensorflow', 'numpy', 'scipy', 'scikit-learn', 'numpy', 'pandas', 'scipy', 'sklearn', 'tensorflow'] via uv: ers/sgyshere/coder-venvs-10501685/c0d79c8f1c736b11/.build-c0d79c8f1c736b11-224205\n  × No solution found when resolving dependencies:\n  ╰─▶ Because all versions of tensorflow have no wheels with a matching Python\n      ABI tag (e.g., `cp314`) and you require tensorflow, we can conclude that\n      your requirements are unsatisfiable.\n\nhint: You require CPython 3.14 (`cp314`), but we only found wheels for `tensorflow` (v2.21.0) with the following Python ABI tags: `cp310`, `cp311`, `cp312`, `cp313`\n",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_30/H1",
+      "assumptions_made": [
+        "The Hugging Face dataset does not contain suitable PDE data, so we generate synthetic data for the 1D heat equation",
+        "We use a simple uncertainty sampling approach based on prediction variance",
+        "The synthetic data generation creates realistic ranges and correlations for the PDE problem",
+        "We limit active learning iterations to prevent excessive training time",
+        "We use early stopping to ensure models converge properly",
+        "The extrapolation test set is defined as points outside the original training domain",
+        "We define \"significant improvement\" as a 10% reduction in MSE"
+      ],
+      "results": null,
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {}
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_30/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T17:47:28.221546+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

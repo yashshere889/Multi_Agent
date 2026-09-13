@@ -1,0 +1,130 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: 90e41ae0/.venv/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n        - '/usr/share/nltk_data'\n        - '/usr/local/share/nltk_data'\n        - '/usr/lib/nltk_data'\n        - '/usr/local/lib/nltk_data'\n    **********************************************************************\n    \n========================================================================\n\n\ngyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/nltk/data.py\", line 877, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource 'punkt_tab' not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  >>> import nltk\n  >>> nltk.download('punkt_tab')\n\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load 'tokenizers/punkt_tab/english/'\n\n  Searched in:\n    - '/users/sgyshere/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n********************************************************************** after 6 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1",
+      "assumptions_made": [
+        "The 20 Newsgroups dataset from Hugging Face matches the experiment's data requirements",
+        "When NLTK punkt tokenizer is unavailable, we fall back to simple text splitting",
+        "We use a synthetic dataset as a fallback when the real dataset cannot be loaded",
+        "The experiment uses a limited subset of the full dataset (500 documents) to manage runtime",
+        "We compute entropy metrics using a simplified approach that works without NLTK punkt"
+      ],
+      "results": null,
+      "fix_attempts": 6,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 90e41ae0/.venv/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n        - '/usr/share/nltk_data'\n        - '/usr/local/share/nltk_data'\n        - '/usr/lib/nltk_data'\n        - '/usr/local/lib/nltk_data'\n    **********************************************************************\n    \n========================================================================\n\n\ngyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/nltk/data.py\", line 877, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource 'punkt_tab' not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  >>> import nltk\n  >>> nltk.download('punkt_tab')\n\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load 'tokenizers/punkt_tab/english/'\n\n  Searched in:\n    - '/users/sgyshere/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Using the 20 Newsgroups dataset from Hugging Face as the primary data source",
+            "For the correlation analysis, we use a constant accuracy value for all training samples since we're comparing the strength of correlation between two predictors, not predicting accuracy itself",
+            "Using a simple logistic regression classifier for efficiency within the time constraint",
+            "Assuming that the vocabulary richness metrics (Range Entropy and Informational Space) provide meaningful distinctions in the dataset",
+            "Using L1 normalization for document length to control for length effects",
+            "Generating synthetic data as a fallback when the real dataset cannot be loaded",
+            "Limiting the dataset to 500 documents to ensure the experiment completes within the time budget",
+            "Using English stop words for preprocessing"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: \", line 515, in indexable\n        check_consistent_length(*result)\n        ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^\n      File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 458, in check_consistent_length\n        raise ValueError(\n        ...<2 lines>...\n        )\n    ValueError: Found input variables with inconsistent numbers of samples: [486, 500]\n========================================================================\n\n\n.\n        random_state=RANDOM_SEED\n        ^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 218, in wrapper\n    return func(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/model_selection/_split.py\", line 2944, in train_test_split\n    arrays = indexable(*arrays)\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 515, in indexable\n    check_consistent_length(*result)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 458, in check_consistent_length\n    raise ValueError(\n    ...<2 lines>...\n    )\nValueError: Found input variables with inconsistent numbers of samples: [486, 500]",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "NLTK punkt tokenizer may not be available in the environment, so we provide fallback behavior",
+            "NLTK stopwords corpus may not be available in the environment, so we provide fallback behavior",
+            "If NLTK downloads fail, we continue with minimal functionality",
+            "The experiment uses a subset of the 20 Newsgroups dataset due to computational constraints",
+            "Synthetic data is generated as a fallback when the real dataset cannot be loaded"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: \", line 515, in indexable\n        check_consistent_length(*result)\n        ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^\n      File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 458, in check_consistent_length\n        raise ValueError(\n        ...<2 lines>...\n        )\n    ValueError: Found input variables with inconsistent numbers of samples: [486, 500]\n========================================================================\n\n\n.\n        random_state=RANDOM_SEED\n        ^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/_param_validation.py\", line 218, in wrapper\n    return func(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/model_selection/_split.py\", line 2944, in train_test_split\n    arrays = indexable(*arrays)\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 515, in indexable\n    check_consistent_length(*result)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 458, in check_consistent_length\n    raise ValueError(\n    ...<2 lines>...\n    )\nValueError: Found input variables with inconsistent numbers of samples: [486, 500]",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset from Hugging Face was successfully loaded and contains the expected columns (text, label, label_text)",
+            "NLTK punkt tokenizer is available or can be downloaded without issues",
+            "The dataset provides sufficient variation in vocabulary richness and document lengths for meaningful correlation analysis",
+            "TF-IDF + Logistic Regression provides a reasonable baseline for text classification",
+            "Correlation analysis is appropriate for the data types involved"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 90e41ae0/.venv/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n        - '/usr/share/nltk_data'\n        - '/usr/local/share/nltk_data'\n        - '/usr/lib/nltk_data'\n        - '/usr/local/lib/nltk_data'\n    **********************************************************************\n    \n========================================================================\n\n\ngyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/nltk/data.py\", line 877, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource 'punkt_tab' not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  >>> import nltk\n  >>> nltk.download('punkt_tab')\n\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load 'tokenizers/punkt_tab/english/'\n\n  Searched in:\n    - '/users/sgyshere/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset from Hugging Face matches the experiment's data requirements",
+            "When the Hugging Face dataset is unavailable, we fall back to synthetic data generation",
+            "The train_test_split function is used consistently with proper indexing to maintain data consistency",
+            "All data arrays passed to train_test_split have consistent lengths"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 90e41ae0/.venv/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n        - '/usr/share/nltk_data'\n        - '/usr/local/share/nltk_data'\n        - '/usr/lib/nltk_data'\n        - '/usr/local/lib/nltk_data'\n    **********************************************************************\n    \n========================================================================\n\n\ngyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/nltk/data.py\", line 877, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource 'punkt_tab' not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  >>> import nltk\n  >>> nltk.download('punkt_tab')\n\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load 'tokenizers/punkt_tab/english/'\n\n  Searched in:\n    - '/users/sgyshere/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset from Hugging Face provides sufficient data for the experiment",
+            "NLTK punkt tokenizer is available for reliable tokenization",
+            "The dataset contains enough samples to compute stable correlation coefficients",
+            "Document lengths are sufficiently varied to observe meaningful correlations",
+            "Information-theoretic entropy metrics can be meaningfully applied to document-level analysis",
+            "TF-IDF vectorization adequately captures document semantics for classification"
+          ],
+          "same_error_streak": 5
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 90e41ae0/.venv/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n        - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n        - '/usr/share/nltk_data'\n        - '/usr/local/share/nltk_data'\n        - '/usr/lib/nltk_data'\n        - '/usr/local/lib/nltk_data'\n    **********************************************************************\n    \n========================================================================\n\n\ngyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/python3.14/site-packages/nltk/data.py\", line 877, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource 'punkt_tab' not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  >>> import nltk\n  >>> nltk.download('punkt_tab')\n\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load 'tokenizers/punkt_tab/english/'\n\n  Searched in:\n    - '/users/sgyshere/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/share/nltk_data'\n    - '/tmp/users/sgyshere/coder-venvs-10501270/c2e64cad90e41ae0/.venv/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The NLTK punkt tokenizer is not available in the environment, so we fall back to a simple split-based tokenization approach",
+            "The 20 Newsgroups dataset is loaded from the provided Hugging Face file path",
+            "When the Hugging Face dataset cannot be loaded, we generate synthetic data with appropriate structure",
+            "The experiment uses a limited subset of the full dataset (MAX_DOCUMENTS) to manage runtime"
+          ],
+          "same_error_streak": 6
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 7
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10496138/experiments/task_26/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-11T15:33:57.460029+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

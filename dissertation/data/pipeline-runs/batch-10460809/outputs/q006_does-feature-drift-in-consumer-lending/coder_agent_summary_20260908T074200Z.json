@@ -1,0 +1,203 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: e/dtypes/astype.py\", line 185, in astype_array\n        values = _astype_nansafe(values, dtype, copy=copy)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 134, in _astype_nansafe\n        return arr.astype(dtype, copy=True)\n               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n    ValueError: invalid literal for int() with base 10: 'rec.autos'\n========================================================================\n\n\n values.astype(dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/arrays/string_.py\", line 945, in astype\n    return super().astype(dtype, copy)\n           ~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/arrays/numpy_.py\", line 280, in astype\n    result = astype_array(self._ndarray, dtype=dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 185, in astype_array\n    values = _astype_nansafe(values, dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 134, in _astype_nansafe\n    return arr.astype(dtype, copy=True)\n           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'rec.autos' after 11 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1",
+      "assumptions_made": [
+        "The target variable in the dataset is binary and can be converted to integer format (0, 1)",
+        "The dataset has sufficient samples to support train/validation/test splits",
+        "All features are numerical or can be properly encoded as numerical",
+        "The drift injection approach using Gaussian noise is appropriate for this experiment",
+        "LightGBM and Random Forest models can be trained without convergence issues"
+      ],
+      "results": null,
+      "fix_attempts": 11,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using the UCI Credit Approval dataset as the source of truth for consumer lending data",
+            "Applying Gaussian noise to numerical features as a proxy for feature drift",
+            "Treating categorical features as ordinal for drift injection purposes (using label swapping would require more complex handling)",
+            "Using three predefined drift levels (low, medium, high) to represent varying degrees of feature drift",
+            "Assuming that Brier Score and AUC-ROC are appropriate metrics for measuring calibration and ranking discrimination respectively",
+            "Using default model parameters for both LightGBM and Random Forest as baseline configurations",
+            "Considering the dataset size adequate for observing meaningful degradation patterns",
+            "Assuming that the drift injection method provides realistic representation of feature drift",
+            "Using a fixed noise factor for drift injection rather than more sophisticated drift modeling techniques",
+            "Not implementing label swapping for categorical features due to complexity and potential data leakage concerns",
+            "Using a simple clipping approach to maintain feature bounds after drift injection"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 61071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n        new_axis = axis.drop(labels, errors=errors)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n        raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\n    KeyError: \"['class'] not found in axis\"\n========================================================================\n\n\numns=['class'])\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/frame.py\", line 6302, in drop\n    return super().drop(\n           ~~~~~~~~~~~~^\n        labels=labels,\n        ^^^^^^^^^^^^^^\n    ...<5 lines>...\n        errors=errors,\n        ^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4632, in drop\n    obj = obj._drop_axis(labels, axis, level=level, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n    new_axis = axis.drop(labels, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n    raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\nKeyError: \"['class'] not found in axis\"",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Credit Approval dataset could not be found at the expected path, so a synthetic dataset was created to enable the experiment to proceed",
+            "The synthetic dataset maintains the essential structure and characteristics needed for the experiment while being small enough to run efficiently",
+            "The synthetic data generation preserves the binary nature of the target variable and includes relevant numerical and categorical features"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: _6/H1/run.py\", line 652, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 341, in run_experiment\n        lgb_model = lgb.train(\n            model[\"lightgbm_params\"],\n        ...<3 lines>...\n            verbose_eval=False\n        )\n    TypeError: train() got an unexpected keyword argument 'verbose_eval'\n========================================================================\n\n\nde that works with pandas 2 and 3.\n  categorical_columns = X.select_dtypes(include=['object']).columns\n2026-09-08T08:25:13 [INFO] __main__ — Dataset loaded: train=7708, val=1653, test=1653\n2026-09-08T08:25:17 [INFO] H1 — Phase 2/4 — Building model...\n2026-09-08T08:25:17 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-08T08:25:17 [INFO] H1 — Starting experiment...\n2026-09-08T08:25:20 [INFO] H1 — Training baseline models...\n2026-09-08T08:25:20 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 652, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 341, in run_experiment\n    lgb_model = lgb.train(\n        model[\"lightgbm_params\"],\n    ...<3 lines>...\n        verbose_eval=False\n    )\nTypeError: train() got an unexpected keyword argument 'verbose_eval'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The dataset may not contain a column named 'class', so we fall back to using the last column as the target variable",
+            "The code handles cases where the target column might be missing or misnamed",
+            "All required packages are available in the environment"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  357, in _list_to_1d_numpy\n        return _cast_numpy_array_to_dtype(data, dtype)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 328, in _cast_numpy_array_to_dtype\n        return array.astype(dtype=dtype, copy=False)\n               ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n    ValueError: could not convert string to float: np.str_('alt.atheism')\n========================================================================\n\n\n        ^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 2189, in _lazy_init\n    self.set_label(label)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 3096, in set_label\n    label_array = _list_to_1d_numpy(data=label, dtype=np.float32, name=\"label\")\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 357, in _list_to_1d_numpy\n    return _cast_numpy_array_to_dtype(data, dtype)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 328, in _cast_numpy_array_to_dtype\n    return array.astype(dtype=dtype, copy=False)\n           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: could not convert string to float: np.str_('alt.atheism')",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Credit Approval dataset is available at the specified path",
+            "The dataset contains a target variable named 'class' or uses the last column as target",
+            "LightGBM and scikit-learn versions are compatible with the code",
+            "Synthetic drift injection provides meaningful degradation measurements",
+            "The experiment can run within the allocated compute resources"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  357, in _list_to_1d_numpy\n        return _cast_numpy_array_to_dtype(data, dtype)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 328, in _cast_numpy_array_to_dtype\n        return array.astype(dtype=dtype, copy=False)\n               ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n    ValueError: could not convert string to float: np.str_('alt.atheism')\n========================================================================\n\n\n        ^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 2189, in _lazy_init\n    self.set_label(label)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 3096, in set_label\n    label_array = _list_to_1d_numpy(data=label, dtype=np.float32, name=\"label\")\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 357, in _list_to_1d_numpy\n    return _cast_numpy_array_to_dtype(data, dtype)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/2cf6b405c0ce2945/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 328, in _cast_numpy_array_to_dtype\n    return array.astype(dtype=dtype, copy=False)\n           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: could not convert string to float: np.str_('alt.atheism')",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Credit Approval dataset is properly formatted with a binary target variable",
+            "All categorical features in the dataset can be handled by one-hot encoding",
+            "The target variable is numeric (0/1) for both LightGBM and Random Forest compatibility",
+            "Synthetic drift injection maintains data integrity and realistic feature distributions",
+            "The experiment can be completed within the allocated compute resources"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport logging\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\\nfrom sklearn.ensemble import RandomForestClassifier\\nfrom sklearn.metrics import brier_score_loss, roc_auc_score\\nfrom sklearn.impute import SimpleImputer\\nimport lightgbm as lgb\\nfrom scipy.stats import ks_2samp, entropy\\nimport json\\nfrom pathlib import Path\\nimport requests\\n===END imports===\\n\\n===BEGIN configurat'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_6/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 7,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 61071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n        new_axis = axis.drop(labels, errors=errors)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n        raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\n    KeyError: \"['class'] not found in axis\"\n========================================================================\n\n\numns=['class'])\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/frame.py\", line 6302, in drop\n    return super().drop(\n           ~~~~~~~~~~~~^\n        labels=labels,\n        ^^^^^^^^^^^^^^\n    ...<5 lines>...\n        errors=errors,\n        ^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4632, in drop\n    obj = obj._drop_axis(labels, axis, level=level, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 4674, in _drop_axis\n    new_axis = axis.drop(labels, errors=errors)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 7268, in drop\n    raise KeyError(f\"{labels[mask].tolist()} not found in axis\")\nKeyError: \"['class'] not found in axis\"",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_7/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Synthetic drift injection using Gaussian noise accurately represents feature drift in consumer lending scenarios",
+            "The UCI Credit Approval dataset provides sufficient samples for meaningful drift analysis",
+            "Default model parameters are appropriate for this experimental setup",
+            "The computational complexity of the experiment fits within the allocated resources"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 8,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: : Experiment raised an exception before evaluation completed — see 'error'.\n  ERROR\n    Traceback (most recent call last):\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 530, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 217, in load_data\n        encoder = OneHotEncoder(drop='first', sparse=False)\n    TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'\n========================================================================\n\n\n2026-09-08T08:40:02 [INFO] H1 — Starting experiment 'Experiment H1' (H1)\n2026-09-08T08:40:02 [INFO] H1 — Phase 1/4 — Loading data...\n2026-09-08T08:40:03 [INFO] __main__ — Successfully loaded dataset from specified path.\n2026-09-08T08:40:03 [INFO] __main__ — Dataset columns: ['text', 'category', 'word_count', 'label', 'target']\n2026-09-08T08:40:03 [INFO] __main__ — Inferred target column: target\n2026-09-08T08:40:03 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 530, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/run.py\", line 217, in load_data\n    encoder = OneHotEncoder(drop='first', sparse=False)\nTypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_8/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The target column in the UCI Credit Approval dataset is either named 'class' or is the last column in the dataset",
+            "The dataset contains both numerical and categorical features that can be properly encoded",
+            "The drift injection approach using Gaussian noise is sufficient for simulating feature drift",
+            "Both LightGBM and Random Forest models can be trained and evaluated without issues"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 9,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:      File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 730, in _check_for_bad_pandas_dtypes\n        raise ValueError(\n            f\"pandas dtypes must be int, float or bool.\\nFields with bad pandas dtypes: {', '.join(bad_pandas_dtypes)}\"\n        )\n    ValueError: pandas dtypes must be int, float or bool.\n    Fields with bad pandas dtypes: target: str\n========================================================================\n\n\nckages/lightgbm/basic.py\", line 2189, in _lazy_init\n    self.set_label(label)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 3096, in set_label\n    label_array = _list_to_1d_numpy(data=label, dtype=np.float32, name=\"label\")\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 365, in _list_to_1d_numpy\n    _check_for_bad_pandas_dtypes(data.to_frame().dtypes)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 730, in _check_for_bad_pandas_dtypes\n    raise ValueError(\n        f\"pandas dtypes must be int, float or bool.\\nFields with bad pandas dtypes: {', '.join(bad_pandas_dtypes)}\"\n    )\nValueError: pandas dtypes must be int, float or bool.\nFields with bad pandas dtypes: target: str",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_9/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The target column in the dataset is named 'target' (not 'class') as determined by inspection of the actual column names",
+            "The OneHotEncoder parameter 'sparse' was replaced with 'sparse_output' to maintain compatibility with newer scikit-learn versions",
+            "The dataset structure matches expectations for preprocessing steps"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 10,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:      File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 730, in _check_for_bad_pandas_dtypes\n        raise ValueError(\n            f\"pandas dtypes must be int, float or bool.\\nFields with bad pandas dtypes: {', '.join(bad_pandas_dtypes)}\"\n        )\n    ValueError: pandas dtypes must be int, float or bool.\n    Fields with bad pandas dtypes: target: str\n========================================================================\n\n\nckages/lightgbm/basic.py\", line 2189, in _lazy_init\n    self.set_label(label)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 3096, in set_label\n    label_array = _list_to_1d_numpy(data=label, dtype=np.float32, name=\"label\")\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 365, in _list_to_1d_numpy\n    _check_for_bad_pandas_dtypes(data.to_frame().dtypes)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/lightgbm/basic.py\", line 730, in _check_for_bad_pandas_dtypes\n    raise ValueError(\n        f\"pandas dtypes must be int, float or bool.\\nFields with bad pandas dtypes: {', '.join(bad_pandas_dtypes)}\"\n    )\nValueError: pandas dtypes must be int, float or bool.\nFields with bad pandas dtypes: target: str",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_10/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The target column in the dataset is properly identified and converted to binary format for binary classification",
+            "The OneHotEncoder is used with the correct parameter name for the current sklearn version (sparse_output instead of sparse)",
+            "The LightGBM model is trained with appropriate parameters for binary classification",
+            "The drift injection method maintains the data within valid ranges"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 11,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: e/dtypes/astype.py\", line 185, in astype_array\n        values = _astype_nansafe(values, dtype, copy=copy)\n      File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 134, in _astype_nansafe\n        return arr.astype(dtype, copy=True)\n               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n    ValueError: invalid literal for int() with base 10: 'rec.autos'\n========================================================================\n\n\n values.astype(dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/arrays/string_.py\", line 945, in astype\n    return super().astype(dtype, copy)\n           ~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/arrays/numpy_.py\", line 280, in astype\n    result = astype_array(self._ndarray, dtype=dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 185, in astype_array\n    values = _astype_nansafe(values, dtype, copy=copy)\n  File \"/tmp/users/sgyshere/coder-venvs-10461071/268e13c33b291894/.venv/lib/python3.14/site-packages/pandas/core/dtypes/astype.py\", line 134, in _astype_nansafe\n    return arr.astype(dtype, copy=True)\n           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'rec.autos'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/H1/fix_attempts/attempt_11/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The target variable in the UCI Credit Approval dataset is converted to binary integers to ensure compatibility with LightGBM",
+            "Synthetic drift is applied through Gaussian noise injection to numerical features while maintaining [0,1] range",
+            "The dataset is large enough to support reliable drift analysis with the specified number of samples",
+            "Both LightGBM and Random Forest models can be trained and evaluated without issues"
+          ],
+          "same_error_streak": 5
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reported_attempt": 12
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10460809/experiments/task_6/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-08T07:42:00.290384+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}
