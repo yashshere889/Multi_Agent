@@ -126,3 +126,47 @@ def test_a_saturated_result_is_reported_as_saturation_only():
 def test_a_result_with_real_differences_is_untouched():
     results = {"metrics": {**JOB_10496137_METRICS, "dynamic_variance_longevity": 2.5}}
     assert saturation.apply_to_results(results) is results
+
+
+# -- statistics computed from single numbers ----------------------------------
+# Barkla job 10510508 reduced each strategy's sensitivity to one scalar, then
+# t-tested the two scalars and bootstrapped a one-element array.
+
+JOB_10510508_METRICS = {
+    "fixed_strategy": {"mean_longevity": 29.037875, "success_probability": 0.8828, "std_longevity": 3.15},
+    "dynamic_strategy": {"mean_longevity": 28.924133, "success_probability": 0.8857, "std_longevity": 3.48},
+    "sensitivity_analysis": {
+        "fixed_sensitivity": 1.1666666666666665,
+        "dynamic_sensitivity": 1.0833333333333335,
+        "fixed_ci": {"lower": 1.1666666666666665, "upper": 1.1666666666666665},
+        "dynamic_ci": {"lower": 1.0833333333333335, "upper": 1.0833333333333335},
+        "sensitivity_t_test": {"t_statistic": 0.0, "p_value": 1.0},
+    },
+}
+
+
+def test_equal_interval_bounds_and_a_zero_statistic_are_flagged():
+    findings = sandbox.check_results_plausibility(JOB_10510508_METRICS)
+    joined = " | ".join(findings)
+    assert "sensitivity_analysis.fixed_ci" in joined
+    assert "sensitivity_analysis.dynamic_ci" in joined
+    assert "sensitivity_analysis.sensitivity_t_test" in joined
+    assert "per-path" in joined
+
+
+def test_a_real_interval_and_test_are_left_alone():
+    metrics = {
+        "fixed_strategy": {"mean_longevity": 29.0, "std_longevity": 3.1},
+        "dynamic_strategy": {"mean_longevity": 28.9, "std_longevity": 3.4},
+        "sensitivity_analysis": {
+            "fixed_ci": {"lower": 0.9, "upper": 1.4},
+            "sensitivity_t_test": {"t_statistic": 2.13, "p_value": 0.033},
+        },
+    }
+    assert sandbox.check_results_plausibility(metrics) == []
+
+
+def test_a_null_result_is_not_degenerate():
+    """p = 1.0 with a non-zero statistic, or t = 0 with a real p, is just a null result."""
+    metrics = {"a_test": {"t_statistic": 0.02, "p_value": 1.0}, "b_test": {"t_statistic": 0.0, "p_value": 0.87}}
+    assert sandbox.check_results_plausibility(metrics) == []
