@@ -622,7 +622,9 @@ class WriterAgent:
             return ""
         return (
             "\n\n" + "\n\n".join(parts) + "\n\nWrite a revised version that fixes the issues above. Keep everything "
-            "that was already accurate and well-grounded — only change what the feedback requires."
+            "that was already accurate and well-grounded — only change what the feedback requires. "
+            "Add no new claims, citations or papers: a revision that introduces material the "
+            "previous review never faulted is how a draft gets worse instead of better."
         )
 
     def _draft_introduction(
@@ -669,7 +671,8 @@ class WriterAgent:
                 "\n\nReviewer feedback on the previous Related Work draft (this may or may not "
                 "concern the specific papers in this batch — only act on what's relevant to them; "
                 "in particular, if the feedback flags a fabricated or unverifiable citation, make "
-                "sure no such citation appears in your answer either):\n" + feedback_lines
+                "sure no such citation appears in your answer either). Add no claims, papers or "
+                "citations beyond what you wrote before: say less, not more:\n" + feedback_lines
             )
 
         def _draft_batch(batch: list) -> str:

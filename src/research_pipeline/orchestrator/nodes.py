@@ -26,7 +26,12 @@ from research_pipeline.agents.reviewer import ReviewerAgent
 from research_pipeline.agents.writer import WriterAgent
 from research_pipeline.config import settings
 from research_pipeline.orchestrator.state import PipelineState
-from research_pipeline.writer_reviewer_loop import _consolidate_unresolved, route_feedback_to_sections
+from research_pipeline.writer_reviewer_loop import (
+    _consolidate_unresolved,
+    best_iteration,
+    issue_count,
+    route_feedback_to_sections,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +202,17 @@ def finalize_node(state: PipelineState) -> dict:
     stage's own output files, which each agent already wrote itself."""
     history = state["review_history"]
     converged = state["converged"]
-    unresolved_issues = [] if converged else _consolidate_unresolved(state["review"], _quality_threshold(state))
+    # The best iteration, not the last — see writer_reviewer_loop.best_iteration.
+    chosen = best_iteration(history)
+    unresolved_issues = [] if converged else _consolidate_unresolved(chosen["review"], _quality_threshold(state))
+    if chosen["iteration"] != history[-1]["iteration"]:
+        logger.info(
+            "Handing over iteration %d rather than %d: its review found %d issues against %d",
+            chosen["iteration"],
+            history[-1]["iteration"],
+            issue_count(chosen["review"]),
+            issue_count(history[-1]["review"]),
+        )
 
     review_log_path = _paper_output_dir(state) / "review_log.json"
     review_log_path.write_text(json.dumps(history, indent=2, ensure_ascii=False))
@@ -208,7 +223,8 @@ def finalize_node(state: PipelineState) -> dict:
     )
     return {
         "final_result": {
-            "final_paper_path": history[-1]["paper_path"],
+            "final_paper_path": chosen["paper_path"],
+            "final_iteration": chosen["iteration"],
             "iterations_run": len(history),
             "converged": converged,
             "unresolved_issues": unresolved_issues,
