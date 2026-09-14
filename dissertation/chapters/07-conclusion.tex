@@ -1,8 +1,92 @@
 \chapter{Conclusion and Future Work}
 \label{ch:conclusion}
+
 % BUDGET: 2 pages. Closes every aim opened in Ch.1.
+
+This project set out to let a researcher move from a question to a
+literature-grounded draft paper without writing code, and to do so on
+institutional infrastructure without ever presenting a claim that cannot be
+checked. A seven-agent pipeline was delivered against that aim, every agent
+implemented as a graph so that each model call and each deterministic check is an
+addressable step (C1); a reliability architecture that classifies a failure before
+responding to it and makes a failed attempt cheap before making it rare (C3); a
+provenance mechanism that withholds a verdict rather than assert one on invented
+data (C4); and a preference dataset assembled from the system's own fix loop, in
+which the rejecting check supplies the label (C6). Chapter~\ref{ch:evaluation}
+assesses each aim individually against the runs collected.
+
+The result I would put first is not the pipeline. It is the catalogue of places an
+end-to-end research system turns out to need verification, each paired with the
+failure that motivated it (C2), together with the finding that motivated the last
+third of the project: \emph{a guardrail's correctness and its coverage are separate
+properties, and only the second can be measured from a run}. Three mechanisms in
+this system were correct in the file and inert in production --- a confirmation
+gate that never fired, a staged-file matcher that answered any requirement
+containing the word ``dataset'', and a citation check that reported thousands of
+fabrications where there were four. Each passed its own tests. Each was found by
+reading what a sweep actually did, and the empirical account of them (C5) is the
+part of this work most likely to transfer to another system.
+
+The system's honest standing is given by its last sweep: thirty-four of thirty-six
+questions produced a complete drafted paper, twenty-six experiments ran, and every
+one of those had its verdict withheld. Nothing was over-claimed because nothing was
+claimed. That is the correct behaviour for data nobody has confirmed, and it is
+also the clearest statement of what remains to be built.
+
 \section{Future work}
 \label{sec:future-overlap}
-% Overlap/similarity detection (D6 -- highest-priority unmet requirement),
-% confidence estimates, compute-cost display, DPO at scale.
-[TODO]
+
+\paragraph{Overlap detection (D6).} Both requirements-analysis respondents rated
+the flagging of overlap with existing literature 5 out of 5 --- the only item to
+score the maximum from both --- and Gupta and Pruthi's finding that a substantial
+share of agent-generated research documents contain undetected
+plagiarism~\cite{gupta2025glitters} makes the omission a matter of research
+integrity rather than convenience. It is the project's most significant unmet
+requirement. The mechanism it needs is within reach of the existing architecture:
+the Writer already resolves every claim against an indexed corpus, so the same
+index supports a similarity pass over drafted passages, and the deterministic
+half --- near-duplicate detection against retrieved papers --- requires no model at
+all. What it additionally needs, and what could not be assembled in the time
+available, is comparison against a corpus far larger than the twenty to fifty
+papers a single run retrieves.
+
+\paragraph{Confirmation, which is now the binding constraint.} Sweep~3 withheld
+every verdict it produced, ten of them because the data was real but found by
+keyword search rather than named by anyone. The missing step is small and belongs
+in the interface that already exists: present the discovered dataset, its landing
+page and its first rows, and let the user confirm or reject it before the verdict
+stands. This fits the stage-selection model D5 established and would convert the
+system's most common withheld outcome into a verdict a reader can trust ---
+without weakening any gate, because the confirmation would come from a person
+rather than from a keyword match.
+
+\paragraph{Checking the plan, not only the code.} The metric-saturation gate of
+Section~\ref{sec:saturation} withholds verdicts from experiments that were
+implemented correctly from an unsound design --- a label derived from one of the
+model's own inputs, or two arms that cannot differ. Withholding is the safe
+response, but the defect originates in the Experiment Planner, and catching it
+there, before code is generated, would recover results rather than discard them.
+The same applies to a narrower case sweep~3 exposed: a plan naming a
+\emph{repository} (``UCI ML Repository'') rather than a dataset is currently taken
+literally by the search.
+
+\paragraph{What the respondents asked for and did not get.} Confidence or
+uncertainty estimates, and compute cost and time estimates, were wanted by every
+respondent and are absent. Both are display problems over data the pipeline
+already holds --- the provenance and compute-provenance documents record what was
+reduced, what did not converge and what was withheld --- and neither is a research
+problem.
+
+\paragraph{Preference optimisation at scale.} Chapter~\ref{ch:po} demonstrates that
+the fix loop yields learnable preference data, on 121 pairs and a small model held
+out from the pipeline. The honest next step is on-policy pairs from the served
+model and an evaluation against downstream experiment success rather than held-out
+preference accuracy.
+
+\bigskip
+
+What this system is, at the end of the project, is a research assistant that will
+carry a question through literature, hypothesis, experiment and draft without
+asking its user to write code, and that refuses to tell them a result it cannot
+justify. The refusals are not a shortfall in that ambition. They are the part of it
+I would least want to remove.

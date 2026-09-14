@@ -1,7 +1,130 @@
 \chapter{BCS Project Criteria and Self-Reflection}
 \label{ch:bcs}
+
 % BUDGET: 3 pages. First person. At least one full page of reflection.
-% Six BCS outcomes, cross-referenced to chapters, then honest reflection:
-%  the RL pivot, scope growth, the poetry incident, testing what could
-%  not be checked by hand, what I would do differently.
-[TODO]
+
+\section{The BCS project criteria}
+
+\begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.4em]
+
+\item[An ability to apply practical and analytical skills.] The practical skills
+are in Chapter~\ref{ch:design}: seven agents, each a graph with a validated
+input/output contract, a sandboxed execution path for model-generated code, a
+failure taxonomy that routes three classes of failure without a model call at all,
+and deployment on a shared HPC facility under queue limits, pre-emption and a
+storage quota. The analytical skills are in Chapter~\ref{ch:evaluation}, and the
+work I would point to is not the building but the measuring: establishing that
+single-run comparison on the benchmark is unsound because identical inputs produced
+interpretable scores of 4, 6, 3, 2, 3 and 2, and then holding to that when a single
+run would have told a better story.
+
+\item[Innovation and creativity.] The pipeline's structure --- every agent a graph
+rather than only the orchestrator --- is a design choice made so that each
+deterministic check is an addressable, inspectable node rather than a line inside a
+function. The preference dataset of Chapter~\ref{ch:po} is the contribution I
+think is most genuinely novel: the fix loop already produces a rejected generation,
+the check that rejected it and an accepted replacement, which is exactly a
+preference triple, and the label comes from a compiler or an exit status rather
+than from a human or a model's opinion.
+
+\item[Synthesis of information, ideas and practices, with evaluation.] The
+requirements analysis in Chapter~\ref{ch:requirements} turned two staff interviews
+into six traceable design decisions, one of which (D1) overturned the persona-based
+architecture my own proposal specified. The literature positioned the work against
+AutoMETA and the autonomous-research-loop systems, and Chapter~\ref{ch:evaluation}
+evaluates the result at four levels --- component tests, a frozen benchmark, an
+ablation and three end-to-end sweeps --- including the results that do not flatter
+it.
+
+\item[Meeting a real need in a wider context.] The need came from the two
+respondents directly: both said they would not accept unchecked output, and
+Respondent~B's objection was specifically about opacity. That is why verification,
+not automation, became the centre of the design. The wider intent is the one I
+began with --- to let researchers who cannot program produce meaningful
+computational work --- and Chapter~\ref{ch:ethics} sets out both sides of that,
+including the risk that a tool of this kind lowers the cost of producing plausible
+research that nobody has checked.
+
+\item[Self-management of a significant piece of work.] The project ran across a
+single term against a fixed deadline, on a cluster I do not control. I planned in
+sweeps rather than features: build, run a batch, read what it did, repair, run the
+same questions again. Three full sweeps of thirty-six questions were completed on
+the same questions, model and cluster, which is what makes
+Table~\ref{tab:three-sweeps} a comparison rather than an anecdote.
+
+\item[Critical self-evaluation.] The section below, and --- more to the point --- the
+fact that Chapter~\ref{ch:evaluation} leads with the project's failures, several of
+which I introduced myself.
+
+\end{description}
+
+\section{Reflection}
+
+The single most useful thing I learned has an uncomfortable shape: \emph{a
+mechanism can be correct in the source file and do nothing in the run}. I found
+this three times, and only the third time did I go looking for it.
+
+The first was the citation checker, which reported 3{,}514 fabricated citations
+across 108 drafts when there were four. It was scanning the paper's own reference
+list. The second was a confirmation gate, written precisely to stop the system
+trusting a dataset found by keyword search, which fired zero times across a
+thirty-six-question sweep because the field it tests was set by one code path and
+not by the path that resolves most data in production. The third is the one I find
+hardest to write down. To make a benchmark case find a text corpus, I staged an
+alias filename packing every phrasing the system might use --- ``dataset'',
+``benchmark'', ``standard'', ``collection'' --- against a matcher that accepted a
+single shared word. It worked, for that case. It also answered twenty-eight of
+thirty-six requirements in the next sweep, and across every run in this project
+nineteen experiments published a verdict computed on a file that could not answer
+their question. A requirement naming MIMIC-III clinical records was answered with
+newsgroup posts.
+
+What makes that the most instructive failure is not the bug. It is that I made it
+while trying to improve the system, that it passed every test, and that the
+verdicts it produced looked entirely ordinary --- nine \emph{supported}, ten
+\emph{refuted}, distributed across plausible questions. Nothing downstream could
+have caught it, because a staged file is real data a human put there, which is the
+one case the whole provenance design treats as trustworthy. A convenience added to
+make one case pass was a change to the system, and I did not treat it as one.
+
+The related lesson is about instruments. I lost real results to a verdict recorded
+as the string \texttt{"True"} rather than a boolean, and twice built a
+preference-accuracy metric that returned a clean, believable null --- once because
+it averaged over the prompt as well as the completion, once because it was
+measuring sentence length. In each case the measurement was wrong in a way that
+looked like a finding. I now distrust a result that arrives tidy, and the habit I
+would keep from this project is to predict what a metric should read when nothing
+is happening, and check that first.
+
+Testing deserves an honest verdict too. The requirement that all non-model logic be
+unit-testable without a model present (NFR5) was worth the effort: 1{,}351 tests
+run with no network, no model and no cluster, and the regression tests are written
+from real failures rather than imagined ones. But the suite never caught any of the
+three failures above, because each component did exactly what its tests asked. What
+caught them was reading what a run actually produced. If I started again I would
+budget as much time for instrumenting sweeps as for writing tests, and I would
+measure a guardrail's coverage --- how often it fires, on what --- as a first-class
+property alongside its logic.
+
+On the proposal's reinforcement learning component, I still think reframing it was
+right, and Chapter~\ref{ch:po} argues why: for a failure whose absence can be
+checked mechanically, verification beats optimisation, because it is exact, works
+on the first occurrence, and fails visibly. What I would concede is that I reached
+that argument by building the verification first and justifying it afterwards,
+rather than by reasoning it through at the proposal stage.
+
+Two things I would do differently are concrete. I would stage real datasets at the
+start rather than discovering, most of the way through, that the ceiling on
+interpretable results was a data-availability problem rather than a code-generation
+one. And I would treat the Experiment Planner as a source of defects much earlier:
+by the end I had three gates protecting against bad data and bad compute, and then
+found an experiment whose design was circular --- predicting a median split of
+entropy from entropy --- which no amount of correct code could have rescued.
+
+Finally, the thing I am most glad I did not do. Every one of the repairs in
+Chapter~\ref{ch:evaluation} makes the system report \emph{less}: fewer verdicts,
+more inconclusive results, and a last sweep that published nothing at all. It was
+tempting, more than once and particularly with a deadline approaching, to loosen a
+gate and let the numbers look better. The project is more useful for having
+resisted that, and a system that says ``I cannot tell you'' is the only kind I would
+be willing to put in front of a researcher who cannot check its work themselves.
