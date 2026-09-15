@@ -161,6 +161,7 @@ _ERROR_STAGE_ORDER = [
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
+    "uncited_reference_implementation",
     "excess_return_as_total",
     "missing_batching",
     "self_review",
@@ -288,6 +289,18 @@ _SECTIONS_BY_ERROR_SOURCE: dict[str, tuple[str, ...]] = {
     "missing_data_fallback": ("load_data_function",),
     # check_hf_dataset_usage reads configuration + load_data.
     "ignored_available_dataset": ("load_data_function",),
+    # check_reference_cited reads the whole program, so nothing localizes the
+    # *defect* — but the fix is a citation, and the prompt asks for it "in a
+    # comment next to the method it grounds", which is build_model. Targeting it
+    # keeps a working program from being rewritten to add a comment to it; the
+    # fix prompt re-requests assumptions_made alongside regardless, and a
+    # citation there clears the check too.
+    #
+    # Not ("readme",), which is where a reviewer would rather read one:
+    # _target_sections filters against prompts.RUN_PY_SECTION_NAMES, so a
+    # non-code section silently drops out of the target set and leaves only
+    # _ALWAYS_REGENERATED behind.
+    "uncited_reference_implementation": ("build_model_function",),
     # check_results_plausibility judges the dict evaluate() returns.
     "implausible_results": ("evaluate_function",),
 }
@@ -1024,6 +1037,7 @@ class CoderAgent:
             state.get("current_hf_dataset") or {},
             state.get("current_acquisitions") or {},
             state.get("current_discoveries") or {},
+            state.get("current_reference_implementations") or [],
         )
 
         update: dict = {
@@ -1426,6 +1440,7 @@ class CoderAgent:
         hf_dataset: dict | None = None,
         acquisitions: dict[str, dict] | None = None,
         discoveries: dict[str, dict] | None = None,
+        reference_implementations: list[dict] | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -1613,6 +1628,24 @@ class CoderAgent:
             return {
                 "error_source": "ignored_available_dataset",
                 "error_text": f"A real dataset was offered but not used: {'; '.join(dataset_usage_findings)}",
+            }
+
+        # Published work with official code was offered as grounding (see
+        # _reference_implementations_block) — checks the offer left a trace,
+        # the two sanctioned outcomes being "cited where followed" and "declined
+        # in assumptions_made", exactly as for the dataset above. The prompt
+        # asked for this from the start and Barkla job 10522998 ignored it
+        # wholesale; this is the Python that makes the instruction real.
+        reference_findings = sandbox.check_reference_cited(
+            run_py,
+            generation.get("readme", ""),
+            assumptions_made,
+            reference_implementations or [],
+        )
+        if reference_findings:
+            return {
+                "error_source": "uncited_reference_implementation",
+                "error_text": f"Offered reference implementations left no trace: {'; '.join(reference_findings)}",
             }
 
         # A property of the code, not of how good the results are: the fix loop

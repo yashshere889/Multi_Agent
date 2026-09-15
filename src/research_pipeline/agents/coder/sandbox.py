@@ -945,6 +945,74 @@ def check_hf_dataset_usage(
     ]
 
 
+def check_reference_cited(
+    run_py: str,
+    readme: str,
+    assumptions_made: list[str],
+    references: list[dict],
+) -> list[str]:
+    """When coder_agent._find_reference_implementations matched published work
+    with official code and offered it to the model (see
+    _reference_implementations_block), checks the offer left some trace. Returns
+    human-readable findings; empty means clean, including whenever nothing was
+    offered.
+
+    The exact counterpart of check_hf_dataset_usage, and it exists for the same
+    reason that one does: the instruction was in the prompt for the whole of
+    Barkla job 10522998 and the model ignored it completely. That run was handed
+    two on-topic papers with real repositories, wrote a GraphRAG experiment, and
+    cited neither — `run.py`, `README.md` and `assumptions_made` between them
+    contained no paper id, no repository URL and no title. It got as far as
+    "Not implementing the full GraphRAG framework from literature, but a
+    simplified version", which names a divergence without naming what it
+    diverged *from*, and so is precisely the sentence a reviewer cannot act on.
+
+    Like the dataset check this is deliberately not "every reference must be
+    cited". REFERENCE_IMPLEMENTATION_NOTE sanctions ignoring references that
+    don't fit, and a semantic search match can be off-topic. So one trace of any
+    offered reference — in the code (a comment counts), the README, or
+    assumptions_made — clears it, covering both "I followed this paper" and "I
+    considered these and none fit". Only the silent third option is flagged:
+    generating as though the block were never there.
+
+    Matched as a plain substring of the paper id or a repository URL, for the
+    same reason the dataset check matches on the dataset id: those are the two
+    fixed strings the prompt hands over, and a citation can be written in more
+    shapes than are worth enumerating.
+    """
+    traces: list[str] = []
+    for reference in references or []:
+        paper_id = str(reference.get("paper_id") or "").strip()
+        if paper_id:
+            traces.append(paper_id)
+        for repository in reference.get("repositories") or []:
+            url = str(repository.get("url") or "").strip()
+            if url:
+                traces.append(url)
+                # The owner/name tail is what a prose citation usually keeps
+                # ("adapted from graphrag-bench/graphrag-benchmark"), and it is
+                # still unambiguous enough to be a real trace.
+                traces.append(url.rstrip("/").split("/", 3)[-1])
+    if not traces:
+        return []
+
+    haystack = "\n".join([run_py, readme, *(assumptions_made or [])])
+    if any(trace and trace in haystack for trace in traces):
+        return []
+
+    offered = ", ".join(
+        str(reference.get("paper_id") or reference.get("title") or "?") for reference in references
+    )
+    return [
+        f"published work with official code ({offered}) was offered as grounding for this "
+        "experiment's established methods, but no paper id or repository URL appears in the "
+        "generated code, the README or assumptions_made — the experiment was written as "
+        "though the reference block were not there. Either name the paper (and its "
+        "repository URL) where you followed it and where you deliberately simplified it, or "
+        "say in assumptions_made that none of them fit this plan and why."
+    ]
+
+
 def check_shared_infra_files(files: dict[str, str]) -> tuple[dict[str, str], str]:
     """Runs the same checks a single experiment's run.py gets — lenient
     compile check, then static safety check — against every shared

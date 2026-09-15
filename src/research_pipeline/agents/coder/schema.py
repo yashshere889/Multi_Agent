@@ -43,6 +43,10 @@ VALID_ERROR_SOURCES = {
     # using it, and it wasn't declined in assumptions_made either — see
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
+    # Published work with official code was offered as grounding and left no
+    # trace at all — not cited where followed, not declined in assumptions_made.
+    # See sandbox.check_reference_cited.
+    "uncited_reference_implementation",
     # An excess-return column (Mkt-RF beside RF) is compounded into a value as
     # though it were a total return — see sandbox.check_excess_return_usage.
     "excess_return_as_total",

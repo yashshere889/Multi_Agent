@@ -2775,6 +2775,10 @@ def test_run_reports_a_silently_ignored_offered_dataset(tmp_path):
         network_check=lambda: True,
         gpu_check=lambda: False,
         huggingface_lookup_fn=lookup,
+        # Both lookups sit behind this one network probe, so a test that turns
+        # it on without stubbing this reaches the real catalog — see _agent(),
+        # which defaults it for exactly this reason.
+        pwc_lookup_fn=lambda query: [],
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -2804,6 +2808,10 @@ def test_run_accepts_an_explicitly_declined_offered_dataset(tmp_path):
         network_check=lambda: True,
         gpu_check=lambda: False,
         huggingface_lookup_fn=lookup,
+        # Both lookups sit behind this one network probe, so a test that turns
+        # it on without stubbing this reaches the real catalog — see _agent(),
+        # which defaults it for exactly this reason.
+        pwc_lookup_fn=lambda query: [],
     )
     result = agent.run(_planner_output([_plan("H1", complexity="low")]))
 
@@ -7673,6 +7681,18 @@ PWC_REFERENCE = {
 }
 
 
+# A README that cites the offered reference, which is what
+# REFERENCE_IMPLEMENTATION_NOTE asks for and what sandbox.check_reference_cited
+# now requires some trace of. GOOD_SECTIONS' bare README deliberately does not,
+# so it doubles as the negative fixture.
+CITING_README = (
+    "# Test experiment\n\n## Assumptions\n\n"
+    "- Method follows Mean-Shifted Contrastive Loss for Anomaly Detection (2106.03844),\n"
+    "  https://github.com/talreiss/Mean-Shifted-Anomaly-Detection, simplified to one epoch\n"
+    "  to fit the timeout.\n"
+)
+
+
 def _recording_pwc_lookup(result):
     """A fake pwc_lookup_fn that records the queries it was asked."""
     queries: list[str] = []
@@ -7695,7 +7715,9 @@ def _pwc_agent(tmp_path, model, **kwargs):
 
 
 def test_reference_implementations_are_offered_to_the_model(tmp_path):
-    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(GOOD_SECTIONS, readme=CITING_README)]
+    )
     lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
     _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
 
@@ -7732,7 +7754,7 @@ def test_reference_implementations_are_carried_into_the_fix_prompt(tmp_path):
 
 
 def test_reference_implementations_are_recorded_on_the_experiment(tmp_path):
-    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS, readme=CITING_README)])
     lookup, _queries = _recording_pwc_lookup([PWC_REFERENCE])
     result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
 
@@ -8009,3 +8031,78 @@ def test_method_names_survive_a_plan_whose_prose_exceeds_the_limit(tmp_path):
     sent = paperswithcode_client._truncate_query(queries[0])
     assert "GraphRAG" in sent
     assert "certified error control" in sent
+
+
+# -- check_reference_cited ----------------------------------------------------------------
+# The Python behind REFERENCE_IMPLEMENTATION_NOTE. Barkla job 10522998 was handed
+# two on-topic papers with real repositories and cited neither, anywhere — the
+# instruction had been in the prompt the whole time.
+
+
+def test_an_uncited_reference_is_flagged():
+    findings = sandbox.check_reference_cited(
+        "def load_data():\n    return None\n", "# Experiment\n", [], [PWC_REFERENCE]
+    )
+    assert findings
+    assert "2106.03844" in findings[0]
+
+
+def test_nothing_offered_is_never_flagged():
+    assert sandbox.check_reference_cited("code", "readme", [], []) == []
+
+
+def test_a_citation_in_a_code_comment_clears_it():
+    # The prompt asks for a comment next to the method it grounds, so a comment
+    # has to count — the check reads the whole rendered program, not just prose.
+    run_py = (
+        "# Encoder follows https://github.com/talreiss/Mean-Shifted-Anomaly-Detection\n"
+        "def build_model():\n    return None\n"
+    )
+    assert sandbox.check_reference_cited(run_py, "# Experiment\n", [], [PWC_REFERENCE]) == []
+
+
+def test_a_citation_in_the_readme_clears_it():
+    assert sandbox.check_reference_cited("code", CITING_README, [], [PWC_REFERENCE]) == []
+
+
+def test_the_owner_name_tail_counts_as_a_citation():
+    # "adapted from talreiss/Mean-Shifted-Anomaly-Detection" is how a prose
+    # citation usually renders a repo, and it is still unambiguous.
+    readme = "Adapted from talreiss/Mean-Shifted-Anomaly-Detection.\n"
+    assert sandbox.check_reference_cited("code", readme, [], [PWC_REFERENCE]) == []
+
+
+def test_declining_every_reference_in_assumptions_clears_it():
+    # REFERENCE_IMPLEMENTATION_NOTE sanctions ignoring references that don't fit,
+    # provided the model says so — the same escape hatch the dataset check has.
+    assumptions = ["2106.03844 is image anomaly detection and does not fit this tabular plan"]
+    assert (
+        sandbox.check_reference_cited("code", "# Experiment\n", assumptions, [PWC_REFERENCE]) == []
+    )
+
+
+def test_an_uncited_reference_routes_back_through_the_fix_loop(tmp_path):
+    citing_model = {
+        **GOOD_SECTIONS,
+        "build_model_function": (
+            "def build_model(data):\n"
+            "    # Follows https://github.com/talreiss/Mean-Shifted-Anomaly-Detection\n"
+            "    return None\n"
+        ),
+    }
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(GOOD_SECTIONS)],  # bare README — cites nothing
+        fix=[_codegen_response(citing_model)],
+    )
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    experiment = result["experiments"][0]
+    history = experiment["fix_history"]
+    assert [h["error_source"] for h in history] == ["uncited_reference_implementation"]
+    assert history[0]["resolved"] is True
+    # Targeted: the citation belongs next to the method it grounds, so a working
+    # program is not rewritten wholesale to add a comment to it.
+    assert "build_model_function" in history[0]["regenerated_sections"]
+    assert "run_experiment_function" not in history[0]["regenerated_sections"]
+    assert experiment["status"] == "completed"

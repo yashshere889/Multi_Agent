@@ -199,9 +199,25 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   repositories it names, because a code model reads a GitHub URL as an invitation and the
   resulting experiment would fail on any host with no outbound network — expensively, three
   fix attempts later, rather than never being written. If you edit that note, keep the
-  prohibition and keep it adjacent to the URLs; there is no deterministic check behind it
-  (unlike `check_hf_dataset_usage`, there is nothing in the rendered `run.py` to verify a
-  reference *against*), so the prompt is the whole guard.
+  prohibition and keep it adjacent to the URLs. That half is prompt-only and has held;
+  `sandbox.check_reference_cited` is the half that isn't.
+- **The instruction to cite is enforced, because it was ignored.** Barkla job 10522998 was
+  handed two on-topic GraphRAG papers with real repositories, wrote the experiment, and named
+  neither in `run.py`, `README.md` or `assumptions_made` — the prompt had asked for all three
+  placements from the start. `check_reference_cited` is the same shape as
+  `check_hf_dataset_usage`: one trace of any offered reference (paper id, repo URL, or its
+  `owner/name` tail) anywhere in the program, README or assumptions clears it, covering both
+  "I followed this" and "none of these fit"; only the silent third option becomes
+  `uncited_reference_implementation`. It targets `build_model_function`, not `readme`, because
+  `_target_sections` filters against `prompts.RUN_PY_SECTION_NAMES` and a non-code section
+  drops silently out of the target set.
+- **A method simplification is not a data substitution.** `provenance._DECLARED_SUBSTITUTION`
+  matches "instead of"/"in place of", which is also how a model describes simplifying an
+  algorithm — and `REFERENCE_IMPLEMENTATION_NOTE` now actively asks it to write exactly that
+  down. Job 10522998 withheld the verdict on a run that read the staged AG News CSV as
+  instructed, because one assumption said "keeps top 50% of candidates instead of complex
+  theoretical bounds". `_ABOUT_DATA` gates that pattern on the sentence also mentioning data;
+  don't remove it without re-checking what the reference block tells the model to write.
 - **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
   real network call with its own cache/retry policy), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside
