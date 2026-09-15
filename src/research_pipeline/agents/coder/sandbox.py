@@ -20,10 +20,10 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-
-from research_pipeline.agents.coder import saturation
 from typing import Any
 from urllib.parse import quote
+
+from research_pipeline.agents.coder import saturation
 
 logger = logging.getLogger(__name__)
 
@@ -587,6 +587,52 @@ def _unguarded_read_calls(node: ast.AST, inside_try: bool) -> list[ast.Call]:
     return found
 
 
+# A column named like `Mkt-RF` beside a column named `RF` is a return *in excess
+# of* that one — the Fama-French factors and everything built the same way — so a
+# portfolio's total return is their sum. Barkla job 10509628 grew a retirement
+# portfolio on `Mkt-RF` alone, dropping ~3%/yr of risk-free return: a 4%
+# withdrawal rule then failed in 10,000 of 10,000 paths where the literature
+# reports about 95% success, and nothing downstream could tell those numbers from
+# real ones. Checked here because the column names are read off the actual bytes
+# (acquire.describe_local) before the code runs.
+_EXCESS_COLUMN_RE = re.compile(r"^[A-Za-z][\w.]*[-_ ]RF$", re.IGNORECASE)
+# `value *= (1 + r)` / `value = value * (1.0 + r)`: compounding a return into a
+# quantity, as opposed to regressing on it or reporting it.
+_COMPOUNDS_RETURN_RE = re.compile(r"\*=?\s*\(\s*1(?:\.0+)?\s*\+")
+
+
+def check_excess_return_usage(source: str, columns: Sequence[str]) -> list[str]:
+    """Flag code that compounds an excess-return column as if it were a total return.
+
+    Silent when the input carries no `RF` column (nothing says the other column
+    is an excess return), when the code compounds nothing, or when it adds `RF`
+    back somewhere — a study of excess returns that never grows a value is not
+    what this catches.
+    """
+    names = [str(column).strip() for column in columns]
+    if not any(name.upper() == "RF" for name in names):
+        return []
+    if not _COMPOUNDS_RETURN_RE.search(source):
+        return []
+    findings = []
+    for name in names:
+        if not _EXCESS_COLUMN_RE.match(name) or name not in source:
+            continue
+        quoted = re.escape(name)
+        combined = re.search(
+            rf"{quoted}[^\n]{{0,80}}\+[^\n]{{0,40}}\bRF\b|\bRF\b[^\n]{{0,40}}\+[^\n]{{0,80}}{quoted}",
+            source,
+        )
+        if combined:
+            continue
+        findings.append(
+            f"{name!r} is a return in excess of 'RF' — this input has both columns — but the code "
+            f"compounds it into a value without ever adding 'RF' back. A total return is "
+            f"{name} + RF: build it explicitly (total = df['{name}'] + df['RF']) and compound that."
+        )
+    return findings
+
+
 def check_data_fallback(load_data_function_source: str) -> list[str]:
     """Checks that a generated `load_data` doesn't simply assume its data is
     there. Returns human-readable findings; empty means clean.
@@ -995,7 +1041,82 @@ def _nonfinite_within(value: object, _depth: int = 0) -> list[str]:
     return []
 
 
-def check_results_plausibility(metrics: dict) -> list[str]:
+# A statistic computed from single numbers rather than from samples. Barkla job
+# 10510222's successor (r10, job 10510508) reduced each strategy's sensitivity to
+# one scalar — a difference of scenario means — then ran
+# `ttest_ind([fixed], [dynamic])` and bootstrapped a one-element array: t exactly
+# 0.0, p exactly 1.0, and a "confidence interval" whose bounds were equal. The
+# numbers around it were sound, so no other gate had anything to say, and the
+# model declined to judge its own hypothesis.
+_INTERVAL_KEYS = (("lower", "upper"), ("ci_lower", "ci_upper"), ("low", "high"))
+_STATISTIC_KEYS = ("t_statistic", "statistic", "z_statistic", "f_statistic")
+
+
+def _degenerate_statistics(metrics: dict, prefix: str = "") -> list[str]:
+    """Intervals with equal bounds and tests reporting no difference at all."""
+    findings: list[str] = []
+    for name, value in metrics.items():
+        path = f"{prefix}{name}"
+        if not isinstance(value, dict):
+            continue
+        findings.extend(_degenerate_statistics(value, f"{path}."))
+        for low_key, high_key in _INTERVAL_KEYS:
+            low, high = value.get(low_key), value.get(high_key)
+            if _is_real_number(low) and _is_real_number(high) and float(low) == float(high):
+                findings.append(
+                    f"the interval {path!r} has {low_key} == {high_key} ({low}) — resampling a "
+                    "single number cannot produce an interval. Compute the quantity once per "
+                    "simulated path and resample those paths, not the aggregate"
+                )
+        p_value = value.get("p_value")
+        statistic = next((value[key] for key in _STATISTIC_KEYS if key in value), None)
+        if (
+            _is_real_number(p_value)
+            and _is_real_number(statistic)
+            and float(p_value) == 1.0
+            and float(statistic) == 0.0
+        ):
+            findings.append(
+                f"the test {path!r} reports a statistic of exactly 0 with p = 1.0 — the signature "
+                "of comparing two single numbers rather than two samples. Compare the per-path "
+                "values of each arm"
+            )
+    return findings
+
+
+def _is_real_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+# The constant a censored outcome is pinned to, named for the fix prompt when the
+# code has one: Barkla job 10510222 measured "years until depletion" against a
+# 30-year horizon, and once its returns were right every path survived to 30, so
+# both withdrawal rules reported exactly 30.0 with zero spread. Four fix attempts
+# went on guessing because the finding did not mention the ceiling.
+_CONSTANT_ASSIGNMENT_RE = re.compile(r"^([A-Z][A-Z0-9_]*)\s*=\s*(\d+(?:\.\d+)?)\s*$", re.MULTILINE)
+
+
+def _ceiling_hint(metrics: dict, source: str) -> str:
+    """ " (every path reached NAME = N)" when a shared metric equals a constant."""
+    if not source:
+        return ""
+    values: set[float] = set()
+    for value in metrics.values():
+        if isinstance(value, dict):
+            values.update(v for v in value.values() if isinstance(v, (int, float)))
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            values.add(value)
+    for name, literal in _CONSTANT_ASSIGNMENT_RE.findall(source):
+        if float(literal) in values:
+            return f" ({name} = {literal})"
+    return ""
+
+
+def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
     """Sanity-checks a completed experiment's own reported metrics before
     read_results_json_for_diagnosis's success is trusted as a real result.
     Returns human-readable findings; empty means clean.
@@ -1067,15 +1188,20 @@ def check_results_plausibility(metrics: dict) -> list[str]:
     # shape has shown is in the code — a simulation whose paths never vary — which
     # regeneration can fix, unlike a saturated result from a sound build of an
     # unsound plan.
+    findings.extend(_degenerate_statistics(metrics))
+
     identical = saturation.indistinguishable(metrics)
     if identical:
         findings.append(
             "the compared arms cannot be told apart: every metric they share is identical and "
             f"their spread is exactly 0 ({', '.join(identical)}). A stochastic comparison whose "
-            "outcomes never varied did not exercise the difference it measures — check that each "
-            "simulated path draws its own varying inputs (resampled returns, not a constant or an "
-            "average), that returns are compounded rather than averaged across periods, and that "
-            "the outcome can actually respond to them"
+            "outcomes never varied did not exercise the difference it measures. Three causes, in "
+            "the order they are worth checking: the outcome is capped and every path reached the "
+            f"cap{_ceiling_hint(metrics, source)}, so raise the cap until some paths fail (or "
+            "measure a quantity that still varies, such as terminal wealth or failure "
+            "probability); each path is not drawing its own varying inputs (resample per path, "
+            "never a constant or an average); or returns are averaged across periods rather than "
+            "compounded"
         )
 
     return findings

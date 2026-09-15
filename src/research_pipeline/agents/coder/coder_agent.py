@@ -160,6 +160,7 @@ _ERROR_STAGE_ORDER = [
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
+    "excess_return_as_total",
     "missing_batching",
     "self_review",
     # The execution-failure kinds sit where run_experiment always did: they are
@@ -1542,6 +1543,20 @@ class CoderAgent:
                 "error_text": f"load_data() assumes its data will be present: {'; '.join(fallback_findings)}",
             }
 
+        # Units, checked against the columns the input really has rather than
+        # trusted: an excess return compounded as a total return produces numbers
+        # nothing downstream can tell from real ones. See
+        # sandbox.check_excess_return_usage.
+        excess_findings = sandbox.check_excess_return_usage(
+            run_py,
+            self._input_columns(plan, network_available, hf_dataset, acquisitions, discoveries),
+        )
+        if excess_findings:
+            return {
+                "error_source": "excess_return_as_total",
+                "error_text": f"The code misreads its inputs' units: {'; '.join(excess_findings)}",
+            }
+
         # A real, pre-verified dataset was offered (see _hf_dataset_block) —
         # checks the offer was actually engaged with rather than silently
         # dropped, the two sanctioned outcomes being "used it" or "declined it
@@ -1796,7 +1811,9 @@ class CoderAgent:
         # A real result on disk isn't the same as a meaningful one — see
         # sandbox.check_results_plausibility for exactly what this does and
         # doesn't catch.
-        plausibility_findings = sandbox.check_results_plausibility(results.get("metrics") or {})
+        plausibility_findings = sandbox.check_results_plausibility(
+            results.get("metrics") or {}, run_py
+        )
         if plausibility_findings:
             return {
                 "error_source": "implausible_results",
@@ -2871,6 +2888,35 @@ class CoderAgent:
                 exc,
             )
             return {}, {}
+
+    def _input_columns(
+        self,
+        plan: dict,
+        network_available: bool,
+        hf_dataset: dict | None = None,
+        acquisitions: dict[str, dict] | None = None,
+        discoveries: dict[str, dict] | None = None,
+    ) -> list[str]:
+        """Every column this plan's inputs actually have, in first-seen order.
+
+        Read off the bytes rather than from the plan's prose: a staged file's
+        preview (acquire.describe_local) and the record of anything this pipeline
+        fetched are the only two places a real column list exists before the
+        generated code runs.
+        """
+        columns: list[str] = []
+        for source in self._provenance_for(
+            plan,
+            network_available,
+            hf_dataset=hf_dataset,
+            acquisitions=acquisitions,
+            discoveries=discoveries,
+        ):
+            for described in (source.preview, source.acquired):
+                for column in (described or {}).get("columns") or []:
+                    if str(column) not in columns:
+                        columns.append(str(column))
+        return columns
 
     def _provenance_for(
         self,
