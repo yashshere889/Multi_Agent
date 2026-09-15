@@ -2970,14 +2970,24 @@ class CoderAgent:
         the same reason for the try/except: an injected lookup that raises must
         not be why an experiment doesn't get generated at all.
 
-        The query is the plan's own prose — objective, design, and the names of
-        the methods it says it reuses from the literature — because the catalog's
-        semantic search embeds it. Contrast _find_hf_dataset, which hands its
-        client a description to reduce to keywords because the Hub matches
-        dataset names. Methods the plan marks `reused_from_literature: false` are
-        left out on purpose: they are this pipeline's own novel contribution, and
-        searching for a published implementation of something the plan calls
-        novel would ground the model in whatever happened to be nearest.
+        The query is the plan's own prose — the names of the methods it says it
+        reuses from the literature, then its objective and design — because the
+        catalog's semantic search embeds it. Contrast _find_hf_dataset, which
+        hands its client a description to reduce to keywords because the Hub
+        matches dataset names. Methods the plan marks
+        `reused_from_literature: false` are left out on purpose: they are this
+        pipeline's own novel contribution, and searching for a published
+        implementation of something the plan calls novel would ground the model
+        in whatever happened to be nearest.
+
+        **Method names lead.** The endpoint caps `q` at
+        `paperswithcode_client.MAX_QUERY_CHARS`, and an experiment plan's
+        objective and design routinely run past it on their own, so the tail of
+        this string is not guaranteed to be sent. The methods are both the
+        shortest part and the part the search is actually for, so they go first
+        and the prose that contextualises them is what gets cut. Barkla job
+        10510234 had them last and lost them: every search came back 422 and the
+        whole lookup degraded to nothing.
         """
         if not network_available or not settings.coder_enable_pwc_search:
             return []
@@ -2993,7 +3003,7 @@ class CoderAgent:
                 plan["hypothesis_id"],
             )
             return []
-        query = f"{plan['objective']} {plan.get('design', '')} Methods: {', '.join(reused)}".strip()
+        query = f"{', '.join(reused)}. {plan['objective']} {plan.get('design', '')}".strip()
         try:
             return self.pwc_lookup(query) or []
         except Exception as exc:  # noqa: BLE001 — see the docstring

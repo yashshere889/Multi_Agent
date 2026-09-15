@@ -78,6 +78,13 @@ MAX_REPOS_PER_PAPER = 2
 # A TL;DR is one or two sentences in the catalog, but it is model-written and
 # nothing guarantees that, so it is cut like any other free-text field.
 MAX_TLDR_CHARS = 400
+# The API's own hard limit on `q`: a longer one is a 422, not a truncated
+# search. Enforced here rather than only at the call site because it is a fact
+# about the endpoint, and a caller composing a query from an experiment plan's
+# prose has no reason to know it. Barkla job 10510234 is why this exists — a
+# plan whose objective and design ran to 500 characters made every search 422
+# and the whole lookup degrade to nothing, silently and by design.
+MAX_QUERY_CHARS = 300
 
 
 def _api_base_url() -> str:
@@ -109,6 +116,22 @@ def _get_json(path: str, params: dict[str, Any]) -> Any | None:
         return None
 
 
+def _truncate_query(query: str) -> str:
+    """Cuts `query` to MAX_QUERY_CHARS on a word boundary. Callers order the
+    query so that what survives the cut is what matters — see
+    CoderAgent._find_reference_implementations, which puts the method names
+    first for exactly this reason."""
+    cleaned = " ".join(query.split())
+    if len(cleaned) <= MAX_QUERY_CHARS:
+        return cleaned
+    cut = cleaned[:MAX_QUERY_CHARS]
+    # Only back off to a word boundary if there is one late enough to keep most
+    # of the budget; a single 300-character token is better sent hard-cut than
+    # dropped to nothing.
+    boundary = cut.rfind(" ")
+    return cut[:boundary] if boundary > MAX_QUERY_CHARS // 2 else cut
+
+
 def search_papers(query: str, mode: str = "semantic", limit: int = SEARCH_LIMIT) -> list[dict]:
     """Catalog paper search, restricted to papers with an official
     implementation. Returns the raw hit dicts, most relevant first, or [] on any
@@ -126,7 +149,7 @@ def search_papers(query: str, mode: str = "semantic", limit: int = SEARCH_LIMIT)
     payload = _get_json(
         "papers/search",
         {
-            "q": query,
+            "q": _truncate_query(query),
             "page": 1,
             "page_size": limit,
             "mode": mode,

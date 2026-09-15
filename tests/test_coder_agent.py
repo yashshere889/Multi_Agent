@@ -7699,10 +7699,11 @@ def test_reference_implementations_are_offered_to_the_model(tmp_path):
     lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
     _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
 
-    # Queried with the plan's own prose plus the names of the methods it says it
-    # reuses — not reduced to keywords, because the catalog search is semantic.
+    # Queried with the plan's own prose, not reduced to keywords, because the
+    # catalog search is semantic — and led by the method names, because the
+    # endpoint caps the query length and the tail is what gets cut.
     assert len(queries) == 1
-    assert "Methods: baseline" in queries[0]
+    assert queries[0].startswith("baseline.")
 
     prompt = model.prompts_by_kind["codegen"][0]
     assert "Mean-Shifted Contrastive Loss for Anomaly Detection" in prompt
@@ -7962,3 +7963,49 @@ def test_pwc_api_url_setting_overrides_the_public_endpoint(monkeypatch):
     paperswithcode_client.search_papers("anything")
 
     assert calls[0][0] == "http://localhost:8000/api/v1/papers/search"
+
+
+def test_a_query_past_the_api_limit_is_truncated_not_rejected(monkeypatch):
+    # Barkla job 10510234: an experiment plan's objective and design ran to ~500
+    # characters, the endpoint rejected every search with a 422
+    # ("String should have at most 300 characters"), and the whole lookup
+    # degraded to nothing — silently, exactly as designed for a *transport*
+    # failure, which is what made it so easy to miss.
+    calls: list = []
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse({"results": []})}, recorder=calls)
+
+    paperswithcode_client.search_papers("word " * 200)
+
+    sent = calls[0][1]["q"]
+    assert len(sent) <= paperswithcode_client.MAX_QUERY_CHARS
+    assert not sent.endswith(" ")  # cut on a word boundary
+
+
+def test_a_single_enormous_token_is_hard_cut_rather_than_dropped(monkeypatch):
+    # Backing off to a word boundary must not throw the query away when there
+    # isn't one: a hard cut still searches for something.
+    calls: list = []
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse({"results": []})}, recorder=calls)
+
+    paperswithcode_client.search_papers("x" * 500)
+
+    assert len(calls[0][1]["q"]) == paperswithcode_client.MAX_QUERY_CHARS
+
+
+def test_method_names_survive_a_plan_whose_prose_exceeds_the_limit(tmp_path):
+    # The ordering half of the same fix: the methods are what the search is for,
+    # so they must be in the part of the query that actually gets sent.
+    plan = _plan("H1")
+    plan["objective"] = "To empirically validate " + ("a very long objective clause " * 30)
+    plan["design"] = "A controlled comparative experiment " * 20
+    plan["methods"] = [
+        {"name": "GraphRAG", "description": "d", "reused_from_literature": True},
+        {"name": "certified error control", "description": "d", "reused_from_literature": True},
+    ]
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([plan]))
+
+    sent = paperswithcode_client._truncate_query(queries[0])
+    assert "GraphRAG" in sent
+    assert "certified error control" in sent
