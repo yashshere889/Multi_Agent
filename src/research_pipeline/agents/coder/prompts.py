@@ -75,8 +75,20 @@ EXPERIMENT_SECTION_PLACEHOLDERS: list[tuple[str, str]] = [
     ),
 ]
 
+# Asked for in the section shape, but never required back. A model that skips it
+# costs nothing: absence reads as "none", which is already a legitimate answer.
+# Requiring it would put a provenance annotation on the structural budget, and
+# two skipped sections would end a plan whose program was fine — a strictly worse
+# trade than the uncited README this field exists to improve. See
+# llm_sections.parse_sections' optional_field_names.
+EXPERIMENT_OPTIONAL_FIELD_NAMES: tuple[str, ...] = ("reference_used",)
+
 # What CoderAgent._call_sections requires back, and what it splices where.
-EXPERIMENT_FIELD_NAMES: list[str] = [name for name, _ in EXPERIMENT_SECTION_PLACEHOLDERS]
+EXPERIMENT_FIELD_NAMES: list[str] = [
+    name
+    for name, _ in EXPERIMENT_SECTION_PLACEHOLDERS
+    if name not in EXPERIMENT_OPTIONAL_FIELD_NAMES
+]
 RUN_PY_SECTION_NAMES: tuple[str, ...] = (
     "imports",
     "configuration",

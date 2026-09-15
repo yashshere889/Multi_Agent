@@ -2510,6 +2510,7 @@ class CoderAgent:
         user_prompt: str,
         field_names: Sequence[str] | None = None,
         *,
+        optional_field_names: Sequence[str] = (),
         temperature: float | None = None,
     ) -> dict[str, str]:
         """For every response that carries generated source code.
@@ -2531,6 +2532,7 @@ class CoderAgent:
                 prompts.SYSTEM_PROMPT,
                 user_prompt,
                 field_names,
+                optional_field_names=optional_field_names,
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
@@ -3388,7 +3390,11 @@ class CoderAgent:
             ),
         )
         return self._assemble_generation(
-            self._call_sections(prompt, prompts.EXPERIMENT_FIELD_NAMES)
+            self._call_sections(
+                prompt,
+                prompts.EXPERIMENT_FIELD_NAMES,
+                optional_field_names=prompts.EXPERIMENT_OPTIONAL_FIELD_NAMES,
+            )
         )
 
     def _regenerate_with_fix(

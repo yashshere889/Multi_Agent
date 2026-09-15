@@ -51,7 +51,7 @@ from research_pipeline.agents.coder.schema import (
     validate_output,
 )
 from research_pipeline.config import settings
-from research_pipeline.llm_sections import render_sections
+from research_pipeline.llm_sections import parse_sections, render_sections
 
 # -- schema.py: output validation ------------------------------------------------------
 
@@ -8152,17 +8152,22 @@ def test_no_references_leaves_the_readme_untouched(tmp_path):
 # required *section* is enforced by the transport instead of by hope.
 
 
-def test_reference_used_is_a_required_section():
-    assert "reference_used" in prompts.EXPERIMENT_FIELD_NAMES
+def test_reference_used_is_asked_for_but_never_required():
+    # In the shape the model is shown, so it answers...
+    assert "reference_used" in dict(prompts.EXPERIMENT_SECTION_PLACEHOLDERS)
+    assert "reference_used" in prompts.EXPERIMENT_OPTIONAL_FIELD_NAMES
+    # ...but not in the set whose absence is a structural failure. Requiring it
+    # would put a provenance annotation on the structural budget, and two skipped
+    # sections would end a plan whose program was fine.
+    assert "reference_used" not in prompts.EXPERIMENT_FIELD_NAMES
     # Not a code section: it must not be spliced into run.py, and a targeted fix
     # must not be able to aim at it (see _target_sections).
     assert "reference_used" not in prompts.RUN_PY_SECTION_NAMES
 
 
-def test_omitting_reference_used_is_a_structural_failure(tmp_path):
-    # A missing section costs a structural retry, never a fix attempt — the
-    # budget distinction that made routing the citation through the fix loop
-    # wrong in the first place.
+def test_omitting_reference_used_costs_nothing(tmp_path):
+    # The regression this optionality exists to prevent: a model that skips the
+    # field must not lose its experiment over it.
     without = {
         **GOOD_SECTIONS,
         "readme": "# r\n",
@@ -8171,13 +8176,27 @@ def test_omitting_reference_used_is_a_structural_failure(tmp_path):
         "needs_network": "false",
         "needs_gpu": "false",
     }
-    model = ScriptedChatModel(
-        codegen=[render_sections(without)], fix=[_codegen_response(GOOD_SECTIONS)]
-    )
-    result = _agent(tmp_path, model, max_structural_retries=1).run(_planner_output([_plan("H1")]))
+    model = ScriptedChatModel(codegen=[render_sections(without)])
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
 
-    sources = [h["error_source"] for h in result["experiments"][0]["fix_history"]]
-    assert sources and sources[0] in {"missing_sections", "invalid_format"}
+    experiment = result["experiments"][0]
+    assert experiment["fix_history"] == []
+    assert experiment["status"] == "completed"
+    # And the README still carries the provenance, because the pipeline writes it.
+    readme = (Path(experiment["code_path"]) / "README.md").read_text()
+    assert "## Reference implementations offered" in readme
+    assert "reports following none of these" in readme
+
+
+def test_an_optional_section_is_parsed_when_the_model_provides_it():
+    text = render_sections({"a": "1", "reference_used": "2106.03844"})
+    assert parse_sections(text, ["a"], ("reference_used",)) == {
+        "a": "1",
+        "reference_used": "2106.03844",
+    }
+    # ...and its absence is simply absence, not a SectionFormatError.
+    assert parse_sections(render_sections({"a": "1"}), ["a"], ("reference_used",)) == {"a": "1"}
 
 
 def test_a_claimed_reference_is_validated_against_what_was_offered():

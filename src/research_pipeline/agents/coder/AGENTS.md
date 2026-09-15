@@ -214,11 +214,16 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   states in words so the README never overclaims.
 - **Asking the model in prose did not work; requiring a section does.** The citation request sat
   in `REFERENCE_IMPLEMENTATION_NOTE` across two cluster runs and four generations and was
-  ignored every time. `reference_used` is now an entry in `EXPERIMENT_SECTION_PLACEHOLDERS`, so
-  the model must answer "which of these does your method follow, or `none`" — and omitting it is
-  `missing_sections`, which `llm_sections` retries once and then routes to
-  `CODER_MAX_STRUCTURAL_RETRIES`, never to the fix budget. That budget split is the whole reason
-  this shape is affordable where the fix-loop check was not. `sandbox.reference_claim` validates
+  ignored every time. `reference_used` is an entry in `EXPERIMENT_SECTION_PLACEHOLDERS`, so the
+  model is shown it and asked "which of these does your method follow, or `none`" — but it
+  is in `EXPERIMENT_OPTIONAL_FIELD_NAMES`, **not** in `EXPERIMENT_FIELD_NAMES`, so a model
+  that skips it costs nothing. Requiring it was the obvious move and the wrong one: a
+  missing section is `missing_sections`, which spends `CODER_MAX_STRUCTURAL_RETRIES` and
+  then ends the plan — so a model that habitually omitted the field would lose experiments
+  whose programs were fine, over an annotation. Absence reads as `none`, which was always a
+  legitimate answer. `llm_sections.parse_sections`' `optional_field_names` is what makes
+  "asked for but not required" expressible; anything the program cannot run without stays in
+  `field_names`. `sandbox.reference_claim` validates
   the answer against the offered set and drops anything else: a model asked to name a paper will
   produce a plausible arXiv id that was never shown to it, and a hallucinated citation is worse
   than `none` — the same rule, for the same reason, as the Writer resolving `[[cite:...]]` only
