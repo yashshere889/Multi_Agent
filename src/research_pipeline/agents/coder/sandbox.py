@@ -1028,7 +1028,35 @@ def check_reference_cited(
     ]
 
 
-def reference_appendix(references: list[dict], model_cited: bool) -> str:
+def reference_claim(reference_used: str, references: list[dict]) -> str:
+    """The paper id the model says its method follows, if that id was actually
+    offered. "" for "none", for an empty field, and for an id nobody offered.
+
+    The last case is the one worth naming: a model asked which reference it
+    followed can answer with a plausible-looking arXiv id that appears nowhere in
+    the block it was shown, and an unoffered id is a hallucinated citation — the
+    single worst outcome here, strictly worse than "none". Validated against the
+    offered set for the same reason the Writer resolves `[[cite:...]]` markers
+    only against papers the Literature Agent actually found: the model proposes,
+    Python decides what counts.
+    """
+    claimed = (reference_used or "").strip().strip(".,;:`'\"")
+    if not claimed or claimed.lower() in {"none", "n/a", "na", "null", "-"}:
+        return ""
+    for reference in references or []:
+        paper_id = str(reference.get("paper_id") or "").strip()
+        if paper_id and (paper_id == claimed or paper_id in claimed):
+            return paper_id
+    logger.warning(
+        "Model claims to follow reference %r, which was not among the %d offered; "
+        "treating as no claim",
+        claimed[:80],
+        len(references or []),
+    )
+    return ""
+
+
+def reference_appendix(references: list[dict], model_cited: bool, claimed: str = "") -> str:
     """The README section recording what the catalog offered this experiment.
 
     Written by the pipeline, not asked of the model, because asking did not work
@@ -1069,12 +1097,16 @@ def reference_appendix(references: list[dict], model_cited: bool) -> str:
     if not rendered:
         return ""
 
-    verdict = (
-        "The generated code cites at least one of these."
-        if model_cited
-        else "The generated code cites none of these, so which published method it follows "
-        "(if any) is not established — treat the implementation as this pipeline's own."
-    )
+    if claimed:
+        verdict = f"The model reports that this experiment's method follows `{claimed}`."
+    elif model_cited:
+        verdict = "The generated code cites at least one of these."
+    else:
+        verdict = (
+            "The model reports following none of these, so which published method this "
+            "implementation follows (if any) is not established — treat it as this "
+            "pipeline's own."
+        )
     return (
         "\n\n## Reference implementations offered\n\n"
         "Recorded automatically by the pipeline from the Papers with Code catalog, matched "

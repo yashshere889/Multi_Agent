@@ -747,7 +747,12 @@ GOOD_SECTIONS = {
 
 
 def _codegen_response(
-    sections=None, readme="# Test experiment\n", requirements="", assumptions=None, needs_gpu=False
+    sections=None,
+    readme="# Test experiment\n",
+    requirements="",
+    assumptions=None,
+    needs_gpu=False,
+    reference_used="none",
 ) -> str:
     """Builds a codegen response in llm_sections.py's delimited format (no
     escaping of any kind — generated code is carried verbatim between markers).
@@ -764,6 +769,12 @@ def _codegen_response(
         "assumptions_made": "\n".join(f"- {item}" for item in (assumptions or [])),
         "needs_network": "false",
         "needs_gpu": "true" if needs_gpu else "false",
+        # Required of every generation since reference_used joined
+        # EXPERIMENT_SECTION_PLACEHOLDERS — omitting it is `missing_sections`,
+        # which is what makes the field reliable in production and what would
+        # otherwise fail every test in this file. "none" is the honest default
+        # for a fixture that was offered no reference.
+        "reference_used": reference_used,
     }
     return render_sections(fields)
 
@@ -2019,6 +2030,7 @@ def test_assumptions_and_needs_gpu_are_parsed_out_of_raw_section_text(tmp_path):
                     "assumptions_made": "- used a synthetic sample\n\n- capped epochs at 5\n",
                     "needs_network": "false",
                     "needs_gpu": "true — the plan's model needs one",
+                    "reference_used": "none",
                 }
             )
         ]
@@ -8108,7 +8120,9 @@ def test_the_readme_records_the_references_the_model_would_not(tmp_path):
     assert "https://github.com/talreiss/Mean-Shifted-Anomaly-Detection (official)" in readme
     assert "2106.03844" in readme
     # And it does not overclaim: the code cited nothing, and the README says so.
-    assert "cites none of these" in readme
+    # And it does not overclaim: the model reported following none, and the
+    # README says exactly that rather than implying the method is grounded.
+    assert "reports following none of these" in readme
 
 
 def test_the_readme_says_so_when_the_model_did_cite(tmp_path):
@@ -8130,3 +8144,78 @@ def test_no_references_leaves_the_readme_untouched(tmp_path):
 
     readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
     assert readme == "# Test experiment\n"
+
+
+# -- reference_used: the required field ---------------------------------------------------
+# REFERENCE_IMPLEMENTATION_NOTE asked the model to cite, in prose, four times
+# across two Barkla runs (10522998, 10523021) and was ignored every time. A
+# required *section* is enforced by the transport instead of by hope.
+
+
+def test_reference_used_is_a_required_section():
+    assert "reference_used" in prompts.EXPERIMENT_FIELD_NAMES
+    # Not a code section: it must not be spliced into run.py, and a targeted fix
+    # must not be able to aim at it (see _target_sections).
+    assert "reference_used" not in prompts.RUN_PY_SECTION_NAMES
+
+
+def test_omitting_reference_used_is_a_structural_failure(tmp_path):
+    # A missing section costs a structural retry, never a fix attempt — the
+    # budget distinction that made routing the citation through the fix loop
+    # wrong in the first place.
+    without = {
+        **GOOD_SECTIONS,
+        "readme": "# r\n",
+        "requirements_txt": "",
+        "assumptions_made": "",
+        "needs_network": "false",
+        "needs_gpu": "false",
+    }
+    model = ScriptedChatModel(
+        codegen=[render_sections(without)], fix=[_codegen_response(GOOD_SECTIONS)]
+    )
+    result = _agent(tmp_path, model, max_structural_retries=1).run(_planner_output([_plan("H1")]))
+
+    sources = [h["error_source"] for h in result["experiments"][0]["fix_history"]]
+    assert sources and sources[0] in {"missing_sections", "invalid_format"}
+
+
+def test_a_claimed_reference_is_validated_against_what_was_offered():
+    assert sandbox.reference_claim("2106.03844", [PWC_REFERENCE]) == "2106.03844"
+    assert sandbox.reference_claim("  `2106.03844` ", [PWC_REFERENCE]) == "2106.03844"
+
+
+def test_none_is_an_accepted_answer():
+    for answer in ("none", "None", "", "  ", "n/a", "-"):
+        assert sandbox.reference_claim(answer, [PWC_REFERENCE]) == ""
+
+
+def test_a_reference_nobody_offered_is_not_a_citation():
+    # The worst outcome available here, and strictly worse than "none": a model
+    # asked which paper it followed can answer with a plausible arXiv id that was
+    # never in the block. Same rule as the Writer's [[cite:...]] markers — the
+    # model proposes, Python decides what counts.
+    assert sandbox.reference_claim("1706.03762", [PWC_REFERENCE]) == ""
+
+
+def test_the_readme_reports_the_models_own_claim(tmp_path):
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(GOOD_SECTIONS, reference_used="2106.03844")]
+    )
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
+    assert "follows `2106.03844`" in readme
+
+
+def test_a_hallucinated_claim_does_not_reach_the_readme(tmp_path):
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(GOOD_SECTIONS, reference_used="1706.03762")]
+    )
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
+    assert "1706.03762" not in readme
+    assert "reports following none of these" in readme

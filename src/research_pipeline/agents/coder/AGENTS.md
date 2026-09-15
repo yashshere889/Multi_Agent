@@ -211,7 +211,18 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   put a documentation concern on the fix budget.** `sandbox.reference_appendix` now writes the
   offered references into the README deterministically — it cannot be refused — and
   `check_reference_cited` is demoted to reporting whether the model engaged, which the appendix
-  states in words so the README never overclaims. If you ever re-route it, note that
+  states in words so the README never overclaims.
+- **Asking the model in prose did not work; requiring a section does.** The citation request sat
+  in `REFERENCE_IMPLEMENTATION_NOTE` across two cluster runs and four generations and was
+  ignored every time. `reference_used` is now an entry in `EXPERIMENT_SECTION_PLACEHOLDERS`, so
+  the model must answer "which of these does your method follow, or `none`" — and omitting it is
+  `missing_sections`, which `llm_sections` retries once and then routes to
+  `CODER_MAX_STRUCTURAL_RETRIES`, never to the fix budget. That budget split is the whole reason
+  this shape is affordable where the fix-loop check was not. `sandbox.reference_claim` validates
+  the answer against the offered set and drops anything else: a model asked to name a paper will
+  produce a plausible arXiv id that was never shown to it, and a hallucinated citation is worse
+  than `none` — the same rule, for the same reason, as the Writer resolving `[[cite:...]]` only
+  against papers the Literature Agent actually found. If you ever re-route it, note that
   `_target_sections` filters against `prompts.RUN_PY_SECTION_NAMES`, so `("readme",)` silently
   drops out of the target set and leaves only `_ALWAYS_REGENERATED`.
 - **A method simplification is not a data substitution.** `provenance._DECLARED_SUBSTITUTION`

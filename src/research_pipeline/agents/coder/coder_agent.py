@@ -1523,18 +1523,26 @@ class CoderAgent:
         # to run it would have ended a working experiment as
         # `code_generated_not_run` over a missing comment. The fix budget is for
         # defects in generated code. See sandbox.check_reference_cited.
-        model_cited_reference = not sandbox.check_reference_cited(
+        # What the model claims to have followed, from the required
+        # `reference_used` field — and, failing that, any citation it happened to
+        # write into the code, README or assumptions. The field is the reliable
+        # signal (the transport enforces it); check_reference_cited is the
+        # fallback for a model that answered "none" but cited one anyway.
+        reference_claim = sandbox.reference_claim(
+            generation.get("reference_used", ""), reference_implementations or []
+        )
+        model_cited_reference = bool(reference_claim) or not sandbox.check_reference_cited(
             run_py,
             generation.get("readme", ""),
             assumptions_made,
             reference_implementations or [],
         )
-        if reference_implementations and not model_cited_reference:
+        if reference_implementations:
             logger.info(
-                "[%s] the model cited none of the %d offered reference implementation(s); "
-                "recording them in the README instead",
+                "[%s] %d reference implementation(s) offered; the model says it followed %s",
                 hypothesis_id,
                 len(reference_implementations),
+                reference_claim or "none of them",
             )
 
         files = {
@@ -1542,7 +1550,9 @@ class CoderAgent:
             # The provenance the model would not write. Deterministic, so it
             # cannot be refused — see sandbox.reference_appendix.
             "README.md": generation.get("readme", "")
-            + sandbox.reference_appendix(reference_implementations or [], model_cited_reference),
+            + sandbox.reference_appendix(
+                reference_implementations or [], model_cited_reference, reference_claim
+            ),
             "requirements.txt": generation.get("requirements_txt", ""),
         }
         self._write_files(experiment_dir, files)
@@ -2587,6 +2597,11 @@ class CoderAgent:
         return {
             "run_py_sections": run_py_sections,
             "readme": kept("readme", ""),
+            # The model's own answer to "which of the offered references does
+            # this follow?" — normalized only by stripping; whether it names a
+            # reference that was actually offered is decided by
+            # sandbox.reference_claim, not here.
+            "reference_used": str(kept("reference_used", "")).strip(),
             "requirements_txt": kept("requirements_txt", ""),
             "assumptions_made": (
                 _parse_assumptions(sections["assumptions_made"])
