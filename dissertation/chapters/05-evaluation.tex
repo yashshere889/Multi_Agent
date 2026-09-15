@@ -425,30 +425,66 @@ over-reporting. What sweeps~2 and~3 show is that repairing it exposes a second,
 much larger over-reporting problem underneath it, in the one check no deterministic
 rule can replace.
 
-\section{Human evaluation}
-\label{sec:human-eval}
+\section{What this evaluation does not establish}
+\label{sec:limitations}
 
-% TODO(yash): written once the sessions are complete. Structure:
-%   - recruitment: how participants were approached and selected, including
-%     the two requirements-analysis respondents who had already consented;
-%     state plainly how many took part.
-%   - method: each participant enters a research question in their own field,
-%     drives the pipeline through the web interface, and reviews the drafted
-%     paper. Instrument, consent form and rating rubric in the appendices.
-%   - results: Likert responses in aggregate, anonymised free text.
-%   - the question that matters most, given Chapter 2: what did they have to
-%     take on trust, and did the mechanisms of Chapter 3 let them check it?
-%   - report the sample size honestly and claim nothing it cannot carry.
-[TODO]
+A human evaluation was planned, and both requirements-analysis respondents had
+agreed in principle to take part. It was not carried out, for a reason that is
+itself a finding about deploying this kind of system on shared research
+infrastructure.
+
+An evaluation session requires a working system in front of a participant at an
+agreed time. The pipeline needs a GPU to serve its model, and the cluster it runs on
+allocates GPUs by queue rather than on demand: a job waits behind other users, the
+per-user GPU limit is shared with anything else the account is already running, and
+the partitions with capacity actually available are pre-emptible --- two benchmark
+runs in this project were stopped mid-run by pre-emption, and the final sweep was
+restricted to one question at a time because half the account's GPU allowance was in
+use elsewhere. A participant cannot be asked to hold an hour open against a queue
+that may not clear, and a session that begins and is then pre-empted is worse than
+none. Compounding this, the guardrail failures of
+Sections~\ref{sec:guardrail-coverage} to~\ref{sec:saturation} were found late, and
+repairing them was judged a better use of the remaining time than measuring a system
+whose verdicts were at that point demonstrably unsound.
+
+Section~\ref{sec:future-overlap} sets out how the evaluation should be run, including
+the two ways the scheduling obstacle can be removed. Its consequences are stated here
+rather than absorbed quietly, because it bounds several claims.
+
+Nothing in this chapter establishes that the output is \emph{usable}. Every result
+above concerns what the system does --- what it completes, what it verifies, what it
+refuses --- and none of it is evidence about whether a researcher who cannot program
+would be helped by the drafted paper, would understand what had been withheld from
+them, or would calibrate their trust correctly. Those are the questions A1 and A3
+raise, and the questions Chapter~\ref{ch:requirements}'s respondents raised first.
+They remain open, and they are the largest gap in this dissertation's evidence.
+
+Three further limits apply to what \emph{is} reported. Every run used a single model
+on a single cluster, so nothing here separates a property of the pipeline from a
+property of Qwen3-Coder-30B-A3B-Instruct. The thirty-six questions were written for
+this evaluation by one person and each names a concrete data type and an explicit
+baseline, which makes them a favourable sample rather than a representative one. And
+there is no comparison against a human baseline or a competing system: the
+comparisons in Table~\ref{tab:three-sweeps} are internal, measuring the effect of
+specific repairs on a fixed set of questions, and say nothing about how the pipeline
+compares with a researcher doing the same work unaided.
+
+What the evidence does support is narrower, and still worth having: that a pipeline
+of this shape can carry a question end to end unattended; that its characteristic
+failures are identifiable, reproducible and in several cases repairable; and that
+computing verdicts in code rather than accepting them from a model is what made
+those failures visible at all.
 
 \section{Assessment against the aims}
 \label{sec:assessment}
 
-% TODO(yash): complete once the human evaluation is in; A1 and A3 depend on it.
 \begin{description}[style=unboxed,leftmargin=0pt,itemsep=0.3em]
-  \item[\textbf{A1}] \emph{Question to draft paper without writing code.} Met: 36
-    of 36 questions produced drafted papers with no human intervention.
-    Whether the result is \emph{usable} is the human evaluation's question.
+  \item[\textbf{A1}] \emph{Question to draft paper without writing code.} Met
+    mechanically, and unevaluated for usefulness. Thirty-four of the last sweep's
+    thirty-six questions produced a drafted paper with no human intervention, and
+    across three sweeps that figure never fell below thirty-three. Whether such a
+    paper helps the researcher it is written for was not put to anyone
+    (Section~\ref{sec:limitations}).
   \item[\textbf{A2}] \emph{No unverifiable claim.} Met as of sweep~3, and only
     after three separate failures of the same kind. Citations cannot resolve to
     unretrieved papers, verdicts derive from execution, and synthesised inputs
@@ -459,8 +495,12 @@ rule can replace.
     come out otherwise (Section~\ref{sec:saturation}). Sweep~3 published no verdict
     at all, which satisfies this aim in the only way it can currently be satisfied.
     A silent substitution the model never declares remains uncaught.
-  \item[\textbf{A3}] \emph{Independently usable and steerable stages.} Met in
-    the implementation; its value to a researcher is for the evaluation to say.
+  \item[\textbf{A3}] \emph{Independently usable and steerable stages.} Met in the
+    implementation, untested with users. Each agent validates its predecessor's
+    contract and runs standalone, from the command line or from a previous run's
+    JSON, and the interface exposes stage ranges, user-supplied papers and
+    hypothesis selection (D5). That the mechanism exists is demonstrated; that it is
+    the steering a researcher wants is not.
   \item[\textbf{A4}] \emph{Institutional infrastructure, open weights.} Met: every
     run reported here executed on the university's cluster against a self-hosted
     model, with no research content leaving the institution.

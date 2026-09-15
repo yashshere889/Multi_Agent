@@ -36,6 +36,29 @@ also the clearest statement of what remains to be built.
 \section{Future work}
 \label{sec:future-overlap}
 
+\paragraph{The human evaluation, and the infrastructure it needs.} The largest gap
+in this dissertation's evidence is that no researcher has used the system
+(Section~\ref{sec:limitations}). The study is designed and its participants were
+willing: each enters a research question in their own field, drives the pipeline
+through the web interface, and reviews the drafted paper, with the instrument asking
+the three questions the requirements analysis raised --- whether the draft is usable,
+whether the reader understands what the system withheld and why, and whether their
+trust in it is calibrated to what it actually verified.
+
+What blocked it is scheduling, not design, and it is worth recording because any
+group deploying such a tool on institutional hardware will meet it. A live session
+needs a GPU at an agreed hour on a facility that allocates by queue and pre-empts on
+its most available partitions. Two routes around it are open. The first is to
+reserve compute for the session window --- an interactive allocation or a booked
+node, which the facility supports on request --- so that the model server is up
+before the participant arrives. The second decouples the participant from the
+compute entirely: pre-run a set of questions, then have the participant drive the
+interface over completed runs, inspecting stage outputs, provenance records and
+drafts as artefacts rather than waiting for them. The second is weaker evidence about
+the experience of \emph{running} the system and stronger evidence about whether its
+output can be understood and trusted, which is the more important of the two
+questions and the one this project cannot currently answer at all.
+
 \paragraph{Overlap detection (D6).} Both requirements-analysis respondents rated
 the flagging of overlap with existing literature 5 out of 5 --- the only item to
 score the maximum from both --- and Gupta and Pruthi's finding that a substantial
