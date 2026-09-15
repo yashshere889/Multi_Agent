@@ -161,7 +161,6 @@ _ERROR_STAGE_ORDER = [
     "static_lint",
     "missing_data_fallback",
     "ignored_available_dataset",
-    "uncited_reference_implementation",
     "excess_return_as_total",
     "missing_batching",
     "self_review",
@@ -289,18 +288,6 @@ _SECTIONS_BY_ERROR_SOURCE: dict[str, tuple[str, ...]] = {
     "missing_data_fallback": ("load_data_function",),
     # check_hf_dataset_usage reads configuration + load_data.
     "ignored_available_dataset": ("load_data_function",),
-    # check_reference_cited reads the whole program, so nothing localizes the
-    # *defect* — but the fix is a citation, and the prompt asks for it "in a
-    # comment next to the method it grounds", which is build_model. Targeting it
-    # keeps a working program from being rewritten to add a comment to it; the
-    # fix prompt re-requests assumptions_made alongside regardless, and a
-    # citation there clears the check too.
-    #
-    # Not ("readme",), which is where a reviewer would rather read one:
-    # _target_sections filters against prompts.RUN_PY_SECTION_NAMES, so a
-    # non-code section silently drops out of the target set and leaves only
-    # _ALWAYS_REGENERATED behind.
-    "uncited_reference_implementation": ("build_model_function",),
     # check_results_plausibility judges the dict evaluate() returns.
     "implausible_results": ("evaluate_function",),
 }
@@ -1529,9 +1516,33 @@ class CoderAgent:
         # whatever version actually compiled.
         run_py, compile_error = sandbox.lenient_compile_check(run_py, "run.py")
 
+        # Whether the *model* engaged with the reference block, recorded rather
+        # than enforced. Barkla job 10523021 wired this into the fix loop and it
+        # was a mistake: the model did not comply on attempt 1 or attempt 2, each
+        # refusal cost twelve minutes of regeneration and re-execution, and left
+        # to run it would have ended a working experiment as
+        # `code_generated_not_run` over a missing comment. The fix budget is for
+        # defects in generated code. See sandbox.check_reference_cited.
+        model_cited_reference = not sandbox.check_reference_cited(
+            run_py,
+            generation.get("readme", ""),
+            assumptions_made,
+            reference_implementations or [],
+        )
+        if reference_implementations and not model_cited_reference:
+            logger.info(
+                "[%s] the model cited none of the %d offered reference implementation(s); "
+                "recording them in the README instead",
+                hypothesis_id,
+                len(reference_implementations),
+            )
+
         files = {
             "run.py": run_py,
-            "README.md": generation.get("readme", ""),
+            # The provenance the model would not write. Deterministic, so it
+            # cannot be refused — see sandbox.reference_appendix.
+            "README.md": generation.get("readme", "")
+            + sandbox.reference_appendix(reference_implementations or [], model_cited_reference),
             "requirements.txt": generation.get("requirements_txt", ""),
         }
         self._write_files(experiment_dir, files)
@@ -1628,24 +1639,6 @@ class CoderAgent:
             return {
                 "error_source": "ignored_available_dataset",
                 "error_text": f"A real dataset was offered but not used: {'; '.join(dataset_usage_findings)}",
-            }
-
-        # Published work with official code was offered as grounding (see
-        # _reference_implementations_block) — checks the offer left a trace,
-        # the two sanctioned outcomes being "cited where followed" and "declined
-        # in assumptions_made", exactly as for the dataset above. The prompt
-        # asked for this from the start and Barkla job 10522998 ignored it
-        # wholesale; this is the Python that makes the instruction real.
-        reference_findings = sandbox.check_reference_cited(
-            run_py,
-            generation.get("readme", ""),
-            assumptions_made,
-            reference_implementations or [],
-        )
-        if reference_findings:
-            return {
-                "error_source": "uncited_reference_implementation",
-                "error_text": f"Offered reference implementations left no trace: {'; '.join(reference_findings)}",
             }
 
         # A property of the code, not of how good the results are: the fix loop

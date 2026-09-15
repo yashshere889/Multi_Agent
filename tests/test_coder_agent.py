@@ -8081,28 +8081,52 @@ def test_declining_every_reference_in_assumptions_clears_it():
     )
 
 
-def test_an_uncited_reference_routes_back_through_the_fix_loop(tmp_path):
-    citing_model = {
-        **GOOD_SECTIONS,
-        "build_model_function": (
-            "def build_model(data):\n"
-            "    # Follows https://github.com/talreiss/Mean-Shifted-Anomaly-Detection\n"
-            "    return None\n"
-        ),
-    }
-    model = RecordingScriptedChatModel(
-        codegen=[_codegen_response(GOOD_SECTIONS)],  # bare README — cites nothing
-        fix=[_codegen_response(citing_model)],
-    )
+def test_an_uncited_reference_costs_no_fix_attempt(tmp_path):
+    # Barkla job 10523021 routed this through the fix loop and it was a mistake:
+    # the model refused to cite on attempt 1 and again on attempt 2, each refusal
+    # costing a full regeneration and re-execution, and left to run it would have
+    # ended a *working* experiment as code_generated_not_run over a missing
+    # comment. A citation is not a defect in generated code.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
     lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
     result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
 
     experiment = result["experiments"][0]
-    history = experiment["fix_history"]
-    assert [h["error_source"] for h in history] == ["uncited_reference_implementation"]
-    assert history[0]["resolved"] is True
-    # Targeted: the citation belongs next to the method it grounds, so a working
-    # program is not rewritten wholesale to add a comment to it.
-    assert "build_model_function" in history[0]["regenerated_sections"]
-    assert "run_experiment_function" not in history[0]["regenerated_sections"]
+    assert experiment["fix_history"] == []
     assert experiment["status"] == "completed"
+
+
+def test_the_readme_records_the_references_the_model_would_not(tmp_path):
+    # The provenance the model refused to write, written deterministically —
+    # it cannot be refused, and it is what a reviewer actually reads.
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
+    assert "## Reference implementations offered" in readme
+    assert "https://github.com/talreiss/Mean-Shifted-Anomaly-Detection (official)" in readme
+    assert "2106.03844" in readme
+    # And it does not overclaim: the code cited nothing, and the README says so.
+    assert "cites none of these" in readme
+
+
+def test_the_readme_says_so_when_the_model_did_cite(tmp_path):
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response(GOOD_SECTIONS, readme=CITING_README)]
+    )
+    lookup, _ = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
+    assert "cites at least one of these" in readme
+
+
+def test_no_references_leaves_the_readme_untouched(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lambda q: []).run(
+        _planner_output([_plan("H1")])
+    )
+
+    readme = (Path(result["experiments"][0]["code_path"]) / "README.md").read_text()
+    assert readme == "# Test experiment\n"

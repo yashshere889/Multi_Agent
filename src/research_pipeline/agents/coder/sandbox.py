@@ -972,8 +972,24 @@ def check_reference_cited(
     don't fit, and a semantic search match can be off-topic. So one trace of any
     offered reference — in the code (a comment counts), the README, or
     assumptions_made — clears it, covering both "I followed this paper" and "I
-    considered these and none fit". Only the silent third option is flagged:
+    considered these and none fit". Only the silent third option is reported:
     generating as though the block were never there.
+
+    **Not wired into the fix loop**, unlike check_hf_dataset_usage, and that is
+    the whole lesson of Barkla job 10523021. Routed as a failure it behaved
+    exactly as designed and was still wrong: the model did not comply on attempt
+    1, did not comply on attempt 2, and each non-compliance cost a full twelve
+    minutes of regeneration and re-execution. Left to run it would have spent the
+    entire fix budget and ended a *working* experiment as
+    `code_generated_not_run` over a missing comment — strictly worse than the
+    prompt-only state it was meant to improve. The fix budget is for defects in
+    generated code; a citation is not one.
+
+    So this reports rather than routes. `reference_appendix` writes the
+    provenance into the README deterministically, which is the part that must
+    never fail, and this function answers the different and weaker question a
+    reviewer still wants: did the *model* claim to follow any of them, or did it
+    generate straight past the offer?
 
     Matched as a plain substring of the paper id or a repository URL, for the
     same reason the dataset check matches on the dataset id: those are the two
@@ -1007,10 +1023,66 @@ def check_reference_cited(
         f"published work with official code ({offered}) was offered as grounding for this "
         "experiment's established methods, but no paper id or repository URL appears in the "
         "generated code, the README or assumptions_made — the experiment was written as "
-        "though the reference block were not there. Either name the paper (and its "
-        "repository URL) where you followed it and where you deliberately simplified it, or "
-        "say in assumptions_made that none of them fit this plan and why."
+        "though the reference block were not there, so nothing the model wrote says which "
+        "published method (if any) its implementation actually follows."
     ]
+
+
+def reference_appendix(references: list[dict], model_cited: bool) -> str:
+    """The README section recording what the catalog offered this experiment.
+
+    Written by the pipeline, not asked of the model, because asking did not work
+    — see check_reference_cited. The references are already known exactly
+    (coder_agent._find_reference_implementations returned them), so this is the
+    codebase's usual trade: anything deterministically knowable is computed here
+    rather than left to model judgment.
+
+    It is careful about what it claims. The pipeline knows these papers were
+    *offered*; it does not know the code follows them, and `model_cited` is the
+    only evidence either way. So the heading says "offered as grounding", and
+    the closing line states plainly whether the generated code cited any of
+    them — a reviewer reading the README learns both what was available and
+    whether the implementation engaged with it, which is exactly what the
+    uncited run could not tell anyone.
+
+    Returns "" when nothing was offered, so an experiment with no references
+    gets a README byte-for-byte like one generated before this existed.
+    """
+    rendered = []
+    for reference in references or []:
+        title = str(reference.get("title") or "").strip()
+        if not title:
+            continue
+        paper_id = str(reference.get("paper_id") or "").strip()
+        year = str(reference.get("year") or "").strip()
+        head = f"- **{title}**"
+        if year:
+            head += f" ({year})"
+        rendered.append(head)
+        if paper_id:
+            rendered.append(f"  - paper: `{paper_id}`")
+        for repository in reference.get("repositories") or []:
+            url = str(repository.get("url") or "").strip()
+            if url:
+                official = " (official)" if repository.get("is_official") else ""
+                rendered.append(f"  - code: {url}{official}")
+    if not rendered:
+        return ""
+
+    verdict = (
+        "The generated code cites at least one of these."
+        if model_cited
+        else "The generated code cites none of these, so which published method it follows "
+        "(if any) is not established — treat the implementation as this pipeline's own."
+    )
+    return (
+        "\n\n## Reference implementations offered\n\n"
+        "Recorded automatically by the pipeline from the Papers with Code catalog, matched "
+        "against this plan's established methods. They were shown to the model as grounding; "
+        "this experiment does not fetch or vendor any of them.\n\n"
+        + "\n".join(rendered)
+        + f"\n\n{verdict}\n"
+    )
 
 
 def check_shared_infra_files(files: dict[str, str]) -> tuple[dict[str, str], str]:

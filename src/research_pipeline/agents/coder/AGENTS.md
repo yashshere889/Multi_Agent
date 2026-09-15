@@ -201,16 +201,19 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   fix attempts later, rather than never being written. If you edit that note, keep the
   prohibition and keep it adjacent to the URLs. That half is prompt-only and has held;
   `sandbox.check_reference_cited` is the half that isn't.
-- **The instruction to cite is enforced, because it was ignored.** Barkla job 10522998 was
-  handed two on-topic GraphRAG papers with real repositories, wrote the experiment, and named
-  neither in `run.py`, `README.md` or `assumptions_made` — the prompt had asked for all three
-  placements from the start. `check_reference_cited` is the same shape as
-  `check_hf_dataset_usage`: one trace of any offered reference (paper id, repo URL, or its
-  `owner/name` tail) anywhere in the program, README or assumptions clears it, covering both
-  "I followed this" and "none of these fit"; only the silent third option becomes
-  `uncited_reference_implementation`. It targets `build_model_function`, not `readme`, because
-  `_target_sections` filters against `prompts.RUN_PY_SECTION_NAMES` and a non-code section
-  drops silently out of the target set.
+- **The citation is written, not requested — and it is not a fix-loop failure.** Barkla job
+  10522998 was handed two on-topic GraphRAG papers with real repositories and named neither in
+  `run.py`, `README.md` or `assumptions_made`; the prompt had asked for all three placements
+  from the start. Job 10523021 then wired `check_reference_cited` into the fix loop, and that
+  was the wrong correction: the model refused on attempt 1 and again on attempt 2, each refusal
+  costing a full regeneration plus re-execution (~12 min), on course to spend the whole budget
+  and end a *working* experiment as `code_generated_not_run` over a missing comment. **Don't
+  put a documentation concern on the fix budget.** `sandbox.reference_appendix` now writes the
+  offered references into the README deterministically — it cannot be refused — and
+  `check_reference_cited` is demoted to reporting whether the model engaged, which the appendix
+  states in words so the README never overclaims. If you ever re-route it, note that
+  `_target_sections` filters against `prompts.RUN_PY_SECTION_NAMES`, so `("readme",)` silently
+  drops out of the target set and leaves only `_ALWAYS_REGENERATED`.
 - **A method simplification is not a data substitution.** `provenance._DECLARED_SUBSTITUTION`
   matches "instead of"/"in place of", which is also how a model describes simplifying an
   algorithm — and `REFERENCE_IMPLEMENTATION_NOTE` now actively asks it to write exactly that

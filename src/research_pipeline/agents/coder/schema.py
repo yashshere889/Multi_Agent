@@ -43,10 +43,6 @@ VALID_ERROR_SOURCES = {
     # using it, and it wasn't declined in assumptions_made either — see
     # sandbox.check_hf_dataset_usage.
     "ignored_available_dataset",
-    # Published work with official code was offered as grounding and left no
-    # trace at all — not cited where followed, not declined in assumptions_made.
-    # See sandbox.check_reference_cited.
-    "uncited_reference_implementation",
     # An excess-return column (Mkt-RF beside RF) is compounded into a value as
     # though it were a total return — see sandbox.check_excess_return_usage.
     "excess_return_as_total",
@@ -165,6 +161,11 @@ class ExperimentResult(TypedDict):
     # data_provenance is — summaries written before this existed still load. See
     # paperswithcode_client.py.
     reference_implementations: list[dict]
+    # Whether the model itself engaged with them is deliberately *not* a field
+    # here: it is recorded in the experiment's own README, in words, by
+    # sandbox.reference_appendix — which is where a reviewer reads it — and
+    # threading a boolean out through every terminal-result construction in
+    # _attempt_once would be a lot of plumbing for a nice-to-have.
 
 
 class CoderAgentOutput(TypedDict):
