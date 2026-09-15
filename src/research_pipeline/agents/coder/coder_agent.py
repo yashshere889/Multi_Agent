@@ -2731,7 +2731,12 @@ class CoderAgent:
         # which then became the real input of a tabular-classification, a
         # timeseries and a bootstrap experiment. Same predicate provenance.resolve
         # uses, so the two cannot disagree about what a synthesis request is.
-        queries = [query for query in queries if not provenance.is_synthesis_request(query)]
+        queries = [
+            query
+            for query in queries
+            if not provenance.is_synthesis_request(query)
+            and not provenance.is_repository_name(query)
+        ]
         if not queries:
             return {}
         # Nothing to find when the plan already named files that are on disk.

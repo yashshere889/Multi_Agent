@@ -800,7 +800,7 @@ def discover_sources(
     for source in sources:
         if source.kind != provenance.KIND_SURROGATE or not source.unresolved:
             continue
-        if source.synthesis_request:
+        if source.synthesis_request or source.catalogue_request:
             continue
         if source.name in discoveries:
             continue

@@ -4036,8 +4036,9 @@ def test_a_staged_file_beats_a_restricted_source(tmp_path):
         ),
         ("public dataset: UCI Electricity Load Diagrams", ["UCI Electricity Load Diagrams"]),
         (
+            # The repository is dropped: it names a place to look, not data.
             "Public dataset from UCI Machine Learning Repository or similar (e.g., Air Quality dataset)",
-            ["Air Quality dataset", "UCI Machine Learning Repository"],
+            ["Air Quality dataset"],
         ),
         ("Cross-sectional microdata from SLID", ["SLID"]),
         (
@@ -4089,6 +4090,83 @@ def _barkla_staging(tmp_path):
         (staging / name).write_text("a,b\n1,2\n")
     (staging / _CATCH_ALL_ALIAS).symlink_to(_NEWSGROUPS_TRAIN)
     return staging
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        "UCI ML Repository",
+        "UCI Machine Learning Repository",
+        "Kaggle",
+        "OpenML",
+        "Hugging Face",
+        "Hugging Face public dataset",
+        # Batch 10496138's phrasing, verbatim: it searched this and got Iris.
+        "public dataset repositories (e.g., UCI ML Repository or OpenML)",
+        "public dataset repositories (e.g., UCI ML Repository, Kaggle)",
+    ],
+)
+def test_requirements_that_name_a_catalogue_rather_than_data(requirement):
+    assert provenance.is_repository_name(requirement)
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        # A dataset that lives in a catalogue is still a dataset, and a dataset
+        # whose own name contains a catalogue word ("Archive") must survive.
+        "UCI Adult dataset",
+        "UCR Time Series Anomaly Archive",
+        "Kaggle Credit Card Fraud Detection",
+        "Hugging Face dataset acme/sleep-survey",
+        "German Credit Dataset",
+        "MoleculeNet solubility dataset (ESOL)",
+        "synthetic generation",
+    ],
+)
+def test_requirements_that_merely_mention_a_catalogue(requirement):
+    assert not provenance.is_repository_name(requirement)
+
+
+def test_a_catalogue_requirement_is_a_surrogate_and_is_never_searched(tmp_path):
+    """Three questions in batch 10496138 asked for "public dataset repositories
+    (e.g., UCI ML Repository)". The search took it literally and returned the Iris
+    dataset, which was then used for probability calibration on imbalanced
+    financial data. A catalogue names nowhere to stop looking, so nothing is
+    searched for and the verdict is withheld."""
+    from research_pipeline.agents.coder import discover
+
+    requirement = "public dataset repositories (e.g., UCI ML Repository or OpenML)"
+    sources = provenance.resolve(
+        [requirement], staging_dir=_barkla_staging(tmp_path), network_available=True
+    )
+
+    assert sources[0].kind == provenance.KIND_SURROGATE
+    assert sources[0].catalogue_request is True
+    assert "catalogue rather than a dataset" in sources[0].reason
+
+    discoveries = discover.discover_sources(
+        sources,
+        cache_dir=tmp_path,
+        connectors=[("fake", lambda r: pytest.fail("a catalogue must not be searched for"))],
+    )
+    assert discoveries == {}
+
+
+def test_the_hub_is_not_asked_for_a_catalogue(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response()])
+    lookup, queries = _recording_lookup(None)
+    plan = _plan("H1")
+    plan["data_requirements"] = {
+        "source": "public dataset repositories (e.g., UCI ML Repository or OpenML)",
+        "description": "tabular classification benchmarks",
+        "preprocessing_steps": [],
+    }
+    _agent(tmp_path, model, network_check=lambda: True, huggingface_lookup_fn=lookup).run(
+        _planner_output([plan])
+    )
+
+    assert queries == ["tabular classification benchmarks"]
 
 
 @pytest.mark.parametrize(

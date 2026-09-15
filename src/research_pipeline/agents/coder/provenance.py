@@ -183,6 +183,11 @@ class DataSource:
     # dataset instead has a phantom requirement, exactly the case
     # supersede_unresolved exists for).
     synthesis_request: bool = False
+    # Set by `resolve` when the requirement names only a catalogue. Distinct from
+    # `synthesis_request` because the right outcome differs in intent though not
+    # in effect: nothing should be generated *for* a catalogue either, but the
+    # plan has asked for real data and simply failed to say which.
+    catalogue_request: bool = False
     # Set by `coder_agent` for a staged file: its columns, first and last rows
     # and any trailing placeholder columns, read off the bytes by
     # `acquire.describe_local`. Empty for everything else.
@@ -309,6 +314,11 @@ def _alternatives_in(span: str) -> list[str]:
     for part in parts:
         cleaned = re.sub(r"\s+", " ", part).strip(" .")
         if not cleaned or cleaned.split()[0].lower() in _FILLER_LEADS or not keywords(cleaned):
+            continue
+        # A catalogue is a place to look, not a thing to read. Dropping it here
+        # is what stops "(e.g., UCI ML Repository or OpenML)" being searched for
+        # as though it named data. See is_repository_name.
+        if is_repository_name(cleaned):
             continue
         found.append(cleaned)
     return found
@@ -556,6 +566,60 @@ _SHAPE_WORDS = {
 _FILLER_WORDS = {"a", "an", "the", "of", "with", "and", "some"}
 
 
+# Catalogues, not datasets. A plan naming one of these has named a place to look
+# rather than a thing to read, and searching for it returns whatever that place
+# ranks first: batch 10496138 resolved "public dataset repositories (e.g., UCI ML
+# Repository or OpenML)" to the Iris dataset, and used it for three unrelated
+# questions including probability calibration on imbalanced financial data.
+_REPOSITORY_WORDS = frozenset(
+    {
+        "archive",
+        "archives",
+        "catalog",
+        "catalogue",
+        "dryad",
+        "face",
+        "figshare",
+        "github",
+        "gitlab",
+        "hub",
+        "hugging",
+        "huggingface",
+        "kaggle",
+        "learning",
+        "machine",
+        "ml",
+        "openml",
+        "portal",
+        "repo",
+        "repos",
+        "repositories",
+        "repository",
+        "uci",
+        "zenodo",
+    }
+)
+
+
+def is_repository_name(requirement: str) -> bool:
+    """Whether this requirement names a catalogue rather than a dataset.
+
+    Strict in the same way, and for the same reason, as `is_synthesis_request`:
+    every word must be catalogue vocabulary, a generic data noun or filler, so
+    "UCI ML Repository" and "Kaggle" match while "UCI Adult dataset", "Kaggle
+    Credit Card Fraud Detection" and "UCR Time Series Anomaly Archive" do not.
+    The last is why "archive" can appear in this set at all: a dataset whose own
+    name contains a catalogue word still carries words that are neither.
+    """
+    # Single characters are dropped before the test: the "e" and "g" of "e.g."
+    # are not words, and leaving them in made every parenthesised example fail it.
+    words = [w for w in re.split(r"[^A-Za-z0-9]+", (requirement or "").lower()) if len(w) > 1]
+    meaningful = [w for w in words if w not in _FILLER_WORDS and w not in _STOPWORDS]
+    if not meaningful or not any(w in _REPOSITORY_WORDS for w in meaningful):
+        return False
+    return all(w in _REPOSITORY_WORDS for w in meaningful)
+
+
 def is_synthesis_request(requirement: str) -> bool:
     """Whether this requirement asks for data to be generated rather than found.
 
@@ -620,6 +684,22 @@ def resolve(
                         if matched_on != requirement
                         else ""
                     ),
+                )
+            )
+            continue
+
+        if is_repository_name(requirement):
+            resolved.append(
+                DataSource(
+                    name=requirement,
+                    kind=KIND_SURROGATE,
+                    reason=(
+                        "this requirement names a data catalogue rather than a dataset, so "
+                        "there is nothing to search for: a surrogate is generated and the "
+                        "verdict withheld until the plan names the data it means"
+                    ),
+                    unresolved=True,
+                    catalogue_request=True,
                 )
             )
             continue
