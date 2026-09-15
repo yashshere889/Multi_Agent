@@ -176,6 +176,7 @@ _ERROR_STAGE_ORDER = [
     "run_experiment",
     "results_json",
     "implausible_results",
+    "unsupported_significance_claim",
     # The latest checks there are: both need a completed run *and* its metrics,
     # so reaching either means every earlier stage passed.
     "missing_diagnostics",
@@ -289,6 +290,9 @@ _SECTIONS_BY_ERROR_SOURCE: dict[str, tuple[str, ...]] = {
     "ignored_available_dataset": ("load_data_function",),
     # check_results_plausibility judges the dict evaluate() returns.
     "implausible_results": ("evaluate_function",),
+    # The claim lives in evaluate()'s notes; the test it needs is computed from
+    # the per-path values run_experiment collects.
+    "unsupported_significance_claim": ("run_experiment_function", "evaluate_function"),
 }
 
 
@@ -1818,6 +1822,18 @@ class CoderAgent:
             return {
                 "error_source": "implausible_results",
                 "error_text": f"results.json's metrics look hollow: {'; '.join(plausibility_findings)}",
+            }
+
+        # Reported after the metrics themselves are believed: the claim is in
+        # evaluate()'s own notes, and what it needs is a test over the per-path
+        # values run_experiment collected. See sandbox.check_significance_claim.
+        significance_findings = sandbox.check_significance_claim(results)
+        if significance_findings:
+            return {
+                "error_source": "unsupported_significance_claim",
+                "error_text": (
+                    f"The result claims significance it did not test: {'; '.join(significance_findings)}"
+                ),
             }
 
         # "Train it properly" — the two checks that read the loss curves. Both
