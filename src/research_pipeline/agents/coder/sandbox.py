@@ -20,7 +20,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import quote
 
 from research_pipeline.agents.coder import saturation
@@ -1084,7 +1084,7 @@ def _degenerate_statistics(metrics: dict, prefix: str = "") -> list[str]:
     return findings
 
 
-def _is_real_number(value: object) -> bool:
+def _is_real_number(value: object) -> TypeGuard[float]:
     return (
         isinstance(value, (int, float))
         and not isinstance(value, bool)
@@ -1114,6 +1114,53 @@ def _ceiling_hint(metrics: dict, source: str) -> str:
         if float(literal) in values:
             return f" ({name} = {literal})"
     return ""
+
+
+# "Significantly" is a claim about a test, not about a difference. Barkla job
+# 10510547 removed the degenerate t-test its predecessor had reported rather
+# than fixing it, kept the note "shows significantly lower sensitivity", and the
+# paper then repeated that wording six times with nothing behind it. A verdict
+# may rest on a difference; calling the difference significant may not.
+_SIGNIFICANCE_RE = re.compile(r"\bsignifican(?:t|tly|ce)\b", re.IGNORECASE)
+_TEST_EVIDENCE_TOKENS = (
+    "p_value",
+    "pvalue",
+    "p_val",
+    "ci",
+    "confidence",
+    "interval",
+    "statistic",
+    "t_test",
+    "ttest",
+    "z_score",
+    "bootstrap",
+    "stderr",
+    "standard_error",
+)
+
+
+def _metric_names(metrics: dict, prefix: str = "") -> list[str]:
+    names = []
+    for name, value in metrics.items():
+        names.append(f"{prefix}{name}")
+        if isinstance(value, dict):
+            names.extend(_metric_names(value, f"{prefix}{name}."))
+    return names
+
+
+def check_significance_claim(results: dict) -> list[str]:
+    """Flag a claim of statistical significance with no test among the metrics."""
+    claim = " ".join(str(results.get(key) or "") for key in ("notes", "success_notes"))
+    if not _SIGNIFICANCE_RE.search(claim):
+        return []
+    names = " ".join(_metric_names(results.get("metrics") or {})).lower()
+    if any(token in names for token in _TEST_EVIDENCE_TOKENS):
+        return []
+    return [
+        "the reported outcome calls the difference significant but no test is among the metrics "
+        "— report a p-value, a confidence interval or a standard error computed over the "
+        "per-path values of each arm, or state the difference without calling it significant"
+    ]
 
 
 def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:

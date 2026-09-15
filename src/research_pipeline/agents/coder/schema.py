@@ -46,6 +46,9 @@ VALID_ERROR_SOURCES = {
     # An excess-return column (Mkt-RF beside RF) is compounded into a value as
     # though it were a total return — see sandbox.check_excess_return_usage.
     "excess_return_as_total",
+    # The reported outcome calls a difference significant while the metrics
+    # carry no test — see sandbox.check_significance_claim.
+    "unsupported_significance_claim",
     # A torch training loop takes one optimizer step per epoch over the whole
     # tensor: as many gradient updates as epochs, which measures the training
     # budget rather than the thing under test. See sandbox.check_training_batching.

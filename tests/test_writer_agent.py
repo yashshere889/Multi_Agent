@@ -6,7 +6,28 @@ import pytest
 from research_pipeline.agents.writer.citations import CitationRegistry, build_paper_index, strip_unverified_literal_citations, surname_of
 from research_pipeline.agents.writer.schema import SchemaValidationError, validate_output
 from research_pipeline.agents.coder.schema import VALID_STATUSES
-from research_pipeline.agents.writer.writer_agent import STATUS_MEANINGS, WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers
+from research_pipeline.agents.writer.writer_agent import STATUS_MEANINGS, WriterAgent, WriterAgentError, compute_hypothesis_verdict, extract_literature_papers, gap_evidence_ids
+
+
+def test_the_introduction_may_cite_only_the_papers_its_gaps_cite():
+    """Barkla 10510547's Introduction attributed gap claims to papers no gap listed."""
+    hypothesis_output = {
+        "gaps": [
+            {"gap": "limited empirical validation", "supporting_evidence": ["p1", "p2"]},
+            {"gap": "no cross-domain comparison", "supporting_evidence": ["p2"]},
+        ]
+    }
+    assert gap_evidence_ids(hypothesis_output, ["p1", "p2", "p3", "p4"]) == ["p1", "p2"]
+
+
+def test_an_evidence_id_the_pool_does_not_have_is_dropped():
+    hypothesis_output = {"gaps": [{"supporting_evidence": ["p1", "missing"]}]}
+    assert gap_evidence_ids(hypothesis_output, ["p1", "p3"]) == ["p1"]
+
+
+def test_gaps_that_cite_nothing_fall_back_to_the_whole_pool():
+    for hypothesis_output in ({}, {"gaps": []}, {"gaps": [{"gap": "x"}]}):
+        assert gap_evidence_ids(hypothesis_output, ["p1", "p2"]) == ["p1", "p2"]
 
 
 @pytest.mark.parametrize(
