@@ -153,6 +153,26 @@ def extract_literature_papers(literature_output: object) -> Tuple[List[dict], Op
     )
 
 
+def gap_evidence_ids(hypothesis_output: dict, known_ids: List[str]) -> List[str]:
+    """The papers the gaps themselves cite, for a section written from gaps.
+
+    The Introduction is drafted from the literature summary and the gaps list,
+    and every gap names its own supporting papers — so a citation to anything
+    else there is an attribution no upstream agent made. Barkla job 10510547's
+    Introduction drew 12 of its flags exactly that way ("the ground truth does
+    not support that Dorn and Yap discuss gaps in empirical validation").
+    Falls back to every known id when the gaps cite nothing, so a
+    hypothesis_output without evidence lists behaves as it did before.
+    """
+    cited = {
+        str(paper_id)
+        for gap in hypothesis_output.get("gaps") or []
+        for paper_id in (gap.get("supporting_evidence") or [])
+    }
+    restricted = [paper_id for paper_id in known_ids if paper_id in cited]
+    return restricted or list(known_ids)
+
+
 def compute_hypothesis_verdict(hypothesis_id: str, experiment_by_id: Dict[str, dict]) -> Tuple[str, str]:
     """Deterministically decides supported/refuted/inconclusive from the Coder
     Agent's own status/results — never left to the LLM to judge."""
@@ -400,7 +420,10 @@ class WriterAgent:
     def _node_draft_introduction(self, state: WriterState) -> dict:
         return {
             "introduction": self._draft_introduction(
-                state["hypothesis_output"], state["hypotheses"], state["valid_paper_ids"], state.get("revision")
+                state["hypothesis_output"],
+                state["hypotheses"],
+                gap_evidence_ids(state["hypothesis_output"], state["valid_paper_ids"]),
+                state.get("revision"),
             )
         }
 
