@@ -157,6 +157,13 @@ class ExperimentResult(TypedDict):
     # and the Writer would publish that False as a refutation. See
     # compute_provenance.py.
     compute_provenance: dict
+    # The published papers (with official public code) this experiment's codegen
+    # and fix prompts were grounded in: [{"paper_id", "title", "year",
+    # "citation_count", "tldr", "url_abs", "repositories", "methods"}]. [] when
+    # nothing was looked up or nothing matched. Optional for the same reason
+    # data_provenance is — summaries written before this existed still load. See
+    # paperswithcode_client.py.
+    reference_implementations: list[dict]
 
 
 class CoderAgentOutput(TypedDict):

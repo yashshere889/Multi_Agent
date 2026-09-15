@@ -230,6 +230,36 @@ assumes the fetch — or a local data file — will simply be there is not \
 acceptable.
 """
 
+# Appended after the concrete reference facts by
+# CoderAgent._reference_implementations_block. Separate from the facts for the
+# same reason HF_DATASET_USAGE_NOTE is: what the lookup found varies per plan,
+# what the model is allowed to do with it never does.
+#
+# The prohibition is the load-bearing half. A repository URL in a prompt reads
+# to a code model as an invitation to `git clone` it or to pip-install from it,
+# and either would produce an experiment that cannot run in its own throwaway
+# venv, cannot run at all on a compute node with no outbound network, and would
+# be caught — expensively, three fix attempts later — rather than never written.
+REFERENCE_IMPLEMENTATION_NOTE = """Use these ONLY as grounding for what the established method \
+actually is: its real name, the shape of its algorithm, the hyperparameters and \
+evaluation protocol its authors used. If none of them genuinely matches the \
+plan's methods, ignore them completely and implement the plan as written.
+
+You CANNOT fetch, clone, pip-install or otherwise read these repositories — \
+this experiment has to be self-contained, and on the machine that runs it \
+there may be no network at all. Do not write code that tries. Implement the \
+method yourself, in plain Python plus the packages you list in \
+requirements_txt.
+
+Where you do follow one of these papers, say so: name the paper (and its \
+repository URL) in a comment next to the method it grounds, in the README's \
+"Assumptions" section, and in assumptions_made. Where you deliberately diverge \
+from it — a smaller model, fewer epochs, a simplified variant that fits the \
+timeout — say that too, and say which paper you diverged from. A reader has to \
+be able to tell what is the published method and what is this experiment's own \
+simplification.
+"""
+
 SHARED_IMPORT_NOTE = """If you need the shared infrastructure above, import it using EXACTLY this \
 pattern in your imports:
     import sys
@@ -247,7 +277,7 @@ Experiment plan (JSON):
 {shared_infra_block}
 
 {hf_dataset_block}
-{provenance_block}
+{reference_implementations_block}{provenance_block}
 {starter_block}
 Environment notes for wherever this will actually run:
 - Network access: {network_status}. {network_note}
@@ -361,7 +391,7 @@ The experiment plan is unchanged (JSON):
 {shared_infra_block}
 
 {hf_dataset_block}
-{provenance_block}
+{reference_implementations_block}{provenance_block}
 {starter_block}
 {fix_pattern_block}
 The code sections you produced last time:

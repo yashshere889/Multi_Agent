@@ -17,6 +17,7 @@ from research_pipeline.agents.coder import (
     diagnose,
     fix_pattern_store,
     huggingface_client,
+    paperswithcode_client,
     prompts,
     provenance,
     reconcile,
@@ -1304,6 +1305,14 @@ def _agent(tmp_path, model, **kwargs):
     # overridable so the Hugging Face lookup tests below can turn the network on.
     kwargs.setdefault("network_check", lambda: False)
     kwargs.setdefault("gpu_check", lambda: False)
+    # ...which is exactly why this one is stubbed out by default rather than
+    # left to each test. The two lookups are guarded by the same network probe,
+    # so every test that turns the network on to exercise the dataset lookup
+    # would otherwise reach the real Papers with Code API as a side effect —
+    # and the default _plan() does name a reused-from-literature method, so
+    # there is nothing else to stop it. A test that wants this lookup passes
+    # its own pwc_lookup_fn=, overriding this.
+    kwargs.setdefault("pwc_lookup_fn", lambda query: [])
     # A fresh, isolated in-memory store per call — never the real
     # fix_pattern_store.get_store() singleton (CODER_FIX_STORE_BACKEND
     # defaults to sqlite, which would write a real file). A test that wants
@@ -6904,7 +6913,10 @@ def test_a_staged_file_reaches_the_prompt_with_its_columns_and_last_rows(tmp_pat
     )
     _patch_settings(monkeypatch, coder_data_dir=str(staged))
     agent = _agent(tmp_path, FakeChatModel({}))
-    plan = {"hypothesis_id": "H1", "data_requirements": {"source": "historical stock market prices"}}
+    plan = {
+        "hypothesis_id": "H1",
+        "data_requirements": {"source": "historical stock market prices"},
+    }
 
     sources = agent._provenance_for(plan, network_available=False)
 
@@ -6918,7 +6930,9 @@ def test_the_hub_is_not_searched_when_every_input_is_already_staged(tmp_path, mo
     """Barkla 10496057: a plan naming a staged file still pulled a Hub copy of it."""
     staged = tmp_path / "staged"
     staged.mkdir()
-    (staged / "fama_french_three_factor_daily_returns.csv").write_text("date,Mkt-RF,RF\n1926-07-01,0.09,0.01\n")
+    (staged / "fama_french_three_factor_daily_returns.csv").write_text(
+        "date,Mkt-RF,RF\n1926-07-01,0.09,0.01\n"
+    )
     _patch_settings(monkeypatch, coder_data_dir=str(staged), coder_enable_hf_dataset_search=True)
 
     def _lookup(query):
@@ -6936,8 +6950,14 @@ def test_the_hub_is_not_searched_when_every_input_is_already_staged(tmp_path, mo
 def test_the_hub_is_still_searched_for_an_input_nothing_staged_answers(tmp_path, monkeypatch):
     _patch_settings(monkeypatch, coder_data_dir="", coder_enable_hf_dataset_search=True)
     asked = []
-    agent = _agent(tmp_path, FakeChatModel({}), huggingface_lookup_fn=lambda q: asked.append(q) or None)
-    plan = {"hypothesis_id": "H1", "objective": "x", "data_requirements": {"source": "AG News topic corpus"}}
+    agent = _agent(
+        tmp_path, FakeChatModel({}), huggingface_lookup_fn=lambda q: asked.append(q) or None
+    )
+    plan = {
+        "hypothesis_id": "H1",
+        "objective": "x",
+        "data_requirements": {"source": "AG News topic corpus"},
+    }
 
     agent._find_hf_dataset(plan, network_available=True)
 
@@ -7625,3 +7645,367 @@ def test_declared_substitution_leaves_a_surrogate_alone_and_survives_no_assumpti
     unchanged = provenance.honour_declared_substitution(_real_source(), [])
     assert provenance.all_real(unchanged)
     assert provenance.honour_declared_substitution(_real_source(), None) is not None
+
+
+# -- Papers with Code reference implementations -------------------------------------------
+# The second lookup, same contract and same test shape as the Hugging Face one
+# above: agent-level behaviour goes through the injected `pwc_lookup_fn` seam,
+# and paperswithcode_client's own unit tests fake `requests.get` by URL
+# substring. No test here touches the network.
+
+
+PWC_REFERENCE = {
+    "paper_id": "2106.03844",
+    "title": "Mean-Shifted Contrastive Loss for Anomaly Detection",
+    "year": "2021",
+    "citation_count": 169,
+    "tldr": "A mean-shifted contrastive loss that fine-tunes a pretrained feature extractor.",
+    "url_abs": "https://arxiv.org/abs/2106.03844",
+    "repositories": [
+        {
+            "url": "https://github.com/talreiss/Mean-Shifted-Anomaly-Detection",
+            "is_official": True,
+            "stars": 300,
+        },
+        {"url": "https://github.com/someone/reimpl", "is_official": False, "stars": 12},
+    ],
+    "methods": ["Contrastive Learning", "ResNet"],
+}
+
+
+def _recording_pwc_lookup(result):
+    """A fake pwc_lookup_fn that records the queries it was asked."""
+    queries: list[str] = []
+
+    def lookup(query):
+        queries.append(query)
+        return result
+
+    return lookup, queries
+
+
+def _pwc_agent(tmp_path, model, **kwargs):
+    """_agent with the network on (both lookups are gated behind the same probe)
+    and the *dataset* lookup stubbed to a miss, so these tests see only the
+    Papers with Code block — and so turning the network on here can't reach the
+    real Hugging Face API any more than it can reach the real catalog."""
+    kwargs.setdefault("network_check", lambda: True)
+    kwargs.setdefault("huggingface_lookup_fn", lambda query: None)
+    return _agent(tmp_path, model, **kwargs)
+
+
+def test_reference_implementations_are_offered_to_the_model(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    # Queried with the plan's own prose, not reduced to keywords, because the
+    # catalog search is semantic — and led by the method names, because the
+    # endpoint caps the query length and the tail is what gets cut.
+    assert len(queries) == 1
+    assert queries[0].startswith("baseline.")
+
+    prompt = model.prompts_by_kind["codegen"][0]
+    assert "Mean-Shifted Contrastive Loss for Anomaly Detection" in prompt
+    assert "2106.03844" in prompt
+    assert "https://github.com/talreiss/Mean-Shifted-Anomaly-Detection (official)" in prompt
+    assert "Contrastive Learning, ResNet" in prompt
+    # The prohibition travels with the facts: a repo URL in a prompt must not
+    # read as an invitation to clone it.
+    assert "CANNOT fetch, clone, pip-install" in prompt
+
+
+def test_reference_implementations_are_carried_into_the_fix_prompt(tmp_path):
+    # The lookup runs once per plan, not once per attempt, and the reference
+    # stays in front of the model while it debugs — a fix loop that loses the
+    # method it was grounded in is free to drift to whatever compiles.
+    model = RecordingScriptedChatModel(
+        codegen=[_codegen_response({**GOOD_SECTIONS, "imports": "import !!\n"})],
+        fix=[_codegen_response(GOOD_SECTIONS)],
+    )
+    lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    assert len(queries) == 1  # not re-searched for the fix attempt
+    fix_prompt = model.prompts_by_kind["fix"][0]
+    assert "https://github.com/talreiss/Mean-Shifted-Anomaly-Detection (official)" in fix_prompt
+
+
+def test_reference_implementations_are_recorded_on_the_experiment(tmp_path):
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, _queries = _recording_pwc_lookup([PWC_REFERENCE])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    recorded = result["experiments"][0]["reference_implementations"]
+    assert [r["paper_id"] for r in recorded] == ["2106.03844"]
+
+
+def test_no_lookup_without_a_reused_from_literature_method(tmp_path):
+    # A method the plan calls novel is this pipeline's own contribution;
+    # grounding it in whatever published work is nearest would be wrong.
+    plan = _plan("H1")
+    plan["methods"] = [{"name": "novel thing", "description": "d", "reused_from_literature": False}]
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([plan]))
+
+    assert queries == []
+    assert "Papers with Code catalog" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_no_lookup_without_network(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
+    _agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    assert queries == []
+
+
+def test_lookup_disabled_by_setting(tmp_path, monkeypatch):
+    _patch_settings(monkeypatch, coder_enable_pwc_search=False)
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([PWC_REFERENCE])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([_plan("H1")]))
+
+    assert queries == []
+
+
+def test_a_lookup_that_raises_still_generates(tmp_path):
+    # A prompt enhancement, never a dependency: the same contract the Hugging
+    # Face lookup holds to.
+    def boom(query):
+        raise RuntimeError("catalog down")
+
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    result = _pwc_agent(tmp_path, model, pwc_lookup_fn=boom).run(_planner_output([_plan("H1")]))
+
+    # The experiment is generated and run exactly as it would be with no
+    # catalog at all — the lookup is an enhancement, never a precondition.
+    assert result["experiments"][0]["status"] == "completed"
+    assert result["experiments"][0]["reference_implementations"] == []
+
+
+def test_no_match_reads_exactly_as_before_the_lookup_existed(tmp_path):
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lambda q: []).run(_planner_output([_plan("H1")]))
+
+    assert "Papers with Code catalog" not in model.prompts_by_kind["codegen"][0]
+
+
+def test_a_reference_with_no_repository_is_not_rendered(tmp_path):
+    # The block is about code access; a paper with nothing to point at is noise.
+    block = CoderAgent._reference_implementations_block([{**PWC_REFERENCE, "repositories": []}])
+    assert block == ""
+
+
+# -- paperswithcode_client.py: against faked requests responses ---------------------------
+
+
+def _fake_pwc(monkeypatch, routes, recorder=None):
+    """Routes paperswithcode_client's requests.get by URL substring. A route
+    value that is an exception instance is raised instead of returned."""
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        if recorder is not None:
+            recorder.append((url, dict(params or {})))
+        for marker, response in routes.items():
+            if marker in url:
+                if isinstance(response, Exception):
+                    raise response
+                return response
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(paperswithcode_client.requests, "get", fake_get)
+
+
+_PWC_SEARCH_HIT = {
+    "id": "60699",
+    "arxiv_id": "2106.03844",
+    "title": "Mean-Shifted Contrastive Loss for Anomaly Detection",
+    "has_official_implementation": True,
+}
+
+_PWC_DETAIL = {
+    "id": "60699",
+    "arxiv_id": "2106.03844",
+    "title": "Mean-Shifted Contrastive Loss for Anomaly Detection",
+    "published": "2021-06-07",
+    "citation_count": 169,
+    "tldr": "A mean-shifted contrastive loss.",
+    "url_abs": "https://arxiv.org/abs/2106.03844",
+    "repositories": [
+        {"url": "https://github.com/someone/reimpl", "is_official": False, "num_stars": 12},
+        {"url": "https://github.com/talreiss/msad", "is_official": True, "num_stars": 300},
+    ],
+    "methods": [{"id": "1", "name": "Contrastive Learning"}, {"id": "2", "name": "ResNet"}],
+}
+
+
+def test_search_papers_filters_to_official_implementations(monkeypatch):
+    calls: list = []
+    _fake_pwc(
+        monkeypatch,
+        {
+            "papers/search": _FakeResponse(
+                {
+                    "results": [
+                        _PWC_SEARCH_HIT,
+                        {"id": "2", "arxiv_id": "1.2", "has_official_implementation": False},
+                    ]
+                }
+            )
+        },
+        recorder=calls,
+    )
+
+    hits = paperswithcode_client.search_papers("anomaly detection")
+
+    # Asked for by the server...
+    assert calls[0][1]["has_official_implementation"] == "true"
+    assert calls[0][1]["mode"] == "semantic"
+    # ...and re-applied here, so a server that drops the filter can't leak a
+    # paper with no code into a prompt that promises one.
+    assert hits == [_PWC_SEARCH_HIT]
+
+
+def test_find_reference_implementations_returns_official_repo_first(monkeypatch):
+    _fake_pwc(
+        monkeypatch,
+        {
+            "papers/search": _FakeResponse({"results": [_PWC_SEARCH_HIT]}),
+            "papers/2106.03844": _FakeResponse(_PWC_DETAIL),
+        },
+    )
+
+    found = paperswithcode_client.find_reference_implementations("anomaly detection")
+
+    assert len(found) == 1
+    assert found[0]["paper_id"] == "2106.03844"
+    assert found[0]["year"] == "2021"
+    assert found[0]["methods"] == ["Contrastive Learning", "ResNet"]
+    # Official first, despite being second in the payload.
+    assert found[0]["repositories"][0] == {
+        "url": "https://github.com/talreiss/msad",
+        "is_official": True,
+        "stars": 300,
+    }
+
+
+def test_semantic_miss_retries_in_keyword_mode(monkeypatch):
+    modes: list[str] = []
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        if "papers/search" in url:
+            modes.append(params["mode"])
+            if params["mode"] == "semantic":
+                return _FakeResponse({"results": []})
+            return _FakeResponse({"results": [_PWC_SEARCH_HIT]})
+        return _FakeResponse(_PWC_DETAIL)
+
+    monkeypatch.setattr(paperswithcode_client.requests, "get", fake_get)
+
+    found = paperswithcode_client.find_reference_implementations("mean shifted contrastive loss")
+
+    assert modes == ["semantic", "keyword"]
+    assert [r["paper_id"] for r in found] == ["2106.03844"]
+
+
+def test_a_paper_whose_details_carry_no_repository_is_dropped(monkeypatch):
+    # The search hit's boolean said there was official code; the detail call is
+    # the authority, and disagrees.
+    _fake_pwc(
+        monkeypatch,
+        {
+            "papers/search": _FakeResponse({"results": [_PWC_SEARCH_HIT]}),
+            "papers/2106.03844": _FakeResponse({**_PWC_DETAIL, "repositories": None}),
+        },
+    )
+
+    assert paperswithcode_client.find_reference_implementations("anomaly detection") == []
+
+
+def test_find_reference_implementations_degrades_on_a_transport_error(monkeypatch):
+    _fake_pwc(
+        monkeypatch,
+        {"papers/search": paperswithcode_client.requests.RequestException("connection reset")},
+    )
+    assert paperswithcode_client.find_reference_implementations("anything") == []
+
+
+def test_find_reference_implementations_degrades_on_a_bad_status(monkeypatch):
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse(None, status_code=503)})
+    assert paperswithcode_client.find_reference_implementations("anything") == []
+
+
+def test_find_reference_implementations_degrades_on_unparseable_json(monkeypatch):
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse(None, valid_json=False)})
+    assert paperswithcode_client.find_reference_implementations("anything") == []
+
+
+def test_an_empty_query_makes_no_request(monkeypatch):
+    _fake_pwc(monkeypatch, {})  # any request at all raises AssertionError
+    assert paperswithcode_client.search_papers("   ") == []
+
+
+def test_pwc_api_url_setting_overrides_the_public_endpoint(monkeypatch):
+    # _patch_settings swaps coder_agent's `settings` reference; the base URL is
+    # read by the client module, so this one patches that module's own.
+    monkeypatch.setattr(
+        paperswithcode_client,
+        "settings",
+        dataclasses.replace(
+            paperswithcode_client.settings, coder_pwc_api_url="http://localhost:8000/api/v1/"
+        ),
+    )
+    calls: list = []
+    _fake_pwc(monkeypatch, {"localhost:8000": _FakeResponse({"results": []})}, recorder=calls)
+
+    paperswithcode_client.search_papers("anything")
+
+    assert calls[0][0] == "http://localhost:8000/api/v1/papers/search"
+
+
+def test_a_query_past_the_api_limit_is_truncated_not_rejected(monkeypatch):
+    # Barkla job 10510234: an experiment plan's objective and design ran to ~500
+    # characters, the endpoint rejected every search with a 422
+    # ("String should have at most 300 characters"), and the whole lookup
+    # degraded to nothing — silently, exactly as designed for a *transport*
+    # failure, which is what made it so easy to miss.
+    calls: list = []
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse({"results": []})}, recorder=calls)
+
+    paperswithcode_client.search_papers("word " * 200)
+
+    sent = calls[0][1]["q"]
+    assert len(sent) <= paperswithcode_client.MAX_QUERY_CHARS
+    assert not sent.endswith(" ")  # cut on a word boundary
+
+
+def test_a_single_enormous_token_is_hard_cut_rather_than_dropped(monkeypatch):
+    # Backing off to a word boundary must not throw the query away when there
+    # isn't one: a hard cut still searches for something.
+    calls: list = []
+    _fake_pwc(monkeypatch, {"papers/search": _FakeResponse({"results": []})}, recorder=calls)
+
+    paperswithcode_client.search_papers("x" * 500)
+
+    assert len(calls[0][1]["q"]) == paperswithcode_client.MAX_QUERY_CHARS
+
+
+def test_method_names_survive_a_plan_whose_prose_exceeds_the_limit(tmp_path):
+    # The ordering half of the same fix: the methods are what the search is for,
+    # so they must be in the part of the query that actually gets sent.
+    plan = _plan("H1")
+    plan["objective"] = "To empirically validate " + ("a very long objective clause " * 30)
+    plan["design"] = "A controlled comparative experiment " * 20
+    plan["methods"] = [
+        {"name": "GraphRAG", "description": "d", "reused_from_literature": True},
+        {"name": "certified error control", "description": "d", "reused_from_literature": True},
+    ]
+    model = ScriptedChatModel(codegen=[_codegen_response(GOOD_SECTIONS)])
+    lookup, queries = _recording_pwc_lookup([])
+    _pwc_agent(tmp_path, model, pwc_lookup_fn=lookup).run(_planner_output([plan]))
+
+    sent = paperswithcode_client._truncate_query(queries[0])
+    assert "GraphRAG" in sent
+    assert "certified error control" in sent

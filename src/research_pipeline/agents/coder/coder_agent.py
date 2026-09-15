@@ -120,6 +120,7 @@ from research_pipeline.agents.coder import (
     discover,
     fix_pattern_store,
     huggingface_client,
+    paperswithcode_client,
     prompts,
     provenance,
     repair,
@@ -221,7 +222,7 @@ _STRUCTURAL_ERROR_SOURCES = frozenset(
 # the fix budget is. Derived per run from those two numbers rather than guessed —
 # the counts below match the loops wired up in graph.py.
 _FIXED_STEPS = 5  # validate_input, probe_environment, setup_shared_infrastructure, start_plan_loop, assemble_and_validate
-_STEPS_PER_PLAN = 6  # process_current_plan, search_hf_dataset, acquire_data, generate_experiment_code, the first attempt, finalize/give_up
+_STEPS_PER_PLAN = 7  # process_current_plan, search_hf_dataset, acquire_data, search_reference_implementations, generate_experiment_code, the first attempt, finalize/give_up
 # skip_no_real_data (CODER_REQUIRE_REAL_DATA) is deliberately absent from the
 # count: it *replaces* generate/attempt/finalize rather than adding to them, so
 # a skipped plan costs 4 steps where a generated one costs 6. The worst case the
@@ -664,6 +665,7 @@ class CoderAgent:
         max_fix_attempts: int | None = None,
         max_structural_retries: int | None = None,
         huggingface_lookup_fn: Callable[[str], dict | None] | None = None,
+        pwc_lookup_fn: Callable[[str], list[dict]] | None = None,
         fix_store: BaseStore | None = None,
         interactive_slurm_review: bool | None = None,
         slurm_review_prompt: Callable[[dict], str] | None = None,
@@ -687,6 +689,12 @@ class CoderAgent:
         self.huggingface_lookup = (
             huggingface_lookup_fn or huggingface_client.find_dataset_for_experiment
         )
+        # The second lookup seam, injected for exactly the same reason as the
+        # first: two more HTTP endpoints a test must never reach, behind one
+        # function it can substitute. See paperswithcode_client.py — that one
+        # answers "what real data can this experiment read?", this one answers
+        # "what does the established version of its method actually look like?".
+        self.pwc_lookup = pwc_lookup_fn or paperswithcode_client.find_reference_implementations
         self.max_fix_attempts = (
             settings.coder_max_fix_attempts if max_fix_attempts is None else max_fix_attempts
         )
@@ -855,6 +863,7 @@ class CoderAgent:
             "current_hf_dataset": {},
             "current_acquisitions": {},
             "current_discoveries": {},
+            "current_reference_implementations": [],
             "current_starter_id": selected_starter["id"] if selected_starter else "",
         }
 
@@ -918,6 +927,26 @@ class CoderAgent:
         )
         return "generate" if provenance.all_real(sources) else "skip"
 
+    def _node_search_reference_implementations(self, state: CoderState) -> dict:
+        """Looks up the published papers whose method this plan's methods match
+        and whose official code is public, before any code is generated.
+
+        Its own node, after the data lookups rather than before them, for two
+        reasons. `acquire_data` owns the CODER_REQUIRE_REAL_DATA decision —
+        search, discovery and acquisition are the last things that can turn a
+        surrogate into a real input — so putting this ahead of it would spend two
+        HTTP calls on plans that are about to be skipped without a single codegen
+        call. And a run whose
+        experiments quietly stopped being grounded in real published work should
+        be diagnosable from the trace, the same argument that made the dataset
+        lookup a node instead of a line inside the generation call.
+        """
+        return {
+            "current_reference_implementations": self._find_reference_implementations(
+                state["current_plan"], state["network_available"]
+            )
+        }
+
     def _node_skip_no_real_data(self, state: CoderState) -> dict:
         """CODER_REQUIRE_REAL_DATA's skip: every real source has had its turn
         (the staging directory, the credentialed and open source tables, the
@@ -966,6 +995,7 @@ class CoderAgent:
                 state.get("current_starter_id", ""),
                 state.get("current_acquisitions") or {},
                 state.get("current_discoveries") or {},
+                state.get("current_reference_implementations") or [],
             )
         except CoderAgentError as exc:
             # A generation whose format can't be parsed is a per-plan failure,
@@ -1163,6 +1193,7 @@ class CoderAgent:
                 state.get("current_starter_id", ""),
                 acquisitions=state.get("current_acquisitions") or {},
                 discoveries=state.get("current_discoveries") or {},
+                reference_implementations=state.get("current_reference_implementations") or [],
                 stuck_streak=streak,
                 previous_error_summary=previous_error_summary,
                 target_sections=target_sections,
@@ -1201,6 +1232,11 @@ class CoderAgent:
             **state["current_outcome"]["result"],
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
+            # Merged in here rather than threaded through _attempt_once, which
+            # built this result: that helper is called whole on purpose (see
+            # _node_attempt), and nothing inside it reads the references — they
+            # only ever went into a prompt.
+            "reference_implementations": state.get("current_reference_implementations") or [],
         }
         return {
             "experiments": [*state["experiments"], experiment],
@@ -1250,6 +1286,7 @@ class CoderAgent:
                 code_path=state["current_experiment_dir"],
                 assumptions_made=assumptions,
                 starter_used=state.get("current_starter_id", ""),
+                reference_implementations=state.get("current_reference_implementations") or [],
             ),
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
@@ -2368,6 +2405,7 @@ class CoderAgent:
         starter_used: str = "",
         data_provenance: dict | None = None,
         compute_provenance: dict | None = None,
+        reference_implementations: list[dict] | None = None,
     ) -> dict:
         return {
             "hypothesis_id": hypothesis_id,
@@ -2387,6 +2425,13 @@ class CoderAgent:
             # What this run cost to finish. Empty for every status that never
             # executed anything — only a real execution can be downscaled.
             "compute_provenance": compute_provenance or {},
+            # The published work this experiment's prompts were grounded in,
+            # or [] when nothing was looked up (an infeasible or skipped plan,
+            # no reused-from-literature method, no network) or nothing matched.
+            # Traceability first — the same instinct as starter_used — but also
+            # the only record of *which* implementation a generated method was
+            # supposed to follow, which is what makes reviewing it possible.
+            "reference_implementations": reference_implementations or [],
         }
 
     # -- LLM calls -----------------------------------------------------------
@@ -2934,6 +2979,59 @@ class CoderAgent:
                         columns.append(str(column))
         return columns
 
+    def _find_reference_implementations(self, plan: dict, network_available: bool) -> list[dict]:
+        """Published papers with official code for this plan's methods, or [] —
+        never an exception.
+
+        Skipped without a request when the network probe already failed or
+        CODER_ENABLE_PWC_SEARCH is off, same two guards as _find_hf_dataset, and
+        the same reason for the try/except: an injected lookup that raises must
+        not be why an experiment doesn't get generated at all.
+
+        The query is the plan's own prose — the names of the methods it says it
+        reuses from the literature, then its objective and design — because the
+        catalog's semantic search embeds it. Contrast _find_hf_dataset, which
+        hands its client a description to reduce to keywords because the Hub
+        matches dataset names. Methods the plan marks
+        `reused_from_literature: false` are left out on purpose: they are this
+        pipeline's own novel contribution, and searching for a published
+        implementation of something the plan calls novel would ground the model
+        in whatever happened to be nearest.
+
+        **Method names lead.** The endpoint caps `q` at
+        `paperswithcode_client.MAX_QUERY_CHARS`, and an experiment plan's
+        objective and design routinely run past it on their own, so the tail of
+        this string is not guaranteed to be sent. The methods are both the
+        shortest part and the part the search is actually for, so they go first
+        and the prose that contextualises them is what gets cut. Barkla job
+        10510234 had them last and lost them: every search came back 422 and the
+        whole lookup degraded to nothing.
+        """
+        if not network_available or not settings.coder_enable_pwc_search:
+            return []
+        reused = [
+            str(method.get("name") or "")
+            for method in plan.get("methods") or []
+            if method.get("reused_from_literature") is True and method.get("name")
+        ]
+        if not reused:
+            logger.info(
+                "No reused-from-literature method in %s's plan; skipping the "
+                "Papers with Code lookup",
+                plan["hypothesis_id"],
+            )
+            return []
+        query = f"{', '.join(reused)}. {plan['objective']} {plan.get('design', '')}".strip()
+        try:
+            return self.pwc_lookup(query) or []
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            logger.warning(
+                "Papers with Code lookup raised for %s; generating without it: %s",
+                plan["hypothesis_id"],
+                exc,
+            )
+            return []
+
     def _provenance_for(
         self,
         plan: dict,
@@ -3182,6 +3280,46 @@ class CoderAgent:
             f"  {rows_url}\n\n" + prompts.HF_DATASET_USAGE_NOTE
         )
 
+    @staticmethod
+    def _reference_implementations_block(references: list[dict]) -> str:
+        """Renders what the catalog found as grounding for the codegen/fix
+        prompt: the paper behind each match, what it does, the canonical method
+        names, and where the authors' own code lives. Empty string when nothing
+        matched, so a prompt with no reference reads exactly as it did before
+        this lookup existed."""
+        rendered = []
+        for reference in references:
+            if not reference.get("title"):
+                continue
+            repositories = [
+                f"{repo.get('url')}{' (official)' if repo.get('is_official') else ''}"
+                for repo in reference.get("repositories") or []
+                if repo.get("url")
+            ]
+            if not repositories:
+                continue
+            year = reference.get("year") or "n.d."
+            citations = reference.get("citation_count") or 0
+            lines = [f"- {reference['title']} ({year}, {citations} citations)"]
+            if reference.get("paper_id"):
+                lines.append(f"  paper: {reference['paper_id']}")
+            if reference.get("tldr"):
+                lines.append(f"  what it does: {reference['tldr']}")
+            if reference.get("methods"):
+                lines.append(f"  methods: {', '.join(reference['methods'])}")
+            lines.append(f"  code: {'; '.join(repositories)}")
+            rendered.append("\n".join(lines))
+        if not rendered:
+            return ""
+        return (
+            "Published work matching this plan's established methods, each with an official "
+            "public implementation (from the Papers with Code catalog):\n"
+            + "\n".join(rendered)
+            + "\n\n"
+            + prompts.REFERENCE_IMPLEMENTATION_NOTE
+            + "\n"
+        )
+
     def _generate_experiment_files(
         self,
         plan: dict,
@@ -3192,11 +3330,15 @@ class CoderAgent:
         starter_id: str = "",
         acquisitions: dict[str, dict] | None = None,
         discoveries: dict[str, dict] | None = None,
+        reference_implementations: list[dict] | None = None,
     ) -> dict:
         prompt = prompts.EXPERIMENT_CODEGEN_PROMPT.format(
             plan_block=_compact_json(plan),
             shared_infra_block=self._shared_infra_block(shared_files, shared_infra_warning),
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
+            reference_implementations_block=self._reference_implementations_block(
+                reference_implementations or []
+            ),
             provenance_block=provenance.prompt_block(
                 # hf_dataset passed so an accepted dataset is described as the
                 # real input the model is being asked to read. Without it this
@@ -3239,6 +3381,7 @@ class CoderAgent:
         starter_id: str = "",
         acquisitions: dict[str, dict] | None = None,
         discoveries: dict[str, dict] | None = None,
+        reference_implementations: list[dict] | None = None,
         stuck_streak: int = 0,
         previous_error_summary: str = "",
         target_sections: list[str] | None = None,
@@ -3269,6 +3412,13 @@ class CoderAgent:
             # the starter block — it stays grounded in the same worked example
             # across every fix attempt instead of drifting.
             hf_dataset_block=self._hf_dataset_block(hf_dataset or {}, acquisitions),
+            # Carried across fix attempts for the same reason the dataset and
+            # starter blocks are, and with more force: a fix loop that loses the
+            # published method it was grounded in is free to "fix" a failure by
+            # drifting to whatever method it can get to compile.
+            reference_implementations_block=self._reference_implementations_block(
+                reference_implementations or []
+            ),
             # Same block the codegen prompt was given. A fix attempt that no
             # longer knows which inputs are surrogates is free to "fix" a
             # failure by quietly inventing data, which is the outcome the
