@@ -21,6 +21,33 @@ inputs (provenance.py) or a run truncated to fit its budget
 `completed` alone is how you get a pipeline that always finishes and never
 concludes anything.
 
+But `interpretable` alone cannot grade the *agent* once data discovery is on,
+and reporting it alone was actively misleading: it read 0/12 on two runs
+(Barkla 10537076/10537081) in which four experiments found real data, read it,
+and produced numbers. Their verdicts were withheld for a reason that is not a
+defect in anything the agent did — the dataset was found by keyword search and
+no human has confirmed it answers the question (provenance.py's
+WITHHELD_UNCONFIRMED). That withholding is right, and it is also permanent
+under discovery: no improvement to code generation can clear a gate that waits
+on a person. Scored as one number, "found real data and ran a correct
+experiment on it" is indistinguishable from "invented the data", and every
+future comparison reads 0 -> 0.
+
+So there are two headline numbers, and they are disjoint:
+
+  interpretable           ran, and carries a verdict a paper can state.
+  awaiting source review  ran on real data, produced numbers, and the *only*
+                          thing between it and a verdict is a human confirming
+                          the discovered source.
+
+`evidence_ready` is their sum: what the agent achieved, holding aside a review
+step that was never the model's job. It is deliberately not called anything
+that sounds like a validity claim, because it is not one — an unconfirmed
+source can be real data about entirely the wrong thing, which is exactly why
+the gate exists. Read it as "how much work is queued behind a human", and
+`interpretable` as "how much is finished". A change that moves `evidence_ready`
+without moving `completed` is a change that got the agent onto real data.
+
 Scoring is a pure function of `coder_agent_summary_*.json` files, deliberately:
 it reads the same artefacts a production run writes, so it grades an ordinary
 sweep's output directory as readily as a benchmark run's. Nothing here imports
@@ -61,6 +88,10 @@ class CaseOutcome:
     # Ran AND is allowed to carry a verdict. The headline number: an experiment
     # whose verdict was withheld contributed nothing a paper can state.
     interpretable: bool
+    # Completed, on real data, and withheld *only* because the source was
+    # discovered rather than named. Disjoint from `interpretable` by
+    # construction (see outcome_for) so the two can be summed.
+    awaiting_source_review: bool
     real_data: bool
     ran_at_full_size: bool
     # The failure still standing when the loop stopped, or "" — the same
@@ -90,6 +121,20 @@ class Score:
     @property
     def interpretable(self) -> int:
         return sum(1 for case in self.cases if case.interpretable)
+
+    @property
+    def awaiting_source_review(self) -> int:
+        return sum(1 for case in self.cases if case.awaiting_source_review)
+
+    @property
+    def evidence_ready(self) -> int:
+        """interpretable + awaiting_source_review.
+
+        A sum rather than its own predicate because the two are disjoint, and
+        keeping it that way is what stops this from quietly becoming a third
+        definition of the same thing that can drift from the other two.
+        """
+        return self.interpretable + self.awaiting_source_review
 
     @property
     def deferred(self) -> int:
@@ -167,6 +212,24 @@ def outcome_for(experiment: dict, source: str = "") -> CaseOutcome:
         # is the *string* "unknown", which is truthy, and the whole point of
         # this field is telling those two apart.
         interpretable=status == "completed" and (meets is True or meets is False),
+        # Mirrors provenance.stamp_withheld_verdict's own test — all inputs
+        # real, but at least one of them discovered and unconfirmed — rather
+        # than matching `methodological_validity`'s prose, which is a sentence
+        # written for a human and would silently stop matching if it were ever
+        # reworded. `unconfirmed_discovered_inputs` exists on the document
+        # precisely so this survives a round-trip to disk.
+        #
+        # `not interpretable` keeps the two disjoint. It should be unreachable
+        # — a document with unconfirmed inputs has had its verdict replaced by
+        # "unknown" already — but `evidence_ready` sums them, so a summary
+        # written by some other version of the pipeline must not be able to
+        # make that sum exceed the number of cases.
+        awaiting_source_review=(
+            status == "completed"
+            and not (meets is True or meets is False)
+            and bool(provenance.get("all_inputs_real"))
+            and bool(provenance.get("unconfirmed_discovered_inputs"))
+        ),
         real_data=bool(provenance.get("all_inputs_real")),
         # Absent for a summary written before compute provenance existed, and
         # for one that never executed anything. Treated as full size: this
@@ -236,12 +299,16 @@ _OUTCOME_LADDER = [
     "code_generated_not_run",
     "submitted_to_slurm",
     "completed",
+    # Between the two on purpose: an experiment that reached real data and
+    # produced numbers got further than one that completed on synthesized
+    # inputs, and not as far as one that can state a verdict.
+    "awaiting_source_review",
     "interpretable",
 ]
 
 
 def _rung(case: CaseOutcome) -> int:
-    label = "interpretable" if case.interpretable else case.status
+    label = _label(case)
     return _OUTCOME_LADDER.index(label) if label in _OUTCOME_LADDER else 0
 
 
@@ -276,7 +343,11 @@ def compare(baseline: Score, candidate: Score) -> list[Change]:
 
 
 def _label(case: CaseOutcome) -> str:
-    return "interpretable" if case.interpretable else case.status
+    if case.interpretable:
+        return "interpretable"
+    if case.awaiting_source_review:
+        return "awaiting_source_review"
+    return case.status
 
 
 def _rate(count: int, total: int) -> str:
@@ -290,7 +361,12 @@ def format_score(result: Score, title: str = "Coder benchmark") -> str:
 
     lines += [
         f"  interpretable      {_rate(result.interpretable, result.total)}"
-        "   <- the one that matters: ran AND carries a verdict",
+        "   <- ran AND carries a verdict a paper can state",
+        f"  awaiting review    {_rate(result.awaiting_source_review, result.total)}"
+        "   <- ran on real data; needs a human to confirm the source",
+        f"  evidence ready     {_rate(result.evidence_ready, result.total)}"
+        "   <- the two above: what the agent got done",
+        "",
         f"  completed          {_rate(result.completed, result.total)}",
         f"  deferred           {_rate(result.deferred, result.total)}",
         f"  failed on cluster  {_rate(result.failed, result.total)}",
@@ -306,6 +382,15 @@ def format_score(result: Score, title: str = "Coder benchmark") -> str:
             f"  attempts to green  {mean:.2f} mean, over the {result.completed} that completed"
         )
 
+    if result.awaiting_source_review and not result.interpretable:
+        lines += [
+            "",
+            "  interpretable is 0 but evidence ready is not: every experiment that reached",
+            "  real data got it from a source found by search, and no human has confirmed it",
+            "  answers the question. That gate does not open by improving the agent — read",
+            "  'evidence ready' when comparing two runs of the agent itself.",
+        ]
+
     if result.unresolved_errors:
         lines += ["", "  still failing when the loop stopped:"]
         for source, count in result.unresolved_errors.most_common():
@@ -318,6 +403,8 @@ def format_comparison(baseline: Score, candidate: Score) -> str:
     to the reader to remember."""
     metrics = [
         ("interpretable", baseline.interpretable, candidate.interpretable),
+        ("awaiting review", baseline.awaiting_source_review, candidate.awaiting_source_review),
+        ("evidence ready", baseline.evidence_ready, candidate.evidence_ready),
         ("completed", baseline.completed, candidate.completed),
         ("real data", baseline.real_data, candidate.real_data),
         ("truncated to fit", baseline.truncated, candidate.truncated),

@@ -59,7 +59,14 @@ def test_the_corpus_covers_every_execution_route():
 
 
 def _experiment(
-    hid, status="completed", meets=True, attempts=0, history=None, real=True, full_size=True
+    hid,
+    status="completed",
+    meets=True,
+    attempts=0,
+    history=None,
+    real=True,
+    full_size=True,
+    unconfirmed=(),
 ):
     return {
         "hypothesis_id": hid,
@@ -74,7 +81,14 @@ def _experiment(
         "fix_history": history or [],
         "slurm_job_id": None,
         "starter_used": "",
-        "data_provenance": {"all_inputs_real": real},
+        "data_provenance": {
+            "all_inputs_real": real,
+            # Only present when a case is meant to have discovered inputs, so
+            # every existing test keeps the document shape it was written
+            # against — an absent key and an empty list mean the same thing to
+            # the scorer, but not to a reader diffing fixtures.
+            **({"unconfirmed_discovered_inputs": list(unconfirmed)} if unconfirmed else {}),
+        },
         "compute_provenance": {"ran_at_full_size": full_size},
     }
 
@@ -298,3 +312,101 @@ def test_the_score_report_leads_with_interpretable(tmp_path):
 
 def test_the_score_report_handles_an_empty_directory(tmp_path):
     assert "no coder summaries found" in benchmark.format_score(benchmark.score(tmp_path))
+
+
+# -- real data from a source nobody vouched for ----------------------------------------------
+
+
+def _discovered(hid, **kwargs):
+    """A case that reached real data by search: the verdict is withheld, and the
+    reason is a pending human check rather than anything the agent did."""
+    return _experiment(hid, meets="unknown", real=True, unconfirmed=["cdc_wonder"], **kwargs)
+
+
+def test_real_data_from_an_unconfirmed_source_is_not_interpretable(tmp_path):
+    """The withholding itself is right and stays. A dataset found by keyword
+    search can be real data about entirely the wrong thing."""
+    directory = _summary(tmp_path, "run", [_discovered("H1")])
+    result = benchmark.score(directory)
+
+    assert result.interpretable == 0
+    assert result.completed == 1
+
+
+def test_it_is_counted_as_awaiting_review_rather_than_lumped_with_synthetic(tmp_path):
+    """The distinction this metric exists for. Both of these have a withheld
+    verdict; only one of them describes a failure of the agent."""
+    directory = _summary(
+        tmp_path,
+        "run",
+        [_discovered("H1"), _experiment("H2", meets="unknown", real=False)],
+    )
+    result = benchmark.score(directory)
+
+    assert result.awaiting_source_review == 1
+    assert result.evidence_ready == 1
+    assert result.interpretable == 0
+
+
+def test_evidence_ready_sums_two_disjoint_sets(tmp_path):
+    directory = _summary(
+        tmp_path,
+        "run",
+        [
+            _discovered("H1"),
+            _experiment("H2", meets=True),
+            _experiment("H3", real=False, meets="unknown"),
+        ],
+    )
+    result = benchmark.score(directory)
+
+    assert (result.interpretable, result.awaiting_source_review) == (1, 1)
+    assert result.evidence_ready == 2
+    # Never double-counts: a case is on one side or the other, so the sum can
+    # not exceed the corpus.
+    assert result.evidence_ready <= result.total
+
+
+def test_a_stated_verdict_is_never_also_awaiting_review(tmp_path):
+    """Defensive, against a summary written by another version of the pipeline:
+    if a verdict somehow survived alongside unconfirmed inputs, it counts once."""
+    directory = _summary(tmp_path, "run", [_experiment("H1", meets=True, unconfirmed=["x"])])
+    result = benchmark.score(directory)
+
+    assert result.interpretable == 1
+    assert result.awaiting_source_review == 0
+    assert result.evidence_ready == 1
+
+
+def test_synthetic_data_is_never_awaiting_review(tmp_path):
+    """There is no human check that would make invented data interpretable, so
+    it must not sit in the queue-behind-a-human bucket."""
+    directory = _summary(tmp_path, "run", [_experiment("H1", meets="unknown", real=False)])
+    result = benchmark.score(directory)
+
+    assert result.awaiting_source_review == 0
+    assert result.evidence_ready == 0
+
+
+def test_reaching_real_data_ranks_above_completing_on_synthetic(tmp_path):
+    """The comparator must read this as progress. Before the split both sides
+    were labelled "completed" and the change was invisible."""
+    before = benchmark.score(
+        _summary(tmp_path, "a", [_experiment("H1", meets="unknown", real=False)])
+    )
+    after = benchmark.score(_summary(tmp_path, "b", [_discovered("H1")]))
+
+    (change,) = benchmark.compare(before, after)
+    assert change.direction == "better"
+    assert change.after == "awaiting_source_review"
+
+
+def test_the_report_explains_a_zero_that_is_not_a_failure(tmp_path):
+    """A score read without the module docstring is the only way most people
+    will meet this number."""
+    directory = _summary(tmp_path, "run", [_discovered("H1")])
+    text = benchmark.format_score(benchmark.score(directory))
+
+    assert "awaiting review" in text
+    assert "evidence ready" in text
+    assert "does not open by improving the agent" in text
