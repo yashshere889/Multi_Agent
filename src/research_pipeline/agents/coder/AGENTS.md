@@ -130,11 +130,16 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   nothing, having trained a real transformer on real data. Upscale and downscale must never
   alternate — `scale_direction` fixes the direction for the whole attempt, or the two chase each
   other over one knob until the wall clock runs out.
-- **`interpretable`, not `completed`, is the number a change is judged on.** `benchmark.py`
-  counts an experiment as interpretable only when it ran *and* kept a real bool verdict — a run
-  whose verdict was withheld by `provenance.py` or `compute_provenance.py` produced nothing a
-  paper can state. Optimising `completed` alone is how you get a pipeline that always finishes
-  and never concludes anything. When adding a metric, ask which of those two it is.
+- **`interpretable`, not `completed`, is the number a change is judged on — but under data
+  discovery, read `evidence_ready`.** `benchmark.py` counts an experiment as interpretable only
+  when it ran *and* kept a real bool verdict — a run whose verdict was withheld by
+  `provenance.py` or `compute_provenance.py` produced nothing a paper can state. Optimising
+  `completed` alone is how you get a pipeline that always finishes and never concludes anything.
+  The exception, and the reason there are now three numbers: a verdict withheld because the
+  dataset was *discovered* rather than named is waiting on a human, not on the agent, so under
+  discovery `interpretable` is pinned at 0 no matter how good the generated code gets. Those
+  cases count as `awaiting_source_review`, and `evidence_ready` is the two summed — the number to
+  compare two runs of the *agent* on. When adding a metric, ask which of those three it is.
 - **Venvs are keyed by what is in them, not by who asked for them.** `venv_key` hashes the
   resolved requirement set and `_venv_dir_for` puts the venv under `_venvs/<key>/` (or under
   `CODER_VENV_ROOT`), so twenty plans wanting numpy/pandas provision one environment. Two
