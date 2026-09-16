@@ -45,6 +45,18 @@ class ImplementationStep(TypedDict):
 
 class ExperimentPlan(TypedDict):
     hypothesis_id: str
+    # Describes THIS PLAN, not the hypothesis as originally stated. A hypothesis
+    # too large to test on the cluster is scaled down and the plan written for
+    # the scaled-down version — that plan is feasible, so this is True and
+    # `feasibility_notes` records what was narrowed. False is reserved for a
+    # hypothesis no scaled-down version can test at all.
+    #
+    # The distinction is load-bearing because the Coder Agent never generates
+    # code for a False plan: it records "skipped" and every other field here is
+    # discarded unread. Barkla job 10536990 lost a whole pipeline run to exactly
+    # that — the plan proposed its own simplification in `feasibility_notes`,
+    # wrote the full body for it, and still said False. See
+    # experiment_planner_agent._warn_if_feasibility_contradicts_plan.
     feasible: bool
     feasibility_notes: str
     objective: str

@@ -6,6 +6,7 @@ import pytest
 from research_pipeline.agents.experiment_planner.experiment_planner_agent import (
     ExperimentPlannerAgent,
     ExperimentPlannerAgentError,
+    _warn_if_feasibility_contradicts_plan,
 )
 from research_pipeline.agents.experiment_planner.schema import (
     SchemaValidationError,
@@ -365,3 +366,76 @@ def test_run_deterministically_coerces_priority_order_when_repair_also_fails(tmp
     assert sorted(e["hypothesis_id"] for e in result["priority_order"]) == ["H1", "H2", "H3"]
     assert sorted(e["rank"] for e in result["priority_order"]) == [1, 2, 3]
     assert not list(tmp_path.glob("experiment_plan_*_invalid.json"))
+
+
+# -- the feasibility flag's contract ---------------------------------------------------
+# `feasible` describes the plan as written, not the hypothesis as stated. It
+# matters because the Coder Agent never generates code for a false plan, so
+# every other field is discarded unread — which is how Barkla job 10536990
+# produced a whole pipeline run with no experiment in it.
+
+
+def _contradictory_plan() -> dict:
+    """Job 10536990's H1, reduced to the fields the check reads."""
+    return {
+        "feasible": False,
+        "feasibility_notes": (
+            "The hypothesis requires testing real-time interactive video generation, which "
+            "exceeds typical SLURM compute capacity for a single GPU node. Therefore, we "
+            "simplify the hypothesis to focus on a controlled comparison of autoregressive "
+            "models with and without KV caching on a synthetic sequence generation task, "
+            "using a smaller, feasible model architecture and synthetic data."
+        ),
+        "estimated_complexity": "low",
+        "implementation_steps": [{"step": i, "description": "d"} for i in range(1, 6)],
+        "methods": [{"name": "KV Caching", "description": "d", "reused_from_literature": True}],
+    }
+
+
+def test_warns_when_an_infeasible_plan_is_really_a_feasible_simplification(caplog):
+    with caplog.at_level("WARNING"):
+        _warn_if_feasibility_contradicts_plan(_contradictory_plan(), "H1")
+
+    assert "marked feasible=false" in caplog.text
+    assert "discarded unread" in caplog.text
+
+
+def test_silent_for_a_hypothesis_that_genuinely_cannot_be_scaled_down(caplog):
+    plan = {
+        "feasible": False,
+        "feasibility_notes": "No data could exist for this question; it is not empirically testable.",
+        "estimated_complexity": "high",
+        "implementation_steps": [],
+        "methods": [],
+    }
+    with caplog.at_level("WARNING"):
+        _warn_if_feasibility_contradicts_plan(plan, "H2")
+
+    assert caplog.text == ""
+
+
+def test_silent_for_an_ordinary_feasible_plan(caplog):
+    with caplog.at_level("WARNING"):
+        _warn_if_feasibility_contradicts_plan({**_contradictory_plan(), "feasible": True}, "H3")
+
+    assert caplog.text == ""
+
+
+def test_silent_when_the_notes_claim_no_simplification(caplog):
+    # feasible=false with a complete body but no claim of having narrowed
+    # anything is a different situation, and not one this check should guess at.
+    plan = {**_contradictory_plan(), "feasibility_notes": "Requires proprietary data we lack."}
+    with caplog.at_level("WARNING"):
+        _warn_if_feasibility_contradicts_plan(plan, "H4")
+
+    assert caplog.text == ""
+
+
+def test_the_prompt_states_that_feasible_describes_the_plan():
+    from research_pipeline.agents.experiment_planner import prompts
+
+    rule = prompts.SYSTEM_PROMPT
+    assert "describes THE PLAN YOU WRITE BELOW" in rule
+    # And that the consequence of getting it wrong is spelled out, since that is
+    # what makes the rule make sense to a model reading it cold.
+    assert "skipped" in rule and "discarded unread" in rule
