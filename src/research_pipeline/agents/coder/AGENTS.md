@@ -34,6 +34,7 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 | `prompts.py` | All prompt templates. |
 | `benchmark.py` | Scores a directory of `coder_agent_summary_*.json` into comparable numbers, and diffs two such runs. Pure — no model, no agent imports — so it grades an ordinary sweep's outputs as readily as a benchmark run. |
 | `benchmark_plans/` | The frozen plan corpus, one Experiment Planner output per case. Hand-written, never model-generated; see its README before adding one. |
+| `transcript.py` | Writes each attempt's prompt + raw model response to `.transcript.json` beside the code it produced, so the fix_attempts snapshots are a usable dataset and not just a debugging trail. Never raises; gated by `CODER_SAVE_TRANSCRIPTS`. Consumed by `scripts/export_preference_data.py`. |
 | `starters.py` | The pre-validated starter-program library: `STARTERS` (one hand-authored, stdlib-only worked example per ML/NLP task shape) and `select_starter(plan)`, a deterministic keyword match with no LLM call. |
 | `templates/run.py.template` | The fixed experiment scaffold — metadata, the runtime-support block (`logger`, `log_progress`, `begin_checkpoint`/`finish_checkpoint`/`resume_checkpoint`, the SIGTERM handler) and the orchestration footer that writes `results.json`. Not model-generated. |
 | `templates/run.sbatch.template` | Barkla-shaped SLURM script — `--requeue`, `--open-mode=append`, and `python run.py --resume`, so a preempted job continues rather than restarting. |
@@ -129,11 +130,16 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   nothing, having trained a real transformer on real data. Upscale and downscale must never
   alternate — `scale_direction` fixes the direction for the whole attempt, or the two chase each
   other over one knob until the wall clock runs out.
-- **`interpretable`, not `completed`, is the number a change is judged on.** `benchmark.py`
-  counts an experiment as interpretable only when it ran *and* kept a real bool verdict — a run
-  whose verdict was withheld by `provenance.py` or `compute_provenance.py` produced nothing a
-  paper can state. Optimising `completed` alone is how you get a pipeline that always finishes
-  and never concludes anything. When adding a metric, ask which of those two it is.
+- **`interpretable`, not `completed`, is the number a change is judged on — but under data
+  discovery, read `evidence_ready`.** `benchmark.py` counts an experiment as interpretable only
+  when it ran *and* kept a real bool verdict — a run whose verdict was withheld by
+  `provenance.py` or `compute_provenance.py` produced nothing a paper can state. Optimising
+  `completed` alone is how you get a pipeline that always finishes and never concludes anything.
+  The exception, and the reason there are now three numbers: a verdict withheld because the
+  dataset was *discovered* rather than named is waiting on a human, not on the agent, so under
+  discovery `interpretable` is pinned at 0 no matter how good the generated code gets. Those
+  cases count as `awaiting_source_review`, and `evidence_ready` is the two summed — the number to
+  compare two runs of the *agent* on. When adding a metric, ask which of those three it is.
 - **Venvs are keyed by what is in them, not by who asked for them.** `venv_key` hashes the
   resolved requirement set and `_venv_dir_for` puts the venv under `_venvs/<key>/` (or under
   `CODER_VENV_ROOT`), so twenty plans wanting numpy/pandas provision one environment. Two
@@ -458,6 +464,35 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
 - **`count_running_jobs` returns a huge sentinel (`_UNKNOWN_QUEUE_DEPTH`) when `squeue` can't be
   read** (`slurm_submit.py:29`), so a failed probe blocks submission instead of waving it
   through. Don't "fix" it to return 0.
+
+## Run artefacts are a dataset, not just a debugging trail
+
+Every trip round the fix loop produces a labelled training example and, until recently, threw
+away the join between its halves. `fix_attempts/attempt_<n>/` holds the code that failed,
+`fix_history[n]` holds the error that rejected it and whether the regeneration that followed
+cleared it — so each `(rejected, error, accepted)` triple is a preference pair by construction.
+
+Two things make that usable, and both have to stay true:
+
+- **`transcript.py` writes the prompt and the raw response.** Neither is recoverable otherwise.
+  The prompt is on disk nowhere else, and for a *targeted* regeneration (`_target_sections`) it
+  isn't reconstructible from the summary at all, since its shape depends on which sections were
+  asked for. The response isn't `run.py` either — that is the model's sections *after*
+  `render_experiment_with_spans` spliced them into the fixed template, so training on it would
+  teach a model to emit a file it is never asked for. And the two failure categories where the
+  response *is* the whole defect (`invalid_format`, `missing_sections`) return before any file is
+  written, so before transcripts they left nothing behind at all.
+- **`_snapshot_attempt` copies it, and `_restore_attempt` restores it.** The pairing is the
+  point: a transcript beside a `run.py` it did not produce is worse than no transcript, because
+  it reads as ground truth. `_restore_attempt` therefore *deletes* a stale one when the attempt
+  it restores has none — the same asymmetry `results.json` already had, for the same reason.
+
+`scripts/export_preference_data.py` turns all of it into JSONL (`--format sft-fix | dpo | sft`).
+It imports nothing from this package — same rule as `scripts/analyze_coder_fix_history.py`, so it
+runs against artefacts from any version of the pipeline, including on a cluster where the package
+isn't installed — which means two things here are restated there and must stay in sync: the
+delimited wire format (`llm_sections.py`) and `run.py.template`'s section banners, which are what
+lets it slice a rendered `run.py` back apart for artefacts that predate transcripts.
 
 ## Testing
 

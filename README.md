@@ -918,8 +918,10 @@ on the ones before it.
 The headline metric is **interpretable**, not completed:
 
 ```
-  interpretable      3/12 (25%)   <- ran AND carries a verdict
-  completed          6/12 (50%)
+  interpretable      0/12 (0%)    <- ran AND carries a verdict a paper can state
+  awaiting review    4/12 (33%)   <- ran on real data; needs a human to confirm the source
+  evidence ready     4/12 (33%)   <- the two above: what the agent got done
+  completed         10/12 (83%)
 ```
 
 An experiment that finished and had its verdict withheld — synthetic inputs, or
@@ -927,19 +929,32 @@ a run truncated to fit its budget — produced nothing the paper can state.
 Optimising `completed` alone gets you a pipeline that always finishes and never
 concludes anything.
 
+`awaiting review` exists because one withholding reason is not like the others.
+When the pipeline finds its own data, the verdict is withheld until a human
+confirms the discovered source actually answers the question — a gate that
+never opens by improving the agent. Scored as one number with the rest, "found
+real data and ran a correct experiment on it" is indistinguishable from
+"invented the data", and every comparison reads `0 -> 0`. Compare `interpretable`
+to judge what the pipeline can publish; compare `evidence_ready` to judge a
+change to the agent. `evidence_ready` is not a validity claim — an unconfirmed
+source can be real data about the wrong thing, which is why the gate is there.
+
 `compare` prints per-case moves alongside the aggregate deltas, and says what
 one case is worth as a percentage, because a twelve-case corpus turns a single
 flaky run into eight points:
 
 ```
-  interpretable             3 ->    6   +3
-  fix attempts (total)     11 ->    7   -4
+  interpretable             0 ->    0
+  awaiting review           1 ->    4   +3
+  evidence ready            1 ->    4   +3
+  fix attempts (total)     25 ->   18   -7
 
   One case is 8% of this corpus. A delta of ±1 is one experiment, not a trend —
   read the per-case changes below before concluding anything from the numbers above.
 
-    + H105: code_generated_not_run -> interpretable
-    + H110: code_generated_not_run -> interpretable
+    + H103: completed -> awaiting_source_review
+    + H109: code_generated_not_run -> completed
+    + H112: code_generated_not_run -> awaiting_source_review
 ```
 
 Scoring is a pure function of `coder_agent_summary_*.json`, so `score` and
