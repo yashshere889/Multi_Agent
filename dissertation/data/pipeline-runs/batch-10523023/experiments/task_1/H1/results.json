@@ -1,0 +1,22 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether a BERT-based financial sentiment model trained on news headlines improves next-day directional prediction of S&P 500 returns compared to a model using only Fama-French three-factor risk premiums, using Granger causality tests.",
+  "author": "coder-agent",
+  "baseline": "Model using only Fama-French three-factor risk premiums",
+  "success_criteria": "If the BERT-based sentiment model shows higher Granger causality F-statistics or greater directional prediction accuracy than the Fama-French model, the hypothesis is supported. If not, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T05:08:09.820407+00:00",
+  "status": "success",
+  "elapsed_seconds": 0.4739,
+  "resumed": false,
+  "metrics": {
+    "bert_f_statistic": 0.0,
+    "ff_f_statistic": 0.0,
+    "bert_accuracy": 0.49775426309378806,
+    "ff_accuracy": 0.541336784409257,
+    "sample_size": 26272
+  },
+  "meets_success_criteria": "unknown",
+  "notes": "One or both Granger causality tests failed to produce valid statistics.",
+  "error": null
+}

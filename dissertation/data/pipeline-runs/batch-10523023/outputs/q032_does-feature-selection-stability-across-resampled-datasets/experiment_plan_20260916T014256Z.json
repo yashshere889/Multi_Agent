@@ -1,0 +1,109 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the constraints. The AG News dataset is available and suitable for NLP text classification. The Consistency Index method is well-established and can be implemented using standard Python libraries. The experiment involves resampling training sets, running feature selection, and measuring accuracy — all within the compute limits of a shared HPC cluster.",
+      "objective": "To empirically test whether higher feature selection stability, as measured by the Consistency Index, correlates with higher downstream test accuracy in NLP text classification tasks using the AG News dataset.",
+      "variables": {
+        "independent": [
+          "Consistency Index scores across resampled datasets"
+        ],
+        "dependent": [
+          "Test accuracy of classifiers trained on stable vs unstable feature sets"
+        ]
+      },
+      "design": "A controlled experiment using resampling-based ensemble feature selection to generate multiple stable and unstable feature sets, followed by training classifiers on each set and evaluating their test accuracy. The Consistency Index is calculated for each feature subset to quantify stability.",
+      "data_requirements": {
+        "source": "ag_news_document_text_category_classification_train.csv",
+        "description": "The AG News dataset contains 120,000 short news articles across four categories (World, Sports, Business, Sci/Tech). This dataset is ideal for testing the hypothesis because it provides sufficient textual data for feature selection analysis while maintaining a manageable size for repeated resampling and training.",
+        "preprocessing_steps": [
+          "Load the CSV file using pandas.read_csv()",
+          "Extract text and label columns for classification",
+          "Convert labels to integer format (0-3) for compatibility with scikit-learn",
+          "Apply tokenization and vectorization (TF-IDF) to convert text to numerical features",
+          "Ensure no train/test leakage by keeping the official train/test split intact"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Ensemble feature selection",
+          "description": "Generate multiple resampled training sets from the original training data, apply feature selection to each, and aggregate results to form a stable feature set. This method helps quantify feature selection stability by assessing consistency across resampled datasets.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Consistency index",
+          "description": "Quantify the similarity between feature subsets obtained from different resampled datasets. This index measures how consistently features are selected across multiple training instances, providing a stability score for each feature selection process.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "TF-IDF vectorization",
+          "description": "Transform raw text data into numerical vectors using Term Frequency-Inverse Document Frequency. This standard NLP preprocessing step enables feature selection algorithms to operate on the text data.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Logistic Regression classifier",
+          "description": "Train a simple yet effective classifier on the selected features to evaluate classification performance. Logistic regression is chosen for its interpretability and speed, making it suitable for repeated training across multiple resampled datasets.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Pearson Product-Moment Correlation Coefficient",
+          "Test accuracy of classifiers"
+        ],
+        "baseline": "Random feature selection without stability considerations",
+        "success_criteria": "A positive correlation between Consistency Index scores and test accuracy would support the hypothesis. Conversely, no correlation or negative correlation would refute it."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the AG News training dataset using pandas.read_csv('ag_news_document_text_category_classification_train.csv') and extract text and label columns. Convert labels to integers (0-3)."
+        },
+        {
+          "step": 2,
+          "description": "Preprocess the text data using TF-IDF vectorization with sklearn.feature_extraction.text.TfidfVectorizer to transform documents into numerical feature vectors."
+        },
+        {
+          "step": 3,
+          "description": "Implement bootstrap resampling to create 20 distinct training sets from the original training data, each with replacement."
+        },
+        {
+          "step": 4,
+          "description": "Apply a feature selection algorithm (e.g., SelectKBest with chi2) to each resampled dataset to obtain unique feature subsets."
+        },
+        {
+          "step": 5,
+          "description": "Calculate the Consistency Index for each feature subset using the method described in CorpusId:71143771, comparing feature selections across resampled datasets."
+        },
+        {
+          "step": 6,
+          "description": "Train a logistic regression classifier on each stable/unstable feature set and evaluate its performance on the test set."
+        },
+        {
+          "step": 7,
+          "description": "Compute Pearson correlation coefficient between Consistency Index scores and corresponding test accuracies to determine if there's a statistically significant relationship."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient variation in feature selection across resampled datasets leading to low variance in Consistency Index scores",
+        "Computational overhead from running multiple feature selection and training iterations",
+        "Potential overfitting if the same test set is reused multiple times without proper cross-validation"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T01:42:56.031055+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

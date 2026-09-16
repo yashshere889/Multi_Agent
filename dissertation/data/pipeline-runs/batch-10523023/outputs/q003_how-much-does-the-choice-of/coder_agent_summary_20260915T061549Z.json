@@ -1,0 +1,310 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1",
+      "assumptions_made": [
+        "The experiment uses the imbalanced-learn library for SMOTE implementation, which is a standard and well-maintained package for handling class imbalance",
+        "The Random Forest model parameters (n_estimators=100, max_depth=10, min_samples_split=5, min_samples_leaf=2) are appropriate for this dataset size and complexity",
+        "The fixed false-positive rate of 10% is a reasonable operational constraint for credit approval systems",
+        "The evaluation metric (recall at fixed FPR) is appropriate for fraud detection scenarios where missing positive cases (fraudulent applications) is costly",
+        "The three methods are implemented correctly according to their established definitions",
+        "The experiment is run on a system with sufficient resources to handle the dataset and model training",
+        "The data preprocessing steps (removing missing values, one-hot encoding, train/test split) are correctly implemented",
+        "The ROC curve analysis for threshold selection is accurate and reliable",
+        "The class-weighted approach properly accounts for the class imbalance in the training data",
+        "The SMOTE approach effectively increases the representation of the minority class without introducing significant noise",
+        "The threshold tuning approach correctly identifies the decision boundary that achieves the target FPR",
+        "The evaluation compares the methods fairly by using the same test set and consistent prediction thresholds"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether applying SMOTE oversampling reduces fraud-detection recall at a fixed false-positive budget compared to using class-weighted models or decision-threshold tuning in a credit approval dataset with class imbalance.",
+        "author": "coder-agent",
+        "baseline": "The recall achieved by a standard Random Forest trained without any imbalance correction (i.e., no SMOTE, no class weights, no threshold tuning).",
+        "success_criteria": "If SMOTE results in lower recall at a fixed false-positive rate compared to CWRF or threshold tuning, the hypothesis is supported. Conversely, if SMOTE achieves equal or higher recall, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-15T06:15:49.689160+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.587,
+        "resumed": false,
+        "metrics": {
+          "recall_at_fixed_fpr": {
+            "smote": 0.8666666666666667,
+            "class_weighted_rf": 0.8266666666666667,
+            "threshold_tuning": 0.6933333333333334
+          }
+        },
+        "meets_success_criteria": false,
+        "notes": "Recall at 10.0% FPR:\n  SMOTE: 0.8667\n  Class-weighted RF: 0.8267\n  Threshold Tuning: 0.6933\nBest method: smote\nWorst method: threshold_tuning\nHypothesis supported: False",
+        "error": null
+      },
+      "fix_attempts": 3,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset is representative of fraud detection scenarios where the minority class (rejected applications) is of primary interest",
+            "A fixed false-positive rate of 10% represents a realistic operational constraint in credit approval systems",
+            "The Random Forest algorithm is appropriate for this tabular data with mixed numerical and categorical features",
+            "All methods are evaluated on the same test set to ensure fair comparison",
+            "The SMOTE implementation generates synthetic samples that improve model generalization rather than causing overfitting",
+            "Missing values are handled by dropping rows with '?' entries as specified in the dataset description",
+            "Categorical features are encoded using one-hot encoding as specified in preprocessing steps",
+            "The test set maintains the original class imbalance ratio as required",
+            "The evaluation uses a fixed false-positive rate of 10% as specified in the design",
+            "The experiment uses 100 estimators for Random Forest as a reasonable compromise between performance and computational cost"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['load_data_function', 'helpers', 'requirements_txt', 'assumptions_made']. Raw response: '===BEGIN imports===\\nimport logging\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.preprocessing import OneHotEncoder\\nfrom sklearn.ensemble import RandomForestClassifier\\nfrom sklearn.metrics import roc_curve, auc\\nfrom imblearn.over_sampling import SMOTE\\nfrom collections import defaultdict\\nimport json\\nimport os\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 42\\nTEST_FRACTION: float = 0.2\\nTARGET_FPR: '",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: experiments/task_3/H1/run_smoke.py\", line 499, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/run_smoke.py\", line 277, in run_experiment\n        model_smote = model_config[\"model\"].clone()\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    AttributeError: 'RandomForestClassifier' object has no attribute 'clone'\n========================================================================\n\n\n with 690 samples from /mnt/fastscratch/users/sgyshere/coder-data/uci_credit_approval.csv\n2026-09-15T07:15:21 [INFO] __main__ — Training set class distribution: [243 299]\n2026-09-15T07:15:21 [INFO] __main__ — Test set class distribution: [61 75]\n2026-09-15T07:15:21 [INFO] H1 — Phase 2/4 — Building model...\n2026-09-15T07:15:21 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-15T07:15:21 [INFO] __main__ — Running SMOTE method...\n2026-09-15T07:15:22 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/run_smoke.py\", line 499, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/run_smoke.py\", line 277, in run_experiment\n    model_smote = model_config[\"model\"].clone()\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'RandomForestClassifier' object has no attribute 'clone' This was found by a fast pre-run of this same code with its cost knobs at their minimum (n_estimators: 100 -> 50). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/H1/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Credit Approval dataset is suitable for testing the hypothesis because it is imbalanced with a minority class of '-' approvals",
+            "The experiment compares three methods (SMOTE, class-weighted models, and threshold tuning) in terms of recall at a fixed false-positive rate",
+            "The Random Forest classifier is appropriate for this tabular credit approval data",
+            "The fixed false-positive rate of 10% reflects realistic operational constraints in credit approval systems",
+            "The preprocessing steps (removing missing values, one-hot encoding, train/test split) maintain data integrity and representational validity"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "uci_credit_approval.csv",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/uci_credit_approval.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/uci_credit_approval.csv",
+            "credentials": [],
+            "preview": {
+              "data_format": "csv",
+              "read_hint": "comma-separated, with a header row (pandas.read_csv)",
+              "columns": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9",
+                "A10",
+                "A11",
+                "A12",
+                "A13",
+                "A14",
+                "A15",
+                "approved"
+              ],
+              "sample_rows": [
+                {
+                  "A1": "b",
+                  "A2": "30.83",
+                  "A3": "0",
+                  "A4": "u",
+                  "A5": "g",
+                  "A6": "w",
+                  "A7": "v",
+                  "A8": "1.25",
+                  "A9": "t",
+                  "A10": "t",
+                  "A11": "01",
+                  "A12": "f",
+                  "A13": "g",
+                  "A14": "00202",
+                  "A15": "0",
+                  "approved": "+"
+                },
+                {
+                  "A1": "a",
+                  "A2": "58.67",
+                  "A3": "4.46",
+                  "A4": "u",
+                  "A5": "g",
+                  "A6": "q",
+                  "A7": "h",
+                  "A8": "3.04",
+                  "A9": "t",
+                  "A10": "t",
+                  "A11": "06",
+                  "A12": "f",
+                  "A13": "g",
+                  "A14": "00043",
+                  "A15": "560",
+                  "approved": "+"
+                },
+                {
+                  "A1": "a",
+                  "A2": "24.50",
+                  "A3": "0.5",
+                  "A4": "u",
+                  "A5": "g",
+                  "A6": "q",
+                  "A7": "h",
+                  "A8": "1.5",
+                  "A9": "t",
+                  "A10": "f",
+                  "A11": "0",
+                  "A12": "f",
+                  "A13": "g",
+                  "A14": "00280",
+                  "A15": "824",
+                  "approved": "+"
+                }
+              ],
+              "notes": "uci_credit_approval.csv  (690 rows)\n  Source: UCI ML Repository \"Credit Approval\", dataset/27 (crx.data).\n  Columns A1..A15 plus approved (\"+\" / \"-\"). Attribute names and values are\n  anonymised at source; missing values are \"?\". 37 rows have missing fields.",
+              "row_count": 690,
+              "last_rows": [
+                {
+                  "A1": "a",
+                  "A2": "25.25",
+                  "A3": "13.5",
+                  "A4": "y",
+                  "A5": "p",
+                  "A6": "ff",
+                  "A7": "ff",
+                  "A8": "2",
+                  "A9": "f",
+                  "A10": "t",
+                  "A11": "01",
+                  "A12": "t",
+                  "A13": "g",
+                  "A14": "00200",
+                  "A15": "1",
+                  "approved": "-"
+                },
+                {
+                  "A1": "b",
+                  "A2": "17.92",
+                  "A3": "0.205",
+                  "A4": "u",
+                  "A5": "g",
+                  "A6": "aa",
+                  "A7": "v",
+                  "A8": "0.04",
+                  "A9": "f",
+                  "A10": "f",
+                  "A11": "0",
+                  "A12": "f",
+                  "A13": "g",
+                  "A14": "00280",
+                  "A15": "750",
+                  "approved": "-"
+                },
+                {
+                  "A1": "b",
+                  "A2": "35.00",
+                  "A3": "3.375",
+                  "A4": "u",
+                  "A5": "g",
+                  "A6": "c",
+                  "A7": "h",
+                  "A8": "8.29",
+                  "A9": "f",
+                  "A10": "f",
+                  "A11": "0",
+                  "A12": "t",
+                  "A13": "g",
+                  "A14": "00000",
+                  "A15": "0",
+                  "approved": "-"
+                }
+              ],
+              "trailing_placeholders": {
+                "A14": 1,
+                "A15": 1
+              }
+            }
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      },
+      "reference_implementations": [
+        {
+          "paper_id": "2302.02096",
+          "title": "Matrix Estimation for Individual Fairness",
+          "year": "2023",
+          "citation_count": 6,
+          "tldr": "",
+          "url_abs": "https://arxiv.org/abs/2302.02096v2",
+          "repositories": [
+            {
+              "url": "https://github.com/cindyyzhang/ME-IF",
+              "is_official": true,
+              "stars": 0
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2306.07261",
+          "title": "Unprocessing Seven Years of Algorithmic Fairness",
+          "year": "2023",
+          "citation_count": 25,
+          "tldr": "Empirical evaluation reveals that postprocessing provides a superior fairness-accuracy trade-off compared to various proposed methods by addressing methodological errors through a technique called unprocessing.",
+          "url_abs": "https://arxiv.org/abs/2306.07261v5",
+          "repositories": [
+            {
+              "url": "https://github.com/socialfoundations/error-parity",
+              "is_official": true,
+              "stars": 19
+            }
+          ],
+          "methods": []
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_3/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T06:15:49.922727+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

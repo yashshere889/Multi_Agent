@@ -1,0 +1,717 @@
+{
+  "literature_summary": "The literature demonstrates that quantile regression is a versatile and robust tool for modeling tail risk and extreme events across diverse domains including finance, insurance, environmental science, and public health. Compared to traditional mean regression and Gaussian error models, quantile regression offers advantages in capturing asymmetric effects, handling non-normal data, and providing insights into the entire conditional distribution, especially in the tails. It is frequently combined with advanced techniques such as Bayesian inference, machine learning, extreme value theory (EVT), and smoothing methods to improve estimation accuracy and computational efficiency. However, several methodological gaps persist, including challenges in high-dimensional settings, handling measurement errors, ensuring non-crossing quantile paths, and adapting to dynamic or real-time risk environments. Additionally, while quantile regression excels in tail risk estimation, direct comparisons with standard VaR models and Gaussian assumptions in financial contexts remain limited.",
+  "methods_overview": [
+    {
+      "method": "Quantile Regression",
+      "papers_using_it": [
+        "1612.06850v2",
+        "2012.05187v2",
+        "2009.00436v1",
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1",
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "f579b8c219946650d09ab00388b1381f2fec7ee0",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+        "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+        "29807896abc8650777fe52f4ab66bb509d20149b",
+        "2657633",
+        "2859241",
+        "2731600",
+        "2730884",
+        "2469861",
+        "2687898",
+        "3106245",
+        "386043177",
+        "82ca2f5f04786b2d9ea66a834889c7694fd3018b",
+        "b03f3a79fd80551ed523acd6886dc7a4ebc3baed",
+        "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+        "56ad038776be54b9b5dd3cc444d4ba09862cb41d",
+        "4228abc01aed8bdca23a823a6e732ecc59581c97",
+        "bb3fa4439e32649e66bfd413a744091c9603a0ad",
+        "39ea2a1ad290778f7898518eba3b9fe8aa44b5d5",
+        "3f10434156433abfc2ff6783fc1cfdeccb765231",
+        "10eae4c25b9428f1b55a2c09bda685f20f3356e0",
+        "bd29eeb45990fb84ca4c69b3548735b3e99da012",
+        "85d492db335fa602fc954893f048f22c3f7738d1",
+        "47a3b0f4583acb2ad12a31a6685f6a1c621c2868",
+        "f4718d6407ac91dfee65fc1d37fbdddf157095a3",
+        "e2d1a30dcfac33548572e23f291b95242afe4d8b",
+        "20396c9443c8858bbfd5ac27c18f2f9b5b1ed4ac",
+        "5ff567da7e53662794fbedc16ef6b588418fa3dc",
+        "e3b4d342145ccbf75b8c328f69cdcd6baa709347",
+        "78b8f63910163ce1e908bfb0bd3ba1b47feacf09",
+        "b85ccc816a0a0f5001de6b8e71938223473060fc",
+        "e0bb905a33c66bb627c0a07a92afacaec8cfd8e9",
+        "a801760477c7d97769c47498e84dbbe318e6d95c",
+        "e76b5a95cf7d60b1e6de1ffe15e060a3d9154fcb",
+        "960de9dd36d2ffee9736cedad752313ed3bcecb0",
+        "38ad57860b57a0ea93dee4f172d9ef8b3fb0178e",
+        "bf9573bec9a23a2b41508d57da433c6c48537f44",
+        "a774b08d1c18281656c449f69cba65caa4f22cfe",
+        "8867d17f18472c6cc7eb7845f98a468fb7b77368",
+        "0179e7a2d72d5b3d64d4d1d664490065abe50ca6",
+        "e2bbedd82acd66f50684f049d3eed0c0f69e79a3",
+        "58e7f8136d34068dde4beb915c99ca776da06499",
+        "679883cdf05157db504cd3a72ad6eb2d2c2b8756",
+        "5eb33ee88fda9df708b53f2f4b9ea4ab4bd6e7aa",
+        "31c3e4d8506df0f35a332903ab669da6bb38e29a",
+        "b29194ac7eb3f2eb236332c4f5b2991dc9fe83ba",
+        "58444c142b6ea5c71a435cac7a0b4c66d6c68869",
+        "13f759a3a456941fe78442a258e635a2b544aee2",
+        "ebbcee8b22f8d1a2cd5ac3858b84e8f2af127300",
+        "d243a33c209f41453927fe969949288abb4c3382",
+        "304d9d52186c58959ef463e3e28f52850a0dd60f",
+        "3388ee254ce41dfe23f0d50b52cf52c43ec23064",
+        "5d7416ab7eaeaadfdf6ff4dbdf981420ad8fca5d",
+        "3cf479f9dbfb7ed40b3e06b741197041a1965eec",
+        "086359333f18f422fe9b5a5e86914c2faa1fed4f",
+        "1811.05379v2",
+        "2202.07976v1",
+        "2503.22366v3",
+        "2502.08510v1",
+        "a742c5341b1d3b5653c6bbd8ff0a71930072bc0c",
+        "dc9d5fb6990eb653ae77ba0cd590f436ad148a8a",
+        "ee85b3a1899cbc25fb09b2d29b38a6f63d481b53",
+        "2884c8e8341a3b83ac5161c8197f551bff6b7db5",
+        "61710ac8da6497c2c6c09cb23db65afe154d8281",
+        "4f99e20a9e58a56fd2a3e207e590772e41266f2d",
+        "77e611da580df26e73cd92745f2512d4f274f2c8",
+        "87e4a748e721579c277e1743693af95355320f93",
+        "18fa423b4601438bf6369be4db0509db86fbd2eb",
+        "3101854",
+        "2717413",
+        "3106112",
+        "3035521",
+        "2674511",
+        "2910770",
+        "3104995",
+        "3035625",
+        "1607.03752v2",
+        "20f3b05d22f8e75dd6a597f1e4713ae1d82d0f6c",
+        "de50774d2c62f819508eeb7f6473a08be6058147",
+        "c9b76dc1c4df81ebc28369543c2bb34a9e6d27ef",
+        "a4857479e53ff65899751c8bf7b39cc12103e8d2",
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+        "c2bd176f8f9c84f9ba52ffb8f8bd4e9299c0f0cf",
+        "b222d9bc1ce70f8517e284eeadfe995b99ac174a",
+        "6a21130e3358968c5a702a6354a76df9aabe5538",
+        "ad482bd6050ddb122d512406df4879c21b2f3db0",
+        "5260ee3e2e9f13071f377c39037f6ced70bd3f5e",
+        "5231783",
+        "4644778",
+        "2654442",
+        "333367651",
+        "2595772",
+        "56375282",
+        "2996234",
+        "8220609",
+        "1710.05204v2",
+        "1402.2492v1",
+        "aa45b738979f2ba82fe8b2ecd5b554fd57263a70",
+        "979bde73367cf1f14c878ada550628df85ad974b",
+        "9d252546179c1444549970063994e209f26682bd",
+        "fe42078e50525c308538dd703b79e5368f0d92c0",
+        "f49d867c04c148cb83ac674efdd8825b5794c5e7",
+        "e2c02b97861193ee24c067baa5ea7359491efadb",
+        "5f14d7c109191102db6671958d3b07e8be5389b0",
+        "7d6ab149c4aae9aa72f53a0f2de6077637b89d99",
+        "12268347",
+        "7130953",
+        "2612305",
+        "2599649",
+        "15001448"
+      ],
+      "notes": "Common; used extensively for modeling conditional quantiles, tail risk, and extreme events across financial, environmental, and health domains."
+    },
+    {
+      "method": "Bayesian Quantile Regression",
+      "papers_using_it": [
+        "5ff567da7e53662794fbedc16ef6b588418fa3dc",
+        "e3b4d342145ccbf75b8c328f69cdcd6baa709347",
+        "a801760477c7d97769c47498e84dbbe318e6d95c",
+        "333367651",
+        "1402.2492v1",
+        "1710.05204v2",
+        "aa45b738979f2ba82fe8b2ecd5b554fd57263a70",
+        "979bde73367cf1f14c878ada550628df85ad974b",
+        "fe42078e50525c308538dd703b79e5368f0d92c0",
+        "9d252546179c1444549970063994e209f26682bd",
+        "f49d867c04c148cb83ac674efdd8825b5794c5e7",
+        "e2c02b97861193ee24c067baa5ea7359491efadb",
+        "5f14d7c109191102db6671958d3b07e8be5389b0",
+        "7d6ab149c4aae9aa72f53a0f2de6077637b89d99",
+        "12268347",
+        "7130953"
+      ],
+      "notes": "Common; often used with asymmetric Laplace distributions or Gaussian processes for robust inference in tail risk and spatial modeling."
+    },
+    {
+      "method": "Extreme Value Theory (EVT)",
+      "papers_using_it": [
+        "2687898",
+        "3106245",
+        "2859241",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+        "960de9dd36d2ffee9736cedad752313ed3bcecb0",
+        "5eb33ee88fda9df708b53f2f4b9ea4ab4bd6e7aa",
+        "31c3e4d8506df0f35a332903ab669da6bb38e29a",
+        "b29194ac7eb3f2eb236332c4f5b2991dc9fe83ba",
+        "304d9d52186c58959ef463e3e28f52850a0dd60f",
+        "5d7416ab7eaeaadfdf6ff4dbdf981420ad8fca5d",
+        "2503.22366v3",
+        "2502.08510v1",
+        "a742c5341b1d3b5653c6bbd8ff0a71930072bc0c",
+        "ee85b3a1899cbc25fb09b2d29b38a6f63d481b53",
+        "4f99e20a9e58a56fd2a3e207e590772e41266f2d",
+        "18fa423b4601438bf6369be4db0509db86fbd2eb",
+        "3101854",
+        "3106112",
+        "3035521",
+        "2674511",
+        "2910770",
+        "3104995",
+        "3035625"
+      ],
+      "notes": "Common; applied for modeling tail behavior, estimating extreme quantiles, and risk measures like VaR and ES, often in combination with quantile regression."
+    },
+    {
+      "method": "Machine Learning with Quantile Regression",
+      "papers_using_it": [
+        "20f3b05d22f8e75dd6a597f1e4713ae1d82d0f6c",
+        "de50774d2c62f819508eeb7f6473a08be6058147",
+        "c9b76dc1c4df81ebc28369543c2bb34a9e6d27ef",
+        "18fa423b4601438bf6369be4db0509db86fbd2eb",
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+        "5231783",
+        "4644778",
+        "b222d9bc1ce70f8517e284eeadfe995b99ac174a",
+        "e2c02b97861193ee24c067baa5ea7359491efadb"
+      ],
+      "notes": "Common; used to enhance quantile estimation with models like Random Forest, Gradient Boosting, and Neural Networks, especially in insurance and healthcare."
+    },
+    {
+      "method": "Smoothed Quantile Regression",
+      "papers_using_it": [
+        "2012.05187v2",
+        "e76b5a95cf7d60b1e6de1ffe15e060a3d9154fcb"
+      ],
+      "notes": "Rare; used primarily for reducing variability in tail probability estimates and improving computational efficiency in discrete risk models."
+    },
+    {
+      "method": "Quantile Regression Forests",
+      "papers_using_it": [
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18"
+      ],
+      "notes": "Rare; applied for modeling conditional distributions and estimating tail losses in financial and healthcare contexts."
+    },
+    {
+      "method": "LASSO Quantile Regression",
+      "papers_using_it": [
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "b03f3a79fd80551ed523acd6886dc7a4ebc3baed"
+      ],
+      "notes": "Rare; used for variable selection in high-dimensional tail risk spillover and connectedness analysis."
+    },
+    {
+      "method": "Nonparametric Quantile Regression",
+      "papers_using_it": [
+        "2859241",
+        "56375282",
+        "2996234",
+        "8220609",
+        "c2bd176f8f9c84f9ba52ffb8f8bd4e9299c0f0cf"
+      ],
+      "notes": "Rare; used for flexible modeling without parametric assumptions, particularly in time series and duration analysis."
+    },
+    {
+      "method": "Instrumental Variable Quantile Regression",
+      "papers_using_it": [
+        "2009.00436v1"
+      ],
+      "notes": "Rare; used to address endogeneity issues in quantile regression models."
+    },
+    {
+      "method": "Extremal Quantile Regression",
+      "papers_using_it": [
+        "1612.06850v2"
+      ],
+      "notes": "Rare; specifically designed for tail behavior analysis in conditional distributions."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling, particularly for daily equity returns.",
+      "supporting_evidence": [
+        "1612.06850v2",
+        "2012.05187v2",
+        "2009.00436v1",
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1",
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "f579b8c219946650d09ab00388b1381f2fec7ee0",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+        "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+        "29807896abc8650777fe52f4ab66bb509d20149b",
+        "2657633",
+        "2859241",
+        "2731600",
+        "2730884",
+        "2469861",
+        "2687898",
+        "3106245",
+        "386043177",
+        "82ca2f5f04786b2d9ea66a834889c7694fd3018b",
+        "b03f3a79fd80551ed523acd6886dc7a4ebc3baed",
+        "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+        "56ad038776be54b9b5dd3cc444d4ba09862cb41d",
+        "4228abc01aed8bdca23a823a6e732ecc59581c97",
+        "bb3fa4439e32649e66bfd413a744091c9603a0ad",
+        "39ea2a1ad290778f7898518eba3b9fe8aa44b5d5",
+        "3f10434156433abfc2ff6783fc1cfdeccb765231",
+        "10eae4c25b9428f1b55a2c09bda685f20f3356e0",
+        "bd29eeb45990fb84ca4c69b3548735b3e99da012",
+        "85d492db335fa602fc954893f048f22c3f7738d1",
+        "47a3b0f4583acb2ad12a31a6685f6a1c621c2868",
+        "f4718d6407ac91dfee65fc1d37fbdddf157095a3",
+        "e2d1a30dcfac33548572e23f291b95242afe4d8b",
+        "20396c9443c8858bbfd5ac27c18f2f9b5b1ed4ac",
+        "5ff567da7e53662794fbedc16ef6b588418fa3dc",
+        "e3b4d342145ccbf75b8c328f69cdcd6baa709347",
+        "78b8f63910163ce1e908bfb0bd3ba1b47feacf09",
+        "b85ccc816a0a0f5001de6b8e71938223473060fc",
+        "e0bb905a33c66bb627c0a07a92afacaec8cfd8e9",
+        "a801760477c7d97769c47498e84dbbe318e6d95c",
+        "e76b5a95cf7d60b1e6de1ffe15e060a3d9154fcb",
+        "960de9dd36d2ffee9736cedad752313ed3bcecb0",
+        "38ad57860b57a0ea93dee4f172d9ef8b3fb0178e",
+        "bf9573bec9a23a2b41508d57da433c6c48537f44",
+        "a774b08d1c18281656c449f69cba65caa4f22cfe",
+        "8867d17f18472c6cc7eb7845f98a468fb7b77368",
+        "0179e7a2d72d5b3d64d4d1d664490065abe50ca6",
+        "e2bbedd82acd66f50684f049d3eed0c0f69e79a3",
+        "58e7f8136d34068dde4beb915c99ca776da06499",
+        "679883cdf05157db504cd3a72ad6eb2d2c2b8756",
+        "5eb33ee88fda9df708b53f2f4b9ea4ab4bd6e7aa",
+        "31c3e4d8506df0f35a332903ab669da6bb38e29a",
+        "b29194ac7eb3f2eb236332c4f5b2991dc9fe83ba",
+        "58444c142b6ea5c71a435cac7a0b4c66d6c68869",
+        "13f759a3a456941fe78442a258e635a2b544aee2",
+        "ebbcee8b22f8d1a2cd5ac3858b84e8f2af127300",
+        "d243a33c209f41453927fe969949288abb4c3382",
+        "304d9d52186c58959ef463e3e28f52850a0dd60f",
+        "3388ee254ce41dfe23f0d50b52cf52c43ec23064",
+        "5d7416ab7eaeaadfdf6ff4dbdf981420ad8fca5d",
+        "3cf479f9dbfb7ed40b3e06b741197041a1965eec",
+        "086359333f18f422fe9b5a5e86914c2faa1fed4f",
+        "1811.05379v2",
+        "2202.07976v1",
+        "2503.22366v3",
+        "2502.08510v1",
+        "a742c5341b1d3b5653c6bbd8ff0a71930072bc0c",
+        "dc9d5fb6990eb653ae77ba0cd590f436ad148a8a",
+        "ee85b3a1899cbc25fb09b2d29b38a6f63d481b53",
+        "2884c8e8341a3b83ac5161c8197f551bff6b7db5",
+        "61710ac8da6497c2c6c09cb23db65afe154d8281",
+        "4f99e20a9e58a56fd2a3e207e590772e41266f2d",
+        "77e611da580df26e73cd92745f2512d4f274f2c8",
+        "87e4a748e721579c277e1743693af95355320f93",
+        "18fa423b4601438bf6369be4db0509db86fbd2eb",
+        "3101854",
+        "2717413",
+        "3106112",
+        "3035521",
+        "2674511",
+        "2910770",
+        "3104995",
+        "3035625",
+        "1607.03752v2",
+        "20f3b05d22f8e75dd6a597f1e4713ae1d82d0f6c",
+        "de50774d2c62f819508eeb7f6473a08be6058147",
+        "c9b76dc1c4df81ebc28369543c2bb34a9e6d27ef",
+        "a4857479e53ff65899751c8bf7b39cc12103e8d2",
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+        "c2bd176f8f9c84f9ba52ffb8f8bd4e9299c0f0cf",
+        "b222d9bc1ce70f8517e284eeadfe995b99ac174a",
+        "6a21130e3358968c5a702a6354a76df9aabe5538",
+        "ad482bd6050ddb122d512406df4879c21b2f3db0",
+        "5260ee3e2e9f13071f377c39037f6ced70bd3f5e",
+        "5231783",
+        "4644778",
+        "2654442",
+        "333367651",
+        "2595772",
+        "56375282",
+        "2996234",
+        "8220609",
+        "1710.05204v2",
+        "1402.2492v1",
+        "aa45b738979f2ba82fe8b2ecd5b554fd57263a70",
+        "979bde73367cf1f14c878ada550628df85ad974b",
+        "9d252546179c1444549970063994e209f26682bd",
+        "fe42078e50525c308538dd703b79e5368f0d92c0",
+        "f49d867c04c148cb83ac674efdd8825b5794c5e7",
+        "e2c02b97861193ee24c067baa5ea7359491efadb",
+        "5f14d7c109191102db6671958d3b07e8be5389b0",
+        "7d6ab149c4aae9aa72f53a0f2de6077637b89d99",
+        "12268347",
+        "7130953",
+        "2612305",
+        "2599649",
+        "15001448"
+      ],
+      "notes": "Despite widespread use of quantile regression for tail risk, few studies directly compare its performance against Gaussian assumptions in financial contexts."
+    },
+    {
+      "gap": "Inconsistency in defining and measuring tail dependence across financial contexts (left vs. right tail dependence).",
+      "supporting_evidence": [
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1"
+      ],
+      "notes": "Repeated across multiple studies, indicating a lack of standardized definitions for tail dependence in financial risk modeling."
+    },
+    {
+      "gap": "Lack of real-time or adaptive quantile regression models for dynamic risk assessment.",
+      "supporting_evidence": [
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "f579b8c219946650d09ab00388b1381f2fec7ee0"
+      ],
+      "notes": "Most studies rely on static historical data, missing opportunities for dynamic risk monitoring."
+    },
+    {
+      "gap": "Limited discussion on handling high-dimensional data in Bayesian quantile regression frameworks beyond smoothing techniques.",
+      "supporting_evidence": [
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e"
+      ],
+      "notes": "High-dimensional challenges remain underexplored in Bayesian quantile regression."
+    },
+    {
+      "gap": "Insufficient exploration of how Bayesian methods interact with extreme quantile estimation in real-time risk monitoring.",
+      "supporting_evidence": [
+        "f7afcdd70aed6592d8c3e0e6697b5138f6c15698"
+      ],
+      "notes": "Bayesian approaches to extreme quantile estimation lack integration with real-time risk systems."
+    },
+    {
+      "gap": "Need for more robust methods to handle measurement errors in quantile regression.",
+      "supporting_evidence": [
+        "2469861"
+      ],
+      "notes": "Measurement error handling remains a challenge, especially in financial and economic contexts."
+    },
+    {
+      "gap": "Limited discussion on computational efficiency of smoothing techniques for large-scale discrete risk models.",
+      "supporting_evidence": [
+        "e76b5a95cf7d60b1e6de1ffe15e060a3d9154fcb"
+      ],
+      "notes": "Smoothing methods' scalability in large discrete risk models is underexplored."
+    },
+    {
+      "gap": "Lack of direct empirical validation comparing Bayesian and non-Bayesian quantile estimators in real-world insurance datasets.",
+      "supporting_evidence": [
+        "a774b08d1c18281656c449f69cba65caa4f22cfe"
+      ],
+      "notes": "Comparative empirical studies between Bayesian and frequentist quantile estimation are lacking in insurance."
+    },
+    {
+      "gap": "Limited understanding of invariant measures in complex continued fractions and their implications for extreme value laws.",
+      "supporting_evidence": [
+        "2202.07976v1"
+      ],
+      "notes": "Theoretical connections between continued fractions and extreme value laws remain underexplored."
+    },
+    {
+      "gap": "Asymptotic negligibility of errors in moment-based EVI estimation remains an open question for certain distributional classes.",
+      "supporting_evidence": [
+        "2502.08510v1"
+      ],
+      "notes": "Theoretical properties of moment-based extreme value index estimators are not fully understood."
+    },
+    {
+      "gap": "Limited discussion on how to handle multivariate dependencies in extreme value modeling for portfolio risk assessment.",
+      "supporting_evidence": [
+        "87e4a748e721579c277e1743693af95355320f93"
+      ],
+      "notes": "Multivariate dependencies in extreme value modeling are underdeveloped for portfolio risk."
+    },
+    {
+      "gap": "No universally superior estimator exists for the extreme value index γ, as performance varies depending on the true value of γ.",
+      "supporting_evidence": [
+        "3101854",
+        "3106112"
+      ],
+      "notes": "Choice of estimator for extreme value index remains context-dependent and uncertain."
+    },
+    {
+      "gap": "The effectiveness of combining EVT with machine learning in risk forecasting remains underexplored in terms of robustness across different market regimes.",
+      "supporting_evidence": [
+        "18fa423b4601438bf6369be4db0509db86fbd2eb"
+      ],
+      "notes": "Integration of machine learning and EVT lacks robustness validation across market conditions."
+    },
+    {
+      "gap": "There is a lack of comprehensive comparison of quantile regression methods with traditional mean regression in terms of robustness and interpretability.",
+      "supporting_evidence": [
+        "ad482bd6050ddb122d512406df4879c21b2f3db0"
+      ],
+      "notes": "Quantile regression's relative strengths over mean regression are not consistently demonstrated."
+    },
+    {
+      "gap": "Most papers focus on either parametric or semi-parametric frameworks, with limited exploration of fully nonparametric quantile regression in dynamic or streaming data contexts.",
+      "supporting_evidence": [
+        "b222d9bc1ce70f8517e284eeadfe995b99ac174a",
+        "c2bd176f8f9c84f9ba52ffb8f8bd4e9299c0f0cf"
+      ],
+      "notes": "Fully nonparametric approaches are underutilized in dynamic or streaming data scenarios."
+    },
+    {
+      "gap": "Few studies directly compare the performance of quantile regression against other distributional modeling techniques in real-world applications involving complex healthcare or epidemiological datasets.",
+      "supporting_evidence": [
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+        "5231783",
+        "4644778"
+      ],
+      "notes": "Direct comparisons with other modeling techniques in healthcare and epidemiology are sparse."
+    },
+    {
+      "gap": "Asymptotic properties of nonparametric quantile regression estimators are influenced by both time dependence and tail behavior of errors.",
+      "supporting_evidence": [
+        "2595772"
+      ],
+      "notes": "Theoretical understanding of nonparametric quantile regression in dependent data is incomplete."
+    },
+    {
+      "gap": "Limited discussion on handling high-dimensional data in nonparametric quantile regression beyond theoretical guarantees.",
+      "supporting_evidence": [
+        "56375282",
+        "2996234"
+      ],
+      "notes": "Practical implementation of nonparametric quantile regression in high-dimensional settings is underexplored."
+    },
+    {
+      "gap": "Most models focus on the bulk of the distribution rather than the extremes, despite the importance of tail behavior in risk assessment.",
+      "supporting_evidence": [
+        "979bde73367cf1f14c878ada550628df85ad974b",
+        "9d252546179c1444549970063994e209f26682bd",
+        "fe42078e50525c308538dd703b79e5368f0d92c0",
+        "f49d867c04c148cb83ac674efdd8825b5794c5e7",
+        "e2c02b97861193ee24c067baa5ea7359491efadb",
+        "5f14d7c109191102db6671958d3b07e8be5389b0",
+        "7d6ab149c4aae9aa72f53a0f2de6077637b89d99"
+      ],
+      "notes": "Spatial and temporal models often neglect tail risk, which is critical for extreme event assessment."
+    },
+    {
+      "gap": "There is limited discussion on how to handle discrete data in tail dependence estimation.",
+      "supporting_evidence": [
+        "2599649"
+      ],
+      "notes": "Tail dependence estimation methods are mostly developed for continuous data."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "For daily returns of individual equities, quantile regression models estimated using the asymmetric Laplace distribution (a common Bayesian approach) provide more accurate Value-at-Risk (VaR) estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss.",
+      "rationale": "This hypothesis builds on the gap regarding limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling. It leverages the Bayesian Quantile Regression method, which is frequently used with asymmetric Laplace distributions for robust inference in tail risk. The hypothesis is testable using real equity return data, such as from the Fama-French factors dataset, where VaR can be computed and compared using both approaches.",
+      "related_gaps": [
+        "Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling"
+      ],
+      "related_methods": [
+        "Bayesian Quantile Regression"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "daily_returns"
+        ],
+        "dependent": [
+          "VaR_estimate"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Combining Extreme Value Theory (EVT) with quantile regression improves tail-risk estimation for daily stock returns compared to standard quantile regression alone, particularly in capturing extreme negative returns beyond the 1st percentile.",
+      "rationale": "This hypothesis draws on the cross-disciplinary bridge insight that EVT-based quantile regression methods are specifically designed to model extreme quantiles and heavy tails. It addresses the gap in understanding how EVT can enhance quantile regression for tail risk, particularly in financial contexts. Using real equity return data, one can estimate tail behavior using both standard quantile regression and EVT-enhanced quantile regression and compare their performance in predicting extreme losses.",
+      "related_gaps": [
+        "Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling"
+      ],
+      "related_methods": [
+        "Extreme Value Theory",
+        "Quantile Regression"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "daily_returns"
+        ],
+        "dependent": [
+          "tail_loss_estimate"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Machine learning-enhanced quantile regression models (e.g., Quantile Regression Forests) yield more precise tail-risk estimates for daily equity returns than traditional quantile regression models, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns.",
+      "rationale": "This hypothesis is informed by the cross-disciplinary bridge insight that machine learning approaches combining quantile regression with ensemble methods offer robust alternatives for estimating extreme quantiles. It targets the gap in applying ML techniques to improve quantile estimation in financial data. The hypothesis can be tested using real equity return data, comparing the predictive accuracy of traditional quantile regression against ML-enhanced versions like Quantile Regression Forests.",
+      "related_gaps": [
+        "Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling"
+      ],
+      "related_methods": [
+        "Machine Learning with Quantile Regression",
+        "Quantile Regression Forests"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "daily_returns"
+        ],
+        "dependent": [
+          "quantile_estimate_error"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it uses the Fama-French three-factor daily returns dataset, which contains real daily equity return data suitable for testing Value-at-Risk (VaR) estimates. It is highly testable since it makes a specific claim about lower pinball loss in quantile regression versus Gaussian models, with clear metrics and a defined comparison. The hypothesis is coherent as it focuses on the system (daily equity returns) rather than just the methods, and the data directly informs the outcome. It is well-grounded in the literature gap regarding direct comparison between quantile regression and Gaussian assumptions in financial risk modeling, and references Bayesian Quantile Regression methods that are relevant to the field."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 introduces Extreme Value Theory (EVT) combined with quantile regression, which is a promising cross-disciplinary approach. However, it is less feasible because the Fama-French dataset does not contain sufficient extreme events or tail data to reliably test EVT-enhanced quantile regression. It is moderately testable but less specific than H1, as it refers to 'extreme negative returns beyond the 1st percentile' without a precise metric. While it is internally coherent and grounded in bridge insights from EVT, the lack of appropriate data limits its practical application and clarity of results."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 proposes using Machine Learning-enhanced quantile regression models like Quantile Regression Forests, which is an interesting direction. However, it is least feasible because the listed datasets do not contain the necessary structure or volume of data to meaningfully evaluate ML-enhanced quantile regression models. It is also less testable due to its vague specification of 'more precise tail-risk estimates' and reliance on mean absolute error without a clear benchmark. Although it is internally consistent and draws on a bridge insight from machine learning, the lack of suitable data and specificity makes it the weakest candidate for experimental validation."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1612.06850v2",
+    "2012.05187v2",
+    "2009.00436v1",
+    "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+    "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+    "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1",
+    "992e2f5557ccf4a1dbda2db0db173553160c5890",
+    "f579b8c219946650d09ab00388b1381f2fec7ee0",
+    "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+    "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+    "29807896abc8650777fe52f4ab66bb509d20149b",
+    "2657633",
+    "2859241",
+    "2731600",
+    "2730884",
+    "2469861",
+    "2687898",
+    "3106245",
+    "386043177",
+    "82ca2f5f04786b2d9ea66a834889c7694fd3018b",
+    "b03f3a79fd80551ed523acd6886dc7a4ebc3baed",
+    "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+    "56ad038776be54b9b5dd3cc444d4ba09862cb41d",
+    "4228abc01aed8bdca23a823a6e732ecc59581c97",
+    "bb3fa4439e32649e66bfd413a744091c9603a0ad",
+    "39ea2a1ad290778f7898518eba3b9fe8aa44b5d5",
+    "3f10434156433abfc2ff6783fc1cfdeccb765231",
+    "10eae4c25b9428f1b55a2c09bda685f20f3356e0",
+    "bd29eeb45990fb84ca4c69b3548735b3e99da012",
+    "85d492db335fa602fc954893f048f22c3f7738d1",
+    "47a3b0f4583acb2ad12a31a6685f6a1c621c2868",
+    "f4718d6407ac91dfee65fc1d37fbdddf157095a3",
+    "e2d1a30dcfac33548572e23f291b95242afe4d8b",
+    "20396c9443c8858bbfd5ac27c18f2f9b5b1ed4ac",
+    "5ff567da7e53662794fbedc16ef6b588418fa3dc",
+    "e3b4d342145ccbf75b8c328f69cdcd6baa709347",
+    "78b8f63910163ce1e908bfb0bd3ba1b47feacf09",
+    "b85ccc816a0a0f5001de6b8e71938223473060fc",
+    "e0bb905a33c66bb627c0a07a92afacaec8cfd8e9",
+    "a801760477c7d97769c47498e84dbbe318e6d95c",
+    "e76b5a95cf7d60b1e6de1ffe15e060a3d9154fcb",
+    "960de9dd36d2ffee9736cedad752313ed3bcecb0",
+    "38ad57860b57a0ea93dee4f172d9ef8b3fb0178e",
+    "bf9573bec9a23a2b41508d57da433c6c48537f44",
+    "a774b08d1c18281656c449f69cba65caa4f22cfe",
+    "8867d17f18472c6cc7eb7845f98a468fb7b77368",
+    "0179e7a2d72d5b3d64d4d1d664490065abe50ca6",
+    "e2bbedd82acd66f50684f049d3eed0c0f69e79a3",
+    "58e7f8136d34068dde4beb915c99ca776da06499",
+    "679883cdf05157db504cd3a72ad6eb2d2c2b8756",
+    "5eb33ee88fda9df708b53f2f4b9ea4ab4bd6e7aa",
+    "31c3e4d8506df0f35a332903ab669da6bb38e29a",
+    "b29194ac7eb3f2eb236332c4f5b2991dc9fe83ba",
+    "58444c142b6ea5c71a435cac7a0b4c66d6c68869",
+    "13f759a3a456941fe78442a258e635a2b544aee2",
+    "ebbcee8b22f8d1a2cd5ac3858b84e8f2af127300",
+    "d243a33c209f41453927fe969949288abb4c3382",
+    "304d9d52186c58959ef463e3e28f52850a0dd60f",
+    "3388ee254ce41dfe23f0d50b52cf52c43ec23064",
+    "5d7416ab7eaeaadfdf6ff4dbdf981420ad8fca5d",
+    "3cf479f9dbfb7ed40b3e06b741197041a1965eec",
+    "086359333f18f422fe9b5a5e86914c2faa1fed4f",
+    "1811.05379v2",
+    "2202.07976v1",
+    "2503.22366v3",
+    "2502.08510v1",
+    "a742c5341b1d3b5653c6bbd8ff0a71930072bc0c",
+    "dc9d5fb6990eb653ae77ba0cd590f436ad148a8a",
+    "ee85b3a1899cbc25fb09b2d29b38a6f63d481b53",
+    "2884c8e8341a3b83ac5161c8197f551bff6b7db5",
+    "61710ac8da6497c2c6c09cb23db65afe154d8281",
+    "4f99e20a9e58a56fd2a3e207e590772e41266f2d",
+    "77e611da580df26e73cd92745f2512d4f274f2c8",
+    "87e4a748e721579c277e1743693af95355320f93",
+    "18fa423b4601438bf6369be4db0509db86fbd2eb",
+    "3101854",
+    "2717413",
+    "3106112",
+    "3035521",
+    "2674511",
+    "2910770",
+    "3104995",
+    "3035625",
+    "1607.03752v2",
+    "20f3b05d22f8e75dd6a597f1e4713ae1d82d0f6c",
+    "de50774d2c62f819508eeb7f6473a08be6058147",
+    "c9b76dc1c4df81ebc28369543c2bb34a9e6d27ef",
+    "a4857479e53ff65899751c8bf7b39cc12103e8d2",
+    "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+    "c2bd176f8f9c84f9ba52ffb8f8bd4e9299c0f0cf",
+    "b222d9bc1ce70f8517e284eeadfe995b99ac174a",
+    "6a21130e3358968c5a702a6354a76df9aabe5538",
+    "ad482bd6050ddb122d512406df4879c21b2f3db0",
+    "5260ee3e2e9f13071f377c39037f6ced70bd3f5e",
+    "5231783",
+    "4644778",
+    "2654442",
+    "333367651",
+    "2595772",
+    "56375282",
+    "2996234",
+    "8220609",
+    "1710.05204v2",
+    "1402.2492v1",
+    "aa45b738979f2ba82fe8b2ecd5b554fd57263a70",
+    "979bde73367cf1f14c878ada550628df85ad974b",
+    "9d252546179c1444549970063994e209f26682bd",
+    "fe42078e50525c308538dd703b79e5368f0d92c0",
+    "f49d867c04c148cb83ac674efdd8825b5794c5e7",
+    "e2c02b97861193ee24c067baa5ea7359491efadb",
+    "5f14d7c109191102db6671958d3b07e8be5389b0",
+    "7d6ab149c4aae9aa72f53a0f2de6077637b89d99",
+    "12268347",
+    "7130953",
+    "2612305",
+    "2599649",
+    "15001448"
+  ],
+  "generated_at": "2026-09-15T08:24:47.371254+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

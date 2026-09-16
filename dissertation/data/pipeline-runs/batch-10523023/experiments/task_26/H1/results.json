@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To empirically test whether increasing document length beyond 300 words significantly improves classification accuracy compared to using vocabulary-rich shorter documents with a Type-Token Ratio (TTR) above 0.75 when both are processed through a standard BERT model.",
+  "author": "coder-agent",
+  "baseline": "Classification accuracy achieved by the BERT model on the original-length documents with TTR > 0.75",
+  "success_criteria": "If the difference in classification accuracy between the vocabulary-rich short documents (TTR > 0.75, \u2264300 words) and the long documents with low vocabulary richness (TTR \u2264 0.75, >300 words) is statistically insignificant (p > 0.05), the hypothesis is supported. If the long documents with low vocabulary richness show significantly lower accuracy, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T21:23:40.708486+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.5644,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run.py\", line 664, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run.py\", line 245, in load_data\n    long_low_voc[long_low_voc['category'] == cat].sample(n=n_samples_per_cat, random_state=RANDOM_SEED)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 5988, in sample\n    sampled_indices = sample.sample(obj_len, size, replace, weights, rs)\n  File \"/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/pandas/core/sample.py\", line 161, in sample\n    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(\n           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"numpy/random/mtrand.pyx\", line 1025, in numpy.random.mtrand.RandomState.choice\nValueError: Cannot take a larger sample than population when 'replace=False'\n"
+}

@@ -1,0 +1,119 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute resources. The UCI Adult Census Income dataset (uci_adult_census_income.csv) contains rich socioeconomic indicators suitable for clustering, including age, education, marital status, occupation, and income. This dataset allows for the implementation of K-means with PCA, hierarchical clustering, and fuzzy c-means methods without requiring additional data downloads. The experiment can be conducted within typical SLURM GPU node time limits (hours to days) using standard Python libraries like scikit-learn and pandas.",
+      "objective": "To determine whether K-means clustering with PCA dimensionality reduction recovers income strata more consistently with predefined income thresholds than hierarchical clustering or fuzzy c-means methods.",
+      "variables": {
+        "independent": [
+          "survey indicators related to income and socioeconomic status (age, education, marital status, occupation, capital gain, capital loss, hours per week)"
+        ],
+        "dependent": [
+          "cluster assignments from different clustering methods (K-means with PCA, hierarchical clustering, fuzzy c-means)"
+        ]
+      },
+      "design": "Comparative benchmark experiment using three clustering methods (K-means with PCA, hierarchical clustering, fuzzy c-means) on the same preprocessed socioeconomic dataset. Each method is applied to the same feature set, and the resulting clusters are evaluated against predefined income thresholds using consistency metrics.",
+      "data_requirements": {
+        "source": "uci_adult_census_income.csv",
+        "description": "The UCI Adult Census Income dataset contains demographic and economic features of individuals including age, education, marital status, occupation, capital gains/losses, and hours worked per week, along with income level ('>50K' or '<=50K'). This dataset provides the necessary socioeconomic indicators for clustering and allows for comparison with predefined income thresholds.",
+        "preprocessing_steps": [
+          "Remove the 'fnlwgt' column (sampling weight) as it's not a feature",
+          "Encode categorical variables (workclass, education, marital_status, occupation, relationship, race, sex, native_country) using one-hot encoding",
+          "Normalize numerical features (age, capital_gain, capital_loss, hours_per_week) using StandardScaler",
+          "Create binary target variable from 'income' column ('>50K' = 1, '<=50K' = 0) for threshold comparison",
+          "Select features that represent income and socioeconomic status indicators"
+        ]
+      },
+      "methods": [
+        {
+          "name": "K-means clustering",
+          "description": "Applies K-means algorithm to group individuals into clusters based on socioeconomic features. Uses elbow method to determine optimal number of clusters (k=2 for income strata comparison).",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Principal Component Analysis (PCA)",
+          "description": "Reduces dimensionality of the feature space to 2 components for visualization and improved clustering performance while retaining most variance in the data.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Hierarchical clustering",
+          "description": "Uses agglomerative clustering to build a dendrogram and form clusters. Applies linkage criterion to determine cluster structure.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Fuzzy C Means",
+          "description": "Applies fuzzy c-means clustering to allow partial membership of individuals in multiple clusters, providing soft clustering assignments.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Adjusted Rand Index (ARI) comparing cluster assignments to predefined income thresholds",
+          "Normalized Mutual Information (NMI) between cluster assignments and income categories",
+          "Silhouette Score for cluster cohesion and separation",
+          "Consistency ratio measuring how well each method's clusters align with income thresholds"
+        ],
+        "baseline": "Predefined income thresholds ('>50K' vs '<=50K') serving as ground truth for cluster alignment",
+        "success_criteria": "K-means with PCA will show higher Adjusted Rand Index and Normalized Mutual Information scores compared to hierarchical clustering and fuzzy c-means when evaluated against predefined income thresholds, indicating better recovery of income strata consistency."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_adult_census_income.csv using pandas, remove fnlwgt column, and encode categorical variables using pd.get_dummies()"
+        },
+        {
+          "step": 2,
+          "description": "Normalize numerical features using sklearn.preprocessing.StandardScaler and prepare feature matrix X and target vector y (binary income indicator)"
+        },
+        {
+          "step": 3,
+          "description": "Apply PCA transformation to reduce features to 2 components using sklearn.decomposition.PCA(n_components=2)"
+        },
+        {
+          "step": 4,
+          "description": "Implement K-means clustering with k=2 on both raw features and PCA-transformed features using sklearn.cluster.KMeans"
+        },
+        {
+          "step": 5,
+          "description": "Implement Hierarchical clustering using sklearn.cluster.AgglomerativeClustering with n_clusters=2"
+        },
+        {
+          "step": 6,
+          "description": "Implement Fuzzy C-Means clustering using scikit-fuzzy library or similar implementation"
+        },
+        {
+          "step": 7,
+          "description": "Calculate evaluation metrics (ARI, NMI, Silhouette Score) for each clustering method using sklearn.metrics"
+        },
+        {
+          "step": 8,
+          "description": "Compare cluster assignments against predefined income thresholds and compute consistency ratios"
+        },
+        {
+          "step": 9,
+          "description": "Generate summary statistics and visualizations comparing performance across all three methods"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient separation between income groups in the dataset to detect meaningful clustering patterns",
+        "Computational overhead from fuzzy c-means implementation potentially exceeding SLURM time limits",
+        "Potential overfitting or poor generalization due to small sample size relative to feature dimensions"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T06:10:11.901245+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

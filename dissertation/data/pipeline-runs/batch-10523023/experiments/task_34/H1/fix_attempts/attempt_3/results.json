@@ -1,0 +1,19 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether model performance rankings derived from fivefold cross-validation on the AG News training set differ significantly from those based on the held-out test set, as measured by Spearman rank correlation below 0.7.",
+  "author": "coder-agent",
+  "baseline": "A Spearman correlation of 1.0 would indicate perfect agreement between CV and test set rankings, while a value of 0.7 or higher would suggest minimal disagreement.",
+  "success_criteria": "If the Spearman rank correlation between model rankings from 5-fold CV and the held-out test set is below 0.7, the hypothesis is supported. A correlation of 0.7 or higher would refute the hypothesis.",
+  "timestamp_utc": "2026-09-16T02:59:46.469411+00:00",
+  "status": "success",
+  "elapsed_seconds": 109.4771,
+  "resumed": false,
+  "metrics": {
+    "spearman_correlation": 0.9999999999999999,
+    "p_value": NaN
+  },
+  "meets_success_criteria": false,
+  "notes": "Spearman rank correlation between CV and test set rankings is 1.000. This does not support the hypothesis that model performance rankings differ significantly (correlation < 0.7).",
+  "error": null
+}

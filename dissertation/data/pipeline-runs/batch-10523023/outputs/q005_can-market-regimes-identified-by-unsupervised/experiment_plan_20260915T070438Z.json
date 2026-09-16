@@ -1,0 +1,98 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute resources. We use the 'historical_stock_market_daily_closing_price_financial_data.csv' dataset which provides daily S&P 500 index levels and related financial indicators. This allows us to extract price and volume features for spectral clustering and backtest a momentum strategy. The experiment can be run within typical SLURM GPU allocations since it involves moderate-sized time series processing and a few model training runs.",
+      "objective": "To determine whether using spectral clustering to identify market regimes from daily S&P 500 price and volume features improves the out-of-sample Sharpe ratio of a simple momentum strategy compared to a static momentum rule.",
+      "variables": {
+        "independent": [
+          "Spectral cluster assignments of S&P 500 price-volume features"
+        ],
+        "dependent": [
+          "Out-of-sample Sharpe ratio of momentum strategy"
+        ]
+      },
+      "design": "Control vs Treatment comparison. The control group uses a static momentum strategy without regime detection. The treatment group applies spectral clustering to detect market regimes and adjusts momentum weights accordingly. Both strategies are evaluated on out-of-sample performance using the same holdout period.",
+      "data_requirements": {
+        "source": "historical_stock_market_daily_closing_price_financial_data.csv",
+        "description": "Daily S&P 500 closing prices and related financial indicators including Real Price, Real Dividend, Real Earnings, PE10, Consumer Price Index, Long Interest Rate. These provide the necessary price and volume features for spectral clustering and momentum strategy construction.",
+        "preprocessing_steps": [
+          "Extract daily returns from SP500 price series",
+          "Compute rolling volatility (20-day window) as a proxy for volume",
+          "Normalize all features (price, volatility, earnings, dividend yield) to zero mean and unit variance",
+          "Select subset of features for clustering: SP500 price, volatility, PE10, CPI, interest rate",
+          "Remove incomplete entries due to missing data in early years",
+          "Create 10-year rolling windows for out-of-sample testing"
+        ]
+      },
+      "methods": [
+        {
+          "name": "spectral clustering",
+          "description": "Apply spectral clustering to group days into distinct market regimes based on normalized price-volume features. Uses the graph Laplacian to find low-dimensional embeddings and KMeans clustering on the embedding space to identify 3-5 market states (bullish, bearish, neutral). The number of clusters is selected using silhouette analysis.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Momentum Strategy",
+          "description": "Implement a simple momentum strategy that buys assets with highest past returns (e.g., 3-month return) and sells those with lowest returns. For the regime-aware version, apply different momentum weights based on the detected market regime (e.g., higher exposure during bullish regimes).",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Sharpe Ratio",
+          "Annualized Return",
+          "Maximum Drawdown"
+        ],
+        "baseline": "Static momentum strategy without regime detection using the same lookback period and rebalancing frequency",
+        "success_criteria": "If the regime-aware momentum strategy achieves a higher out-of-sample Sharpe ratio than the static momentum strategy, the hypothesis is supported. If the opposite occurs, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load historical_stock_market_daily_closing_price_financial_data.csv and preprocess features: compute daily returns, rolling volatility, normalize features, remove missing data points"
+        },
+        {
+          "step": 2,
+          "description": "Apply spectral clustering to identify 3-5 market regimes using normalized price-volume features. Validate cluster quality using silhouette analysis to select optimal number of clusters"
+        },
+        {
+          "step": 3,
+          "description": "Backtest static momentum strategy on the entire dataset using 3-month lookback period for signal generation and monthly rebalancing"
+        },
+        {
+          "step": 4,
+          "description": "Backtest regime-aware momentum strategy where momentum weights are adjusted based on detected market regime (e.g., high exposure in bullish regimes, low exposure in bearish)"
+        },
+        {
+          "step": 5,
+          "description": "Compare out-of-sample Sharpe ratios of both strategies over the same holdout period (last 5 years of data) using identical transaction costs and risk-free rate"
+        },
+        {
+          "step": 6,
+          "description": "Generate performance summary table showing Sharpe ratios, returns, and drawdowns for both strategies and compute statistical significance using bootstrap resampling"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data points for stable clustering in some market regimes",
+        "Overfitting to in-sample period when selecting optimal number of clusters",
+        "Transaction costs and slippage may mask small performance differences",
+        "Survivorship bias in historical data may affect out-of-sample performance"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T07:04:38.566658+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

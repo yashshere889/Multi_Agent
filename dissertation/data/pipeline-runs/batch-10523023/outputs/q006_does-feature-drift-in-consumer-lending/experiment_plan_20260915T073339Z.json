@@ -1,0 +1,98 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the constraints. The UCI Statlog German Credit dataset is available and contains both categorical and numerical features suitable for drift detection using Kolmogorov-Smirnov tests. The dataset size (1000 rows) allows for training multiple models over time slices without exceeding typical HPC job limits. Drift detection and performance metrics (calibration error, AUC) can be computed efficiently on a single GPU node.",
+      "objective": "To determine whether feature drift detected via Kolmogorov-Smirnov tests leads to a faster decline in model calibration compared to ranking discrimination over time in a consumer credit approval model.",
+      "variables": {
+        "independent": [
+          "time",
+          "feature distribution shift"
+        ],
+        "dependent": [
+          "calibration error",
+          "ranking discrimination (AUC)"
+        ]
+      },
+      "design": "A longitudinal experiment where a credit approval model is trained on sequential time slices of the UCI Statlog German Credit dataset. For each slice, we compute drift using Kolmogorov-Smirnov tests and track both calibration error and AUC over time. We compare the rate of change in these two metrics to test if calibration degrades faster than ranking discrimination due to drift.",
+      "data_requirements": {
+        "source": "uci_statlog_german_credit.csv",
+        "description": "The UCI Statlog German Credit dataset contains 1000 rows of consumer credit data with 20 features including categorical and numerical variables. It is ideal for studying drift effects because it has a natural temporal structure when sliced into time periods, and the target variable indicates credit risk (good/bad).",
+        "preprocessing_steps": [
+          "Load the dataset from uci_statlog_german_credit.csv",
+          "Convert categorical variables to dummy/one-hot encoded format",
+          "Drop any rows with missing values",
+          "Split data chronologically into 10 time slices of 100 samples each",
+          "Encode target variable: 1 for good credit risk, 2 for bad credit risk"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Drift detection using statistical tests",
+          "description": "Apply Kolmogorov-Smirnov (KS) tests to compare feature distributions between consecutive time slices to detect significant shifts. Features showing p < 0.05 are flagged as drifted.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Dynamic calibration curve analysis",
+          "description": "Compute calibration plots and metrics (ECE - Expected Calibration Error) for each model trained on different time slices to quantify calibration quality over time.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Logistic Regression",
+          "description": "Train a logistic regression classifier on each time slice to predict credit risk. This serves as the base model for tracking both calibration and ranking performance.",
+          "reused_from_literature": false
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Expected Calibration Error (ECE)",
+          "Area Under the ROC Curve (AUC)"
+        ],
+        "baseline": "Performance of the model trained on the first time slice (t=0) as reference point",
+        "success_criteria": "If the rate of increase in ECE exceeds the rate of decrease in AUC over time, then the hypothesis is supported. Conversely, if AUC declines faster than ECE, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_statlog_german_credit.csv and preprocess data by converting categorical features to dummies and dropping missing values. Split into 10 chronological time slices of 100 samples each."
+        },
+        {
+          "step": 2,
+          "description": "Initialize a logistic regression model with default sklearn parameters and train it on the first time slice (t=0). Evaluate initial performance using AUC and ECE."
+        },
+        {
+          "step": 3,
+          "description": "For each subsequent time slice (t=1 to t=9): train a new logistic regression model, compute AUC and ECE, and perform KS tests on all features against the previous slice to detect drift."
+        },
+        {
+          "step": 4,
+          "description": "Track and store AUC and ECE values for each time slice along with the number of drifted features detected by KS test."
+        },
+        {
+          "step": 5,
+          "description": "Analyze trends in AUC and ECE over time. Compute slopes of change for both metrics and compare their relative magnitudes to determine if calibration degrades faster than ranking discrimination."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Small dataset may lead to high variance in drift detection results",
+        "Temporal correlation between slices might affect independence of KS test assumptions",
+        "Model performance fluctuations due to small sample sizes in each slice"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T07:33:39.281566+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

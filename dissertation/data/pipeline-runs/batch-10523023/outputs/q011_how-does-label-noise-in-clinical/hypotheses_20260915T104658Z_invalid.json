@@ -1,0 +1,403 @@
+{
+  "literature_summary": "The literature explores how label noise in clinical and general classification tasks impacts classifier calibration and accuracy. Studies show that label noise can severely degrade model performance and calibration, with some methods like Co-Teaching and DivideMix improving accuracy on noisy datasets, while others like Information-based Active Learning may reduce calibration. Techniques for handling label noise include self-learning label correction, iterative label correction, and distribution calibration. Calibration methods such as Temperature Scaling, Expected Calibration Error (ECE), and proper scoring rules are widely applied, although limitations exist in their applicability and accuracy under real-world conditions. There is a notable gap in understanding how label noise affects confidence calibration specifically in clinical settings, where annotation uncertainty and documentation quality further complicate matters. Additionally, while several methods aim to improve calibration, few systematically evaluate their effectiveness in high-noise, real-world clinical environments.",
+  "methods_overview": [
+    {
+      "method": "Temperature Scaling",
+      "papers_using_it": [
+        "5abe1c6b49bcc86a4d6e467cbcd8929c77ad8916",
+        "d65ce2b8300541414bfe51d03906fca72e93523c"
+      ],
+      "notes": "Commonly used post-hoc calibration method, especially in hybrid frameworks for medical diagnosis and general neural network calibration."
+    },
+    {
+      "method": "Expected Calibration Error (ECE)",
+      "papers_using_it": [
+        "1f5634a6186f2b04ff3afda496891a1b26ab3ef7",
+        "11efd94fb8d41f10ffcbc20ba488d88bb8dc317a",
+        "800fec9ed99611285ceb2782348d1fbb7964f720",
+        "c4bb0ee66db85efbbcc6d1c25a9f9cbefaa595e4",
+        "ef4c539a2df9803f83ab29f4dadec489846b818a"
+      ],
+      "notes": "Commonly used metric for evaluating classifier calibration, though recognized as biased and sensitive to binning."
+    },
+    {
+      "method": "Co-Teaching and DivideMix",
+      "papers_using_it": [
+        "5abe1c6b49bcc86a4d6e467cbcd8929c77ad8916"
+      ],
+      "notes": "Rare but effective methods for handling label noise during training, particularly in medical imaging."
+    },
+    {
+      "method": "Self-learning label correction",
+      "papers_using_it": [
+        "127453536"
+      ],
+      "notes": "Rare method adapted for ECG classification, showing promise in reducing label noise effects."
+    },
+    {
+      "method": "Iterative Label Correction",
+      "papers_using_it": [
+        "86ff2cebafdb9a08fd6b3c0fd2f21a916ce56c7c"
+      ],
+      "notes": "Rare method used for refining noisy labels through iterative optimization."
+    },
+    {
+      "method": "Class-Adaptive Expert Consensus",
+      "papers_using_it": [
+        "0bdaf9687f902c7c26ca7a3e0e137884b0e5a8a6"
+      ],
+      "notes": "Rare method focusing on tail-class reliability in noisy label correction."
+    },
+    {
+      "method": "Dynamic Distribution Calibration",
+      "papers_using_it": [
+        "391375620"
+      ],
+      "notes": "Rare method using multivariate Gaussian modeling to calibrate feature distributions affected by label noise."
+    },
+    {
+      "method": "Noisy Prediction Calibration (NPC)",
+      "papers_using_it": [
+        "e3ba5804ba1b3031ea4bd6729ee22b4af5a99aa0"
+      ],
+      "notes": "Rare method using generative modeling to calibrate noisy predictions."
+    },
+    {
+      "method": "Proper Scoring Rules",
+      "papers_using_it": [
+        "6bbd8fc39487249bd1b6886e4dc763550877b758",
+        "bdbd0e76b55cd6964ec0d7fb84bcf19f3e8478b8",
+        "cdaf3328386c0e6eb402262f0c185abf203f0b6e",
+        "ed4ba65a6cd69e011fff745bbd161ce5178f32cc",
+        "e600ee78ce3d28e69b7a80486b8187f09a0bd2de",
+        "89595497",
+        "2688867",
+        "4074010",
+        "2456600",
+        "26151623"
+      ],
+      "notes": "Commonly used for evaluating probabilistic forecasts and confidence intervals, especially in climate and energy modeling."
+    },
+    {
+      "method": "Confidence Thresholding in HDC",
+      "papers_using_it": [
+        "365f231ee05332565d7602a7f261013d04e177de"
+      ],
+      "notes": "Rare method extending HDC training with low-confidence correct classifications."
+    },
+    {
+      "method": "Sequence-level Confidence Classifier",
+      "papers_using_it": [
+        "93b1e45009008a7a6bec5ecdac67bb2fa2f1dba6"
+      ],
+      "notes": "Rare method for ASR accuracy and data selection."
+    },
+    {
+      "method": "Efficient Conformal Prediction under Label Noise",
+      "papers_using_it": [
+        "a19edb9d62ad5afe62d061a910cbbdecb796be26"
+      ],
+      "notes": "Rare method adjusting conformal prediction intervals for regression models with noisy labels."
+    },
+    {
+      "method": "DyGen - Dynamics-Enhanced Generative Modeling",
+      "papers_using_it": [
+        "96f006da556061e74751a598c5ff185999efa240"
+      ],
+      "notes": "Rare method using training dynamics to improve robustness to label noise."
+    },
+    {
+      "method": "Selective Forgetting for Fault Diagnosis",
+      "papers_using_it": [
+        "609fc70813de934ef1444ca1050a87885af4f5ee"
+      ],
+      "notes": "Rare method using dynamic calibration for semi-supervised fault diagnosis."
+    },
+    {
+      "method": "Label uncertainty-guided multi-stream model",
+      "papers_using_it": [
+        "35613fe33c59f2d113b334c6c81d6af43cc0e9f5"
+      ],
+      "notes": "Rare method for incorporating annotation uncertainty in disease screening."
+    },
+    {
+      "method": "Instance-based Label Smoothing",
+      "papers_using_it": [
+        "1f5634a6186f2b04ff3afda496891a1b26ab3ef7"
+      ],
+      "notes": "Rare method for improving calibrated classification networks."
+    },
+    {
+      "method": "Density Modelling for Confidence Estimation",
+      "papers_using_it": [
+        "662eb1d059c1c374d3848d9e37da4f283cf51c2a"
+      ],
+      "notes": "Rare method for estimating confidence in deep neural networks."
+    },
+    {
+      "method": "Average Thresholded Confidence (ATC)",
+      "papers_using_it": [
+        "8409af613ec9c96625ffb72497905584fea5e80d"
+      ],
+      "notes": "Rare method for predicting classifier accuracy based on confidence thresholds."
+    },
+    {
+      "method": "Confident Learning (CL)",
+      "papers_using_it": [
+        "cbaaa1154c491f9da2f050d3c22970e15bb7b52b"
+      ],
+      "notes": "Rare method for estimating uncertainty in dataset labels."
+    },
+    {
+      "method": "Regression Calibration Methods",
+      "papers_using_it": [
+        "148150520"
+      ],
+      "notes": "Rare method for recalibrating probabilistic regression uncertainties."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited exploration of how label noise affects confidence calibration in hyperdimensional computing",
+      "supporting_evidence": [
+        "365f231ee05332565d7602a7f261013d04e177de"
+      ],
+      "notes": "Few studies have examined the interaction between label noise and calibration in HDC."
+    },
+    {
+      "gap": "Lack of standardized methods for applying proper scoring rules in complex, high-dimensional regression problems such as climate modeling",
+      "supporting_evidence": [
+        "cdaf3328386c0e6eb402262f0c185abf203f0b6e"
+      ],
+      "notes": "Most work focuses on classification; extension to regression remains underexplored."
+    },
+    {
+      "gap": "Limited discussion on how to accurately estimate label noise levels in real-world clinical settings",
+      "supporting_evidence": [
+        "a19edb9d62ad5afe62d061a910cbbdecb796be26",
+        "727b41b69f875277014f4e743e0cb5058b33b87e",
+        "98771e8419c761fb982f1aa598b9ddb936acf2cf"
+      ],
+      "notes": "Real-world clinical annotation uncertainty makes noise estimation challenging."
+    },
+    {
+      "gap": "Understudied impact of label noise on confidence calibration in clinical NLP tasks",
+      "supporting_evidence": [
+        "dea6a0d6467c7fa7d1607fe76dc6d32ab40bc1ad"
+      ],
+      "notes": "Annotation discrepancies in NLP tasks are not well understood in terms of calibration."
+    },
+    {
+      "gap": "Lack of systematic studies on how different architectural choices affect calibration in neural networks",
+      "supporting_evidence": [
+        "d65ce2b8300541414bfe51d03906fca72e93523c"
+      ],
+      "notes": "Beyond basic observations, few studies explore architectural influence on calibration."
+    },
+    {
+      "gap": "Limited research on estimating ROC curves and their summary statistics for repeated measures designs",
+      "supporting_evidence": [
+        "2500388"
+      ],
+      "notes": "Notably underexplored in statistical methodology for clinical diagnostics."
+    },
+    {
+      "gap": "Lack of standardized guidelines for implementing smart statistical process control in manufacturing under Industry 4.0",
+      "supporting_evidence": [
+        "686c610bd39c3eb711801cb257cdcf472482c107"
+      ],
+      "notes": "Integration of smart systems with SPC lacks established protocols."
+    },
+    {
+      "gap": "Limited evaluation of robust control charts in non-stationary time series contexts beyond simulation studies",
+      "supporting_evidence": [
+        "2572935"
+      ],
+      "notes": "Practical validation in real-world non-stationary settings is lacking."
+    },
+    {
+      "gap": "Lack of specific dataset details and evaluation metrics in anomaly detection comparison work",
+      "supporting_evidence": [
+        "15108016"
+      ],
+      "notes": "Comparative studies often lack transparency in methodology and results."
+    },
+    {
+      "gap": "Limited exploration of how label noise affects confidence calibration in clinical settings with annotation uncertainty",
+      "supporting_evidence": [
+        "0e250105716a51e2ab269fc3e0e8bda0338df49b",
+        "dea6a0d6467c7fa7d1607fe76dc6d32ab40bc1ad",
+        "98771e8419c761fb982f1aa598b9ddb936acf2cf"
+      ],
+      "notes": "Clinical annotation quality and uncertainty are not consistently addressed in calibration studies."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "In clinical text classification tasks with known label noise, applying proper scoring rules to evaluate classifier confidence will reveal a significant disconnect between predicted probabilities and actual accuracy, even when using Temperature Scaling for post-hoc calibration.",
+      "rationale": "Clinical annotations are inherently noisy and uncertain, and existing literature shows that label noise degrades both accuracy and calibration. While proper scoring rules are a principled way to measure calibration, few studies have evaluated them in clinical settings with known noise levels. This hypothesis builds on the gap regarding limited exploration of label noise effects in clinical settings and leverages the cross-disciplinary bridge insight that proper scoring rules can rigorously assess calibration under label noise.",
+      "related_gaps": [
+        "Limited exploration of how label noise affects confidence calibration in clinical settings with annotation uncertainty"
+      ],
+      "related_methods": [
+        "Proper Scoring Rules",
+        "Temperature Scaling"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "level of label noise",
+          "use of Temperature Scaling"
+        ],
+        "dependent": [
+          "calibration error as measured by proper scoring rules",
+          "classifier accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "In the AG News dataset with artificially introduced label noise, classifiers trained using Co-Teaching or DivideMix will achieve higher accuracy compared to standard training, but will exhibit worse Expected Calibration Error (ECE) than those trained without noise, indicating a trade-off between accuracy and calibration.",
+      "rationationale": "Studies show that Co-Teaching and DivideMix are effective in handling label noise during training, yet their impact on calibration is less explored. The Expected Calibration Error is a widely used metric for evaluating calibration, but its behavior under label noise is not well understood. This hypothesis addresses the gap in understanding how training-time methods for label noise interact with calibration and uses a real-world dataset (AG News) that is suitable for testing these effects.",
+      "related_gaps": [
+        "Lack of systematic studies on how different architectural choices affect calibration in neural networks"
+      ],
+      "related_methods": [
+        "Co-Teaching",
+        "DivideMix",
+        "Expected Calibration Error"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "training method (standard vs. Co-Teaching/DivideMix)",
+          "level of label noise"
+        ],
+        "dependent": [
+          "accuracy",
+          "Expected Calibration Error (ECE)"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "In the UCI Adult Census Income dataset with simulated label noise, applying instance-based label smoothing will improve both classifier accuracy and Expected Calibration Error (ECE) compared to standard training, suggesting that smoothing noisy labels enhances both performance and confidence reliability.",
+      "rationale": "Instance-based label smoothing is a rare method shown to improve calibrated classification networks, but its effectiveness in real-world datasets with label noise is underexplored. The UCI Adult dataset is a well-established benchmark for fairness and classification tasks, making it suitable for evaluating this method. This hypothesis connects to the gap in understanding label noise effects in high-dimensional classification and builds on the bridge insight that label smoothing can enhance calibration.",
+      "related_gaps": [
+        "Limited discussion on how to accurately estimate label noise levels in real-world clinical settings"
+      ],
+      "related_methods": [
+        "Instance-based Label Smoothing",
+        "Expected Calibration Error"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "application of label smoothing",
+          "level of label noise"
+        ],
+        "dependent": [
+          "classifier accuracy",
+          "Expected Calibration Error (ECE)"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it leverages the AG News dataset, which is real, publicly available, and already on disk, making it highly practical for testing. It is also highly testable since it makes a clear, falsifiable claim about the disconnect between predicted probabilities and actual accuracy under label noise, measurable via proper scoring rules. The hypothesis is coherent, focusing on the system (clinical text classification) rather than analysis methods, and is well-grounded in the literature's emphasis on label noise affecting calibration and the bridge insight that proper scoring rules are a principled way to evaluate calibration under noise. The data itself can decisively inform whether a disconnect exists, making it a strong candidate for experimental validation."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible since it uses the AG News dataset, which is available, but its claim involves comparing training methods (Co-Teaching/DivideMix vs. standard) and their effect on ECE, which requires careful implementation of these methods. It is testable in principle, but the claim is less specific and more complex than H1, involving multiple variables and interactions. It is somewhat coherent but slightly less focused on the core system (classification with label noise) versus methods. Its grounding is solid but relies more on general knowledge of label noise and training techniques rather than a direct bridge insight. The data can inform the claim, but the experimental setup is more involved."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because it proposes using the UCI Adult Census Income dataset, which is real and available, but the hypothesis centers on instance-based label smoothing—a method that is less commonly applied in this domain and may require custom implementation. It is also less testable because the claim is more speculative and less directly tied to the core problem of label noise affecting calibration in clinical settings. It is somewhat coherent but introduces a novel method (instance-based label smoothing) that isn't strongly supported by the literature or bridge insights in the context of clinical calibration. The data could potentially support or refute the claim, but the hypothesis is less grounded in the core research question and literature."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "df4ce0b835d595404144d6b74ae81fc37f2cb1fb",
+    "29f3dfc6b7ace10062ae82ff9d152bb905ef9e5c",
+    "229d9c0e620cae1151a47dce0fbcdba37a556a83",
+    "5abe1c6b49bcc86a4d6e467cbcd8929c77ad8916",
+    "66be458d56c7f6224cf8550914d1236a14aae96e",
+    "93b1e45009008a7a6bec5ecdac67bb2fa2f1dba6",
+    "365f231ee05332565d7602a7f261013d04e177de",
+    "9c274dc557c563a77cd3d1418f5a3e1374701b79",
+    "127453536",
+    "391375620",
+    "c4d86bec8754552ae1a2b16ddb7bea7d39cabf65",
+    "193222e43f796d9dfe47d2d5e08b8005a24212a4",
+    "0a80d2297c8ac0ec83ed82e26562958a8f06c201",
+    "22f468f90aa18ecf12e2d60dc27d5a8fce93c5b6",
+    "e3ba5804ba1b3031ea4bd6729ee22b4af5a99aa0",
+    "ce68072e313e67d8f98fea6ff6556b1b7aabcdb7",
+    "e1f8f55a371d565343e38750bebe53e0899a83fb",
+    "86ff2cebafdb9a08fd6b3c0fd2f21a916ce56c7c",
+    "0bdaf9687f902c7c26ca7a3e0e137884b0e5a8a6",
+    "a19edb9d62ad5afe62d061a910cbbdecb796be26",
+    "96f006da556061e74751a598c5ff185999efa240",
+    "609fc70813de934ef1444ca1050a87885af4f5ee",
+    "727b41b69f875277014f4e743e0cb5058b33b87e",
+    "98771e8419c761fb982f1aa598b9ddb936acf2cf",
+    "0e250105716a51e2ab269fc3e0e8bda0338df49b",
+    "dea6a0d6467c7fa7d1607fe76dc6d32ab40bc1ad",
+    "35613fe33c59f2d113b334c6c81d6af43cc0e9f5",
+    "12ad6787d81972e1547c89381fdcf511b6f01e4e",
+    "11efd94fb8d41f10ffcbc20ba488d88bb8dc317a",
+    "800fec9ed99611285ceb2782348d1fbb7964f720",
+    "c4bb0ee66db85efbbcc6d1c25a9f9cbefaa595e4",
+    "1f5634a6186f2b04ff3afda496891a1b26ab3ef7",
+    "2c4a569830bbf74af447842359882a14f840e803",
+    "ef4c539a2df9803f83ab29f4dadec489846b818a",
+    "662eb1d059c1c374d3848d9e37da4f283cf51c2a",
+    "8409af613ec9c96625ffb72497905584fea5e80d",
+    "cbaaa1154c491f9da2f050d3c22970e15bb7b52b",
+    "d65ce2b8300541414bfe51d03906fca72e93523c",
+    "6bbd8fc39487249bd1b6886e4dc763550877b758",
+    "bdbd0e76b55cd6964ec0d7fb84bcf19f3e8478b8",
+    "cdaf3328386c0e6eb402262f0c185abf203f0b6e",
+    "ed4ba65a6cd69e011fff745bbd161ce5178f32cc",
+    "e600ee78ce3d28e69b7a80486b8187f09a0bd2de",
+    "148150520",
+    "14148780",
+    "284873563",
+    "17163422",
+    "10019158",
+    "89595497",
+    "2688867",
+    "4074010",
+    "2456600",
+    "26151623",
+    "333367309",
+    "2523977",
+    "2500388",
+    "286163754",
+    "74249470",
+    "285877323",
+    "686c610bd39c3eb711801cb257cdcf472482c107",
+    "9489f92cf533885359a8efc3a0f030a95abf9f1b",
+    "9ab1f4f0fcc37f2b9990da356fe1177da65adc68",
+    "0f2a146354e35b1f01cefdf6f23554ed942fc05d",
+    "bde4e56fdb3cd5dedc0e8a14f3bd14781b8e19b2",
+    "293767fd5b95c7ab96be448f7eb3e4f8c657b6ed",
+    "054be50145bb3fabf9b4834e46c4633e9acca13d",
+    "519497b0facefc07d6c89c43dfe21c919691fc97",
+    "3104372",
+    "3100027",
+    "2500865",
+    "321108846",
+    "4074556",
+    "2572935",
+    "15108016"
+  ],
+  "generated_at": "2026-09-15T10:46:58.496136+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

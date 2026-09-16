@@ -1,0 +1,24 @@
+{
+  "inputs": [
+    {
+      "name": "Hugging Face dataset lukesjordan/worldbank-project-documents",
+      "kind": "synthetic_surrogate",
+      "uri": "https://datasets-server.huggingface.co/rows?dataset=lukesjordan%2Fworldbank-project-documents&config=default&split=train&offset=0&length=100",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/36bf473ae77bb07a/hugging_face_dataset_lukesjordan_worldbank-project-documents.jsonl",
+      "reason": "the generated code reports substituting for the data this plan requires: The Hugging Face dataset lukesjordan/worldbank-project-documents was used as a proxy for trade data since the actual World Bank Open Data API or UN Comtrade database was not accessible",
+      "credentials": []
+    },
+    {
+      "name": "World Bank Open Data API or UN Comtrade database",
+      "kind": "synthetic_surrogate",
+      "uri": "https://api.worldbank.org/v2",
+      "local_path": "",
+      "reason": "the generated code reports substituting for the data this plan requires: The Hugging Face dataset lukesjordan/worldbank-project-documents was used as a proxy for trade data since the actual World Bank Open Data API or UN Comtrade database was not accessible",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 2,
+  "unconfirmed_discovered_inputs": []
+}

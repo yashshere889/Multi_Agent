@@ -1,0 +1,895 @@
+{
+  "literature_summary": "The literature presents a nuanced view of gradient-boosted decision trees (GBDTs) versus neural networks in tabular credit-risk modeling. While GBDTs, including variants like XGBoost, LightGBM, and CatBoost, are frequently highlighted for their superior performance, interpretability, and efficiency—especially in structured data settings—there is no consistent consensus that they outperform neural networks. Some studies show neural networks are not inferior, and several emphasize that performance depends heavily on dataset characteristics, class imbalance, and task-specific demands. Additionally, while GBDTs remain popular in practice due to their robustness and ease of use, newer approaches such as TabPFN, TabFlex, and ensemble methods aim to bridge performance gaps with deep learning, though scalability and generalization remain challenges. Interpretability continues to be a critical factor in regulated environments, prompting ongoing efforts to balance accuracy and explainability.",
+  "methods_overview": [
+    {
+      "method": "Gradient Boosted Decision Trees",
+      "papers_using_it": [
+        "f7c4551724a3e0cb72013685a1a6c9147af521b7",
+        "2321e2d3bc14224b06c4145737b96dcd27754128",
+        "2bf8842e8557c5a1e5a20055c08bf2da120e8b85",
+        "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+        "139019974",
+        "27444284",
+        "673bd9237d8f8de32374f9ea6602a1e1aeb872d8",
+        "1ce9f073bd6f23dd2b600c4eb59b24c12e8b9958",
+        "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+        "35071763383e950252dd7a8e4792b0c2458b60f3",
+        "d019d36cf7c777d485599bca3d8410d505a966ea",
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "6d9b714b691604b7dba8e59fa8b29f6e8074fc88",
+        "f400ff181ba03253be75b6517ffbdd13b2309098",
+        "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+        "b2cbe68954fd14ef1a341ad01de9e3c2cd89b727",
+        "c4101150483cdc26862b76848c4f31ae5d738f4d",
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b",
+        "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+        "672584c9c46cbe51044f9ecd349d1e0dc1730a12",
+        "0bb210d6768852e9abb44a030f4a7cbd9051ae57",
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+        "7076a90eb73e8b5239e89f19159d19176fa36475",
+        "c7c0a99aa592ec7bc2f4198b144cd354d8eb21ef",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "2d3ee8900a79d7036a51e615d294087eb37c7631",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; widely used across various tabular tasks including credit risk, regression, and classification, often compared with neural networks and other ensemble methods."
+    },
+    {
+      "method": "XGBoost",
+      "papers_using_it": [
+        "f7c4551724a3e0cb72013685a1a6c9147af521b7",
+        "2321e2d3bc14224b06c4145737b96dcd27754128",
+        "2bf8842e8557c5a1e5a20055c08bf2da120e8b85",
+        "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+        "139019974",
+        "1ce9f073bd6f23dd2b600c4eb59b24c12e8b9958",
+        "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+        "35071763383e950252dd7a8e4792b0c2458b60f3",
+        "d019d36cf7c777d485599bca3d8410d505a966ea",
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "6d9b714b691604b7dba8e59fa8b29f6e8074fc88",
+        "f400ff181ba03253be75b6517ffbdd13b2309098",
+        "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+        "b2cbe68954fd14ef1a341ad01de9e3c2cd89b727",
+        "c4101150483cdc26862b76848c4f31ae5d738f4d",
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b",
+        "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+        "672584c9c46cbe51044f9ecd349d1e0dc1730a12",
+        "0bb210d6768852e9abb44a030f4a7cbd9051ae57",
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+        "7076a90eb73e8b5239e89f19159d19176fa36475",
+        "c7c0a99aa592ec7bc2f4198b144cd354d8eb21ef",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "2d3ee8900a79d7036a51e615d294087eb37c7631",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; extensively used in credit risk and tabular modeling, often as a baseline or primary method for comparison with other ML techniques."
+    },
+    {
+      "method": "Neural Networks",
+      "papers_using_it": [
+        "2321e2d3bc14224b06c4145737b96dcd27754128",
+        "673bd9237d8f8de32374f9ea6602a1e1aeb872d8",
+        "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "f400ff181ba03253be75b6517ffbdd13b2309098",
+        "7076a90eb73e8b5239e89f19159d19176fa36475",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; used for comparison with GBDTs, especially in credit risk and tabular modeling, but often noted to lack interpretability and be computationally expensive."
+    },
+    {
+      "method": "TabPFN",
+      "papers_using_it": [
+        "b2cbe68954fd14ef1a341ad01de9e3c2cd89b727",
+        "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+        "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b"
+      ],
+      "notes": "Rare; represents a newer transformer-based approach for tabular data, showing promise in large-scale settings but with limitations in scalability and multi-class tasks."
+    },
+    {
+      "method": "LightGBM",
+      "papers_using_it": [
+        "2d3ee8900a79d7036a51e615d294087eb37c7631",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "6d9b714b691604b7dba8e59fa8b29f6e8074fc88",
+        "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b",
+        "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+        "672584c9c46cbe51044f9ecd349d1e0dc1730a12",
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+        "7076a90eb73e8b5239e89f19159d19176fa36475",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; highly efficient gradient boosting framework, especially for large-scale datasets, often compared with CatBoost and XGBoost."
+    },
+    {
+      "method": "CatBoost",
+      "papers_using_it": [
+        "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b",
+        "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+        "672584c9c46cbe51044f9ecd349d1e0dc1730a12",
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+        "7076a90eb73e8b5239e89f19159d19176fa36475",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; unbiased boosting algorithm designed for handling categorical features, often compared with XGBoost and LightGBM."
+    },
+    {
+      "method": "Random Forest",
+      "papers_using_it": [
+        "2321e2d3bc14224b06c4145737b96dcd27754128",
+        "673bd9237d8f8de32374f9ea6602a1e1aeb872d8",
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; used as a baseline or comparison method in tabular modeling, especially in credit risk and regression tasks."
+    },
+    {
+      "method": "SMOTE",
+      "papers_using_it": [
+        "2bf8842e8557c5a1e5a20055c08bf2da120e8b85"
+      ],
+      "notes": "Rare; used primarily for handling class imbalance in credit risk datasets, but may introduce noise or degrade operational metrics."
+    },
+    {
+      "method": "AdaBoost",
+      "papers_using_it": [
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "f400ff181ba03253be75b6517ffbdd13b2309098",
+        "5063636"
+      ],
+      "notes": "Rare; used in credit risk prediction and boosting-based modeling, with some studies proposing improvements like CGBoost."
+    },
+    {
+      "method": "Ensemble Learning",
+      "papers_using_it": [
+        "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+        "f400ff181ba03253be75b6517ffbdd13b2309098",
+        "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+        "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "25857979",
+        "15108914",
+        "15110183",
+        "2500996",
+        "3587538",
+        "2710713",
+        "5233322",
+        "2507.05904v1",
+        "2502.17119v2",
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+        "6b238b17e419c7dd3912b9845449496bfb0a571a",
+        "6251e155184a3de113bb009f61049a063b2f6500",
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b",
+        "80511910",
+        "22849491",
+        "5063636",
+        "5225255",
+        "5225050"
+      ],
+      "notes": "Common; used to combine weak learners into strong ones, improving accuracy and robustness in various tabular tasks."
+    },
+    {
+      "method": "TabNet",
+      "papers_using_it": [
+        "9fe69cf5c104b2205cdb7908df8cdb389256b4b5"
+      ],
+      "notes": "Rare; a deep learning architecture with attention mechanisms for interpretability in tabular data."
+    },
+    {
+      "method": "MANN",
+      "papers_using_it": [
+        "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+        "c7c0a99aa592ec7bc2f4198b144cd354d8eb21ef"
+      ],
+      "notes": "Rare; combines gradient boosting with neural networks for continuous learning, but faces overfitting issues."
+    },
+    {
+      "method": "Survival Trees with Gradient Boosting",
+      "papers_using_it": [
+        "d019d36cf7c777d485599bca3d8410d505a966ea"
+      ],
+      "notes": "Rare; novel approach for modeling time-to-event data in credit scoring using survival trees and gradient boosting."
+    },
+    {
+      "method": "Explainable Boosting Machine (EBM)",
+      "papers_using_it": [
+        "bac3fb40214440da59017e23dcaab29a2e41e2de"
+      ],
+      "notes": "Rare; inherently interpretable model used for credit risk scoring."
+    },
+    {
+      "method": "SHAP",
+      "papers_using_it": [
+        "bac3fb40214440da59017e23dcaab29a2e41e2de"
+      ],
+      "notes": "Rare; used for explaining predictions from gradient boosted trees."
+    },
+    {
+      "method": "TabFlex",
+      "papers_using_it": [
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b"
+      ],
+      "notes": "Rare; extension of TabPFN using linear attention for scalability."
+    },
+    {
+      "method": "TabLoRA",
+      "papers_using_it": [
+        "c4101150483cdc26862b76848c4f31ae5d738f4d"
+      ],
+      "notes": "Rare; parameter-efficient ensemble framework for large-scale tabular data."
+    },
+    {
+      "method": "Linear Attention",
+      "papers_using_it": [
+        "0d6f497b52ea92c540d013d16809cc535a82cb6b"
+      ],
+      "notes": "Rare; used in TabFlex to improve scalability for large tabular datasets."
+    },
+    {
+      "method": "TabKAN",
+      "papers_using_it": [
+        "672584c9c46cbe51044f9ecd349d1e0dc1730a12"
+      ],
+      "notes": "Rare; modular Kolmogorov-Arnold Network for tabular data with interpretability features."
+    },
+    {
+      "method": "Multiple Additive Neural Networks (MANN)",
+      "papers_using_it": [
+        "c7c0a99aa592ec7bc2f4198b144cd354d8eb21ef"
+      ],
+      "notes": "Rare; adaptation of gradient boosting using shallow neural networks as base learners."
+    },
+    {
+      "method": "Large Language Models (LLMs)",
+      "papers_using_it": [
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322"
+      ],
+      "notes": "Rare; limited application to tabular data due to numerical reasoning challenges."
+    },
+    {
+      "method": "Deep Learning Methods",
+      "papers_using_it": [
+        "7076a90eb73e8b5239e89f19159d19176fa36475"
+      ],
+      "notes": "Rare; comprehensive benchmarking of deep tabular models against tree-based methods."
+    },
+    {
+      "method": "Infinite Ensemble Learning with SVM",
+      "papers_using_it": [
+        "25857979"
+      ],
+      "notes": "Rare; theoretical formulation of infinite ensembles based on SVM."
+    },
+    {
+      "method": "Bagging Ensemble Selection (BES)",
+      "papers_using_it": [
+        "15108914"
+      ],
+      "notes": "Rare; ensemble strategy for regression tasks."
+    },
+    {
+      "method": "Stochastic Gradient Boosting",
+      "papers_using_it": [
+        "2500996"
+      ],
+      "notes": "Rare; enhanced boosting technique incorporating randomness."
+    },
+    {
+      "method": "Boosting for Accelerated Failure Time Models",
+      "papers_using_it": [
+        "3587538"
+      ],
+      "notes": "Rare; boosting algorithm tailored for survival models."
+    },
+    {
+      "method": "Boosting for RBF Neural Networks",
+      "papers_using_it": [
+        "2710713"
+      ],
+      "notes": "Rare; uses boosting to estimate RBF neural networks."
+    },
+    {
+      "method": "Componentwise Gradient Boosting",
+      "papers_using_it": [
+        "5233322"
+      ],
+      "notes": "Rare; applied to financial volatility forecasting."
+    },
+    {
+      "method": "Universal Embeddings of Tabular Data",
+      "papers_using_it": [
+        "2507.05904v1"
+      ],
+      "notes": "Rare; transforms tabular data into graphs for downstream tasks."
+    },
+    {
+      "method": "Diffusion and Flow Matching Models for Tabular Data",
+      "papers_using_it": [
+        "2502.17119v2"
+      ],
+      "notes": "Rare; generative modeling techniques for tabular data."
+    },
+    {
+      "method": "Tabular Foundation Model (TabPFN)",
+      "papers_using_it": [
+        "6b238b17e419c7dd3912b9845449496bfb0a571a"
+      ],
+      "notes": "Rare; outperforms previous methods on small datasets with fast training."
+    },
+    {
+      "method": "TabArena",
+      "papers_using_it": [
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5"
+      ],
+      "notes": "Rare; continuously maintained benchmarking system for tabular data."
+    },
+    {
+      "method": "PyAerial",
+      "papers_using_it": [
+        "6251e155184a3de113bb009f61049a063b2f6500"
+      ],
+      "notes": "Rare; Python library implementing Aerial neurosymbolic ARM algorithm."
+    },
+    {
+      "method": "Aerial+",
+      "papers_using_it": [
+        "a083b86bf9c45aac0da0c358ef28113d270f0af3"
+      ],
+      "notes": "Rare; neurosymbolic approach for ARM in high-dimensional, low-data settings."
+    },
+    {
+      "method": "Gradient Boosting Regressor (GBR)",
+      "papers_using_it": [
+        "cb2c94b98305af4bfae2db0018cda3cb050328a6"
+      ],
+      "notes": "Rare; used for MOSFET drain current prediction."
+    },
+    {
+      "method": "Light Gradient Boosting Machine with Bayesian Optimization (LightGBM-BO)",
+      "papers_using_it": [
+        "80ec714ca1a96b54bc83591dbcad0cae87734ed2"
+      ],
+      "notes": "Rare; proposed for employee attrition prediction with improved interpretability."
+    },
+    {
+      "method": "CoLiRa Framework",
+      "papers_using_it": [
+        "bb51c6081670c1543bf4233d9bc1dda246f3e44e"
+      ],
+      "notes": "Rare; hybrid framework combining LDA, clustering, and OLS regression."
+    },
+    {
+      "method": "GBM-QTMT",
+      "papers_using_it": [
+        "4a38c0111d9d66ca33fa120db918076a232de4b2"
+      ],
+      "notes": "Rare; fast QTMT inter-partitioning algorithm for VVC video coding."
+    },
+    {
+      "method": "GBM-SSRF",
+      "papers_using_it": [
+        "d1943e7e55153763015dca6980a85a7679d3a26b"
+      ],
+      "notes": "Rare; improved model combining GBM with Random Forest for fraud detection."
+    },
+    {
+      "method": "Temporal Density Extrapolation (TDX)",
+      "papers_using_it": [
+        "80511910"
+      ],
+      "notes": "Rare; method for predicting density changes in streaming data."
+    },
+    {
+      "method": "Minimum Description Length (MDL) principle",
+      "papers_using_it": [
+        "22849491"
+      ],
+      "notes": "Rare; used for selecting representative patterns from large datasets."
+    },
+    {
+      "method": "Data Complexity Measures",
+      "papers_using_it": [
+        "5063636"
+      ],
+      "notes": "Rare; defined as Kolmogorov complexity of the mapping enforced by a dataset."
+    },
+    {
+      "method": "0/1 Loss Minimization for Perceptrons",
+      "papers_using_it": [
+        "5063636"
+      ],
+      "notes": "Rare; novel algorithms minimizing 0/1 loss for linear threshold classifiers."
+    },
+    {
+      "method": "CGBoost",
+      "papers_using_it": [
+        "5063636"
+      ],
+      "notes": "Rare; abstract boosting algorithm based on conjugate gradient in function space."
+    },
+    {
+      "method": "Component-wise P-Splines in Boosting",
+      "papers_using_it": [
+        "5225255"
+      ],
+      "notes": "Rare; approximation of L2Boosting using P-spline base-learners."
+    },
+    {
+      "method": "Knot Selection via Boosting",
+      "papers_using_it": [
+        "5225050"
+      ],
+      "notes": "Rare; simultaneous selection and estimation of knots using radial basis functions."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of consensus on whether neural networks consistently outperform gradient-boosted decision trees in tabular credit-risk data, especially with large training sets.",
+      "supporting_evidence": [
+        "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+        "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687",
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9"
+      ],
+      "notes": "Studies show mixed results, with some indicating neural networks are not inferior to GBDTs."
+    },
+    {
+      "gap": "Limited research on applying gradient boosting algorithms specifically to survival trees in credit scoring.",
+      "supporting_evidence": [
+        "d019d36cf7c777d485599bca3d8410d505a966ea"
+      ],
+      "notes": "Only one paper addresses this specific combination."
+    },
+    {
+      "gap": "Insufficient exploration of integrated ensemble frameworks that simultaneously address class imbalance and data drift.",
+      "supporting_evidence": [
+        "f400ff181ba03253be75b6517ffbdd13b2309098"
+      ],
+      "notes": "Existing methods tackle these issues in isolation."
+    },
+    {
+      "gap": "Lack of universally superior models for tabular data, with performance varying significantly based on dataset characteristics and task requirements.",
+      "supporting_evidence": [
+        "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+        "009560d2710138a446e6e254d8ddcb65eaa0e687"
+      ],
+      "notes": "Performance varies widely depending on context."
+    },
+    {
+      "gap": "Need for better understanding of scaling laws in classical machine learning applied to tabular data.",
+      "supporting_evidence": [
+        "0bb210d6768852e9abb44a030f4a7cbd9051ae57"
+      ],
+      "notes": "Scaling behavior of classical methods in tabular settings is not well understood."
+    },
+    {
+      "gap": "Limited discussion on how to effectively integrate regularization or compression techniques in ensemble methods for high-dimensional data and small sample sizes.",
+      "supporting_evidence": [
+        "15110183"
+      ],
+      "notes": "This is a recurring issue in ensemble learning."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for evaluating tabular methods across diverse domains and task types.",
+      "supporting_evidence": [
+        "7076a90eb73e8b5239e89f19159d19176fa36475"
+      ],
+      "notes": "Benchmarking remains inconsistent across studies."
+    },
+    {
+      "gap": "Inherent trade-off between scalability and expressivity in large-scale tabular learning that remains insufficiently addressed.",
+      "supporting_evidence": [
+        "c4101150483cdc26862b76848c4f31ae5d738f4d"
+      ],
+      "notes": "This is a persistent challenge in modern tabular modeling."
+    },
+    {
+      "gap": "Limited discussion on how to prevent overfitting in cross-model ensembles in tabular machine learning benchmarks.",
+      "supporting_evidence": [
+        "cf69d81193ced740aec2fb9c01e1e6e94238f7b5"
+      ],
+      "notes": "Overfitting is a concern in benchmarking environments."
+    },
+    {
+      "gap": "Theoretical guarantees for boosting in nonparametric settings, particularly for dependent data, are still emerging.",
+      "supporting_evidence": [
+        "2710713"
+      ],
+      "notes": "Theoretical foundations are underdeveloped for certain boosting variants."
+    },
+    {
+      "gap": "There is limited discussion on how GBM-based approaches handle non-stationary or rapidly changing data environments beyond video coding and fraud detection.",
+      "supporting_evidence": [
+        "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+        "4a38c0111d9d66ca33fa120db918076a232de4b2",
+        "d1943e7e55153763015dca6980a85a7679d3a26b"
+      ],
+      "notes": "Most applications are limited to specific domains."
+    },
+    {
+      "gap": "Lack of unified benchmarks for evaluating tabular methods across diverse domains and task types.",
+      "supporting_evidence": [
+        "7076a90eb73e8b5239e89f19159d19176fa36475"
+      ],
+      "notes": "Benchmarking remains inconsistent across studies."
+    },
+    {
+      "gap": "Limited effectiveness of LLMs in tabular data prediction due to numerical reasoning limitations.",
+      "supporting_evidence": [
+        "850822ca12c22f8fb1db3e74a817134ad5d4f322"
+      ],
+      "notes": "LLMs struggle with numerical tasks in tabular settings."
+    },
+    {
+      "gap": "The challenge of constructing infinite ensembles and ensuring their practical applicability remains underexplored.",
+      "supporting_evidence": [
+        "25857979"
+      ],
+      "notes": "Theoretical formulations lack practical validation."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively integrate regularization or compression techniques in ensemble methods when dealing with high-dimensional data and small sample sizes.",
+      "supporting_evidence": [
+        "15110183"
+      ],
+      "notes": "This is a recurring issue in ensemble learning."
+    },
+    {
+      "gap": "Most boosting methods focus on classification or regression; few extend to complex probabilistic or survival modeling contexts.",
+      "supporting_evidence": [
+        "3587538"
+      ],
+      "notes": "Extension to survival modeling is under-researched."
+    },
+    {
+      "gap": "The impact of varying spatial variation and heteroskedasticity on knot selection methods remains underexplored.",
+      "supporting_evidence": [
+        "5225050"
+      ],
+      "notes": "Simulation studies do not fully capture real-world conditions."
+    },
+    {
+      "gap": "There is a trade-off between error-correcting ability of coding matrices and the learning capacity of base learners in multiclass boosting.",
+      "supporting_evidence": [
+        "5063636"
+      ],
+      "notes": "This is an unresolved issue in multiclass boosting."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "On the UCI Statlog German Credit dataset, gradient-boosted decision trees (specifically XGBoost and LightGBM) will maintain or improve their accuracy advantage over neural networks as the training set size increases from 1000 to 100,000 records, assuming the same preprocessing and hyperparameter tuning strategies.",
+      "rationale": "This hypothesis directly addresses the core research question regarding the scaling behavior of GBDTs versus neural networks on tabular credit-risk data. The gap identified in the literature highlights the lack of consensus on whether neural networks consistently outperform GBDTs, especially with large training sets. The UCI Statlog German Credit dataset provides a real-world, structured tabular credit-risk setting with sufficient samples to evaluate performance differences at different scales. This hypothesis builds upon the common usage of XGBoost and LightGBM in credit risk modeling and leverages the established comparison with neural networks in the literature.",
+      "related_gaps": [
+        "Lack of consensus on whether neural networks consistently outperform gradient-boosted decision trees in tabular credit-risk data, especially with large training sets."
+      ],
+      "related_methods": [
+        "XGBoost",
+        "LightGBM",
+        "Neural Networks"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "training_set_size"
+        ],
+        "dependent": [
+          "model_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "On the UCI Adult Census Income dataset, ensemble methods combining gradient-boosted decision trees with random forests (such as those using Bagging Ensemble Selection or component-wise boosting) will demonstrate superior stability and performance consistency compared to pure gradient-boosted models when trained on datasets exceeding 100,000 records, particularly in handling class imbalance and data drift.",
+      "rationale": "This hypothesis explores a key gap in the literature concerning integrated ensemble frameworks that simultaneously address class imbalance and data drift. The UCI Adult Census Income dataset contains both categorical and numerical features typical of credit-risk data and includes class imbalance (700 good / 300 bad), making it suitable for testing ensemble stability. The hypothesis draws on the bridge insight that component-wise P-splines in boosting offer scalable alternatives that maintain accuracy, suggesting that hybrid ensemble methods may better handle large-scale tabular data characteristics.",
+      "related_gaps": [
+        "Insufficient exploration of integrated ensemble frameworks that simultaneously address class imbalance and data drift.",
+        "The challenge of constructing infinite ensembles and ensuring their practical applicability remains underexplored."
+      ],
+      "related_methods": [
+        "Ensemble Learning",
+        "Componentwise Gradient Boosting",
+        "Random Forest"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "dataset_size",
+          "class_imbalance_ratio"
+        ],
+        "dependent": [
+          "model_stability",
+          "performance_consistency"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "On the UCI Credit Approval dataset, gradient-boosted decision trees will retain their accuracy advantage over neural networks even when the training set is expanded to 100,000 records through synthetic oversampling techniques like SMOTE, provided that the synthetic samples are generated using appropriate statistical models that preserve the underlying distribution.",
+      "rationale": "This hypothesis investigates the interaction between data scaling and synthetic generation methods in credit-risk modeling. The UCI Credit Approval dataset, while smaller, serves as a foundational case for understanding how GBDTs perform under expansion. The gap regarding SMOTE's impact on operational metrics and potential noise introduction is central to this hypothesis. By focusing on synthetic expansion, we can test whether GBDTs' inherent robustness translates to larger datasets created via resampling, which is a critical consideration for real-world credit-risk applications.",
+      "related_gaps": [
+        "Limited research on applying gradient boosting algorithms specifically to survival trees in credit scoring.",
+        "Insufficient exploration of integrated ensemble frameworks that simultaneously address class imbalance and data drift."
+      ],
+      "related_methods": [
+        "Gradient Boosted Decision Trees",
+        "SMOTE"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "training_set_size",
+          "synthetic_sample_generation_method"
+        ],
+        "dependent": [
+          "model_accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is the most feasible as it directly uses the UCI Statlog German Credit dataset (1000 rows), which can be scaled up through synthetic methods or by leveraging existing data expansion techniques, and it tests a clear, specific claim about GBDTs vs neural networks on tabular credit-risk data. It is highly testable because it makes a precise prediction about performance scaling with training set size, and the outcome could go either way. It is coherent, contrasting XGBoost and LightGBM (both GBDT variants) with neural networks in a well-defined system (credit risk modeling). The data is real and directly relevant to the claim. It is strongly grounded in the literature gap regarding inconsistent performance comparisons between GBDTs and neural networks on large datasets, and aligns with the bridge insight on ensemble learning maintaining accuracy with increased training size."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 introduces ensemble methods combining GBDTs and random forests, and focuses on the UCI Adult Census Income dataset (32561 rows), which is feasible but less directly aligned with the core research question about scaling behavior. Its testability is moderate, as it involves complex ensemble dynamics and stability measures that are harder to isolate. It is somewhat incoherent because it contrasts ensemble methods with 'pure gradient-boosted models', which is a subset of the broader GBDT category. The data supports the claim but is not sufficient to decisively validate or refute the hypothesis due to the complexity of ensemble interactions. It is grounded in the literature gap around integrated ensemble frameworks, but lacks a direct bridge insight that strongly supports it."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 5.0,
+      "justification": "H3 focuses on the UCI Credit Approval dataset (690 rows), which is too small to meaningfully test scaling behavior to 100,000 records without significant synthetic expansion. Although it uses SMOTE, the starting dataset is not large enough to provide a meaningful basis for evaluating performance changes with increasing size. It is less testable because the initial dataset is too small to assess the claimed scaling effect. It is somewhat incoherent in that it assumes synthetic expansion preserves distributional properties, which is not guaranteed. The data is insufficient to support the claim, and while it addresses a gap in synthetic data usage, it does not directly engage with the core research question of scaling behavior. It is moderately grounded in the literature but lacks strong alignment with the main research question or bridge insights."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "f7c4551724a3e0cb72013685a1a6c9147af521b7",
+    "2321e2d3bc14224b06c4145737b96dcd27754128",
+    "2bf8842e8557c5a1e5a20055c08bf2da120e8b85",
+    "bac3fb40214440da59017e23dcaab29a2e41e2de",
+    "95b2cb3f4a765014ce025afe5679660982554e6c",
+    "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+    "139019974",
+    "27444284",
+    "2859684",
+    "673bd9237d8f8de32374f9ea6602a1e1aeb872d8",
+    "1ce9f073bd6f23dd2b600c4eb59b24c12e8b9958",
+    "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+    "35071763383e950252dd7a8e4792b0c2458b60f3",
+    "d019d36cf7c777d485599bca3d8410d505a966ea",
+    "1e52a24b924acb4c28a177ce5c3a2af7e17acc40",
+    "6d9b714b691604b7dba8e59fa8b29f6e8074fc88",
+    "52a3bfb311e941a816163c7db4abe09bce05066c",
+    "f400ff181ba03253be75b6517ffbdd13b2309098",
+    "82b5f4b24c6d242bffce5355ad46579e0a24f34d",
+    "b2cbe68954fd14ef1a341ad01de9e3c2cd89b727",
+    "c4101150483cdc26862b76848c4f31ae5d738f4d",
+    "0d6f497b52ea92c540d013d16809cc535a82cb6b",
+    "75236b873ac0205f4a9ef5a4a9be1d745b4e8c50",
+    "672584c9c46cbe51044f9ecd349d1e0dc1730a12",
+    "0bb210d6768852e9abb44a030f4a7cbd9051ae57",
+    "850822ca12c22f8fb1db3e74a817134ad5d4f322",
+    "7076a90eb73e8b5239e89f19159d19176fa36475",
+    "c7c0a99aa592ec7bc2f4198b144cd354d8eb21ef",
+    "b46c7399dd29ad6f4a38dd51acecbe028aa3df13",
+    "2d3ee8900a79d7036a51e615d294087eb37c7631",
+    "9aeeda0d4cedbde7287ed28961d296d23ee8fb3e",
+    "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+    "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+    "9fe69cf5c104b2205cdb7908df8cdb389256b4b5",
+    "009560d2710138a446e6e254d8ddcb65eaa0e687",
+    "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+    "25857979",
+    "15108914",
+    "15110183",
+    "2500996",
+    "3587538",
+    "2710713",
+    "5233322",
+    "2507.05904v1",
+    "2502.17119v2",
+    "bb51c6081670c1543bf4233d9bc1dda246f3e44e",
+    "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+    "6b238b17e419c7dd3912b9845449496bfb0a571a",
+    "6251e155184a3de113bb009f61049a063b2f6500",
+    "a083b86bf9c45aac0da0c358ef28113d270f0af3",
+    "cb2c94b98305af4bfae2db0018cda3cb050328a6",
+    "80ec714ca1a96b54bc83591dbcad0cae87734ed2",
+    "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+    "4a38c0111d9d66ca33fa120db918076a232de4b2",
+    "d1943e7e55153763015dca6980a85a7679d3a26b",
+    "80511910",
+    "22849491",
+    "5063636",
+    "5225255",
+    "5225050"
+  ],
+  "generated_at": "2026-09-15T05:33:27.000625+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

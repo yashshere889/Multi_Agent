@@ -1,0 +1,1276 @@
+{
+  "literature_summary": "The literature demonstrates that machine learning (ML) models, particularly gradient boosting techniques such as XGBoost, LightGBM, and CatBoost, are widely applied for crop yield prediction and agricultural forecasting, often outperforming traditional statistical methods like multiple linear regression and degree-day models. These models excel in handling complex, multivariate agricultural data and integrating diverse inputs such as weather, soil, and satellite information. However, several limitations persist, including inconsistent evaluation metrics, limited generalizability across regions and crops, insufficient attention to extreme weather events, and gaps in model interpretability and robustness under data scarcity or changing environmental conditions. Hybrid approaches combining physical models (e.g., degree-day models) with ML techniques are explored for enhanced accuracy and interpretability, especially in data-scarce or complex environments. There is also growing interest in ensemble methods, deep learning, and data fusion techniques to improve forecasting capabilities in precision agriculture and climate-adaptive farming.",
+  "methods_overview": [
+    {
+      "method": "Machine Learning Models (Random Forest, Decision Tree, XGBoost, SVM, ANN, Gradient Boosted Trees)",
+      "papers_using_it": [
+        "708bfe7b0f71dcdba4b714f0f26e6481431bd71c",
+        "ff9e2be5129e99d30611a37105950e2bcce96dbf",
+        "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+        "6aa64b538afbe28ac7dec368d236133eb496a664",
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc",
+        "81e565013da99e9ab33cc19830698a6b07636847",
+        "89549460",
+        "ec928971ec0921bcb3c2ec84385bdfafb5122337",
+        "f8be89146b7f873de6ece0f0e45c3daf504e1f90",
+        "b295efa15f5f72424acc87c7ec4e854f9f83ec42",
+        "c095d8458a0e93acae673f0f93caba241616e9cf",
+        "a403e68ee5ceea20c2750c0d9a4357b3e76d11ab",
+        "dd39ac4deaa56d903903ab5bc7b08ef8cbce2c34",
+        "fca28b47d1ca0afa587f51faea0be3832ba14f13",
+        "fc110e17993ad8159de06c589d2822f526659aa5",
+        "88ba17d46cd1b8b734debee12cd5d34f7dc1ce6d",
+        "a65fb19f13de2ecec156f34fbd583034f74a63cb",
+        "8ca6fe0eb2cd0631276aef787a45404167449132",
+        "85a13a46e4e6c5ebf0040f34b2f7d9d1bf5760a1",
+        "fa4ce08734d4f164c24216fa33840ea8daed19e6",
+        "2ac901e181129542b618831cf291d3b4697523c5",
+        "3fd6bb04f03aafcc3b163285a116113bc7b67315",
+        "37028cd25e6307283a52a6013b25c17cb82bad91",
+        "04680d2305562874ba4cbc23d1bb4ca640374a53",
+        "f4f89c30e097c58435b0214709895239c58e2e17",
+        "12b75ee26689806b69f9d76097dc1cb8c9b57420",
+        "6b05d01c5ce5b427f8583443f14cf64a49fdca0e",
+        "88e83a15449fde9e9385325fee07dd2bfbe72cf4",
+        "7246d1cfd72335029bbace67d39401998cf753f8",
+        "3852e26eaab3027586765c1cb9a25350349b520b",
+        "f3a64191234faf5f65431490fb86c6896bf08e90",
+        "0982b63147d5f9c94c451504b5743478016abe9a",
+        "70f5251d05a910be13b07b83b776e32e42681c68",
+        "6bb3fee83b7faa5ede429a6acd593832e0983efe",
+        "b04f883018fc6d75a02f5f22dea2f5482460dfd2",
+        "6e224e2d2f49c133ee56cb1da01c730ef6e5fd1d",
+        "dfba671a7637fb07fcc6a50f2e55e34e351ff9f6",
+        "217934",
+        "17484209",
+        "145811992",
+        "12037136",
+        "17481407",
+        "1503.07557v1",
+        "2012.10386v1",
+        "2504.21143v3",
+        "85cce9ddc2ae70e148507bf178a523eb3feb7b5f",
+        "772773b882e85fcc36abeea8d04b29c570451003",
+        "dc8c5883376c5dcd74de39d76e719e115fd73d36",
+        "d9e9e08d1b9dd2875be614a033b20fc89e3ca5d9",
+        "2b6c9bc3fad959359660f434960071f942d29bb1",
+        "ce5b4d86172e75029ef6fc5f91eaf5d17f8ec9be",
+        "f957a360a43c2f0b26b74c92062fb2daf3d08137",
+        "2625789",
+        "4399803",
+        "29056041",
+        "2916186",
+        "6089789",
+        "b0edfe01c506e68091668daf0c9fd7da4200ddda",
+        "ed5672e317bcd4d6d3ba1bd40df3e8960201126e",
+        "5546cd588dc88e6337d819358756ab522a50f9d5",
+        "18a8aeeaf7beae9206679571863f29297cee56f5",
+        "1241a6d8038f5a320608e0afa5e80632fef5a2dd",
+        "add500ba68982481d82ed2d7548562fcaaa0ba3d",
+        "1620e70fb28abc5f19b63ab0bcc0373078687ddc",
+        "985d9c0b7fb3503a6b0322f5193c6d41735e060a",
+        "694e2dcad3645b5da5e907a179c5aab5c336a619",
+        "d5f544ce8cdca556c63cf7471f2d40baa24ba8f9",
+        "2729824",
+        "2694399",
+        "161323648",
+        "2860023",
+        "2914400",
+        "3997628",
+        "2656159",
+        "4074254",
+        "4055081",
+        "278865"
+      ],
+      "notes": "Commonly used across diverse agricultural applications for yield prediction, soil modeling, and climate forecasting."
+    },
+    {
+      "method": "Hybrid Models (CNN + Transformer)",
+      "papers_using_it": [
+        "8e8c54141e653c9b748465a57a5aa3300e804a05"
+      ],
+      "notes": "Rare, used specifically for spatial and temporal feature extraction in crop yield prediction."
+    },
+    {
+      "method": "Time Windowing Technique",
+      "papers_using_it": [
+        "ff9e2be5129e99d30611a37105950e2bcce96dbf"
+      ],
+      "notes": "Rare, applied for input data preprocessing in soil temperature estimation."
+    },
+    {
+      "method": "LSTM, GNN, CatBoost",
+      "papers_using_it": [
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc"
+      ],
+      "notes": "Rare, used for temporal trends, spatial dependencies, and categorical data in yield prediction."
+    },
+    {
+      "method": "Statistical Analysis and Crop Records",
+      "papers_using_it": [
+        "e244e92b67df0ffcef727d80f9fecdcb26ceb449"
+      ],
+      "notes": "Rare, applied for predicting crop maturity and yield based on agro-meteorological variables."
+    },
+    {
+      "method": "Convolutional Neural Networks (CNNs)",
+      "papers_using_it": [
+        "657d91d9654f14b699f93d42801c534945671845"
+      ],
+      "notes": "Rare, used for analyzing spatial data from satellite images to assess crop health."
+    },
+    {
+      "method": "Long Short-Term Memory (LSTM) networks",
+      "papers_using_it": [
+        "657d91d9654f14b699f93d42801c534945671845",
+        "171147919"
+      ],
+      "notes": "Rare, used to model temporal dependencies in weather and climate data for crop yield prediction."
+    },
+    {
+      "method": "Random Forest (RF)",
+      "papers_using_it": [
+        "81e565013da99e9ab33cc19830698a6b07636847",
+        "c095d8458a0e93acae673f0f93caba241616e9cf"
+      ],
+      "notes": "Common, used for predicting grasshopper habitat suitability and agricultural data modeling."
+    },
+    {
+      "method": "Glacio-hydrological Degree-day Model (GDM) combined with Recurrent Neural Networks (RNNs)",
+      "papers_using_it": [
+        "228bb6cf7ba44894c3c6a07b04670d152632df59"
+      ],
+      "notes": "Rare, hybrid approach for streamflow simulation in data-constrained Himalayan basins."
+    },
+    {
+      "method": "Spatial lag effects",
+      "papers_using_it": [
+        "2730677"
+      ],
+      "notes": "Rare, incorporated into wheat yield and quality regression models to account for spatial dependencies."
+    },
+    {
+      "method": "Principal Component Regression (PCR)",
+      "papers_using_it": [
+        "2732011"
+      ],
+      "notes": "Rare, used to estimate historical relationships between weather and crop yields via PCA."
+    },
+    {
+      "method": "Voting Ensemble",
+      "papers_using_it": [
+        "c095d8458a0e93acae673f0f93caba241616e9cf"
+      ],
+      "notes": "Rare, combines predictions from multiple models for improved robustness."
+    },
+    {
+      "method": "K-Nearest Neighbors (KNN)",
+      "papers_using_it": [
+        "c095d8458a0e93acae673f0f93caba241616e9cf"
+      ],
+      "notes": "Rare, applied in ensemble modeling to leverage local patterns in agricultural data."
+    },
+    {
+      "method": "Strategic Modified Gradient Boosting Regression (SMGBR)",
+      "papers_using_it": [
+        "a403e68ee5ceea20c2750c0d9a4357b3e76d11ab"
+      ],
+      "notes": "Rare, proposed to improve accuracy and computational efficiency in crop yield prediction."
+    },
+    {
+      "method": "Multiple Linear Regression",
+      "papers_using_it": [
+        "85a13a46e4e6c5ebf0040f34b2f7d9d1bf5760a1",
+        "fa4ce08734d4f164c24216fa33840ea8daed19e6",
+        "f4f89c30e097c58435b0214709895239c58e2e17",
+        "04680d2305562874ba4cbc23d1bb4ca640374a53"
+      ],
+      "notes": "Common, used for modeling relationships between weather variables and crop yields."
+    },
+    {
+      "method": "UAS Multispectral Imagery and Spectral Indices",
+      "papers_using_it": [
+        "d5175156af3019917877bf75ff059e89142657ea"
+      ],
+      "notes": "Rare, used for corn yield prediction at different physiological stages."
+    },
+    {
+      "method": "Weather-Based Indices",
+      "papers_using_it": [
+        "5d419f60b0d3df721b77cba6f7a67155fe59cd9d"
+      ],
+      "notes": "Rare, computed to summarize the impact of weather variables on crop yield."
+    },
+    {
+      "method": "Digital Twin (DT)-based crop yield prediction framework (CropTwin)",
+      "papers_using_it": [
+        "2ac901e181129542b618831cf291d3b4697523c5"
+      ],
+      "notes": "Rare, uses NASA POWER DAV meteorological data and Monte Carlo simulation for uncertain weather conditions."
+    },
+    {
+      "method": "Generative weather models using neural networks",
+      "papers_using_it": [
+        "3fd6bb04f03aafcc3b163285a116113bc7b67315"
+      ],
+      "notes": "Rare, trains neural networks on historical weather data to generate synthetic future inputs."
+    },
+    {
+      "method": "Sentinel-2 satellite-derived vegetation index (VI) time series with phenology adjustment",
+      "papers_using_it": [
+        "37028cd25e6307283a52a6013b25c17cb82bad91"
+      ],
+      "notes": "Rare, utilizes high-resolution VI data and AGDD-based time series for yield loss estimation."
+    },
+    {
+      "method": "Fuzzy Regression",
+      "papers_using_it": [
+        "f4f89c30e097c58435b0214709895239c58e2e17"
+      ],
+      "notes": "Rare, applied as an alternative to classical regression for handling uncertainties."
+    },
+    {
+      "method": "Hybrid Deep Learning Models",
+      "papers_using_it": [
+        "6b05d01c5ce5b427f8583443f14cf64a49fdca0e",
+        "88e83a15449fde9e9385325fee07dd2bfbe72cf4"
+      ],
+      "notes": "Rare, utilize neural networks and time-series data to capture complex interactions."
+    },
+    {
+      "method": "Time-Series Analysis",
+      "papers_using_it": [
+        "12b75ee26689806b69f9d76097dc1cb8c9b57420"
+      ],
+      "notes": "Rare, employed to analyze trends in crop yields and meteorological factors."
+    },
+    {
+      "method": "Feature Selection and Aggregation",
+      "papers_using_it": [
+        "04680d2305562874ba4cbc23d1bb4ca640374a53"
+      ],
+      "notes": "Rare, involves exhaustive testing of weather variable combinations for yield prediction."
+    },
+    {
+      "method": "Support Vector Regression (SVR)",
+      "papers_using_it": [
+        "7246d1cfd72335029bbace67d39401998cf753f8",
+        "3852e26eaab3027586765c1cb9a25350349b520b",
+        "f3a64191234faf5f65431490fb86c6896bf08e90"
+      ],
+      "notes": "Common, used for crop yield prediction and temperature forecasting."
+    },
+    {
+      "method": "Ensemble Techniques",
+      "papers_using_it": [
+        "7246d1cfd72335029bbace67d39401998cf753f8",
+        "66d0d923a16041a57dcd2f3981fcedc645092280"
+      ],
+      "notes": "Common, used for crop type prediction and biomass yield estimation."
+    },
+    {
+      "method": "Multivariate Polynomial Regression",
+      "papers_using_it": [
+        "7246d1cfd72335029bbace67d39401998cf753f8"
+      ],
+      "notes": "Rare, applied in predicting crop yield using climatic data, though limited by exclusion of soil quality."
+    },
+    {
+      "method": "Classification Models",
+      "papers_using_it": [
+        "66d0d923a16041a57dcd2f3981fcedc645092280"
+      ],
+      "notes": "Rare, adapted from regression models for estimating alfalfa biomass yield."
+    },
+    {
+      "method": "Cross-station and Synthetic Data",
+      "papers_using_it": [
+        "ebdd4af8598675e6f8922e758c3fa326a03833f1"
+      ],
+      "notes": "Rare, used for estimating evapotranspiration in regions with incomplete meteorological data."
+    },
+    {
+      "method": "Support Vector Machines (SVM)",
+      "papers_using_it": [
+        "0982b63147d5f9c94c451504b5743478016abe9a",
+        "70f5251d05a910be13b07b83b776e32e42681c68"
+      ],
+      "notes": "Common, used for predicting daily reference evapotranspiration and crop yield."
+    },
+    {
+      "method": "Artificial Neural Networks (ANN)",
+      "papers_using_it": [
+        "0982b63147d5f9c94c451504b5743478016abe9a",
+        "f6d918d1c9b7bb1e45b9ca750bd9618bf8ef4ad7"
+      ],
+      "notes": "Common, applied in evapotranspiration prediction and crop yield forecasting."
+    },
+    {
+      "method": "Machine Learning for Large-Scale Crop Yield Forecasting",
+      "papers_using_it": [
+        "fbf1078dbc349fcea590306e0aadf23eba18fc34"
+      ],
+      "notes": "Rare, incorporates agronomic principles with ML for scalable yield predictions."
+    },
+    {
+      "method": "Glacio-hydrological Degree-day Model (GDM)",
+      "papers_using_it": [
+        "6bb3fee83b7faa5ede429a6acd593832e0983efe",
+        "b04f883018fc6d75a02f5f22dea2f5482460dfd2"
+      ],
+      "notes": "Common, used for discharge estimation in glacier-fed catchments and snow/ice melt simulation."
+    },
+    {
+      "method": "Comparative Forecast Accuracy Tests",
+      "papers_using_it": [
+        "1b2e489a0ea4a937b64df59f42509fb043765cbb"
+      ],
+      "notes": "Rare, provides statistical framework for comparing forecast accuracy between models."
+    },
+    {
+      "method": "Advanced Scatterometer (ASCAT) observations",
+      "papers_using_it": [
+        "b04f883018fc6d75a02f5f22dea2f5482460dfd2"
+      ],
+      "notes": "Rare, employed to observe glacier melt and validate GDM estimates."
+    },
+    {
+      "method": "CemaNeige degree-day snow model",
+      "papers_using_it": [
+        "6e224e2d2f49c133ee56cb1da01c730ef6e5fd1d"
+      ],
+      "notes": "Rare, improved with SCA hysteresis to better simulate snow water equivalent and runoff."
+    },
+    {
+      "method": "Stochastic soil moisture models",
+      "papers_using_it": [
+        "17484209"
+      ],
+      "notes": "Rare, used to analyze parameter sensitivity in land surface models."
+    },
+    {
+      "method": "Unified Degree-Day Method",
+      "papers_using_it": [
+        "dfba671a7637fb07fcc6a50f2e55e34e351ff9f6"
+      ],
+      "notes": "Rare, applied for ice thickness simulation to predict ice jam occurrence probability."
+    },
+    {
+      "method": "Distributed snowmelt model",
+      "papers_using_it": [
+        "217934"
+      ],
+      "notes": "Rare, used in the UK catchment to simulate snow accumulation and melt under climate change scenarios."
+    },
+    {
+      "method": "Stochastic rainfall forcing",
+      "papers_using_it": [
+        "145811992"
+      ],
+      "notes": "Rare, used to model soil moisture dynamics with heterogeneous vegetation and topographical effects."
+    },
+    {
+      "method": "L-MEB model",
+      "papers_using_it": [
+        "12037136"
+      ],
+      "notes": "Rare, applied for simulating microwave emission of rape fields to improve soil moisture retrieval."
+    },
+    {
+      "method": "Multi-agent stochastic differential equations",
+      "papers_using_it": [
+        "17481407"
+      ],
+      "notes": "Rare, used to analyze long-term soil salinization under varying climate and vegetation conditions."
+    },
+    {
+      "method": "Climate model ensembles",
+      "papers_using_it": [
+        "2012.10386v1"
+      ],
+      "notes": "Rare, employed to project future climate change over India using multiple RCMs and RCP scenarios."
+    },
+    {
+      "method": "Principal component analysis",
+      "papers_using_it": [
+        "2504.21143v3"
+      ],
+      "notes": "Rare, used to reduce multicollinearity in climate variables for crop yield modeling."
+    },
+    {
+      "method": "Nitrogen use efficiency (NUE) improvements",
+      "papers_using_it": [
+        "85cce9ddc2ae70e148507bf178a523eb3feb7b5f"
+      ],
+      "notes": "Rare, combines agronomic, genetic, and biotechnological approaches to enhance N assimilation."
+    },
+    {
+      "method": "Drip irrigation technology",
+      "papers_using_it": [
+        "dc8c5883376c5dcd74de39d76e719e115fd73d36"
+      ],
+      "notes": "Rare, evaluated for its impact on crop yield, water productivity, and reduction of fertilizer leaching."
+    },
+    {
+      "method": "Satellite soil moisture data assimilation",
+      "papers_using_it": [
+        "d9e9e08d1b9dd2875be614a033b20fc89e3ca5d9"
+      ],
+      "notes": "Rare, used in land surface models to improve ozone modeling and assess dry deposition impacts."
+    },
+    {
+      "method": "Agro-ecosystem modeling with DayCent",
+      "papers_using_it": [
+        "2b6c9bc3fad959359660f434960071f942d29bb1"
+      ],
+      "notes": "Rare, used to evaluate sensitivity of ecosystem variables to different weather input datasets."
+    },
+    {
+      "method": "Machine learning (LSTM models)",
+      "papers_using_it": [
+        "ce5b4d86172e75029ef6fc5f91eaf5d17f8ec9be"
+      ],
+      "notes": "Rare, applied to improve accuracy of open weather prediction data for agricultural applications."
+    },
+    {
+      "method": "Physics-guided deep learning (PGDL)",
+      "papers_using_it": [
+        "f957a360a43c2f0b26b74c92062fb2daf3d08137"
+      ],
+      "notes": "Rare, combines terrestrial ecosystem model (TEM) insights with LSTM networks for soil moisture prediction."
+    },
+    {
+      "method": "Bi-directional distance function method",
+      "papers_using_it": [
+        "2625789"
+      ],
+      "notes": "Rare, used to measure rice production loss due to climate change in Japan."
+    },
+    {
+      "method": "Bayesian data assimilation framework with coupled atmosphere-biosphere model (CAB)",
+      "papers_using_it": [
+        "4399803"
+      ],
+      "notes": "Rare, investigates constraints on biosphere processes using PBL measurements and flux tower data."
+    },
+    {
+      "method": "Food web theory and complexity theory",
+      "papers_using_it": [
+        "29056041"
+      ],
+      "notes": "Rare, proposes intermediate complexity models for marine ecosystems to better represent functional diversity."
+    },
+    {
+      "method": "Time-series modeling for temperature forecasting",
+      "papers_using_it": [
+        "2916186",
+        "6089789"
+      ],
+      "notes": "Rare, applied to understand conditional mean and variance dynamics in daily average temperature."
+    },
+    {
+      "method": "Transformer-based data fusion",
+      "papers_using_it": [
+        "b0edfe01c506e68091668daf0c9fd7da4200ddda"
+      ],
+      "notes": "Rare, used for spatiotemporal dependency modeling and integration of heterogeneous datasets."
+    },
+    {
+      "method": "Extreme Gradient Boosting (XGBoost) with geospatial data fusion",
+      "papers_using_it": [
+        "ed5672e317bcd4d6d3ba1bd40df3e8960201126e"
+      ],
+      "notes": "Rare, applied for crop yield prediction using multi-source input data."
+    },
+    {
+      "method": "Data fusion from GFS predictors, station observations, and physiographic descriptors",
+      "papers_using_it": [
+        "5546cd588dc88e6337d819358756ab522a50f9d5"
+      ],
+      "notes": "Rare, used for high-resolution temperature superresolution in precision agriculture."
+    },
+    {
+      "method": "Multimodal data fusion combining spectral analysis and deep learning",
+      "papers_using_it": [
+        "18a8aeeaf7beae9206679571863f29297cee56f5"
+      ],
+      "notes": "Rare, applied to crop health monitoring and yield prediction."
+    },
+    {
+      "method": "Big data fusion from hyperspectral and LiDAR sensing with fuzzy logic",
+      "papers_using_it": [
+        "1241a6d8038f5a320608e0afa5e80632fef5a2dd"
+      ],
+      "notes": "Rare, used for crop condition assessment and stress detection."
+    },
+    {
+      "method": "IoT-based agrivoltaics with PLC controllers and LoRaWAN connectivity",
+      "papers_using_it": [
+        "add500ba68982481d82ed2d7548562fcaaa0ba3d"
+      ],
+      "notes": "Rare, for smart water management and dynamic crop modeling."
+    },
+    {
+      "method": "UAV-based remote sensing for crop water and nutrient monitoring",
+      "papers_using_it": [
+        "1620e70fb28abc5f19b63ab0bcc0373078687ddc"
+      ],
+      "notes": "Rare, involves modeling methods and data processing pipelines for UAV data."
+    },
+    {
+      "method": "Deep learning-based time series prediction with SADF-Net and RAADA",
+      "papers_using_it": [
+        "985d9c0b7fb3503a6b0322f5193c6d41735e060a"
+      ],
+      "notes": "Rare, integrates satellite, IoT, and meteorological data for crop protection and resource optimization."
+    },
+    {
+      "method": "Field-based piece-wise linear regression for sensor calibration",
+      "papers_using_it": [
+        "694e2dcad3645b5da5e907a179c5aab5c336a619"
+      ],
+      "notes": "Rare, used to calibrate a low-cost soil moisture sensor against a reference sensor."
+    },
+    {
+      "method": "Multispectral UAV-based monitoring for GAI and total N uptake",
+      "papers_using_it": [
+        "d5f544ce8cdca556c63cf7471f2d40baa24ba8f9"
+      ],
+      "notes": "Rare, calibration of UAV sensors for estimating green area index and nitrogen uptake."
+    },
+    {
+      "method": "Count data estimation procedures",
+      "papers_using_it": [
+        "2729824",
+        "2694399"
+      ],
+      "notes": "Rare, used to analyze the number and intensity of precision agriculture technology adoption."
+    },
+    {
+      "method": "Data fusion and AI algorithms in precision agriculture",
+      "papers_using_it": [
+        "161323648"
+      ],
+      "notes": "Rare, integration of sensors with artificial intelligence for crop condition monitoring."
+    },
+    {
+      "method": "Biophysical and economic modeling framework",
+      "papers_using_it": [
+        "2860023"
+      ],
+      "notes": "Rare, combines technical, informational, and environmental aspects to evaluate precision agriculture economics."
+    },
+    {
+      "method": "Precision agriculture technology adoption survey",
+      "papers_using_it": [
+        "2914400"
+      ],
+      "notes": "Rare, used to understand producer perceptions and reasons for adopting precision agriculture technology."
+    },
+    {
+      "method": "Sensor-based applications in crop production",
+      "papers_using_it": [
+        "3997628"
+      ],
+      "notes": "Rare, explored utilization of sensors and sensor networks across different stages of crop production."
+    },
+    {
+      "method": "L-moments for crop yield distribution modeling",
+      "papers_using_it": [
+        "2656159"
+      ],
+      "notes": "Rare, evaluated L-moments as a statistical technique for modeling crop yield distributions with small sample sizes."
+    },
+    {
+      "method": "Hardware Description Language (HDL) modeling of wireless sensor nodes",
+      "papers_using_it": [
+        "4074254"
+      ],
+      "notes": "Rare, developed an HDL-based approach to model wireless sensor nodes powered by tunable energy harvesters."
+    },
+    {
+      "method": "Sensor web based approach for vegetation productivity mapping",
+      "papers_using_it": [
+        "4055081"
+      ],
+      "notes": "Rare, combined earth observation and in-situ sensor data using a sensor web framework."
+    },
+    {
+      "method": "Markovian transition matrices for crop rotation modeling",
+      "papers_using_it": [
+        "278865"
+      ],
+      "notes": "Rare, used mathematical frameworks based on transition matrices to model crop rotations."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited discussion on how models perform under extreme or unprecedented climate events beyond historical data ranges",
+      "supporting_evidence": [
+        "708bfe7b0f71dcdba4b714f0f26e6481431bd71c",
+        "ff9e2be5129e99d30611a37105950e2bcce96dbf",
+        "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+        "8e8c54141e653c9b748465a57a5aa3300e804a05",
+        "6aa64b538afbe28ac7dec368d236133eb496a664",
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc"
+      ],
+      "notes": "Repeated across multiple studies, indicating a persistent lack of focus on extreme event resilience."
+    },
+    {
+      "gap": "Inconsistent evaluation metrics across studies, making direct comparisons difficult",
+      "supporting_evidence": [
+        "708bfe7b0f71dcdba4b714f0f26e6481431bd71c",
+        "ff9e2be5129e99d30611a37105950e2bcce96dbf",
+        "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+        "8e8c54141e653c9b748465a57a5aa3300e804a05",
+        "6aa64b538afbe28ac7dec368d236133eb496a664",
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc"
+      ],
+      "notes": "A recurring issue across numerous papers, hindering benchmarking and model selection."
+    },
+    {
+      "gap": "Most studies focus on specific regions or crops, limiting generalizability of findings",
+      "supporting_evidence": [
+        "708bfe7b0f71dcdba4b714f0f26e6481431bd71c",
+        "ff9e2be5129e99d30611a37105950e2bcce96dbf",
+        "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+        "e244e92b67df0ffcef727d80f9fecdcb26ceb449",
+        "8e8c54141e653c9b748465a57a5aa3300e804a05",
+        "6aa64b538afbe28ac7dec368d236133eb496a664",
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc"
+      ],
+      "notes": "A widespread limitation affecting cross-regional and cross-crop applicability."
+    },
+    {
+      "gap": "Some papers do not clearly distinguish between model accuracy and practical applicability in real-world farming contexts",
+      "supporting_evidence": [
+        "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+        "6aa64b538afbe28ac7dec368d236133eb496a664",
+        "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc"
+      ],
+      "notes": "A notable concern in several studies where theoretical performance is not validated in practice."
+    },
+    {
+      "gap": "Limited data availability remains a significant challenge in applying deep learning and machine learning models for crop yield prediction and hydrological modeling",
+      "supporting_evidence": [
+        "657d91d9654f14b699f93d42801c534945671845",
+        "228bb6cf7ba44894c3c6a07b04670d152632df59"
+      ],
+      "notes": "A consistent barrier across studies involving data-scarce or complex environments."
+    },
+    {
+      "gap": "There is a lack of standardized methods for verifying the robustness of gradient boosted models in real-world applications",
+      "supporting_evidence": [
+        "89549460"
+      ],
+      "notes": "An emerging gap in model validation practices for gradient boosting."
+    },
+    {
+      "gap": "Interpretability of deep learning models in agricultural contexts is underexplored despite their predictive power",
+      "supporting_evidence": [
+        "657d91d9654f14b699f93d42801c534945671845",
+        "171147919"
+      ],
+      "notes": "A recurring issue where model performance is prioritized over understanding."
+    },
+    {
+      "gap": "Limited applicability of advanced ML models in data-scarce regions such as sub-Saharan Africa due to incomplete datasets",
+      "supporting_evidence": [
+        "ec928971ec0921bcb3c2ec84385bdfafb5122337"
+      ],
+      "notes": "A significant limitation in global applicability of ML models."
+    },
+    {
+      "gap": "The SMGBR model's superior performance over GBR is demonstrated through correlation coefficients and error metrics, but the paper does not fully elaborate on how the dynamic learning rate contributes to this improvement",
+      "supporting_evidence": [
+        "a403e68ee5ceea20c2750c0d9a4357b3e76d11ab"
+      ],
+      "notes": "A methodological gap in explaining the mechanism behind improved performance."
+    },
+    {
+      "gap": "While Gradient Boosting is reported to perform best in multiple studies, there is limited discussion on its robustness under varying environmental conditions or data scarcity",
+      "supporting_evidence": [
+        "dd39ac4deaa56d903903ab5bc7b08ef8cbce2c34",
+        "fca28b47d1ca0afa587f51faea0be3832ba14f13"
+      ],
+      "notes": "A recurring concern about model reliability in real-world conditions."
+    },
+    {
+      "gap": "The use of tree-based models is justified based on tabular data suitability, but there is no comparison with deep learning models in terms of scalability or performance on larger datasets",
+      "supporting_evidence": [
+        "dd39ac4deaa56d903903ab5bc7b08ef8cbce2c34"
+      ],
+      "notes": "A methodological gap in evaluating alternatives to tree-based models."
+    },
+    {
+      "gap": "The performance of Gradient Boosting in crop seed selection shows high accuracy but lacks comparison with other ensemble methods or deep learning approaches",
+      "supporting_evidence": [
+        "fc110e17993ad8159de06c589d2822f526659aa5"
+      ],
+      "notes": "A gap in comparative analysis of ML methods for specific tasks."
+    },
+    {
+      "gap": "While XGB and GBR show strong performance in yield prediction, there is limited discussion on model interpretability or uncertainty quantification in practical agricultural settings",
+      "supporting_evidence": [
+        "88ba17d46cd1b8b734debee12cd5d34f7dc1ce6d"
+      ],
+      "notes": "A gap in practical utility and trustworthiness of models."
+    },
+    {
+      "gap": "The use of LightGBM in agricultural applications shows promising results, but there is no comparative analysis with traditional machine learning models or other gradient boosting variants",
+      "supporting_evidence": [
+        "a65fb19f13de2ecec156f34fbd583034f74a63cb"
+      ],
+      "notes": "A gap in comprehensive model evaluation."
+    },
+    {
+      "gap": "Limited exploration of how different weather variables influence crop yield at distinct growth stages in machine learning models",
+      "supporting_evidence": [
+        "5d419f60b0d3df721b77cba6f7a67155fe59cd9d"
+      ],
+      "notes": "A gap in temporal and stage-specific modeling."
+    },
+    {
+      "gap": "Inconsistent use of feature selection techniques across studies, potentially affecting model interpretability and performance",
+      "supporting_evidence": [
+        "d5175156af3019917877bf75ff059e89142657ea",
+        "fa4ce08734d4f164c24216fa33840ea8daed19e6"
+      ],
+      "notes": "A recurring methodological inconsistency."
+    },
+    {
+      "gap": "Need for more standardized methodologies in selecting meteorological predictors for yield modeling across diverse agro-climatic zones",
+      "supporting_evidence": [
+        "fa4ce08734d4f164c24216fa33840ea8daed19e6"
+      ],
+      "notes": "A gap in methodological consistency and reproducibility."
+    },
+    {
+      "gap": "Existing crop yield prediction models do not adequately capture the dynamic nature of uncertain weather conditions",
+      "supporting_evidence": [
+        "2ac901e181129542b618831cf291d3b4697523c5"
+      ],
+      "notes": "A limitation in handling real-world unpredictability."
+    },
+    {
+      "gap": "Conventional weather input preparation for crop models relies on historical subsequences, which does not explicitly model future weather variability",
+      "supporting_evidence": [
+        "3fd6bb04f03aafcc3b163285a116113bc7b67315"
+      ],
+      "notes": "A gap in forward-looking modeling approaches."
+    },
+    {
+      "gap": "Post-season analysis of yield loss attribution may miss timely identification of crop damage caused by extreme weather events",
+      "supporting_evidence": [
+        "37028cd25e6307283a52a6013b25c17cb82bad91"
+      ],
+      "notes": "A gap in real-time response capability."
+    },
+    {
+      "gap": "There is a lack of consensus on how best to integrate temporal dynamics and spatial variability of weather data into predictive models for crop yield",
+      "supporting_evidence": [
+        "6b05d01c5ce5b427f8583443f14cf64a49fdca0e",
+        "88e83a15449fde9e9385325fee07dd2bfbe72cf4"
+      ],
+      "notes": "A methodological gap in handling complex spatio-temporal data."
+    },
+    {
+      "gap": "Most studies rely on historical data without sufficient exploration of real-time or dynamic weather integration for predictive accuracy",
+      "supporting_evidence": [
+        "12b75ee26689806b69f9d76097dc1cb8c9b57420"
+      ],
+      "notes": "A gap in adaptive and responsive modeling."
+    },
+    {
+      "gap": "Limited discussion on how to account for genotype-environment interactions in yield prediction models despite their importance in agricultural science",
+      "supporting_evidence": [
+        "6b05d01c5ce5b427f8583443f14cf64a49fdca0e"
+      ],
+      "notes": "A scientific gap in biological modeling."
+    },
+    {
+      "gap": "Inclusion of phenology data improves model performance but may not be readily available for all regions and crop types",
+      "supporting_evidence": [
+        "7246d1cfd72335029bbace67d39401998cf753f8"
+      ],
+      "notes": "A data availability gap affecting model universality."
+    },
+    {
+      "gap": "Most studies do not consider soil quality as a critical factor affecting crop yield prediction",
+      "supporting_evidence": [
+        "7246d1cfd72335029bbace67d39401998cf753f8",
+        "3852e26eaab3027586765c1cb9a25350349b520b",
+        "f3a64191234faf5f65431490fb86c6896bf08e90"
+      ],
+      "notes": "A significant omission in agricultural modeling."
+    },
+    {
+      "gap": "Limited attention to the impact of extreme weather events in traditional temperature prediction models",
+      "supporting_evidence": [
+        "f3a64191234faf5f65431490fb86c6896bf08e90"
+      ],
+      "notes": "A gap in modeling robustness to climate extremes."
+    },
+    {
+      "gap": "Lack of comparative analysis of ML models across geographically distinct climates",
+      "supporting_evidence": [
+        "f3a64191234faf5f65431490fb86c6896bf08e90"
+      ],
+      "notes": "A gap in cross-climate validation."
+    },
+    {
+      "gap": "Insufficient validation of models on datasets with varying climatic conditions and data availability",
+      "supporting_evidence": [
+        "ebdd4af8598675e6f8922e758c3fa326a03833f1"
+      ],
+      "notes": "A gap in robustness testing."
+    },
+    {
+      "gap": "Limited direct comparison of machine learning models across diverse agricultural and hydrological domains in a unified framework",
+      "supporting_evidence": [
+        "0982b63147d5f9c94c451504b5743478016abe9a",
+        "fbf1078dbc349fcea590306e0aadf23eba18fc34",
+        "6bb3fee83b7faa5ede429a6acd593832e0983efe"
+      ],
+      "notes": "A gap in cross-domain benchmarking."
+    },
+    {
+      "gap": "There is inconsistency in reporting model performance across different climatic zones and datasets, making generalization difficult",
+      "supporting_evidence": [
+        "0982b63147d5f9c94c451504b5743478016abe9a",
+        "fbf1078dbc349fcea590306e0aadf23eba18fc34"
+      ],
+      "notes": "A recurring issue in model reproducibility and generalizability."
+    },
+    {
+      "gap": "Systematic differences in glacier melting area determined by modeling and satellite observations suggest limitations in ASCAT's resolution and view geometry for complex topography",
+      "supporting_evidence": [
+        "b04f883018fc6d75a02f5f22dea2f5482460dfd2"
+      ],
+      "notes": "A gap in remote sensing data interpretation."
+    },
+    {
+      "gap": "Calibrating snow models using only SCA data gives mixed results compared to combined SCA and runoff calibration",
+      "supporting_evidence": [
+        "6e224e2d2f49c133ee56cb1da01c730ef6e5fd1d"
+      ],
+      "notes": "A gap in model calibration methodology."
+    },
+    {
+      "gap": "The limited hydrological process representation in the snowmelt model prevents reliable forecasting of changes in winter flow regimes",
+      "supporting_evidence": [
+        "217934"
+      ],
+      "notes": "A gap in hydrological modeling depth."
+    },
+    {
+      "gap": "Soil parameters in LSMs significantly affect soil moisture and evapotranspiration, with large intermodel differences in parameter values",
+      "supporting_evidence": [
+        "17484209"
+      ],
+      "notes": "A gap in model parameterization consistency."
+    },
+    {
+      "gap": "Vegetation heterogeneity significantly affects soil moisture dynamics at small spatial scales",
+      "supporting_evidence": [
+        "145811992"
+      ],
+      "notes": "A gap in spatial resolution modeling."
+    },
+    {
+      "gap": "L-MEB model lacks crop-specific parameterizations for accurate soil moisture retrieval",
+      "supporting_evidence": [
+        "12037136"
+      ],
+      "notes": "A gap in model specificity."
+    },
+    {
+      "gap": "Sensitivity of precipitation extremes to warming remains uncertain in convective regimes",
+      "supporting_evidence": [
+        "1503.07557v1"
+      ],
+      "notes": "A gap in climate change impact understanding."
+    },
+    {
+      "gap": "Limited understanding of how mesoscale convective organization influences precipitation extremes",
+      "supporting_evidence": [
+        "1503.07557v1"
+      ],
+      "notes": "A gap in atmospheric dynamics modeling."
+    },
+    {
+      "gap": "Reliance on single RCMs introduces uncertainty in regional climate projections over India",
+      "supporting_evidence": [
+        "2012.10386v1"
+      ],
+      "notes": "A gap in climate projection robustness."
+    },
+    {
+      "gap": "Limited adoption of climate-smart irrigation technologies among smallholder farmers due to socioeconomic barriers",
+      "supporting_evidence": [
+        "772773b882e85fcc36abeea8d04b29c570451003"
+      ],
+      "notes": "A gap in technology transfer and accessibility."
+    },
+    {
+      "gap": "Insufficient research on the long-term impacts of drip irrigation on diverse crop types beyond China",
+      "supporting_evidence": [
+        "dc8c5883376c5dcd74de39d76e719e115fd73d36"
+      ],
+      "notes": "A gap in global applicability of irrigation technologies."
+    },
+    {
+      "gap": "Inconsistent performance of weather datasets in driving agro-ecosystem models depending on region and data source",
+      "supporting_evidence": [
+        "2b6c9bc3fad959359660f434960071f942d29bb1"
+      ],
+      "notes": "A gap in data quality and model compatibility."
+    },
+    {
+      "gap": "Need for further investigation into how dry deposition parameterizations affect ozone modeling outcomes in different land cover types",
+      "supporting_evidence": [
+        "d9e9e08d1b9dd2875be614a033b20fc89e3ca5d9"
+      ],
+      "notes": "A gap in environmental modeling detail."
+    },
+    {
+      "gap": "Limited scalability and suboptimal feature extraction in traditional machine learning approaches in agriculture",
+      "supporting_evidence": [
+        "b0edfe01c506e68091668daf0c9fd7da4200ddda"
+      ],
+      "notes": "A gap in modern ML application."
+    },
+    {
+      "gap": "Simplified structure in current marine ecosystem models limits their ability to evolve into different states",
+      "supporting_evidence": [
+        "29056041"
+      ],
+      "notes": "A gap in ecological modeling complexity."
+    },
+    {
+      "gap": "Traditional yield forecasting methods fail to capture complex non-linear relationships among soil, climate, and spatial variability",
+      "supporting_evidence": [
+        "ed5672e317bcd4d6d3ba1bd40df3e8960201126e"
+      ],
+      "notes": "A gap in modeling sophistication."
+    },
+    {
+      "gap": "Climate effects on rice production efficiency decrease over time, suggesting potential adaptation mechanisms",
+      "supporting_evidence": [
+        "2625789"
+      ],
+      "notes": "A gap in long-term climate adaptation modeling."
+    },
+    {
+      "gap": "Limited generalization of models across different geographical regions and crop types despite promising results in specific contexts",
+      "supporting_evidence": [
+        "5546cd588dc88e6337d819358756ab522a50f9d5",
+        "1241a6d8038f5a320608e0afa5e80632fef5a2dd"
+      ],
+      "notes": "A gap in cross-context applicability."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing multimodal fusion approaches in precision agriculture",
+      "supporting_evidence": [
+        "18a8aeeaf7beae9206679571863f29297cee56f5",
+        "1241a6d8038f5a320608e0afa5e80632fef5a2dd"
+      ],
+      "notes": "A gap in methodological standardization."
+    },
+    {
+      "gap": "Insufficient discussion on scalability and deployment challenges of IoT and PLC-based agrivoltaics systems in real-world farming environments",
+      "supporting_evidence": [
+        "add500ba68982481d82ed2d7548562fcaaa0ba3d"
+      ],
+      "notes": "A gap in practical implementation knowledge."
+    },
+    {
+      "gap": "Need for more robust handling of noisy or incomplete data in UAV-based remote sensing applications",
+      "supporting_evidence": [
+        "1620e70fb28abc5f19b63ab0bcc0373078687ddc"
+      ],
+      "notes": "A gap in data quality management."
+    },
+    {
+      "gap": "Lack of standardized calibration protocols for UAV-based multispectral sensors across diverse crop types and growing conditions",
+      "supporting_evidence": [
+        "d5f544ce8cdca556c63cf7471f2d40baa24ba8f9"
+      ],
+      "notes": "A gap in sensor standardization."
+    },
+    {
+      "gap": "Machine learning models used for sensor calibration may lead to overfitting and poor field validation performance",
+      "supporting_evidence": [
+        "694e2dcad3645b5da5e907a179c5aab5c336a619"
+      ],
+      "notes": "A gap in model generalization."
+    },
+    {
+      "gap": "Limited empirical evidence on how sensor calibration impacts long-term model performance in different agroecological zones",
+      "supporting_evidence": [
+        "694e2dcad3645b5da5e907a179c5aab5c336a619"
+      ],
+      "notes": "A gap in long-term validation."
+    },
+    {
+      "gap": "The economic benefits of precision agriculture are often underrepresented in traditional models, especially regarding environmental values",
+      "supporting_evidence": [
+        "2860023"
+      ],
+      "notes": "A gap in economic modeling comprehensiveness."
+    },
+    {
+      "gap": "Low adoption rates of precision agriculture technology despite its potential benefits",
+      "supporting_evidence": [
+        "2914400"
+      ],
+      "notes": "A gap in technology adoption understanding."
+    },
+    {
+      "gap": "Need for user-friendly and cost-effective sensor applications in crop production",
+      "supporting_evidence": [
+        "3997628"
+      ],
+      "notes": "A gap in practical accessibility."
+    },
+    {
+      "gap": "Challenges in modeling crop yield distributions with small sample sizes",
+      "supporting_evidence": [
+        "2656159"
+      ],
+      "notes": "A gap in statistical modeling robustness."
+    },
+    {
+      "gap": "Limited research on modeling wireless sensor nodes powered by tunable energy harvesters",
+      "supporting_evidence": [
+        "4074254"
+      ],
+      "notes": "A gap in hardware-software integration."
+    },
+    {
+      "gap": "Integration of satellite and in-situ sensor data for vegetation productivity mapping requires further development",
+      "supporting_evidence": [
+        "4055081"
+      ],
+      "notes": "A gap in data fusion techniques."
+    },
+    {
+      "gap": "Lack of comprehensive understanding of crop rotation dynamics at landscape scale",
+      "supporting_evidence": [
+        "278865"
+      ],
+      "notes": "A gap in agricultural planning modeling."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Gradient-boosted models trained on historical weather records will achieve higher seasonal crop yield prediction accuracy than a simple degree-day growth model, when evaluated on a real-world agricultural dataset with diverse climatic conditions and crop types.",
+      "rationale": "This hypothesis directly addresses the core research question comparing gradient-boosted models with degree-day models. The literature consistently shows that ML models, particularly gradient boosting, outperform traditional statistical methods like degree-day models in agricultural forecasting. However, a key gap identified is the limited comparative analysis of these two approaches in real-world settings with diverse conditions. This hypothesis leverages the gap in practical applicability and model validation by proposing a testable claim that can be evaluated using real agricultural data.",
+      "related_gaps": [
+        "Some papers do not clearly distinguish between model accuracy and practical applicability in real-world farming contexts",
+        "Limited discussion on how models perform under extreme or unprecedented climate events beyond historical data ranges",
+        "Inconsistent evaluation metrics across studies, making direct comparisons difficult"
+      ],
+      "related_methods": [
+        "Machine Learning Models (Random Forest, Decision Tree, XGBoost, SVM, ANN, Gradient Boosted Trees)",
+        "Glacio-hydrological Degree-day Model (GDM) combined with Recurrent Neural Networks (RNNs)",
+        "Glacio-hydrological Degree-day Model (GDM)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "historical weather records",
+          "crop type",
+          "climatic conditions"
+        ],
+        "dependent": [
+          "prediction accuracy",
+          "yield forecast error"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "The integration of hybrid physical-statistical models (combining degree-day models with gradient boosting) will produce more robust and interpretable seasonal crop yield forecasts compared to purely data-driven gradient boosting models, particularly in data-scarce agricultural regions.",
+      "rationale": "This hypothesis builds on the cross-disciplinary bridge insight that glacio-hydrological degree-day models can inform crop yield forecasting by providing a physically based approach. The literature shows that hybrid approaches combining physical models with ML techniques are explored for enhanced accuracy and interpretability, especially in data-scarce environments. This hypothesis addresses the gap in model interpretability and robustness under data scarcity while leveraging the established connection between physical modeling and ML in hydrology.",
+      "related_gaps": [
+        "Interpretability of deep learning models in agricultural contexts is underexplored despite their predictive power",
+        "Limited data availability remains a significant challenge in applying deep learning and machine learning models for crop yield prediction and hydrological modeling",
+        "There is a lack of standardized methods for verifying the robustness of gradient boosted models in real-world applications"
+      ],
+      "related_methods": [
+        "Glacio-hydrological Degree-day Model (GDM) combined with Recurrent Neural Networks (RNNs)",
+        "Glacio-hydrological Degree-day Model (GDM)",
+        "Hybrid Models (CNN + Transformer)",
+        "Machine Learning Models (Random Forest, Decision Tree, XGBoost, SVM, ANN, Gradient Boosted Trees)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "data availability",
+          "region type",
+          "model type (hybrid vs pure ML)"
+        ],
+        "dependent": [
+          "forecast robustness",
+          "interpretability score",
+          "prediction accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Seasonal crop yield predictions made using gradient-boosted models will demonstrate significantly lower error rates when trained on datasets that incorporate temporal and spatial variability of weather data compared to models trained on static weather summaries.",
+      "rationale": "This hypothesis addresses the gap in handling complex spatio-temporal data and the lack of attention to temporal dynamics in traditional weather input preparation. The literature indicates that most studies rely on historical data without sufficient exploration of real-time or dynamic weather integration. By focusing on temporal and spatial variability, this hypothesis tests whether incorporating these dimensions improves model performance, which is crucial for capturing the dynamic nature of agricultural systems.",
+      "related_gaps": [
+        "There is a lack of consensus on how best to integrate temporal dynamics and spatial variability of weather data into predictive models for crop yield",
+        "Most studies rely on historical data without sufficient exploration of real-time or dynamic weather integration for predictive accuracy",
+        "Limited exploration of how different weather variables influence crop yield at distinct growth stages in machine learning models"
+      ],
+      "related_methods": [
+        "Machine Learning Models (Random Forest, Decision Tree, XGBoost, SVM, ANN, Gradient Boosted Trees)",
+        "Time Windowing Technique",
+        "LSTM, GNN, CatBoost",
+        "Time-Series Analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "weather data temporal/spatial variability",
+          "training dataset type"
+        ],
+        "dependent": [
+          "prediction error rate",
+          "yield forecast accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the strongest because it directly addresses the core research question comparing gradient-boosted models with degree-day models using a real-world agricultural dataset. It is highly feasible as it can be tested with existing datasets like UCI's agricultural or meteorological datasets (e.g., uci_air_quality_hourly.csv or uci_statlog_german_credit.csv) that contain relevant features such as weather variables or temporal data. The claim is specific enough to be supported or refuted by empirical results, and the hypothesis is internally coherent—comparing two distinct modeling approaches within the same domain. It is grounded in the literature showing ML models outperform traditional methods, and the data itself can decisively evaluate model performance. While some datasets might not perfectly align with crop yield prediction, they provide sufficient temporal and environmental variables to test the core premise."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 proposes a hybrid approach combining physical and statistical models, which is conceptually compelling and draws on cross-disciplinary insights from hydrology. However, its feasibility is lower because it requires specialized hybrid model architectures and potentially more complex data integration than what is available in the listed datasets. The testability is moderate—it makes a clear claim but may be harder to validate without access to specific hybrid model implementations or detailed data on both physical and ML components. It is internally coherent but slightly less focused on the core system (crop yield forecasting) versus the methodological approach (hybrid modeling). The grounding is solid but leans more on theoretical advantages rather than concrete empirical validation."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 focuses on temporal and spatial variability in weather data, which is an important aspect of agricultural modeling. However, it is less directly tied to the main research question and more about data preprocessing techniques. Its feasibility is questionable since many of the listed datasets do not inherently capture spatio-temporal variability in a way that would allow meaningful testing of this hypothesis. Testability is weak because the hypothesis is somewhat vague and may not produce a definitive outcome. It is internally consistent but lacks strong grounding in the literature compared to H1, and the data provided does not strongly support the claim about variability improving accuracy."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "708bfe7b0f71dcdba4b714f0f26e6481431bd71c",
+    "ff9e2be5129e99d30611a37105950e2bcce96dbf",
+    "287d8d7b5f50773b50385018dd277aade0d1b1d7",
+    "e244e92b67df0ffcef727d80f9fecdcb26ceb449",
+    "8e8c54141e653c9b748465a57a5aa3300e804a05",
+    "6aa64b538afbe28ac7dec368d236133eb496a664",
+    "986b366fe423d61dd02acbb65b20fb6f9b4dbdfc",
+    "657d91d9654f14b699f93d42801c534945671845",
+    "81e565013da99e9ab33cc19830698a6b07636847",
+    "228bb6cf7ba44894c3c6a07b04670d152632df59",
+    "89549460",
+    "2659586",
+    "171147919",
+    "2730677",
+    "2960892",
+    "2732011",
+    "ec928971ec0921bcb3c2ec84385bdfafb5122337",
+    "f8be89146b7f873de6ece0f0e45c3daf504e1f90",
+    "b295efa15f5f72424acc87c7ec4e854f9f83ec42",
+    "c095d8458a0e93acae673f0f93caba241616e9cf",
+    "a403e68ee5ceea20c2750c0d9a4357b3e76d11ab",
+    "dd39ac4deaa56d903903ab5bc7b08ef8cbce2c34",
+    "fca28b47d1ca0afa587f51faea0be3832ba14f13",
+    "fc110e17993ad8159de06c589d2822f526659aa5",
+    "88ba17d46cd1b8b734debee12cd5d34f7dc1ce6d",
+    "a65fb19f13de2ecec156f34fbd583034f74a63cb",
+    "8ca6fe0eb2cd0631276aef787a45404167449132",
+    "d5175156af3019917877bf75ff059e89142657ea",
+    "00caae813e132b031a8c94e741f773e1f045ba90",
+    "85a13a46e4e6c5ebf0040f34b2f7d9d1bf5760a1",
+    "fa4ce08734d4f164c24216fa33840ea8daed19e6",
+    "5d419f60b0d3df721b77cba6f7a67155fe59cd9d",
+    "2ac901e181129542b618831cf291d3b4697523c5",
+    "3fd6bb04f03aafcc3b163285a116113bc7b67315",
+    "37028cd25e6307283a52a6013b25c17cb82bad91",
+    "04680d2305562874ba4cbc23d1bb4ca640374a53",
+    "f4f89c30e097c58435b0214709895239c58e2e17",
+    "64232fbd2f20f1f9fbfcac5659ddebb1443ea349",
+    "12b75ee26689806b69f9d76097dc1cb8c9b57420",
+    "6b05d01c5ce5b427f8583443f14cf64a49fdca0e",
+    "88e83a15449fde9e9385325fee07dd2bfbe72cf4",
+    "7246d1cfd72335029bbace67d39401998cf753f8",
+    "3852e26eaab3027586765c1cb9a25350349b520b",
+    "ebdd4af8598675e6f8922e758c3fa326a03833f1",
+    "88fca5315242502442143f9eae20fbc8d00ef92a",
+    "66d0d923a16041a57dcd2f3981fcedc645092280",
+    "f3a64191234faf5f65431490fb86c6896bf08e90",
+    "0982b63147d5f9c94c451504b5743478016abe9a",
+    "1b2e489a0ea4a937b64df59f42509fb043765cbb",
+    "6e23398447a022fb9495c44fa80e9de593a574bc",
+    "f6d918d1c9b7bb1e45b9ca750bd9618bf8ef4ad7",
+    "d30b000d528af946bf93bd45c69324668fa6b17b",
+    "fbf1078dbc349fcea590306e0aadf23eba18fc34",
+    "70f5251d05a910be13b07b83b776e32e42681c68",
+    "6bb3fee83b7faa5ede429a6acd593832e0983efe",
+    "b04f883018fc6d75a02f5f22dea2f5482460dfd2",
+    "30f028f12eeda27c9ba9c1ac505aaa7f49503985",
+    "6e224e2d2f49c133ee56cb1da01c730ef6e5fd1d",
+    "dfba671a7637fb07fcc6a50f2e55e34e351ff9f6",
+    "217934",
+    "58523566",
+    "6105796",
+    "17484209",
+    "145811992",
+    "12037136",
+    "17481407",
+    "1704.00563v1",
+    "1503.07557v1",
+    "2012.10386v1",
+    "2504.21143v3",
+    "85cce9ddc2ae70e148507bf178a523eb3feb7b5f",
+    "772773b882e85fcc36abeea8d04b29c570451003",
+    "f0ec12324a0a661b30e51ba55877c6b48a3f31fe",
+    "dc8c5883376c5dcd74de39d76e719e115fd73d36",
+    "d9e9e08d1b9dd2875be614a033b20fc89e3ca5d9",
+    "2b6c9bc3fad959359660f434960071f942d29bb1",
+    "1106fdd9cecf3b82b2cda9f6a7afd93f462a56f9",
+    "ce5b4d86172e75029ef6fc5f91eaf5d17f8ec9be",
+    "f957a360a43c2f0b26b74c92062fb2daf3d08137",
+    "2625789",
+    "4399803",
+    "29056041",
+    "2916186",
+    "6089789",
+    "b0edfe01c506e68091668daf0c9fd7da4200ddda",
+    "ed5672e317bcd4d6d3ba1bd40df3e8960201126e",
+    "5546cd588dc88e6337d819358756ab522a50f9d5",
+    "18a8aeeaf7beae9206679571863f29297cee56f5",
+    "1241a6d8038f5a320608e0afa5e80632fef5a2dd",
+    "add500ba68982481d82ed2d7548562fcaaa0ba3d",
+    "1620e70fb28abc5f19b63ab0bcc0373078687ddc",
+    "985d9c0b7fb3503a6b0322f5193c6d41735e060a",
+    "694e2dcad3645b5da5e907a179c5aab5c336a619",
+    "d5f544ce8cdca556c63cf7471f2d40baa24ba8f9",
+    "2729824",
+    "2694399",
+    "161323648",
+    "2860023",
+    "2914400",
+    "3997628",
+    "2656159",
+    "4074254",
+    "4055081",
+    "278865"
+  ],
+  "generated_at": "2026-09-15T12:45:41.248692+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

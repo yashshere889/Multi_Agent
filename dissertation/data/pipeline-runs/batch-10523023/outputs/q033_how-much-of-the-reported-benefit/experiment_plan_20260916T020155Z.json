@@ -1,0 +1,102 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. We use the UCI Statlog German Credit dataset (uci_statlog_german_credit.csv), which contains 1000 rows with temporal metadata (duration_months, credit_amount, age_years) and a clear binary target (credit_risk). This dataset allows us to implement chronological splits and apply temporal data augmentation techniques. The experiment will compare performance on standard (random) vs. temporal (chronological) validation splits, measuring the drop in performance gain from augmentation. Since the dataset is small and the model training is within SLURM's typical limits, this is a low-complexity experiment.",
+      "objective": "To test whether applying temporal data augmentation techniques to a tabular dataset with inherent time ordering (UCI Statlog German Credit) results in a performance degradation of at least 20% when evaluated using strict chronological splits compared to standard (non-temporal) evaluation splits.",
+      "variables": {
+        "independent": [
+          "type of data augmentation technique",
+          "evaluation split type (chronological vs. random)"
+        ],
+        "dependent": [
+          "model accuracy",
+          "performance gain from augmentation"
+        ]
+      },
+      "design": "Control vs Treatment Groups: We will train two versions of a classifier (e.g., Logistic Regression or Random Forest) on the same dataset, one with standard (random) train/test splits and another with strict chronological splits. For each split type, we will apply several temporal data augmentation techniques (e.g., Time Warping, Jittering, SMOTE) and measure the resulting model accuracy. The performance gain from augmentation will be calculated as the difference in accuracy between augmented and non-augmented models. We will compare the performance gains between the two split types to assess the hypothesis.",
+      "data_requirements": {
+        "source": "uci_statlog_german_credit.csv",
+        "description": "The UCI Statlog German Credit dataset contains 1000 rows of credit approval data with categorical and numerical features including duration_months, credit_amount, and age_years, which provide temporal ordering. The target variable is credit_risk (good/bad). This dataset is ideal for testing temporal data augmentation because it has a natural time component (duration of credit, age of applicant) and a binary classification task.",
+        "preprocessing_steps": [
+          "Load the dataset from uci_statlog_german_credit.csv",
+          "Encode categorical variables using one-hot encoding",
+          "Handle missing values (if any) by dropping rows with '?'",
+          "Sort data chronologically by duration_months and age_years to create temporal splits",
+          "Split into train/test sets respecting temporal order for chronological evaluation"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Time Warping",
+          "description": "Applies time warping to the temporal features (duration_months, credit_amount, age_years) to introduce variability while preserving the overall temporal structure. Used to augment the training data for temporal classification tasks.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Jittering",
+          "description": "Adds small random noise to the temporal features (duration_months, credit_amount, age_years) to simulate measurement errors and increase robustness. Applied to the training data to enhance generalization.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "SMOTE",
+          "description": "Synthetic Minority Oversampling Technique to balance the classes in the dataset by generating synthetic samples for the minority class (bad credit risk). Used to address class imbalance in the temporal data.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Accuracy",
+          "F1 Score"
+        ],
+        "baseline": "Model performance without any data augmentation on both standard and chronological splits",
+        "success_criteria": "If the performance gain from augmentation drops by at least 20% when evaluated using strict chronological splits compared to standard splits, the hypothesis is supported. If the drop is less than 20%, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the uci_statlog_german_credit.csv dataset and preprocess it by encoding categorical variables and handling missing values. Sort the data chronologically by duration_months and age_years."
+        },
+        {
+          "step": 2,
+          "description": "Create two train/test splits: one using standard random splitting and another using strict chronological splitting to preserve temporal order."
+        },
+        {
+          "step": 3,
+          "description": "Train a baseline classifier (e.g., Logistic Regression) on both splits without augmentation and record the baseline accuracy."
+        },
+        {
+          "step": 4,
+          "description": "Apply Time Warping, Jittering, and SMOTE augmentation techniques to the training data for both splits and retrain the classifier."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate all models (baseline and augmented) on both train/test splits and calculate the performance gain from augmentation for each split type."
+        },
+        {
+          "step": 6,
+          "description": "Compare the performance gains from augmentation between the standard and chronological splits to determine if the drop exceeds 20%."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data to perform meaningful temporal augmentation",
+        "Augmentation techniques may not be suitable for the small dataset size",
+        "Temporal splits might not sufficiently reflect the true temporal dependencies in the data"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T02:01:55.604795+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

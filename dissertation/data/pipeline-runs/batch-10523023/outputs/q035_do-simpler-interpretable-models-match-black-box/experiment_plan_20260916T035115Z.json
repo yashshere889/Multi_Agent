@@ -1,0 +1,103 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The UCI Adult Census Income dataset is available and suitable for binary classification. GAMs and ensemble methods (Random Forest, Gradient Boosting) can be trained within typical SLURM GPU allocations. Hyperparameter optimization can be performed using standard libraries like scikit-optimize or Optuna with a fixed budget per model. The experiment compares classification accuracy under equal computational budgets, which is achievable with the provided resources.",
+      "objective": "To determine whether Generalized Additive Models (GAMs) can achieve classification accuracy within 5% of that attained by ensemble methods (Random Forest and Gradient Boosting) when both are optimized with equal computational budgets on the UCI Adult Census Income dataset.",
+      "variables": {
+        "independent": [
+          "model type (GAM vs. ensemble)",
+          "hyperparameter budget"
+        ],
+        "dependent": [
+          "classification accuracy"
+        ]
+      },
+      "design": "Comparative benchmark experiment with equal computational budgets. Two treatments are defined: (1) GAMs with hyperparameter optimization, and (2) Ensemble methods (Random Forest and Gradient Boosting) with hyperparameter optimization. Each model is trained and evaluated under identical computational constraints.",
+      "data_requirements": {
+        "source": "uci_adult_census_income.csv",
+        "description": "The UCI Adult Census Income dataset contains demographic and employment information for individuals, with a binary target variable indicating whether their income exceeds $50K/year. This dataset is well-suited for evaluating tabular classification models and has been widely used in fairness and interpretability research.",
+        "preprocessing_steps": [
+          "Drop the 'fnlwgt' column as it is a sampling weight, not a feature.",
+          "Encode categorical variables using one-hot encoding or ordinal encoding.",
+          "Handle missing values represented by '?' by dropping those rows.",
+          "Split the dataset into train/test sets (80/20 split) for model training and evaluation."
+        ]
+      },
+      "methods": [
+        {
+          "name": "Generalized Additive Models (GAMs)",
+          "description": "A flexible extension of linear models that allows for non-linear relationships through smooth functions of predictors. In this experiment, we use the pygam library to fit GAMs to the preprocessed UCI Adult Census Income dataset.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Ensemble Methods",
+          "description": "Specifically Random Forest and Gradient Boosting machines, which are known for strong performance on tabular data. We use scikit-learn implementations for both models.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Hyperparameter Optimization",
+          "description": "Bayesian optimization using scikit-optimize to tune hyperparameters for each model type within a fixed computational budget. For GAMs, we optimize smoothing parameters and regularization terms. For ensembles, we tune n_estimators, max_depth, learning_rate, etc.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Classification accuracy"
+        ],
+        "baseline": "The performance of each model type when trained without hyperparameter optimization, serving as a reference point for improvement due to tuning.",
+        "success_criteria": "If the GAM achieves classification accuracy within 5% of the best-performing ensemble method (Random Forest or Gradient Boosting), the hypothesis is supported. If the GAM's accuracy falls outside this range, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the uci_adult_census_income.csv dataset using pandas. Perform preprocessing steps including dropping 'fnlwgt', handling missing values ('?'), and encoding categorical features."
+        },
+        {
+          "step": 2,
+          "description": "Split the preprocessed dataset into training and testing sets (80/20 split). Ensure stratification to maintain class distribution."
+        },
+        {
+          "step": 3,
+          "description": "Define a fixed computational budget (e.g., 100 iterations of Bayesian optimization) for hyperparameter tuning of both GAMs and ensemble methods."
+        },
+        {
+          "step": 4,
+          "description": "Implement hyperparameter optimization for GAMs using scikit-optimize with a predefined search space covering smoothing parameters and regularization strength."
+        },
+        {
+          "step": 5,
+          "description": "Implement hyperparameter optimization for Random Forest and Gradient Boosting using scikit-optimize with appropriate search spaces for tree depth, number of estimators, learning rate, etc."
+        },
+        {
+          "step": 6,
+          "description": "Train the optimized GAM, Random Forest, and Gradient Boosting models on the training set and evaluate their classification accuracy on the test set."
+        },
+        {
+          "step": 7,
+          "description": "Compare the classification accuracies of the three models. Determine whether the GAM's accuracy lies within 5% of the highest accuracy achieved by the ensemble methods."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient computational budget might prevent adequate hyperparameter exploration for some models.",
+        "Class imbalance in the dataset could bias results if not handled properly during preprocessing or evaluation.",
+        "Overfitting during hyperparameter tuning if the test set is used too frequently for model selection."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T03:51:15.154967+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,105 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the 20 Newsgroups dataset which contains documents of varying lengths, allowing for empirical testing of document length and vocabulary richness effects. The experiment can be conducted within the compute constraints using a standard BERT model on a single GPU node. The dataset provides real-world documents with known categories, enabling accurate classification accuracy measurement.",
+      "objective": "To empirically test whether increasing document length beyond 300 words significantly improves classification accuracy compared to using vocabulary-rich shorter documents with a Type-Token Ratio (TTR) above 0.75 when both are processed through a standard BERT model.",
+      "variables": {
+        "independent": [
+          "document_length",
+          "type_token_ratio"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      },
+      "design": "Controlled comparative experiment with two treatment groups: (1) documents truncated to 300 words or less with TTR > 0.75, and (2) documents extended to exceed 300 words but with TTR < 0.75. A control group uses original-length documents with TTR > 0.75. All groups are classified using the same BERT model to isolate the effect of document length vs. vocabulary richness.",
+      "data_requirements": {
+        "source": "twenty_newsgroups_document_text_category_classification_train.csv",
+        "description": "The 20 Newsgroups dataset contains real newsgroup posts with varying document lengths (median 86 words, p90 342, max 11765), providing ideal variation for testing document length effects. Documents are categorized into 20 classes, enabling meaningful classification accuracy measurement.",
+        "preprocessing_steps": [
+          "Load the training split of 20 Newsgroups dataset",
+          "Filter documents with word count > 300 to create long document group",
+          "Filter documents with word count <= 300 and TTR > 0.75 to create short vocabulary-rich group",
+          "Filter documents with word count > 300 and TTR <= 0.75 to create long but low-vocabulary group",
+          "Calculate TTR for all documents using formula: unique_tokens / total_tokens",
+          "Ensure balanced category distribution across all three groups"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Type Token Ratio (TTR)",
+          "description": "Calculates vocabulary richness by dividing the number of unique tokens by the total number of tokens in a document. Used to identify vocabulary-rich shorter documents (TTR > 0.75) versus less rich longer documents (TTR <= 0.75).",
+          "reused_from_literature": true
+        },
+        {
+          "name": "BERT model for classification",
+          "description": "Uses a standard BERT-base model fine-tuned on the 20 Newsgroups dataset to classify documents into their respective categories. The same model architecture is applied consistently across all experimental conditions to ensure fair comparison.",
+          "reused_from_literature": false
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "classification_accuracy"
+        ],
+        "baseline": "Classification accuracy achieved by the BERT model on the original-length documents with TTR > 0.75",
+        "success_criteria": "If the difference in classification accuracy between the vocabulary-rich short documents (TTR > 0.75, ≤300 words) and the long documents with low vocabulary richness (TTR ≤ 0.75, >300 words) is statistically insignificant (p > 0.05), the hypothesis is supported. If the long documents with low vocabulary richness show significantly lower accuracy, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the twenty_newsgroups_document_text_category_classification_train.csv dataset using pandas.read_csv() and extract text and category columns"
+        },
+        {
+          "step": 2,
+          "description": "Compute word counts and TTR for all documents using a function that calculates unique_tokens / total_tokens ratio"
+        },
+        {
+          "step": 3,
+          "description": "Create three distinct document groups: (1) short vocabulary-rich (≤300 words, TTR > 0.75), (2) long low-vocabulary (>300 words, TTR ≤ 0.75), (3) original-length vocabulary-rich (any length, TTR > 0.75)"
+        },
+        {
+          "step": 4,
+          "description": "Ensure balanced category distribution across all three groups by sampling equal numbers from each of the 20 categories"
+        },
+        {
+          "step": 5,
+          "description": "Initialize a BERT-base model for sequence classification using HuggingFace transformers library"
+        },
+        {
+          "step": 6,
+          "description": "Train the BERT model on each document group separately using the same training configuration (learning rate, batch size, epochs)"
+        },
+        {
+          "step": 7,
+          "description": "Evaluate each trained model on its respective test set and record classification accuracy"
+        },
+        {
+          "step": 8,
+          "description": "Perform statistical significance testing (t-test) comparing accuracy between the vocabulary-rich short documents group and the long low-vocabulary group"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient number of documents in some categories to form balanced groups",
+        "Potential confounding effects from document content differences between groups beyond length/vocabulary",
+        "Computational time for fine-tuning BERT models on the full dataset might exceed typical SLURM allocation limits",
+        "Variability in TTR calculation due to different tokenization methods across documents"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T20:55:47.225284+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

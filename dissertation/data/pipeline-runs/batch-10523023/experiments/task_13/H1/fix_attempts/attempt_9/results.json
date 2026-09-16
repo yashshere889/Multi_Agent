@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether increasing sequence length beyond 512 tokens leads to diminishing returns in predictive accuracy for transformer models in text classification tasks, and to assess whether model architecture choice has a greater impact on performance than sequence length.",
+  "author": "coder-agent",
+  "baseline": "Performance of models trained on truncated sequences (e.g., 512 tokens) as a reference point for measuring diminishing returns",
+  "success_criteria": "Supporting the hypothesis would mean observing that accuracy plateaus or decreases with increasing sequence length beyond 512 tokens, while model architecture choice consistently shows stronger performance differences. Refuting the hypothesis would mean showing that accuracy continues to improve with longer sequences or that model architecture choice has minimal impact.",
+  "timestamp_utc": "2026-09-15T12:04:51.333713+00:00",
+  "status": "failure",
+  "elapsed_seconds": 51.3043,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 855, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 458, in run_experiment\n    logits = outputs.logits\n             ^^^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'logits'\n"
+}

@@ -1,0 +1,967 @@
+{
+  "literature_summary": "The literature demonstrates a growing interest in applying survival analysis and time-to-event modeling for predicting hospital readmissions, particularly in comparison to traditional binary classification approaches. While survival models offer advantages in handling censored data and incorporating time-dependent variables, their performance relative to binary classifiers varies depending on the dataset, time horizon, and model specifications. Studies often employ machine learning techniques such as XGBoost, Random Survival Forests, and deep neural networks to improve predictive accuracy. However, there is a notable lack of standardization in evaluation metrics, time window definitions, and model validation practices, which hampers direct comparisons. Most research focuses on specific patient populations (e.g., heart failure, COPD, pneumonia), limiting generalizability. Additionally, few studies explore how model performance varies across different follow-up windows beyond 30 days, and there is ongoing debate about whether survival models consistently outperform binary classifiers.",
+  "methods_overview": [
+    {
+      "method": "Survival analysis models",
+      "papers_using_it": [
+        "075b28cc61d89b70c9669d1dbaf1702071fa254d",
+        "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f",
+        "b36de8ee49f9d4d5ac17b4907943e92bf73c0009",
+        "b53b0f741cf2e1c1b5940617002b667a403b43f0",
+        "76c2db79b6e0197b170cbe069e703a3cf0aad4c4",
+        "2a0a4b05656cfa2fcce0983ab159e804ae875bc9"
+      ],
+      "notes": "Commonly used across studies, especially in conjunction with Cox proportional hazards and machine learning extensions."
+    },
+    {
+      "method": "Machine learning models",
+      "papers_using_it": [
+        "075b28cc61d89b70c9669d1dbaf1702071fa254d",
+        "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f",
+        "b53b0f741cf2e1c1b5940617002b667a403b43f0",
+        "6a72156c76a991fe2af4930e1ba47208043b685a",
+        "4048f563f93b2d3b87d0320bf0cd733941ebda5f",
+        "2a0a4b05656cfa2fcce0983ab159e804ae875bc9"
+      ],
+      "notes": "Commonly used, including XGBoost, Random Forest, SVM, and neural networks for improved prediction."
+    },
+    {
+      "method": "Time-dependent variables",
+      "papers_using_it": [
+        "b53b0f741cf2e1c1b5940617002b667a403b43f0",
+        "76c2db79b6e0197b170cbe069e703a3cf0aad4c4"
+      ],
+      "notes": "Used to capture dynamic changes in patient status post-discharge, less common but important for accurate modeling."
+    },
+    {
+      "method": "Longitudinal medical code sequences",
+      "papers_using_it": [
+        "075b28cc61d89b70c9669d1dbaf1702071fa254d"
+      ],
+      "notes": "Rare, used primarily for representing patient history via administrative data."
+    },
+    {
+      "method": "Censoring and time-varying risk assessment",
+      "papers_using_it": [
+        "76c2db79b6e0197b170cbe069e703a3cf0aad4c4"
+      ],
+      "notes": "Used to model risk trajectories and evaluate performance over time, relatively rare."
+    },
+    {
+      "method": "Bayesian Additive Regression Kernel Model (BARK)",
+      "papers_using_it": [
+        "324d8410c55e2430b4a6e877c4b2b7a512ca865c"
+      ],
+      "notes": "Rare, applied specifically to right-censored survival data for readmission prediction."
+    },
+    {
+      "method": "Mixture of Generalized Erlang Distribution",
+      "papers_using_it": [
+        "7081759"
+      ],
+      "notes": "Rare, used for determining appropriate readmission time windows."
+    },
+    {
+      "method": "Phase-Type Distribution and Transition Models",
+      "papers_using_it": [
+        "4405386"
+      ],
+      "notes": "Rare, used for modeling readmission risk with patient history and covariates."
+    },
+    {
+      "method": "Nonparametric Predictive Inference (NPI) with Right-Censored Data",
+      "papers_using_it": [
+        "4243566"
+      ],
+      "notes": "Rare, used for generalized predictive inference involving right-censored data."
+    },
+    {
+      "method": "Weighted Logrank Tests for Interval-Censored Data",
+      "papers_using_it": [
+        "2520912"
+      ],
+      "notes": "Rare, provides tools for analyzing interval-censored survival data."
+    },
+    {
+      "method": "Random Survival Forest (RSF)",
+      "papers_using_it": [
+        "8a984aaffaa08ab79e5a934552af772ab6523de4",
+        "2adb5a4eaa7fb36ed82f7e03e22ffcae4fb80615"
+      ],
+      "notes": "Moderately common, used for modeling time-to-event outcomes and assessing variable importance."
+    },
+    {
+      "method": "Cox Regression",
+      "papers_using_it": [
+        "8a984aaffaa08ab79e5a934552af772ab6523de4",
+        "2adb5a4eaa7fb36ed82f7e03e22ffcae4fb80615"
+      ],
+      "notes": "Common, used as a baseline model for survival analysis and risk prediction."
+    },
+    {
+      "method": "Time-to-Event Machine Learning Approaches",
+      "papers_using_it": [
+        "a7d2fccc98c45e309d4bb8604fc5a5fc5bce25ad"
+      ],
+      "notes": "Rare, applied for predicting early readmissions in elderly pneumonia patients."
+    },
+    {
+      "method": "Ensemble Modeling and Hybrid Strategies",
+      "papers_using_it": [
+        "185df5263d90f726715bfff5054c7a4f119bb791"
+      ],
+      "notes": "Rare, suggested for integrating multiple data sources and prediction techniques."
+    },
+    {
+      "method": "10-Fold Cross-Validation",
+      "papers_using_it": [
+        "2adb5a4eaa7fb36ed82f7e03e22ffcae4fb80615"
+      ],
+      "notes": "Rare, used for performance assessment in recurrent event analysis."
+    },
+    {
+      "method": "Logistic regression models",
+      "papers_using_it": [
+        "9bf4b49057c0dc1e8dbda8c326dc6e2fd69f7652",
+        "5f1a0958facf9e628a101bbb2793a5a5c0906a40"
+      ],
+      "notes": "Common, used for readmission prediction with various data inputs."
+    },
+    {
+      "method": "Deep survival models",
+      "papers_using_it": [
+        "dd9cb5eb39be259d84a86cb0d7129badec4ca580"
+      ],
+      "notes": "Rare, applied to predict quality of care risk in diverse hospital readmissions."
+    },
+    {
+      "method": "SHAP interpretability analysis",
+      "papers_using_it": [
+        "fcffd16192d1028378a19f4014d2b97f229b5739"
+      ],
+      "notes": "Rare, utilized to explain predictions made by ML models for readmission risk."
+    },
+    {
+      "method": "Deployment-aware evaluation",
+      "papers_using_it": [
+        "9416898da41956b64f1ceafe2b55db4ba0b8f9c5"
+      ],
+      "notes": "Rare, focuses on translating model outputs into actionable clinical decisions."
+    },
+    {
+      "method": "Administrative database analysis (HCUP NRD)",
+      "papers_using_it": [
+        "291cf36d34fce0beb4fda40a20d2e9008a058615",
+        "48e7f24fb1a515887cbabd80d146a61e844eddef",
+        "160c982e696f9f0e52a49e5d0338df40d2734f8a",
+        "3f01aea5f7d5a186fe4ac020dd71c622877aa972",
+        "bff929a175f0d5d61ed9b4178c71c0c9c6d14377"
+      ],
+      "notes": "Common, used for identifying readmissions and analyzing patient characteristics."
+    },
+    {
+      "method": "Electronic Health Records (EHR) cross-matching",
+      "papers_using_it": [
+        "17d74b2fda0546561c4c2aed736800f516f13a45",
+        "3f01aea5f7d5a186fe4ac020dd71c622877aa972"
+      ],
+      "notes": "Moderately common, employed to confirm readmissions and track outcomes."
+    },
+    {
+      "method": "Kaplan-Meier survival curve",
+      "papers_using_it": [
+        "48e7f24fb1a515887cbabd80d146a61e844eddef",
+        "160c982e696f9f0e52a49e5d0338df40d2734f8a"
+      ],
+      "notes": "Moderately common, applied to estimate readmission probabilities over time."
+    },
+    {
+      "method": "Risk prediction modeling",
+      "papers_using_it": [
+        "17d74b2fda0546561c4c2aed736800f516f13a45",
+        "3f01aea5f7d5a186fe4ac020dd71c622877aa972"
+      ],
+      "notes": "Moderately common, developed and validated models to predict 30-day readmission risks."
+    },
+    {
+      "method": "Latent class analysis",
+      "papers_using_it": [
+        "8114de512cc1d5412e628622278b0a8939cdd368"
+      ],
+      "notes": "Rare, used to evaluate consistency in judgments of avoidable readmissions."
+    },
+    {
+      "method": "Random-effects logistic regression",
+      "papers_using_it": [
+        "160c982e696f9f0e52a49e5d0338df40d2734f8a"
+      ],
+      "notes": "Rare, identified patient characteristics associated with preventable readmissions."
+    },
+    {
+      "method": "LACE index",
+      "papers_using_it": [
+        "e60854b2ff1f1520c83b2da3a548b93e8bd4ad37",
+        "76ec0d4215020636f5670bb028c4733a0ec95c49"
+      ],
+      "notes": "Moderately common, used to predict risk of death or unplanned readmission within 30 days."
+    },
+    {
+      "method": "HOSPITAL score",
+      "papers_using_it": [
+        "1313a94dc2f137554741fcfd9a11e7340b897d25"
+      ],
+      "notes": "Rare, predicts 30-day potentially avoidable readmissions in medical patients."
+    },
+    {
+      "method": "CMS algorithm for unplanned readmissions",
+      "papers_using_it": [
+        "1ce8d5f7f3d30022663cbd2c29b656e29e5cf39f"
+      ],
+      "notes": "Rare, used to identify potentially avoidable readmissions based on exclusion criteria."
+    },
+    {
+      "method": "Administrative data linkage",
+      "papers_using_it": [
+        "270e32818eba83d7c8887349b4150a3ccd33454b",
+        "1ce8d5f7f3d30022663cbd2c29b656e29e5cf39f"
+      ],
+      "notes": "Moderately common, utilized databases such as California SID and HCUP for identifying readmissions."
+    },
+    {
+      "method": "Full-stay electronic health record (EHR) data",
+      "papers_using_it": [
+        "a568c31a4dff97d2a5e25d9bb3484a6818581f04"
+      ],
+      "notes": "Rare, incorporated clinical information from entire hospital stays to improve readmission prediction."
+    },
+    {
+      "method": "Deep Weibull model (DW-RNN) and multi-task learning (MTL-RNN)",
+      "papers_using_it": [
+        "f2691f11b65f49b04bbff87e9c90dc15c55c86f1"
+      ],
+      "notes": "Rare, proposed unified framework for remaining useful life estimation and failure prediction."
+    },
+    {
+      "method": "Weibull distribution and survival likelihood",
+      "papers_using_it": [
+        "f2691f11b65f49b04bbff87e9c90dc15c55c86f1"
+      ],
+      "notes": "Rare, used in DW-RNN to model failure dynamics without direct training on individual tasks."
+    },
+    {
+      "method": "Weibull distribution for failure time modeling",
+      "papers_using_it": [
+        "385112981"
+      ],
+      "notes": "Rare, used to model failure time data from the South Texas Project."
+    },
+    {
+      "method": "Boosting algorithms for accelerated failure time models",
+      "papers_using_it": [
+        "3587538"
+      ],
+      "notes": "Rare, introduces a novel boosting approach capable of estimating scale parameters."
+    },
+    {
+      "method": "Quantile regression for censored survival data",
+      "papers_using_it": [
+        "2501103",
+        "6810546"
+      ],
+      "notes": "Rare, provides flexible alternatives to Cox models."
+    },
+    {
+      "method": "Order-statistics-based inference for censored lifetime data",
+      "papers_using_it": [
+        "6810546"
+      ],
+      "notes": "Rare, proposes new inference techniques for Weibull and generalized Pareto distributions."
+    },
+    {
+      "method": "Counterfactual duration analysis",
+      "papers_using_it": [
+        "5a85a6583645205be8d464680f9351ca17e76b13"
+      ],
+      "notes": "Rare, uses counterfactual decomposition to compare duration distributions."
+    },
+    {
+      "method": "Multiscale failure analysis in fiber-reinforced concrete",
+      "papers_using_it": [
+        "304549178"
+      ],
+      "notes": "Rare, employs both continuum and discrete models to analyze failure behavior."
+    },
+    {
+      "method": "Analysis of coarse warranty data",
+      "papers_using_it": [
+        "4512794"
+      ],
+      "notes": "Rare, reviews techniques for handling aggregated warranty data."
+    },
+    {
+      "method": "Distribution regression",
+      "papers_using_it": [
+        "6786f0aa09eb7cfa01cb269c7cc0fdaef113a6ff"
+      ],
+      "notes": "Rare, used for modeling varying coefficients in duration analysis."
+    },
+    {
+      "method": "Quantile regression",
+      "papers_using_it": [
+        "2654442"
+      ],
+      "notes": "Rare, applied to duration analysis to explore distributional features."
+    },
+    {
+      "method": "Hazard function estimation",
+      "papers_using_it": [
+        "ce52f24bcc1e69ed9c18aaa5c643d759c127b4ae"
+      ],
+      "notes": "Rare, emphasizes the role of hazard function and cumulative hazard function."
+    },
+    {
+      "method": "Beta-Stacy survival regression models",
+      "papers_using_it": [
+        "401341"
+      ],
+      "notes": "Rare, uses discrete-time beta-Stacy processes for flexible modeling."
+    },
+    {
+      "method": "Bayesian regularized structured additive regression",
+      "papers_using_it": [
+        "5227999"
+      ],
+      "notes": "Rare, combines Bayesian penalized splines and scale mixture priors."
+    },
+    {
+      "method": "Poisson regression for relative survival",
+      "papers_using_it": [
+        "36391122"
+      ],
+      "notes": "Rare, utilizes Poisson regression to model baseline hazard and prognostic factors."
+    },
+    {
+      "method": "Simulation of survival times for Cox models",
+      "papers_using_it": [
+        "5224984"
+      ],
+      "notes": "Rare, provides methods to generate survival times for simulating Cox models."
+    },
+    {
+      "method": "Hazard regression model",
+      "papers_using_it": [
+        "[17423174]"
+      ],
+      "notes": "Rare, used for analyzing colon cancer relative survival trends."
+    },
+    {
+      "method": "Cure rate model",
+      "papers_using_it": [
+        "[17423174]"
+      ],
+      "notes": "Rare, applied alongside hazard regression to estimate the proportion of cured patients."
+    },
+    {
+      "method": "Energy distance clustering",
+      "papers_using_it": [
+        "[2303.14295v1]"
+      ],
+      "notes": "Rare, nonparametric approach for clustering multivariate time series."
+    },
+    {
+      "method": "JANET (Joint Adaptive prediction Region Estimation)",
+      "papers_using_it": [
+        "[2407.06390v2]"
+      ],
+      "notes": "Rare, framework for constructing valid conformal prediction regions."
+    },
+    {
+      "method": "EnbPI (Ensemble-based Prediction Intervals)",
+      "papers_using_it": [
+        "[2010.09107v15]"
+      ],
+      "notes": "Rare, distribution-free prediction interval construction method."
+    },
+    {
+      "method": "Dominant shuffle data augmentation",
+      "papers_using_it": [
+        "[2405.16456v1]"
+      ],
+      "notes": "Rare, frequency-domain augmentation technique focusing on dominant frequencies."
+    },
+    {
+      "method": "LSTM and Prophet models",
+      "papers_using_it": [
+        "[e436085698ea07b17c0908ad7d61078cf69ea859]"
+      ],
+      "notes": "Rare, neural network and statistical models used for energy consumption forecasting."
+    },
+    {
+      "method": "Spatio-temporal causal intervention with LLMs",
+      "papers_using_it": [
+        "[f4a79745a54801b220633964a01b195ae7e8783c]"
+      ],
+      "notes": "Rare, model combining causal inference and large language models."
+    },
+    {
+      "method": "Wavelet-based forecasting",
+      "papers_using_it": [
+        "[3660720f14a2751837ea53c62ab6ed34f08cec04]"
+      ],
+      "notes": "Rare, technique for human activity forecasting and anomaly detection."
+    },
+    {
+      "method": "L1 penalization for STN selection",
+      "papers_using_it": [
+        "[8b65d97bd8797ec1fbf7c6a32d9f91814599ab47]"
+      ],
+      "notes": "Rare, variable selection technique for defining spatio-temporal neighborhoods."
+    },
+    {
+      "method": "Temporal Fusion Transformer (TFT)",
+      "papers_using_it": [
+        "6a9d69fb35414b8461573df333dba800f254519f"
+      ],
+      "notes": "Rare, attention-based architecture for multi-horizon forecasting."
+    },
+    {
+      "method": "Multivariate Dynamic Embedding (MDE)",
+      "papers_using_it": [
+        "5f7b540bc2c1d7e09a4270928e057a31dcc6a453"
+      ],
+      "notes": "Rare, used in MDEformer to capture dynamic distribution features."
+    },
+    {
+      "method": "Dynamic Systems Measures",
+      "papers_using_it": [
+        "13efcfe927666209688e385f5fae97418b5a2803"
+      ],
+      "notes": "Rare, applied to guide transformer selection for LSTM models."
+    },
+    {
+      "method": "Dynamic Time-Delays Reconstruction (DTDR)",
+      "papers_using_it": [
+        "c284cdc95e3357fee28482da90fa44287a5bc08a"
+      ],
+      "notes": "Rare, improves ALSTM models by adapting time-delays for better feature alignment."
+    },
+    {
+      "method": "Co-evolutionary Multi-task Learning",
+      "papers_using_it": [
+        "034b2a455096079e34cdc1e51db503e0f2499ca3"
+      ],
+      "notes": "Rare, addresses dynamic time series prediction with variable timespan requirements."
+    },
+    {
+      "method": "Temporal Aggregation and Forecast Combination",
+      "papers_using_it": [
+        "6832768",
+        "384361814"
+      ],
+      "notes": "Rare, improves forecasting by combining components estimated at multiple frequencies."
+    },
+    {
+      "method": "Functional Time Series and Functional PCA",
+      "papers_using_it": [
+        "2524025"
+      ],
+      "notes": "Rare, used for nonparametric forecasting of seasonal univariate time series."
+    },
+    {
+      "method": "Neural Network Ensembles",
+      "papers_using_it": [
+        "254094"
+      ],
+      "notes": "Rare, combines multiple neural network regressors applied to temporally varied feature subsets."
+    },
+    {
+      "method": "Partially Recurrent Neural Networks",
+      "papers_using_it": [
+        "15184340"
+      ],
+      "notes": "Rare, proposes a learning rule tailored for long-term prediction."
+    },
+    {
+      "method": "Bootstrap Methods",
+      "papers_using_it": [
+        "15183821",
+        "15183457"
+      ],
+      "notes": "Rare, applies bootstrap resampling for inference and prediction in financial time series."
+    },
+    {
+      "method": "ARIMA with Power Transformation",
+      "papers_using_it": [
+        "15183457"
+      ],
+      "notes": "Rare, uses bootstrap resampling to compute prediction intervals for power-transformed time series."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited exploration of how different survival models perform across varying time horizons beyond 30 days",
+      "supporting_evidence": [
+        "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f",
+        "76c2db79b6e0197b170cbe069e703a3cf0aad4c4"
+      ],
+      "notes": "Most studies focus on 30-day readmission windows, leaving performance variation across time horizons underexplored."
+    },
+    {
+      "gap": "Contradiction between findings on whether survival models consistently outperform classification models depending on dataset and time window",
+      "supporting_evidence": [
+        "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f",
+        "075b28cc61d89b70c9669d1dbaf1702071fa254d"
+      ],
+      "notes": "Findings vary across studies, with some showing survival models superior and others showing no clear advantage."
+    },
+    {
+      "gap": "Lack of standardized evaluation metrics across studies makes direct comparison of model performance difficult",
+      "supporting_evidence": [
+        "075b28cc61d89b70c9669d1dbaf1702071fa254d",
+        "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f"
+      ],
+      "notes": "Different studies report different metrics, complicating performance comparisons."
+    },
+    {
+      "gap": "Most studies focus on specific conditions like heart failure or coronary artery bypass, limiting generalizability",
+      "supporting_evidence": [
+        "b36de8ee49f9d4d5ac17b4907943e92bf73c0009",
+        "b53b0f741cf2e1c1b5940617002b667a403b43f0",
+        "76c2db79b6e0197b170cbe069e703a3cf0aad4c4"
+      ],
+      "notes": "Research is often confined to narrow patient populations, reducing applicability to broader contexts."
+    },
+    {
+      "gap": "Lack of consensus on standardized readmission time windows across different diseases and hospitals",
+      "supporting_evidence": [
+        "4405653",
+        "7081759",
+        "4405386"
+      ],
+      "notes": "No universal agreement on time windows for defining readmissions, affecting comparability."
+    },
+    {
+      "gap": "Limited reporting of performance metrics beyond AUC in machine learning studies",
+      "supporting_evidence": [
+        "4048f563f93b2d3b87d0320bf0cd733941ebda5f"
+      ],
+      "notes": "Many studies rely heavily on AUC without providing additional performance indicators."
+    },
+    {
+      "gap": "Insufficient exploration of disease-specific performance of machine learning models for readmission prediction",
+      "supporting_evidence": [
+        "4048f563f93b2d3b87d0320bf0cd733941ebda5f"
+      ],
+      "notes": "Studies often do not differentiate performance by disease type or patient subgroup."
+    },
+    {
+      "gap": "Most studies rely on internal validation, limiting generalizability to new settings",
+      "supporting_evidence": [
+        "4048f563f93b2d3b87d0320bf0cd733941ebda5f"
+      ],
+      "notes": "External validation is rarely performed, raising concerns about model transferability."
+    },
+    {
+      "gap": "Need for comparative studies between traditional statistical methods and machine learning approaches in readmission prediction",
+      "supporting_evidence": [
+        "4048f563f93b2d3b87d0320bf0cd733941ebda5f"
+      ],
+      "notes": "There is insufficient direct comparison between classical and modern modeling techniques."
+    },
+    {
+      "gap": "Few studies validate models across diverse populations or evaluate long-term readmission risks beyond 30 days",
+      "supporting_evidence": [
+        "3f3e5272cc0224f3518b61933f62e2f11e515850"
+      ],
+      "notes": "Most models are evaluated only for short-term outcomes, missing longer-term implications."
+    },
+    {
+      "gap": "There is a gap between high discrimination metrics and real-world applicability of readmission models in clinical decision-making workflows",
+      "supporting_evidence": [
+        "9416898da41956b64f1ceafe2b55db4ba0b8f9c5"
+      ],
+      "notes": "High-performing models may not translate effectively into clinical practice."
+    },
+    {
+      "gap": "Variability in expert judgment regarding avoidability highlights limitations of purely medico-administrative data for assessing readmission avoidability",
+      "supporting_evidence": [
+        "8114de512cc1d5412e628622278b0a8939cdd368"
+      ],
+      "notes": "Subjectivity in defining avoidable readmissions undermines reliability of administrative data."
+    },
+    {
+      "gap": "Use of a fixed 30-day window for readmission may not accurately reflect true avoidability, especially for conditions like pneumonia where early readmissions are common",
+      "supporting_evidence": [
+        "8114de512cc1d5412e628622278b0a8939cdd368"
+      ],
+      "notes": "Fixed time windows may misrepresent the complexity of readmission patterns."
+    },
+    {
+      "gap": "There is significant variability in how 'avoidable' readmissions are defined across studies",
+      "supporting_evidence": [
+        "2529b335d2ccdb5b23ce93f6c06c406a95e14581"
+      ],
+      "notes": "Inconsistent definitions hinder meaningful comparisons and policy development."
+    },
+    {
+      "gap": "The proportion of potentially avoidable readmissions varies widely between studies, indicating inconsistency in measurement approaches",
+      "supporting_evidence": [
+        "2529b335d2ccdb5b23ce93f6c06c406a95e14581"
+      ],
+      "notes": "Wide ranges in reported proportions suggest lack of standardized measurement protocols."
+    },
+    {
+      "gap": "Most studies assessing readmission avoidability are limited to single institutions and do not incorporate community-level data or input from treating physicians",
+      "supporting_evidence": [
+        "2529b335d2ccdb5b23ce93f6c06c406a95e14581"
+      ],
+      "notes": "Single-institution studies limit external validity and clinical relevance."
+    },
+    {
+      "gap": "The definition and identification of planned readmissions remains inconsistent",
+      "supporting_evidence": [
+        "1ce8d5f7f3d30022663cbd2c29b656e29e5cf39f"
+      ],
+      "notes": "Ambiguity in identifying planned vs. unplanned readmissions affects accuracy."
+    },
+    {
+      "gap": "Inconsistency in variable selection between binary outcome and survival analysis settings in readmission prediction",
+      "supporting_evidence": [
+        "2a0a4b05656cfa2fcce0983ab159e804ae875bc9"
+      ],
+      "notes": "Different modeling approaches select different variables, complicating interpretation."
+    },
+    {
+      "gap": "Most existing readmission models do not account for psychosocial and behavioral factors",
+      "supporting_evidence": [
+        "a568c31a4dff97d2a5e25d9bb3484a6818581f04"
+      ],
+      "notes": "Important contextual factors are often omitted, limiting model comprehensiveness."
+    },
+    {
+      "gap": "Limited research on fully parametric accelerated failure time models using boosting algorithms in high-dimensional settings",
+      "supporting_evidence": [
+        "3587538"
+      ],
+      "notes": "There is a lack of studies exploring advanced parametric survival modeling techniques."
+    },
+    {
+      "gap": "Insufficient exploration of how counterfactual methods can be applied beyond unemployment duration studies",
+      "supporting_evidence": [
+        "5a85a6583645205be8d464680f9351ca17e76b13"
+      ],
+      "notes": "Counterfactual methods have limited application in healthcare survival analysis."
+    },
+    {
+      "gap": "Lack of integration between material-scale failure models and macro-level reliability analysis",
+      "supporting_evidence": [
+        "304549178"
+      ],
+      "notes": "Disconnection between micro and macro models limits comprehensive reliability assessments."
+    },
+    {
+      "gap": "Coarse warranty data often lacks sufficient detail for precise reliability inference",
+      "supporting_evidence": [
+        "4512794"
+      ],
+      "notes": "Aggregated data reduces precision in reliability modeling."
+    },
+    {
+      "gap": "Quantile regression does not accommodate time-varying covariates or unobserved heterogeneity",
+      "supporting_evidence": [
+        "2654442"
+      ],
+      "notes": "Limitations in quantile regression restrict its utility in complex survival modeling."
+    },
+    {
+      "gap": "Censored quantile regression has not been extended to allow for competing risks",
+      "supporting_evidence": [
+        "2654442"
+      ],
+      "notes": "Extension to competing risks would broaden applicability."
+    },
+    {
+      "gap": "The impact of seasonality on financial duration processes requires further investigation",
+      "supporting_evidence": [
+        "13542847"
+      ],
+      "notes": "Seasonal effects in duration modeling remain underexplored."
+    },
+    {
+      "gap": "There is limited use of bibliometric analysis to study trends in health econometrics",
+      "supporting_evidence": [
+        "162340569"
+      ],
+      "notes": "Health econometrics literature lacks systematic trend analysis."
+    },
+    {
+      "gap": "The effectiveness of frequency-domain data augmentation in time series prediction remains underexplored beyond specific cases",
+      "supporting_evidence": [
+        "[2405.16456v1]"
+      ],
+      "notes": "Limited generalizability of frequency-domain augmentation techniques."
+    },
+    {
+      "gap": "There is limited discussion on how spatio-temporal models handle non-stationarity and heterogeneity in real-world datasets",
+      "supporting_evidence": [
+        "[8b65d97bd8797ec1fbf7c6a32d9f91814599ab47]"
+      ],
+      "notes": "Real-world complexities are often not addressed in spatio-temporal modeling."
+    },
+    {
+      "gap": "While conformal prediction methods improve uncertainty quantification, their practical scalability and integration into deep learning pipelines still need further validation",
+      "supporting_evidence": [
+        "[2407.06390v2]",
+        "[2010.09107v15]"
+      ],
+      "notes": "Scalability and integration challenges remain unresolved."
+    },
+    {
+      "gap": "The use of large language models in spatio-temporal forecasting raises concerns about hallucinations and spatial spurious associations that require robust mitigation strategies",
+      "supporting_evidence": [
+        "[f4a79745a54801b220633964a01b195ae7e8783c]"
+      ],
+      "notes": "LLMs introduce new risks in forecasting accuracy and reliability."
+    },
+    {
+      "gap": "LSTM-based models may underperform on chaotic or highly sensitive time series when combined with certain transformers or decomposition tools",
+      "supporting_evidence": [
+        "13efcfe927666209688e385f5fae97418b5a2803"
+      ],
+      "notes": "Performance limitations in complex time series scenarios."
+    },
+    {
+      "gap": "Static time-delays in ALSTM models ignore dynamic transmission times between variables, leading to degraded performance",
+      "supporting_evidence": [
+        "c284cdc95e3357fee28482da90fa44287a5bc08a"
+      ],
+      "notes": "Static assumptions in time-delay modeling reduce model adaptability."
+    },
+    {
+      "gap": "The effectiveness of model selection in forecasting remains a challenge, particularly for long-term predictions",
+      "supporting_evidence": [
+        "6832768",
+        "384361814"
+      ],
+      "notes": "Model selection strategies are not well-established for long-term forecasting."
+    },
+    {
+      "gap": "There is limited discussion on how to handle distribution drift in industrial time series prediction",
+      "supporting_evidence": [
+        "5f7b540bc2c1d7e09a4270928e057a31dcc6a453"
+      ],
+      "notes": "Distribution shift handling is underdeveloped in industrial forecasting."
+    },
+    {
+      "gap": "Limited theoretical analysis of bootstrap techniques for heteroscedastic time series",
+      "supporting_evidence": [
+        "15183821"
+      ],
+      "notes": "Theoretical grounding for bootstrap methods in heteroscedastic settings is lacking."
+    },
+    {
+      "gap": "Inadequate bootstrap procedures used in some studies on financial time series",
+      "supporting_evidence": [
+        "15183821"
+      ],
+      "notes": "Some bootstrap implementations are flawed, undermining reliability."
+    },
+    {
+      "gap": "Need for more robust methods to handle volatility clustering and excess kurtosis in financial returns",
+      "supporting_evidence": [
+        "15183821",
+        "15183457"
+      ],
+      "notes": "Current methods struggle with financial return characteristics."
+    },
+    {
+      "gap": "Lack of comparative studies on the effectiveness of different bootstrap approaches for prediction intervals in time series",
+      "supporting_evidence": [
+        "15183457"
+      ],
+      "notes": "No direct comparisons of bootstrap methods exist in the literature."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "For hospital readmission prediction, survival models utilizing time-to-event data with censoring will demonstrate higher discriminatory performance (as measured by time-dependent AUC) compared to binary classifiers when the follow-up window varies between patients, particularly when using nonparametric predictive inference methods for right-censored data.",
+      "rationale": "This hypothesis is grounded in the literature gap concerning the limited exploration of how survival models perform across varying time horizons beyond 30 days and the need for flexible modeling approaches that can handle heterogeneous follow-up windows. The cross-disciplinary bridge insight from reliability engineering supports this by suggesting that survival models adapted from time-to-failure analysis can be effective for readmission prediction when dealing with censored data and varying time windows. This hypothesis directly addresses the contradiction in findings between survival and binary models and leverages the method of nonparametric predictive inference for right-censored data.",
+      "related_gaps": [
+        "Limited exploration of how different survival models perform across varying time horizons beyond 30 days",
+        "Contradiction between findings on whether survival models consistently outperform classification models depending on dataset and time window"
+      ],
+      "related_methods": [
+        "Censoring and time-varying risk assessment",
+        "Nonparametric Predictive Inference (NPI) with Right-Censored Data"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "follow_up_window",
+          "model_type"
+        ],
+        "dependent": [
+          "time_dependent_auc"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "When applied to a diverse patient population with varying readmission time windows, parametric accelerated failure time models will show superior performance compared to Cox proportional hazards models in terms of prediction accuracy and robustness to violations of the proportional hazards assumption.",
+      "rationale": "This hypothesis stems from the gap in understanding how parametric models from reliability engineering can serve as alternatives to Cox models when the proportional hazards assumption is violated. It also addresses the lack of standardized evaluation metrics and the need for comparative studies between traditional statistical methods and machine learning approaches. The hypothesis is testable using real-world readmission data where time-to-event modeling is feasible, and it directly relates to the method of parametric accelerated failure time models using boosting algorithms.",
+      "related_gaps": [
+        "Limited research on fully parametric accelerated failure time models using boosting algorithms in high-dimensional settings",
+        "Inconsistency in variable selection between binary outcome and survival analysis settings in readmission prediction"
+      ],
+      "related_methods": [
+        "Parametric accelerated failure time models",
+        "Boosting algorithms for accelerated failure time models"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model_type",
+          "assumption_violation"
+        ],
+        "dependent": [
+          "prediction_accuracy",
+          "robustness"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Quantile regression techniques for censored survival data will provide more nuanced performance metrics than binary classifiers when evaluating readmission risk across different time windows, particularly in capturing the distributional characteristics of readmission times.",
+      "rationale": "This hypothesis is built upon the gap regarding the limited reporting of performance metrics beyond AUC in machine learning studies and the need for flexible modeling of different quantiles of the duration distribution. It draws on the econometrics bridge insight that quantile regression can handle right-censored data effectively and model the entire distribution of readmission times. This approach addresses the contradiction in model performance findings and offers a methodological advancement that can be tested against real readmission datasets.",
+      "related_gaps": [
+        "Limited reporting of performance metrics beyond AUC in machine learning studies",
+        "Contradiction between findings on whether survival models consistently outperform classification models depending on dataset and time window"
+      ],
+      "related_methods": [
+        "Quantile regression for censored survival data",
+        "Quantile regression"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "quantile_level",
+          "time_window"
+        ],
+        "dependent": [
+          "distributional_characteristics",
+          "performance_metrics"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it can be tested using real-world hospital readmission datasets that contain time-to-event data with censoring, such as those found in medical databases or public health repositories, though none of the provided datasets match this requirement exactly. It is highly testable because it specifically contrasts survival models with binary classifiers using time-dependent AUC, allowing for clear support or refutation of the claim. The hypothesis is coherent, focusing on the system (readmission prediction) rather than just methods, and aligns well with the literature gap regarding varying time horizons and the bridge insight from reliability engineering. Its grounding is strong through both the identified gaps and the cross-disciplinary connection to reliability engineering methods."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible but less so than H1, as it requires access to specific survival modeling datasets that include detailed time-to-event information and parametric model fitting capabilities. It is testable in principle, but the comparison between parametric and semi-parametric models introduces more complexity and potential confounding factors. The hypothesis is internally consistent and grounded in the literature, particularly around parametric modeling and assumption violations. However, it is less directly aligned with the core research question about varying follow-up windows and more focused on model types, making it slightly less coherent in relation to the stated problem."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible among the three because quantile regression for censored data typically requires specialized software and datasets designed for such analyses, which are not represented in the provided datasets. It is somewhat testable but suffers from lower specificity and clarity in what constitutes 'nuanced performance metrics.' The hypothesis is internally consistent and draws on econometric insights, yet it is less directly tied to the core issue of varying follow-up windows and more about distributional modeling. Its grounding is solid but less compelling compared to H1’s alignment with the main research question and available methodologies."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "075b28cc61d89b70c9669d1dbaf1702071fa254d",
+    "39e6e6574a80f655ffddd8b2be57b0807fbe8b9f",
+    "b36de8ee49f9d4d5ac17b4907943e92bf73c0009",
+    "b53b0f741cf2e1c1b5940617002b667a403b43f0",
+    "76c2db79b6e0197b170cbe069e703a3cf0aad4c4",
+    "324d8410c55e2430b4a6e877c4b2b7a512ca865c",
+    "4405653",
+    "7081759",
+    "4405386",
+    "4243566",
+    "2520912",
+    "6a72156c76a991fe2af4930e1ba47208043b685a",
+    "4048f563f93b2d3b87d0320bf0cd733941ebda5f",
+    "185df5263d90f726715bfff5054c7a4f119bb791",
+    "cf6e1126bcc8e100d8adc7114967bcdfb8ae28ae",
+    "8a984aaffaa08ab79e5a934552af772ab6523de4",
+    "a7d2fccc98c45e309d4bb8604fc5a5fc5bce25ad",
+    "3f3e5272cc0224f3518b61933f62e2f11e515850",
+    "2adb5a4eaa7fb36ed82f7e03e22ffcae4fb80615",
+    "9bf4b49057c0dc1e8dbda8c326dc6e2fd69f7652",
+    "11831b13fcbad6d0de688330327cc3af781df6c9",
+    "5f1a0958facf9e628a101bbb2793a5a5c0906a40",
+    "dd9cb5eb39be259d84a86cb0d7129badec4ca580",
+    "9416898da41956b64f1ceafe2b55db4ba0b8f9c5",
+    "fcffd16192d1028378a19f4014d2b97f229b5739",
+    "291cf36d34fce0beb4fda40a20d2e9008a058615",
+    "48e7f24fb1a515887cbabd80d146a61e844eddef",
+    "17d74b2fda0546561c4c2aed736800f516f13a45",
+    "160c982e696f9f0e52a49e5d0338df40d2734f8a",
+    "3f01aea5f7d5a186fe4ac020dd71c622877aa972",
+    "bff929a175f0d5d61ed9b4178c71c0c9c6d14377",
+    "8114de512cc1d5412e628622278b0a8939cdd368",
+    "804327b71dde92f45256d7542f95f3e5c988f0c8",
+    "270e32818eba83d7c8887349b4150a3ccd33454b",
+    "1ce8d5f7f3d30022663cbd2c29b656e29e5cf39f",
+    "e60854b2ff1f1520c83b2da3a548b93e8bd4ad37",
+    "2529b335d2ccdb5b23ce93f6c06c406a95e14581",
+    "751500cab87d306253f6506f675bb5a8511aab37",
+    "7fd672653caaf3876b7fea945c65b250eeaad912",
+    "1313a94dc2f137554741fcfd9a11e7340b897d25",
+    "76ec0d4215020636f5670bb028c4733a0ec95c49",
+    "a568c31a4dff97d2a5e25d9bb3484a6818581f04",
+    "e731407314732e51db67f11f01c9bd22f1c8164c",
+    "2a0a4b05656cfa2fcce0983ab159e804ae875bc9",
+    "efe973075ac6c86965fdc937e44d5bbac34d00c9",
+    "a6d33daa0e093a50b1b58e3aa34191c4b5acda92",
+    "f2691f11b65f49b04bbff87e9c90dc15c55c86f1",
+    "14b4afb2458f4fb92be905c7617e54f35e9c80de",
+    "6e6b1e585412d44678680c4e78b64a5a293ac96a",
+    "385112981",
+    "3587538",
+    "304549178",
+    "4512794",
+    "2501103",
+    "6810546",
+    "5a85a6583645205be8d464680f9351ca17e76b13",
+    "6786f0aa09eb7cfa01cb269c7cc0fdaef113a6ff",
+    "ce52f24bcc1e69ed9c18aaa5c643d759c127b4ae",
+    "2654442",
+    "13542847",
+    "162340569",
+    "401341",
+    "5227999",
+    "36391122",
+    "5224984",
+    "17423174",
+    "2303.14295v1",
+    "2407.06390v2",
+    "2010.09107v15",
+    "2405.16456v1",
+    "e436085698ea07b17c0908ad7d61078cf69ea859",
+    "f4a79745a54801b220633964a01b195ae7e8783c",
+    "3660720f14a2751837ea53c62ab6ed34f08cec04",
+    "8b65d97bd8797ec1fbf7c6a32d9f91814599ab47",
+    "6a9d69fb35414b8461573df333dba800f254519f",
+    "5f7b540bc2c1d7e09a4270928e057a31dcc6a453",
+    "13efcfe927666209688e385f5fae97418b5a2803",
+    "9987bee8a0b72d61b092f3defc4653df2e520805",
+    "c284cdc95e3357fee28482da90fa44287a5bc08a",
+    "034b2a455096079e34cdc1e51db503e0f2499ca3",
+    "6832768",
+    "384361814",
+    "2524025",
+    "254094",
+    "15184340",
+    "15183821",
+    "15183457"
+  ],
+  "generated_at": "2026-09-15T11:05:47.677258+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

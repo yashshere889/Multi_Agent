@@ -1,0 +1,48 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether centrality measures derived from the distance backbone of a weighted international trade network predict post-shock GDP growth rates more accurately than bilateral trade volume alone.",
+  "author": "coder-agent",
+  "baseline": "Predictive performance of a model using only bilateral trade volume as a predictor",
+  "success_criteria": "If the model using centrality measures from the distance backbone achieves lower MAE than the bilateral trade volume model, the hypothesis is supported. If the reverse occurs, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T18:30:32.003481+00:00",
+  "status": "success",
+  "elapsed_seconds": 0.7936,
+  "resumed": false,
+  "metrics": {
+    "mae_centralities": 0.028346172673033344,
+    "mae_volumes": 50863253561.33167,
+    "better_model": "centralities",
+    "worse_model": "volumes",
+    "improvement": 50863253561.30333,
+    "training_history": {
+      "centralities": [
+        0.0008892898533371891,
+        0.0008343165285804549,
+        0.0008272090668291363,
+        0.0008239299093427066,
+        0.0008210747918273532,
+        0.0008183742840965808,
+        0.0008158011699266253,
+        0.0008133472884147117,
+        0.0008110062965984838,
+        0.0008087723181970948
+      ],
+      "volumes": [
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0,
+        1000000000000.0
+      ]
+    }
+  },
+  "meets_success_criteria": true,
+  "notes": "Centrality-based model achieved lower MAE (0.0283) than volume-based model (50863253561.3317). Improvement: 50863253561.3033",
+  "error": null
+}

@@ -1,0 +1,1084 @@
+{
+  "literature_summary": "The literature demonstrates that data augmentation techniques for temporal and time-series data are highly domain-specific and must preserve temporal dependencies and structural integrity to be effective. While augmentation is widely recognized as beneficial for improving model generalization, especially in data-scarce or imbalanced scenarios, many traditional augmentation methods borrowed from computer vision fail to respect the sequential nature of temporal data. Studies show that effective augmentation requires careful consideration of temporal coherence, frequency characteristics, and domain-specific properties such as sparsity or motion patterns. There is a growing emphasis on developing time-series-specific methods like frequency-domain augmentation, adversarial techniques, and generative models tailored for temporal data. However, there remains a significant gap in standardized evaluation protocols, consistency in performance reporting, and understanding of how augmentation benefits vary across datasets and models. A recurring theme is the need for temporal-aware evaluation strategies that respect chronological ordering, particularly in forecasting and causal inference tasks, to ensure that reported gains from augmentation are robust and not artifacts of improper validation.",
+  "methods_overview": [
+    {
+      "method": "Temporal Mosaic",
+      "papers_using_it": [
+        "317b6432d619a85bc94f099e315e3f7900c10592"
+      ],
+      "notes": "Rare; used to increase model accuracy by combining segments while preserving temporal continuity."
+    },
+    {
+      "method": "EventZoom",
+      "papers_using_it": [
+        "56dd4138e24bd05a09928184b6e05c0d2659d5bf"
+      ],
+      "notes": "Rare; designed for event-based data to maintain temporal and spatial integrity through scaling and shifting."
+    },
+    {
+      "method": "Temporal Adversarial Data Augmentation (TADA)",
+      "papers_using_it": [
+        "4f5cc9e266701bda6970a8eadd5be785083bf32c"
+      ],
+      "notes": "Rare; specifically developed for time series to generate augmented samples using adversarial techniques."
+    },
+    {
+      "method": "Permutation",
+      "papers_using_it": [
+        "0b4ecb5a107cbb2ddb736f50b8bd040f0abbe89d"
+      ],
+      "notes": "Rare; used to capture dynamic properties in multivariate time-series data."
+    },
+    {
+      "method": "Instantaneous Displacement",
+      "papers_using_it": [
+        "2ea40c8b1357ad445274933a0c48a6c43345f548"
+      ],
+      "notes": "Rare; applied in skeleton-based action recognition to capture local temporal features."
+    },
+    {
+      "method": "Time Warping",
+      "papers_using_it": [
+        "8534323371dc4263f9385b9023a46f08fee4afaa",
+        "6d6c977a49302758a582922506846dc08190723f"
+      ],
+      "notes": "Common; effective in some datasets but not universally applicable; used in classification and forecasting."
+    },
+    {
+      "method": "Jittering",
+      "papers_using_it": [
+        "8534323371dc4263f9385b9023a46f08fee4afaa"
+      ],
+      "notes": "Rare; performed well on specific datasets like UniMiB-SHAR."
+    },
+    {
+      "method": "Subject Cutmix",
+      "papers_using_it": [
+        "8534323371dc4263f9385b9023a46f08fee4afaa"
+      ],
+      "notes": "Rare; identified as ineffective for multimodal sensory time series data."
+    },
+    {
+      "method": "MiniRocket",
+      "papers_using_it": [
+        "6d6c977a49302758a582922506846dc08190723f"
+      ],
+      "notes": "Rare; used as a classification model to evaluate augmentation effectiveness."
+    },
+    {
+      "method": "wDBA",
+      "papers_using_it": [
+        "6d6c977a49302758a582922506846dc08190723f"
+      ],
+      "notes": "Rare; showed significant accuracy improvement in certain datasets."
+    },
+    {
+      "method": "tsaug",
+      "papers_using_it": [
+        "8534323371dc4263f9385b9023a46f08fee4afaa"
+      ],
+      "notes": "Rare; found ineffective for time series sensory data due to loss of semantic meaning."
+    },
+    {
+      "method": "Synthetic Datasets via Signal Decomposition",
+      "papers_using_it": [
+        "8f81988b1b5f7abf716ef2eabd113a123b5df9c7"
+      ],
+      "notes": "Rare; used to benchmark augmentation effectiveness across temporal patterns."
+    },
+    {
+      "method": "Data augmentation in time-frequency domain",
+      "papers_using_it": [
+        "e5cd9e7bd60954a0523cc849ad6c92c0ede2d271",
+        "86b492132c5b9e9844d11ef9f27b0432fa20ad3f"
+      ],
+      "notes": "Common; emphasized for leveraging frequency and time-frequency transformations."
+    },
+    {
+      "method": "SMOTE",
+      "papers_using_it": [
+        "f55e28399bc720e77c24707e6bfdb6d5492740cb"
+      ],
+      "notes": "Common; used for handling class imbalance in time series classification."
+    },
+    {
+      "method": "TimeGANs",
+      "papers_using_it": [
+        "f55e28399bc720e77c24707e6bfdb6d5492740cb"
+      ],
+      "notes": "Common; evaluated as a generative method for time series augmentation."
+    },
+    {
+      "method": "ROCKET and InceptionTime models",
+      "papers_using_it": [
+        "2406.06518v1",
+        "f55e28399bc720e77c24707e6bfdb6d5492740cb"
+      ],
+      "notes": "Common; used as benchmark models for evaluating augmentation effectiveness."
+    },
+    {
+      "method": "Dominant Shuffle",
+      "papers_using_it": [
+        "2405.16456v1"
+      ],
+      "notes": "Rare; a frequency-domain technique limiting perturbations to dominant frequencies."
+    },
+    {
+      "method": "UNet-based inpainting",
+      "papers_using_it": [
+        "ae0b28b5ceff07c2f1b691626a0826d045d05b32"
+      ],
+      "notes": "Rare; proposed for spatio-temporal augmentation in network traffic prediction."
+    },
+    {
+      "method": "ARIMA-IDW hybrid method",
+      "papers_using_it": [
+        "789bc2326fad06420fbccc326f8221e46565cc5e"
+      ],
+      "notes": "Rare; used for interpolating missing spatio-temporal data in air pollution modeling."
+    },
+    {
+      "method": "ISMLR method",
+      "papers_using_it": [
+        "789bc2326fad06420fbccc326f8221e46565cc5e"
+      ],
+      "notes": "Rare; enriches spatio-temporal datasets with explanatory variables."
+    },
+    {
+      "method": "Generative models for temporal data",
+      "papers_using_it": [
+        "c9522a82cdac708c6708960bb2c9b88940faf0a3"
+      ],
+      "notes": "Rare; explored for human activity recognition, contrasting with discriminative models."
+    },
+    {
+      "method": "EventAug",
+      "papers_using_it": [
+        "4141cc26ba0c40ee6fb60aa56a75d2ccd40018d9"
+      ],
+      "notes": "Rare; multifaceted spatio-temporal augmentation for event-based data."
+    },
+    {
+      "method": "Random Transformation (RT) family of TSDA",
+      "papers_using_it": [
+        "b1754de4576e1f0ba05647bd5360c2f41b35dd8e"
+      ],
+      "notes": "Common; identified as most consistent in improving TS classification performance."
+    },
+    {
+      "method": "Diffusion and Transformer Integration",
+      "papers_using_it": [
+        "b0a33eb9957ff89c846dab9ad30048992b9b5ddc"
+      ],
+      "notes": "Rare; proposed for generating high-quality time-series data."
+    },
+    {
+      "method": "Magnitude Warping and Scaling",
+      "papers_using_it": [
+        "05ccfce1393551572e36b951c02bf634df696264"
+      ],
+      "notes": "Rare; used in electricity tariff classification."
+    },
+    {
+      "method": "Mean Gaussian Noise (MGN)",
+      "papers_using_it": [
+        "b3204e193e0316999d0a93162db1f746bd184af4"
+      ],
+      "notes": "Rare; novel method for handling extreme class imbalance in solar flare prediction."
+    },
+    {
+      "method": "Generative Adversarial Network (GAN)",
+      "papers_using_it": [
+        "89f41ba884470127fb19904fb63708bd88b113a3"
+      ],
+      "notes": "Rare; applied for augmenting lithium-ion battery failure data."
+    },
+    {
+      "method": "Temporal Feature Augmentation",
+      "papers_using_it": [
+        "eac66db9df421000a2029665703e1a1b190268d7"
+      ],
+      "notes": "Rare; used to improve fuel consumption prediction models."
+    },
+    {
+      "method": "Dynamic Data Augmentation with Gating Networks",
+      "papers_using_it": [
+        "391297829"
+      ],
+      "notes": "Rare; neural network approach selecting augmentation methods dynamically."
+    },
+    {
+      "method": "Systematic Training Dataset Augmentation and Sampling",
+      "papers_using_it": [
+        "170005872"
+      ],
+      "notes": "Rare; focuses on improving regression model accuracy through augmentation strategies."
+    },
+    {
+      "method": "SimPSI",
+      "papers_using_it": [
+        "3d71eda90c77cf6db28f76706ecbf75255b7980e"
+      ],
+      "notes": "Rare; designed to preserve spectral information during time series augmentation."
+    },
+    {
+      "method": "Bidirectional Temporal Data Augmentation with Pre-training (BARec)",
+      "papers_using_it": [
+        "7e8ed8d7ed0bfa725ae14a1fa534fc67bc757b74"
+      ],
+      "notes": "Rare; uses bidirectional augmentation and pre-training for temporal structure preservation."
+    },
+    {
+      "method": "Interpolation-based Time-Series Data Augmentation",
+      "papers_using_it": [
+        "a330d20f3b80887141534f78b675d31e5847aeae"
+      ],
+      "notes": "Rare; proposes robust interpolation preserving trend information."
+    },
+    {
+      "method": "LSTM-based Dynamic Forecasting for Data Augmentation",
+      "papers_using_it": [
+        "d53c52a30a9d5eafb3691aab0f270930bd8d17b5"
+      ],
+      "notes": "Rare; employs LSTM networks for augmenting multivariate time-series data."
+    },
+    {
+      "method": "Dimension Corruption for Temporal Data Augmentation",
+      "papers_using_it": [
+        "c259bc9adf3019870613cbb7888ea4fac4e1929f"
+      ],
+      "notes": "Rare; corrupts dimensions in token embeddings for self-supervised learning."
+    },
+    {
+      "method": "Time Warping with a Discriminative Teacher",
+      "papers_using_it": [
+        "dc7f051a32b44124341f1e83124de4deaf1e0e39"
+      ],
+      "notes": "Rare; combines time warping with discriminative learning."
+    },
+    {
+      "method": "Conditional Generative Adversarial Networks (CGAN)",
+      "papers_using_it": [
+        "881bd7f90a9e5cc03ac91055d0f3990b94815646"
+      ],
+      "notes": "Rare; used for data augmentation in noisy time series with irregular sampling."
+    },
+    {
+      "method": "Synthetic Data Augmentation",
+      "papers_using_it": [
+        "061cca4a3f78f29d626878ddf2199a61f7b3710f"
+      ],
+      "notes": "Rare; applied to improve suicidal ideation detection in social media posts."
+    },
+    {
+      "method": "Chronological Evaluation Splits (Eval-Fix)",
+      "papers_using_it": [
+        "40fcd57312f0783bc38283248547f1c6f3f85baf"
+      ],
+      "notes": "Rare; fixed chronological splits for temporal generalizability in legal classification."
+    },
+    {
+      "method": "Streaming Evaluation Protocol (Eval-Stream)",
+      "papers_using_it": [
+        "40fcd57312f0783bc38283248547f1c6f3f85baf"
+      ],
+      "notes": "Rare; dynamic evaluation approach using multiple splits over time."
+    },
+    {
+      "method": "Rule-Based Data Augmentation",
+      "papers_using_it": [
+        "e33718ba040017916cf7d3f04c37827f5bcf57cd"
+      ],
+      "notes": "Rare; implemented in Matlab for merging structured and free-text telehealth data."
+    },
+    {
+      "method": "Sparse Causal Discovery via l1-l2-norm Regularized Regression",
+      "papers_using_it": [
+        "0901.2234v1"
+      ],
+      "notes": "Rare; used to estimate causal interactions in multivariate time series."
+    },
+    {
+      "method": "Temporal Network Theory",
+      "papers_using_it": [
+        "2103.13615v1"
+      ],
+      "notes": "Rare; explores temporal aspects of network structures and dynamics."
+    },
+    {
+      "method": "Temporal Cascade Model",
+      "papers_using_it": [
+        "2103.13604v1"
+      ],
+      "notes": "Rare; extends Duncan Watts' cascade model to incorporate temporal interaction networks."
+    },
+    {
+      "method": "Algebraic Geometry for Causal Inference",
+      "papers_using_it": [
+        "1506.03880v2"
+      ],
+      "notes": "Rare; uses Groebner bases to infer causal relations from observational data."
+    },
+    {
+      "method": "Quantitative Probing",
+      "papers_using_it": [
+        "2209.03013v1"
+      ],
+      "notes": "Rare; model-agnostic framework for validating causal models using domain knowledge."
+    },
+    {
+      "method": "Causal Graphical Framework for Dataset Shift Stability",
+      "papers_using_it": [
+        "1905.11374v5"
+      ],
+      "notes": "Rare; uses causal graphs to analyze invariance under dataset shifts."
+    },
+    {
+      "method": "Chronological Causal Bandits (CCB)",
+      "papers_using_it": [
+        "2112.01819v1"
+      ],
+      "notes": "Rare; multi-armed bandit framework with evolving causal dependencies."
+    },
+    {
+      "method": "OpportunityFinder",
+      "papers_using_it": [
+        "2309.13103v1"
+      ],
+      "notes": "Rare; code-less framework for automated causal inference using panel data."
+    },
+    {
+      "method": "Deep Mixed Time Series Temporal Causal Discovery",
+      "papers_using_it": [
+        "8fc7bfbf9fb6b19ef772e6328959e253795ecce7"
+      ],
+      "notes": "Rare; adapts latent continuous variables from discrete ones for causal discovery."
+    },
+    {
+      "method": "Temporal Logic-based Causal Diagrams",
+      "papers_using_it": [
+        "99ca122df5e968098fd8f0f24e261f44714ae65b"
+      ],
+      "notes": "Rare; incorporates causal information into probabilistic reward machines."
+    },
+    {
+      "method": "Spatial-Temporal Causal Digraph (STCG)",
+      "papers_using_it": [
+        "7e9ff8ebb43a7092b265ecb20562fa2d21b7bc6c"
+      ],
+      "notes": "Rare; models causal dependencies considering spatial and temporal aspects."
+    },
+    {
+      "method": "Closure and Complexity Analysis of Temporal Causality",
+      "papers_using_it": [
+        "7e1032a06fab5515c528c7c327f5e0618b7688a9"
+      ],
+      "notes": "Rare; studies closure properties and computational complexity of causal inference."
+    },
+    {
+      "method": "Causal Attention and Causal Mamba",
+      "papers_using_it": [
+        "2ed78841c110df5dc3515f9f8f8ec8087f8cbdb6"
+      ],
+      "notes": "Rare; used in CausalTAD for enhancing temporal action detection."
+    },
+    {
+      "method": "Conditional Transfer Entropy (CTE)",
+      "papers_using_it": [
+        "90feba50a5b00706415e3aee1c5001c3075048e7"
+      ],
+      "notes": "Rare; applied in a two-stage framework for discovering time-lagged causal relationships."
+    },
+    {
+      "method": "Sign Rule",
+      "papers_using_it": [
+        "2923209"
+      ],
+      "notes": "Rare; proposed to determine causality direction in Granger causality tests."
+    },
+    {
+      "method": "Mendelian Randomization (MR)",
+      "papers_using_it": [
+        "e5fd213a4a5e537ff440fb8ad51bc3a6accb5c97"
+      ],
+      "notes": "Rare; used for identifying causal associations between pollutants and health outcomes."
+    },
+    {
+      "method": "Systematic Sampling",
+      "papers_using_it": [
+        "2924318"
+      ],
+      "notes": "Rare; examines its impact on causality in time series with unit roots."
+    },
+    {
+      "method": "Temporal Aggregation",
+      "papers_using_it": [
+        "2924269",
+        "2672194"
+      ],
+      "notes": "Rare; investigates distortions in causality inference due to temporal aggregation."
+    },
+    {
+      "method": "Deep learning for causal inference",
+      "papers_using_it": [
+        "169447337"
+      ],
+      "notes": "Rare; uses deep neural networks under potential outcomes framework."
+    },
+    {
+      "method": "Non-linear biochemical kinetics for causal network inference",
+      "papers_using_it": [
+        "16175463"
+      ],
+      "notes": "Rare; employs Bayesian inference with non-linear kinetic models."
+    },
+    {
+      "method": "Directed Acyclic Graphs (DAGs) for causal inference",
+      "papers_using_it": [
+        "145618824"
+      ],
+      "notes": "Rare; utilizes DAGs to represent and reason about causal relationships."
+    },
+    {
+      "method": "Byzantine-resilient SGD with outlier filtering",
+      "papers_using_it": [
+        "2005.07866v1"
+      ],
+      "notes": "Rare; applies robust mean estimation to filter corrupted gradients."
+    },
+    {
+      "method": "Data encoding and error correction for adversarial resilience",
+      "papers_using_it": [
+        "1907.02664v2"
+      ],
+      "notes": "Rare; uses sparse encoding schemes to protect distributed optimization."
+    },
+    {
+      "method": "TerraGen layout-to-image generation framework",
+      "papers_using_it": [
+        "2510.21391v1"
+      ],
+      "notes": "Rare; unified multi-task remote sensing data augmentation framework."
+    },
+    {
+      "method": "Agent-Based Model (ABM)",
+      "papers_using_it": [
+        "1003.3784v1",
+        "2409.00742v1",
+        "2607.06984v1"
+      ],
+      "notes": "Common; used to simulate complex behaviors in various domains."
+    },
+    {
+      "method": "Diffusion-Driven Data Generation",
+      "papers_using_it": [
+        "2411.15497v3"
+      ],
+      "notes": "Rare; AeroGen model generates synthetic remote sensing images."
+    },
+    {
+      "method": "Service-Oriented Simulation Framework",
+      "papers_using_it": [
+        "1012.4712v1"
+      ],
+      "notes": "Rare; provides methodology for integrating simulation with service-oriented architecture."
+    },
+    {
+      "method": "Statistical Moments and HSV Color Features",
+      "papers_using_it": [
+        "6e75fe3f217b804aaa70eae8b2979a1affb59ace"
+      ],
+      "notes": "Rare; used for simulating realistic plant disease lesions."
+    },
+    {
+      "method": "Co-Simulation with Semantic Web Technologies",
+      "papers_using_it": [
+        "2410.16956v1"
+      ],
+      "notes": "Rare; assists in planning co-simulation scenarios for cyber-physical systems."
+    },
+    {
+      "method": "Synthetic Minority Over-sampling Technique (SMOTE)",
+      "papers_using_it": [
+        "590f9126e47ddffd40e8cad2069cf56ef3dc1322"
+      ],
+      "notes": "Rare; used to address class imbalance in environmental data."
+    },
+    {
+      "method": "Deep convolutional multitask learning",
+      "papers_using_it": [
+        "73bc11eea9e463c2574af2945e11844bb0e018d9"
+      ],
+      "notes": "Rare; applied in spectroscopy for dual prediction and trustworthiness assessment."
+    },
+    {
+      "method": "Conditional Generative Adversarial Networks (cGAN)",
+      "papers_using_it": [
+        "b2e108f418c76b7dd6c4f1da9b0c297b417be38d"
+      ],
+      "notes": "Rare; used for generating realistic channel impulse response data."
+    },
+    {
+      "method": "Statistical data augmentation using 3D geological models",
+      "papers_using_it": [
+        "4692539e584f3cd7be77001ba3a0b6c387caed4d"
+      ],
+      "notes": "Rare; involves Multi-Point Statistics and Sequential Gaussian Simulation."
+    },
+    {
+      "method": "Flow Matching for Continuous Normalizing Flows",
+      "papers_using_it": [
+        "af68f10ab5078bfc519caae377c90ee6d9c504e9"
+      ],
+      "notes": "Rare; simulation-free training approach for generative modeling."
+    },
+    {
+      "method": "Generative AI for user simulation",
+      "papers_using_it": [
+        "b04a31a92568589b5cf3f71f1d24036107f8a31c"
+      ],
+      "notes": "Rare; used to model human behavior and generate synthetic data."
+    },
+    {
+      "method": "Hybrid TrafficAI framework",
+      "papers_using_it": [
+        "1300ac5f7d28c58b2ab6d3d5ad5a588473d9ba7f"
+      ],
+      "notes": "Rare; generative AI framework for real-time traffic simulation."
+    },
+    {
+      "method": "Generative modeling for 3D turbulence simulation",
+      "papers_using_it": [
+        "3fabfdba3972863a7fd153ec2c3091a327f1b941"
+      ],
+      "notes": "Rare; directly learns turbulent flow states without initial conditions."
+    },
+    {
+      "method": "Bayesian computation with predictive distribution formula",
+      "papers_using_it": [
+        "387364"
+      ],
+      "notes": "Rare; applied to incomplete data models using Laplace approximation."
+    },
+    {
+      "method": "Design of Experiments and regression analysis in simulation",
+      "papers_using_it": [
+        "2707039"
+      ],
+      "notes": "Rare; statistical methods for improving simulation experiment design."
+    },
+    {
+      "method": "Data augmentation techniques for medical image segmentation",
+      "papers_using_it": [
+        "145630346"
+      ],
+      "notes": "Rare; includes filtering, mixup in frequency domain, and tone mapping."
+    },
+    {
+      "method": "GAN-based data augmentation in feature space",
+      "papers_using_it": [
+        "168958095"
+      ],
+      "notes": "Rare; uses GANs to generate augmented features for semantic segmentation."
+    },
+    {
+      "method": "Data augmentation for chromosome classification",
+      "papers_using_it": [
+        "145625334"
+      ],
+      "notes": "Rare; application of various strategies for AlexNet-based classification."
+    },
+    {
+      "method": "Neural Ordinary Differential Equations (NODEs)",
+      "papers_using_it": [
+        "77399269"
+      ],
+      "notes": "Rare; used for generative modeling and continuous normalizing flows."
+    },
+    {
+      "method": "Continuous Normalizing Flows (CNFs)",
+      "papers_using_it": [
+        "77399269"
+      ],
+      "notes": "Rare; built on NODEs for density estimation and variational inference."
+    },
+    {
+      "method": "Langevin Data Augmentation (LangDAug)",
+      "papers_using_it": [
+        "82a4124e3e76dc3fbd8e735ad41808021969ec6b"
+      ],
+      "notes": "Rare; uses Energy-Based Models and Langevin dynamics for domain generalization."
+    },
+    {
+      "method": "Information-Theoretic Framework for Data Augmentation",
+      "papers_using_it": [
+        "7f4b8fdb48f99c69708fe33a8ed1725847703ed6"
+      ],
+      "notes": "Rare; analyzes generalization and invariance using mutual information."
+    },
+    {
+      "method": "Automatic Data Augmentation via Upper Confidence Bounds",
+      "papers_using_it": [
+        "ce5f699b18082dda94ba7c25ca6f5b15ad3dbaeb"
+      ],
+      "notes": "Rare; applied to deep reinforcement learning to improve generalization."
+    },
+    {
+      "method": "Conformal Prediction with Adaptive Data Augmentation",
+      "papers_using_it": [
+        "3d2dcba9922c7ae1030287c2bf1e8dc364e7e7a7"
+      ],
+      "notes": "Rare; used for graph-level out-of-distribution detection with statistical guarantees."
+    },
+    {
+      "method": "Feature Augmentation on Adaptive Geodesic Curve (FAAGC)",
+      "papers_using_it": [
+        "a84c2969aa67268806f73f4a45b316803f28e3c8"
+      ],
+      "notes": "Rare; uses pre-shape space theory to construct geodesic curves for feature augmentation."
+    },
+    {
+      "method": "Generative Adversarial Network (GAN) for traffic data augmentation",
+      "papers_using_it": [
+        "c7a3f693cb6342d85a03d8a23884a6d929f3a7dd"
+      ],
+      "notes": "Rare; adapts sequential data in optical networks using GANs."
+    },
+    {
+      "method": "Mixed data augmentation with feature pyramid network and 2DSCNs",
+      "papers_using_it": [
+        "0d85721aade325992bbe0c6b24c52954fad3854d"
+      ],
+      "notes": "Rare; combines data augmentation with adaptive hierarchical feature extraction."
+    },
+    {
+      "method": "Diffeomorphic transforms for image data augmentation",
+      "papers_using_it": [
+        "145615904"
+      ],
+      "notes": "Rare; applies diffeomorphic transformations to augment image datasets."
+    },
+    {
+      "method": "Multi-Strategy Adaptive Data Augmentation for Graph Neural Networks",
+      "papers_using_it": [
+        "158928156"
+      ],
+      "notes": "Rare; proposes adaptive augmentation strategies tailored for graph-structured data."
+    },
+    {
+      "method": "Random projection and compressive FLD classification",
+      "papers_using_it": [
+        "15110299"
+      ],
+      "notes": "Rare; analyzes dimensionality reduction and generalization bounds."
+    },
+    {
+      "method": "Variable-size compressibility framework",
+      "papers_using_it": [
+        "286714339"
+      ],
+      "notes": "Rare; introduces a data-dependent generalization bound based on compressibility."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of standardized evaluation protocols for comparing data augmentation techniques in time series classification",
+      "supporting_evidence": [
+        "6d6c977a49302758a582922506846dc08190723f"
+      ],
+      "notes": "Multiple papers point to the absence of agreed-upon benchmarks and evaluation standards."
+    },
+    {
+      "gap": "Inconsistent evaluation practices in time series forecasting due to improper validation strategies",
+      "supporting_evidence": [
+        "eac66db9df421000a2029665703e1a1b190268d7"
+      ],
+      "notes": "Improper validation strategies lead to unreliable conclusions about augmentation effectiveness."
+    },
+    {
+      "gap": "Limited exploration of how synthetic data augmentation affects model robustness beyond performance metrics",
+      "supporting_evidence": [
+        "590f9126e47ddffd40e8cad2069cf56ef3dc1322",
+        "73bc11eea9e463c2574af2945e11844bb0e018d9",
+        "b2e108f418c76b7dd6c4f1da9b0c297b417be38d",
+        "4692539e584f3cd7be77001ba3a0b6c387caed4d"
+      ],
+      "notes": "Concerns raised about fidelity and generalizability of models trained on synthetic data."
+    },
+    {
+      "gap": "Need for standardized frameworks for integrating data augmentation into time series regression pipelines",
+      "supporting_evidence": [
+        "170005872"
+      ],
+      "notes": "Lack of standardized integration approaches hampers consistent application."
+    },
+    {
+      "gap": "Lack of conclusive evidence regarding the amount of synthetic data required to attain optimal outcomes in time series data augmentation",
+      "supporting_evidence": [
+        "b1754de4576e1f0ba05647bd5360c2f41b35dd8e"
+      ],
+      "notes": "Uncertainty around optimal augmentation levels for achieving best results."
+    },
+    {
+      "gap": "Limited exploration of data augmentation effectiveness on multivariate time series datasets",
+      "supporting_evidence": [
+        "b3204e193e0316999d0a93162db1f746bd184af4"
+      ],
+      "notes": "Multivariate datasets receive less attention in current augmentation studies."
+    },
+    {
+      "gap": "Limited discussion on how domain-specific constraints affect the applicability of data augmentation techniques in real-world settings",
+      "supporting_evidence": [
+        "590f9126e47ddffd40e8cad2069cf56ef3dc1322",
+        "73bc11eea9e463c2574af2945e11844bb0e018d9",
+        "b2e108f418c76b7dd6c4f1da9b0c297b417be38d",
+        "4692539e584f3cd7be77001ba3a0b6c387caed4d"
+      ],
+      "notes": "Domain-specific considerations are often overlooked in general augmentation methods."
+    },
+    {
+      "gap": "No consensus exists on which augmentation methods are most effective for specific time series classification tasks",
+      "supporting_evidence": [
+        "6d6c977a49302758a582922506846dc08190723f"
+      ],
+      "notes": "Effectiveness varies significantly across datasets and algorithms, with no clear winner."
+    },
+    {
+      "gap": "Manual selection of augmentations in time series is challenging due to the complex and often imperceptible nature of temporal structures",
+      "supporting_evidence": [
+        "8f81988b1b5f7abf716ef2eabd113a123b5df9c7"
+      ],
+      "notes": "Complexity of temporal dependencies makes manual augmentation selection difficult."
+    },
+    {
+      "gap": "Limited exploration of how synthetic data augmentation affects model robustness beyond performance metrics in social media analysis",
+      "supporting_evidence": [
+        "061cca4a3f78f29d626878ddf2199a61f7b3710f"
+      ],
+      "notes": "Focus on performance metrics alone leaves robustness unaddressed."
+    },
+    {
+      "gap": "Lack of explicit discussion on scalability or computational efficiency of rule-based augmentation in healthcare settings",
+      "supporting_evidence": [
+        "e33718ba040017916cf7d3f04c37827f5bcf57cd"
+      ],
+      "notes": "Scalability concerns in real-world healthcare applications are underexplored."
+    },
+    {
+      "gap": "Temporal network models often lack integration with dynamic real-time updating mechanisms in practical applications",
+      "supporting_evidence": [
+        "2103.13615v1",
+        "2103.13604v1"
+      ],
+      "notes": "Practical deployment lacks real-time adaptability."
+    },
+    {
+      "gap": "Causal discovery for mixed time series involving both continuous and discrete variables remains underexplored",
+      "supporting_evidence": [
+        "8fc7bfbf9fb6b19ef772e6328959e253795ecce7"
+      ],
+      "notes": "Challenges of nonlinearity and high dimensionality limit exploration."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively integrate high-level causal knowledge into reinforcement learning frameworks without manual design of reward structures",
+      "supporting_evidence": [
+        "99ca122df5e968098fd8f0f24e261f44714ae65b"
+      ],
+      "notes": "Integration of domain knowledge remains a challenge in RL."
+    },
+    {
+      "gap": "The effectiveness of quantitative probing in handling complex or failing scenarios has not been fully explored beyond illustrative examples",
+      "supporting_evidence": [
+        "2209.03013v1"
+      ],
+      "notes": "Limited validation in complex or failure cases."
+    },
+    {
+      "gap": "Limited guidance on how to establish causality direction in contemporaneously correlated variables under temporal aggregation",
+      "supporting_evidence": [
+        "2924269"
+      ],
+      "notes": "Ambiguity in causality direction under temporal aggregation."
+    },
+    {
+      "gap": "Traditional correlation-based methods in health data analysis lack robustness and interpretability for causal inference",
+      "supporting_evidence": [
+        "90feba50a5b00706415e3aee1c5001c3075048e7"
+      ],
+      "notes": "Correlation-based methods are insufficient for robust causal inference."
+    },
+    {
+      "gap": "Limited exploration of how domain-specific data augmentation impacts generalization beyond the immediate application area",
+      "supporting_evidence": [
+        "c7a3f693cb6342d85a03d8a23884a6d929f3a7dd",
+        "0d85721aade325992bbe0c6b24c52954fad3854d"
+      ],
+      "notes": "Generalization beyond specific domains is under-studied."
+    },
+    {
+      "gap": "Theoretical generalization bounds do not fully account for real-world data complexity and non-iid assumptions",
+      "supporting_evidence": [
+        "15110299",
+        "286714339"
+      ],
+      "notes": "Bounds are too simplistic for complex, real-world data."
+    },
+    {
+      "gap": "Limited exploration of how generative models can be integrated into existing simulation workflows beyond simple data generation",
+      "supporting_evidence": [
+        "1300ac5f7d28c58b2ab6d3d5ad5a588473d9ba7f"
+      ],
+      "notes": "Integration goes beyond basic data generation."
+    },
+    {
+      "gap": "Theoretical understanding of how data augmentation improves generalization in non-iid settings such as dynamics forecasting remains limited",
+      "supporting_evidence": [
+        "d4594a58a7880b5efb30748425dac8ec01dca296"
+      ],
+      "notes": "Understanding of generalization in non-iid settings is lacking."
+    },
+    {
+      "gap": "The relationship between the geometry of augmentation groups and generalization bounds needs further exploration",
+      "supporting_evidence": [
+        "7f4b8fdb48f99c69708fe33a8ed1725847703ed6"
+      ],
+      "notes": "Geometry-augmentation link is underexplored."
+    },
+    {
+      "gap": "Limited exploration of how deep learning methods can be applied to causal inference in settings with complex, non-linear confounding mechanisms beyond observational data",
+      "supporting_evidence": [
+        "169447337"
+      ],
+      "notes": "Deep learning in causal inference is underdeveloped for complex confounding."
+    },
+    {
+      "gap": "Lack of comprehensive evaluation of causal inference methods in high-dimensional or non-linear settings with real-world data",
+      "supporting_evidence": [
+        "16175463",
+        "169447337"
+      ],
+      "notes": "Evaluation in complex settings is insufficient."
+    },
+    {
+      "gap": "Validation remains a critical challenge in generative modeling, especially in social simulation contexts involving LLMs",
+      "supporting_evidence": [
+        "5cd29f769cced349fb7c5affb5c6d27fb387a69c"
+      ],
+      "notes": "Black-box behavior complicates empirical grounding."
+    },
+    {
+      "gap": "Need for more robust methods to handle heterogeneous data in distributed optimization without making probabilistic assumptions",
+      "supporting_evidence": [
+        "2005.07866v1",
+        "1907.02664v2"
+      ],
+      "notes": "Robustness in heterogeneous environments is lacking."
+    },
+    {
+      "gap": "Lack of standardized frameworks for user simulation in Generative AI",
+      "supporting_evidence": [
+        "b04a31a92568589b5cf3f71f1d24036107f8a31c"
+      ],
+      "notes": "Reproducibility and cross-domain applicability are hindered."
+    },
+    {
+      "gap": "There is a lack of formal guarantees for domain generalization methods beyond empirical validation",
+      "supporting_evidence": [
+        "82a4124e3e76dc3fbd8e735ad41808021969ec6b"
+      ],
+      "notes": "Empirical validation is insufficient for formal guarantees."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "When data augmentation techniques designed for temporal data are applied to tabular datasets with inherent time ordering (such as UCI Statlog German Credit data with temporal metadata), the performance gains observed in standard (non-temporal) evaluation splits will diminish by at least 20% when evaluated using strict chronological splits that respect temporal ordering.",
+      "rationale": "This hypothesis is grounded in the literature gap concerning inconsistent evaluation practices in time series forecasting due to improper validation strategies [eac66db9df421000a2029665703e1a1b190268d7]. It also draws upon the cross-disciplinary bridge insight that causal inference frameworks handling dataset shift and temporal aggregation effects can inform how to evaluate the robustness of data augmentation techniques against temporal misalignment [1905.11374v5, 2923209]. The hypothesis is specific and testable using real tabular data with known temporal structure, such as the UCI Statlog German Credit dataset, where we can compare performance on standard vs. temporal validation splits.",
+      "related_gaps": [
+        "Inconsistent evaluation practices in time series forecasting due to improper validation strategies"
+      ],
+      "related_methods": [],
+      "suggested_variables": {
+        "independent": [
+          "type of data augmentation technique",
+          "evaluation split type (chronological vs. random)"
+        ],
+        "dependent": [
+          "model accuracy",
+          "performance gain from augmentation"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "For multivariate tabular datasets like UCI Air Quality Hourly, applying time-series-specific augmentation methods such as Time Warping or Frequency Domain Augmentation will yield statistically significant improvements in model generalization compared to standard tabular augmentation methods, but only when evaluated using temporal-aware splits that preserve chronological order.",
+      "rationale": "This hypothesis builds on the gap regarding limited exploration of how synthetic data augmentation affects model robustness beyond performance metrics [590f9126e47ddffd40e8cad2069cf56ef3dc1322] and the need for temporal-aware evaluation strategies [eac66db9df421000a2029665703e1a1b190268d7]. It leverages the cross-disciplinary insight that temporal network approaches accounting for both structure and dynamics can guide augmentation techniques respecting temporal order [2103.13615v1]. Using real multivariate temporal data like UCI Air Quality Hourly allows us to empirically test whether temporal-aware augmentation methods indeed perform better under proper temporal validation protocols.",
+      "related_gaps": [
+        "Limited exploration of how synthetic data augmentation affects model robustness beyond performance metrics",
+        "Inconsistent evaluation practices in time series forecasting due to improper validation strategies"
+      ],
+      "related_methods": [
+        "Time Warping",
+        "Data augmentation in time-frequency domain"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "augmentation method (temporal-aware vs. standard tabular)",
+          "evaluation protocol (temporal vs. random)"
+        ],
+        "dependent": [
+          "model generalization performance",
+          "accuracy improvement post-augmentation"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "The effectiveness of data augmentation in improving classification accuracy on tabular data with temporal components (e.g., UCI Adult Census Income) is significantly reduced when the evaluation split enforces temporal ordering, indicating that reported benefits may be artifacts of improper validation rather than true generalization improvements.",
+      "rationale": "This hypothesis directly addresses the core research question by focusing on how much of the reported benefit of data augmentation survives when the evaluation split respects temporal ordering. It connects to the gap about lack of standardized evaluation protocols [6d6c977a49302758a582922506846dc08190723f] and the need for temporal-aware evaluation strategies [eac66db9df421000a2029665703e1a1b190268d7]. By using a real-world tabular dataset like UCI Adult Census Income, which contains temporal-like features (e.g., years worked, age), we can measure whether augmentation benefits persist under temporal validation, providing concrete evidence for or against the hypothesis.",
+      "related_gaps": [
+        "Lack of standardized evaluation protocols for comparing data augmentation techniques in time series classification",
+        "Inconsistent evaluation practices in time series forecasting due to improper validation strategies"
+      ],
+      "related_methods": [],
+      "suggested_variables": {
+        "independent": [
+          "data augmentation technique",
+          "evaluation split strategy (temporal vs. random)"
+        ],
+        "dependent": [
+          "classification accuracy",
+          "difference in performance between split types"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the strongest because it directly addresses the core research question by testing temporal data augmentation on a real dataset (UCI Statlog German Credit) with known temporal metadata. It is highly feasible as the dataset exists and contains temporal structure (duration_months, etc.), allowing for strict chronological splits. The hypothesis is specific and testable—its outcome can clearly support or refute whether augmentation benefits diminish by at least 20% under temporal validation. It aligns well with the literature gap on inconsistent evaluation practices and leverages the cross-disciplinary bridge insight on causal inference frameworks handling dataset shift, which informs robustness evaluation. The claim is coherent and system-focused, not methodological, and the data itself can decisively inform the result."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 is moderately strong as it also targets a real-world tabular dataset (UCI Adult Census Income) with temporal-like features and directly confronts the core research question. However, it is less specific than H1 in defining what constitutes a 'significant reduction' in augmentation effectiveness, and the term 'temporal components' is vague. Its feasibility is solid due to the availability of the dataset, but it lacks the precision of H1 in specifying the expected magnitude of effect. It is still testable and coherent, but slightly weaker in grounding due to less direct alignment with the bridge insights compared to H1."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 is the weakest among the three. While it uses a real multivariate dataset (UCI Air Quality Hourly), it introduces specific temporal-aware augmentation methods (Time Warping, Frequency Domain Augmentation) that require detailed implementation and may not be straightforward to apply or evaluate. The hypothesis is somewhat speculative in its claim about statistical significance without clear thresholds or measures. It is less aligned with the core research question and more focused on comparing augmentation types rather than evaluating the impact of temporal validation. Additionally, it relies on methods that are not necessarily tied to the main literature gaps or bridge insights, making it less grounded in the synthesis provided."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2406.06518v1",
+    "2405.16456v1",
+    "ae0b28b5ceff07c2f1b691626a0826d045d05b32",
+    "789bc2326fad06420fbccc326f8221e46565cc5e",
+    "c9522a82cdac708c6708960bb2c9b88940faf0a3",
+    "4141cc26ba0c40ee6fb60aa56a75d2ccd40018d9",
+    "b1754de4576e1f0ba05647bd5360c2f41b35dd8e",
+    "b0a33eb9957ff89c846dab9ad30048992b9b5ddc",
+    "05ccfce1393551572e36b951c02bf634df696264",
+    "b3204e193e0316999d0a93162db1f746bd184af4",
+    "89f41ba884470127fb19904fb63708bd88b113a3",
+    "eac66db9df421000a2029665703e1a1b190268d7",
+    "391297829",
+    "170005872",
+    "317b6432d619a85bc94f099e315e3f7900c10592",
+    "9aa91d6e12ff5c7515b0e9932a06ec95a241118c",
+    "a67c3637eb36680cd7df455af65d7fee6a0fbf86",
+    "56dd4138e24bd05a09928184b6e05c0d2659d5bf",
+    "2ea40c8b1357ad445274933a0c48a6c43345f548",
+    "0b4ecb5a107cbb2ddb736f50b8bd040f0abbe89d",
+    "4f5cc9e266701bda6970a8eadd5be785083bf32c",
+    "d81732bbc63ea40c8dabe1a1b504ab00463b502c",
+    "8534323371dc4263f9385b9023a46f08fee4afaa",
+    "6d6c977a49302758a582922506846dc08190723f",
+    "8f81988b1b5f7abf716ef2eabd113a123b5df9c7",
+    "e5cd9e7bd60954a0523cc849ad6c92c0ede2d271",
+    "f55e28399bc720e77c24707e6bfdb6d5492740cb",
+    "86b492132c5b9e9844d11ef9f27b0432fa20ad3f",
+    "3d71eda90c77cf6db28f76706ecbf75255b7980e",
+    "7e8ed8d7ed0bfa725ae14a1fa534fc67bc757b74",
+    "a330d20f3b80887141534f78b675d31e5847aeae",
+    "d53c52a30a9d5eafb3691aab0f270930bd8d17b5",
+    "c259bc9adf3019870613cbb7888ea4fac4e1929f",
+    "dc7f051a32b44124341f1e83124de4deaf1e0e39",
+    "881bd7f90a9e5cc03ac91055d0f3990b94815646",
+    "061cca4a3f78f29d626878ddf2199a61f7b3710f",
+    "40fcd57312f0783bc38283248547f1c6f3f85baf",
+    "e33718ba040017916cf7d3f04c37827f5bcf57cd",
+    "0901.2234v1",
+    "2103.13615v1",
+    "2103.13604v1",
+    "1506.03880v2",
+    "2209.03013v1",
+    "1905.11374v5",
+    "2112.01819v1",
+    "2309.13103v1",
+    "8fc7bfbf9fb6b19ef772e6328959e253795ecce7",
+    "99ca122df5e968098fd8f0f24e261f44714ae65b",
+    "7e9ff8ebb43a7092b265ecb20562fa2d21b7bc6c",
+    "7e1032a06fab5515c528c7c327f5e0618b7688a9",
+    "2ed78841c110df5dc3515f9f8f8ec8087f8cbdb6",
+    "e5fd213a4a5e537ff440fb8ad51bc3a6accb5c97",
+    "90feba50a5b00706415e3aee1c5001c3075048e7",
+    "2923209",
+    "2924269",
+    "2672194",
+    "2924318",
+    "333761211",
+    "169447337",
+    "16175463",
+    "145618824",
+    "2510.21391v1",
+    "2005.07866v1",
+    "1907.02664v2",
+    "1110.5626v1",
+    "2411.15497v3",
+    "1003.3784v1",
+    "2409.00742v1",
+    "2607.06984v1",
+    "2410.16956v1",
+    "1012.4712v1",
+    "6e75fe3f217b804aaa70eae8b2979a1affb59ace",
+    "590f9126e47ddffd40e8cad2069cf56ef3dc1322",
+    "73bc11eea9e463c2574af2945e11844bb0e018d9",
+    "b2e108f418c76b7dd6c4f1da9b0c297b417be38d",
+    "4692539e584f3cd7be77001ba3a0b6c387caed4d",
+    "af68f10ab5078bfc519caae377c90ee6d9c504e9",
+    "5cd29f769cced349fb7c5affb5c6d27fb387a69c",
+    "b04a31a92568589b5cf3f71f1d24036107f8a31c",
+    "1300ac5f7d28c58b2ab6d3d5ad5a588473d9ba7f",
+    "3fabfdba3972863a7fd153ec2c3091a327f1b941",
+    "387364",
+    "2707039",
+    "145630346",
+    "168958095",
+    "145625334",
+    "77399269",
+    "40496577",
+    "2503023",
+    "82a4124e3e76dc3fbd8e735ad41808021969ec6b",
+    "7f4b8fdb48f99c69708fe33a8ed1725847703ed6",
+    "d4594a58a7880b5efb30748425dac8ec01dca296",
+    "4f7e712dff367a290bf517ad61637c51baf84a65",
+    "ce5f699b18082dda94ba7c25ca6f5b15ad3dbaeb",
+    "3d2dcba9922c7ae1030287c2bf1e8dc364e7e7a7",
+    "a84c2969aa67268806f73f4a45b316803f28e3c8",
+    "c7a3f693cb6342d85a03d8a23884a6d929f3a7dd",
+    "0d85721aade325992bbe0c6b24c52954fad3854d",
+    "15110299",
+    "15110713",
+    "286714339",
+    "145615904",
+    "158928156"
+  ],
+  "generated_at": "2026-09-16T02:01:42.503866+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

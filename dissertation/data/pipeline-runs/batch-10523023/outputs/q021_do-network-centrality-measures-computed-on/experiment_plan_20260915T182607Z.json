@@ -1,0 +1,110 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute resources. We can use the World Trade Web data (via the 2010-2019 World Bank or UN Comtrade datasets) to construct weighted international trade networks and apply the distance backbone extraction method from [2103.04668v2]. The dependent variable (post-shock GDP growth) can be obtained from the World Bank Open Data API or similar sources. The experiment will involve constructing networks, extracting distance backbones, computing centrality measures, and comparing predictive accuracy using MAE. This can be done within the SLURM compute limits using single GPU allocations.",
+      "objective": "To determine whether centrality measures derived from the distance backbone of a weighted international trade network predict post-shock GDP growth rates more accurately than bilateral trade volume alone.",
+      "variables": {
+        "independent": [
+          "centrality measures from distance backbone",
+          "bilateral trade volume"
+        ],
+        "dependent": [
+          "post-shock GDP growth rate"
+        ]
+      },
+      "design": "Comparative benchmark study using two predictive models: one based on centrality measures from the distance backbone and another based on bilateral trade volume. Both models will be trained on historical trade data and evaluated on their ability to predict post-shock GDP growth rates.",
+      "data_requirements": {
+        "source": "World Bank Open Data API or UN Comtrade database",
+        "description": "International trade data including bilateral trade volumes between countries over multiple years, and GDP growth data for the same periods. This data will be used to construct weighted trade networks and measure post-shock GDP growth rates.",
+        "preprocessing_steps": [
+          "Extract bilateral trade volumes between country pairs for years 2010-2019",
+          "Construct weighted undirected trade network with countries as nodes and trade volumes as edge weights",
+          "Obtain GDP growth data for each country for the same period",
+          "Identify and apply economic shock events (e.g., 2008 financial crisis, 2020 pandemic) and calculate post-shock GDP growth rates",
+          "Apply distance backbone extraction to the full trade network",
+          "Compute centrality measures (degree, betweenness, closeness, eigenvector, PageRank) from the distance backbone"
+        ]
+      },
+      "methods": [
+        {
+          "name": "distance backbone extraction",
+          "description": "Identifies a minimal subgraph preserving all shortest paths in the weighted trade network, focusing on the most critical trade routes for shock propagation",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Network centrality analysis",
+          "description": "Computes various centrality measures (degree, betweenness, closeness, eigenvector, PageRank) from the distance backbone to quantify node influence in the trade network",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Linear regression",
+          "description": "Used to predict post-shock GDP growth rates using either centrality measures or bilateral trade volumes as features",
+          "reused_from_literature": false
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Mean Absolute Error (MAE)"
+        ],
+        "baseline": "Predictive performance of a model using only bilateral trade volume as a predictor",
+        "success_criteria": "If the model using centrality measures from the distance backbone achieves lower MAE than the bilateral trade volume model, the hypothesis is supported. If the reverse occurs, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess international trade data (bilateral volumes) from World Bank or UN Comtrade for years 2010-2019, creating a weighted undirected network with countries as nodes"
+        },
+        {
+          "step": 2,
+          "description": "Download GDP growth data for the same countries and time period from World Bank Open Data API"
+        },
+        {
+          "step": 3,
+          "description": "Identify economic shock events (2008 financial crisis, 2020 pandemic) and calculate post-shock GDP growth rates for each country"
+        },
+        {
+          "step": 4,
+          "description": "Implement distance backbone extraction algorithm from [2103.04668v2] on the full trade network to obtain the minimal subgraph preserving shortest paths"
+        },
+        {
+          "step": 5,
+          "description": "Compute multiple centrality measures (degree, betweenness, closeness, eigenvector, PageRank) on the distance backbone network"
+        },
+        {
+          "step": 6,
+          "description": "Train two linear regression models: one using centrality measures from the distance backbone as features, another using bilateral trade volumes as features"
+        },
+        {
+          "step": 7,
+          "description": "Evaluate both models using Mean Absolute Error (MAE) on the post-shock GDP growth predictions"
+        },
+        {
+          "step": 8,
+          "description": "Compare MAE scores between the two models to determine which performs better in predicting post-shock GDP growth rates"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Limited availability of high-quality historical trade data for all countries over the required time period",
+        "Potential confounding factors in GDP growth that are not captured by trade network measures",
+        "Computational overhead of running distance backbone extraction on large networks",
+        "Difficulty in precisely defining and timing economic shock events"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T18:26:07.020832+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

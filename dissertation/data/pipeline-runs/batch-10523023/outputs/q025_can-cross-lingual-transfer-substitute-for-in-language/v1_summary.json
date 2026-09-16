@@ -1,0 +1,62 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q025_can-cross-lingual-transfer-substitute-for-in-language/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "0e1915682f0a04b9787ae3a4c0b392b3339d34d2",
+    "ad2969fc193fd5fcfd9a247ba64771ec93e9340f",
+    "fc58779940abb92166b73f47867763a07368c739",
+    "27d2c0acd2f26f98548ea62c1919cecbc60a8b11",
+    "8244ba5cf236b394e437203cc6605a9e77f0aa8d",
+    "ef9a3b97f9743596237092f7a43304faa085b7dd",
+    "2b170e957f2b40a373e28fdc2f6c96d89c5784e6",
+    "2310.09917v3",
+    "1ffdf3bbb9417c642d1943ce657be33720a95226",
+    "55feee6e57672a90f7c85ff854d6ef014c273f3b",
+    "b4622d4511b71d6d08bfa96a50fdf712833f9c4e",
+    "2207.02337v1",
+    "2308.10783v2",
+    "392a5d5629f23d6209479220c53c1e7760525af7",
+    "f38a5b1cf3c59013e33ef9b445de1d7851b7722a",
+    "ef1db02d3427767184e463d52d3e37af6c063eb7",
+    "157531044",
+    "d22e336171c7ac92167f9b03b0e660af922069b4",
+    "6cbdf7cef9e8a3897469967c69a2864837f1cbb3",
+    "2411.04316v1",
+    "1b4451592ac0aeda5276e45293e5fd21ff1484ef",
+    "f0c60d1dd9d675148afb8ab9973bf9cbeae7fbbb",
+    "fa7dce14e21c95e7630cefcc513e1d1dca113e7b",
+    "a630d75cae51e4c534061a7dcfae23d82a4a453f",
+    "0168d210ef1cf15c165582625a8d1e3d2a7c2b84",
+    "158247726",
+    "1df99f537326d92ad7bde19c6d2c66cb0f93125f",
+    "2209.05395v1",
+    "2311.01870v1",
+    "e8a403d869524e87b876fab1ec728238ae0216fd",
+    "df9064503962fa9dc394003b06f43e9d6523959a",
+    "134bddbb588d3758358583587483c3cd479275cf"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'ag_news' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'PAPER_ID' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'PAPER_ID' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T20:40:24.419991+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

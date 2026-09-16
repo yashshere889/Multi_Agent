@@ -1,0 +1,698 @@
+{
+  "literature_summary": "The literature demonstrates a wide-ranging application of clustering and statistical methods to understand income stratification, inequality, and socioeconomic patterns across diverse domains such as household surveys, public health, urban planning, and economic modeling. Clustering techniques—especially K-means, hierarchical clustering, and fuzzy methods—are frequently employed to identify latent groups in socioeconomic data, often in conjunction with dimensionality reduction (e.g., PCA) or distance metric learning. However, there is a notable tension between predefined income thresholds and clustering-based recovery of income strata, with studies showing mixed success in replicating or outperforming traditional stratification methods. Statistical physics approaches, including power-law and lognormal distributions, are used to model income and citation data, though consistency in model fit and interpretation remains an issue. Methodological challenges include handling mixed data types, outlier sensitivity, and the lack of standardized validation criteria for clustering results. Additionally, there is growing interest in integrating geospatial data and remote sensing for income and health mapping, but issues around data quality, spatial autocorrelation, and policy relevance persist.",
+  "methods_overview": [
+    {
+      "method": "K-means clustering",
+      "papers_using_it": [
+        "[dfdb59ab3aba8289577457e8cbaf9e979b872b24]",
+        "[f0713c2b7e25de9dbcb0d6942114bf01aaabe2ed]",
+        "[1fbd9c3507f36c72e526ac1d7c724054795a63ac]",
+        "[7cfa401cb3dbeca89bdd5c7f8fc5d883b2262b34]",
+        "[28d6b3aba70d883c0cab0c6e93fb876c4f045d6c]",
+        "[09e8718f885163eb469d01c5849e2ecad7bfcfbc]",
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]",
+        "[2b42f3e01ccfcfd7ede75fc78d56e41badbaa69c]",
+        "[3dfc5ca167c9d37e86bf307ef63dbd47c0846164]",
+        "[1dba4bcb9d5406ed11a274ac9ffd9fa3336a5249]",
+        "[eddc5c17e0a5d1c1bdc8e6865f9ba6c31e1115a2]"
+      ],
+      "notes": "Commonly used across multiple domains for grouping socioeconomic data, often combined with other methods like PCA or hierarchical clustering."
+    },
+    {
+      "method": "Hierarchical clustering",
+      "papers_using_it": [
+        "[f0713c2b7e25de9dbcb0d6942114bf01aaabe2ed]",
+        "[28d6b3aba70d883c0cab0c6e93fb876c4f045d6c]",
+        "[09e8718f885163eb469d01c5849e2ecad7bfcfbc]",
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]",
+        "[df8fb9361b182379ef60000fafe6564092dc9b28]"
+      ],
+      "notes": "Used for exploring cluster structures and combining with K-means for robustness; moderately common."
+    },
+    {
+      "method": "Fuzzy min-max neural network",
+      "papers_using_it": [
+        "[253979]"
+      ],
+      "notes": "Rarely used, primarily for hybrid supervised/unsupervised classification tasks."
+    },
+    {
+      "method": "Principal Component Analysis (PCA)",
+      "papers_using_it": [
+        "[1fbd9c3507f36c72e526ac1d7c724054795a63ac]",
+        "[29d5c07f2074b8795b23faed28287f2e3c040825]"
+      ],
+      "notes": "Commonly used alongside clustering for dimensionality reduction and visualization."
+    },
+    {
+      "method": "Polynomial distribution",
+      "papers_using_it": [
+        "[1410.3811v2]",
+        "[1410.3860v2]"
+      ],
+      "notes": "Used to model income and expenditure distributions; relatively rare but important in economic modeling."
+    },
+    {
+      "method": "Gini index estimation under complex survey designs",
+      "papers_using_it": [
+        "[6605cbb8b203b9d4f9fda3fbefe9758e83bf2ab4]",
+        "[d9ade24da583b5befeb76ec63cc98b172b6e465e]"
+      ],
+      "notes": "Common in studies focused on accurate inequality measurement from survey data."
+    },
+    {
+      "method": "Spatial autocorrelation (Global Moran's I, Local Moran's I, Getis-Ord Gi*)",
+      "papers_using_it": [
+        "[05d375330971b5777aae4d558b014fe54cdb4f35]",
+        "[d6b58cde0d179b3b3f4d22bb3b027da05fa27190]",
+        "[cd2926dede27b99bda415a6962d326f9032742a6]",
+        "[479c44527ffc414ae84718bc838c3d4145801829]"
+      ],
+      "notes": "Common in spatial epidemiology and socio-economic mapping studies."
+    },
+    {
+      "method": "Power-law distribution fitting",
+      "papers_using_it": [
+        "[1603.05078v1]",
+        "[1601.00473v1]",
+        "[physics/0504198v1]",
+        "[bf4ff5e089e1cafec998d4e6b01a367e952ae50f]",
+        "[2699763]",
+        "[2661789]"
+      ],
+      "notes": "Frequently used in economic and citation distribution modeling; common in theoretical and empirical studies."
+    },
+    {
+      "method": "Multiple linear regression",
+      "papers_using_it": [
+        "[dfdb59ab3aba8289577457e8cbaf9e979b872b24]"
+      ],
+      "notes": "Used in combination with clustering to predict income; less common overall."
+    },
+    {
+      "method": "Elbow method",
+      "papers_using_it": [
+        "[1fbd9c3507f36c72e526ac1d7c724054795a63ac]",
+        "[fe94f70cbd59af5c880a17333ffed779d0325d60]"
+      ],
+      "notes": "Used to determine optimal number of clusters; moderately common."
+    },
+    {
+      "method": "PAM (Partitioning Around Medoids)",
+      "papers_using_it": [
+        "[fe94f70cbd59af5c880a17333ffed779d0325d60]"
+      ],
+      "notes": "Used for mixed-type data clustering; less common but useful for handling qualitative variables."
+    },
+    {
+      "method": "Gaussian Mixture Model",
+      "papers_using_it": [
+        "[df8fb9361b182379ef60000fafe6564092dc9b28]"
+      ],
+      "notes": "Used for probabilistic clustering; rare but effective in certain domains like health outcome classification."
+    },
+    {
+      "method": "Fuzzy C Means",
+      "papers_using_it": [
+        "[df8fb9361b182379ef60000fafe6564092dc9b28]"
+      ],
+      "notes": "Used for comparative clustering; rare but included in methodological comparisons."
+    },
+    {
+      "method": "Mahalanobis distance metric learning",
+      "papers_using_it": [
+        "[09e8718f885163eb469d01c5849e2ecad7bfcfbc]"
+      ],
+      "notes": "Used to improve clustering accuracy; rare but valuable in supervised settings."
+    },
+    {
+      "method": "Silhouette coefficient",
+      "papers_using_it": [
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]"
+      ],
+      "notes": "Used for cluster validation; moderately common in evaluation studies."
+    },
+    {
+      "method": "ANOVA",
+      "papers_using_it": [
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]"
+      ],
+      "notes": "Used to test cluster differences; moderately common in comparative studies."
+    },
+    {
+      "method": "Hidden Stratification",
+      "papers_using_it": [
+        "[1909.12475v2]"
+      ],
+      "notes": "Emerging concern in medical ML; rare but critical for model reliability."
+    },
+    {
+      "method": "SHapley Additive exPlanations (SHAP)",
+      "papers_using_it": [
+        "[3a33d35f2a93955eb761148d1e285fbcee7bf556]",
+        "[29d2064a67e6d8914af4675614c9cd73785c99c7]",
+        "[3bf620f2c56c3c3a6660b71205e36f6a4be503cb]"
+      ],
+      "notes": "Used for interpretability in healthcare and policy models; moderately common."
+    },
+    {
+      "method": "Clustering Techniques",
+      "papers_using_it": [
+        "[4074556]",
+        "[402433]"
+      ],
+      "notes": "Used for anomaly detection and shape classification; rare but domain-specific."
+    },
+    {
+      "method": "Fuzzy c-means (FCM) clustering",
+      "papers_using_it": [
+        "[23995207]"
+      ],
+      "notes": "Used in bioinformatics; rare but sensitive to initialization."
+    },
+    {
+      "method": "Wikipedia-based concept representation",
+      "papers_using_it": [
+        "[15107090]"
+      ],
+      "notes": "Used for document clustering; rare but innovative in NLP."
+    },
+    {
+      "method": "Decision-making-aware active learning",
+      "papers_using_it": [
+        "[370332381]"
+      ],
+      "notes": "Rare but emerging in data-efficient learning contexts."
+    },
+    {
+      "method": "Causal analysis",
+      "papers_using_it": [
+        "[316014530]"
+      ],
+      "notes": "Used in medical imaging; rare but promising for bias mitigation."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Inconsistent application of clustering techniques across domains (income, development, energy) and lack of standardized criteria for variable importance in unsupervised clustering.",
+      "supporting_evidence": [
+        "[dfdb59ab3aba8289577457e8cbaf9e979b872b24]",
+        "[1fbd9c3507f36c72e526ac1d7c724054795a63ac]",
+        "[253979]",
+        "[594f7cd661c6f722330ee8b80acaf2df9b09bb1c]"
+      ],
+      "notes": "Clustering methods vary widely in application and evaluation criteria."
+    },
+    {
+      "gap": "Limited exploration of how clustering methods interact with qualitative data in energy transition studies.",
+      "supporting_evidence": [
+        "[f0713c2b7e25de9dbcb0d6942114bf01aaabe2ed]"
+      ],
+      "notes": "Qualitative data integration remains underdeveloped in clustering applications."
+    },
+    {
+      "gap": "Lack of integration between statistical physics models and real-world policy implications for income distribution.",
+      "supporting_evidence": [
+        "[1410.3811v2]",
+        "[1410.3860v2]"
+      ],
+      "notes": "Theoretical models are not always translated into actionable policy insights."
+    },
+    {
+      "gap": "Need for more comprehensive analysis of the relationship between income stratification and inequality measures beyond Gini index.",
+      "supporting_evidence": [
+        "[8657706]"
+      ],
+      "notes": "Current studies often rely on single inequality metrics."
+    },
+    {
+      "gap": "The impact of sub-stratification on the efficiency and precision of Gini index estimation remains underexplored.",
+      "supporting_evidence": [
+        "[d9ade24da583b5befeb76ec63cc98b172b6e465e]"
+      ],
+      "notes": "Sub-stratification is underutilized despite potential benefits."
+    },
+    {
+      "gap": "EU-SILC data suffers from significant under-representation of top incomes and high non-response rates, leading to biased inequality estimates.",
+      "supporting_evidence": [
+        "[d5ef9aada03cb5f2036f60ecb3856c6e2660dbb1]"
+      ],
+      "notes": "Survey design limitations affect accuracy of inequality measurements."
+    },
+    {
+      "gap": "There is no consensus on whether reweighting or replacing methods produce more accurate corrections for top-income biases in inequality measurement.",
+      "supporting_evidence": [
+        "[d5ef9aada03cb5f2036f60ecb3856c6e2660dbb1]"
+      ],
+      "notes": "Methodological debate persists regarding correction strategies."
+    },
+    {
+      "gap": "The validity of unsupervised clustering in reproducing expert-defined categorization systems depends heavily on variable selection and distance metric choice.",
+      "supporting_evidence": [
+        "[09e8718f885163eb469d01c5849e2ecad7bfcfbc]"
+      ],
+      "notes": "Clustering results are highly sensitive to input choices."
+    },
+    {
+      "gap": "There is a lack of consensus on how to handle ordinal or Likert-type variables when performing clustering analyses in social sciences.",
+      "supporting_evidence": [
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]"
+      ],
+      "notes": "Variable type handling remains inconsistent in social science clustering."
+    },
+    {
+      "gap": "Clustering algorithms may fail to capture nuanced distinctions in health outcomes when using broad income stratifications without considering additional socioeconomic factors.",
+      "supporting_evidence": [
+        "[7b26257c946c0b68d0448f0edf1240c6169baec5]"
+      ],
+      "notes": "Health outcomes require richer contextual data than simple income bins."
+    },
+    {
+      "gap": "Comparative evaluations of clustering methods across different domains (finance, public health, sports) remain underexplored despite shared methodological challenges.",
+      "supporting_evidence": [
+        "[09e8718f885163eb469d01c5849e2ecad7bfcfbc]",
+        "[df8fb9361b182379ef60000fafe6564092dc9b28]",
+        "[0855f19bd54340fb04b72ae2745fc773a7d95182]"
+      ],
+      "notes": "Cross-domain comparisons are lacking despite shared challenges."
+    },
+    {
+      "gap": "The reliance on self-reported income in Colombian data may lead to ecological fallacy due to mismatch between neighborhood classification and actual income levels.",
+      "supporting_evidence": [
+        "[269f572c632be5807a5250b6e541e0dae2cf7aed]"
+      ],
+      "notes": "Data misalignment affects stratification accuracy."
+    },
+    {
+      "gap": "There is inconsistency in how social class is measured across studies, with a preference for EGP-like schemas despite varying contexts.",
+      "supporting_evidence": [
+        "[f72212472100a0cc149adde6a259d2d29ad4e9a5]"
+      ],
+      "notes": "Measurement inconsistency hampers comparability."
+    },
+    {
+      "gap": "The use of absolute income mobility metrics may obscure disparities faced by marginalized children, particularly in relation to family structure and parental education.",
+      "supporting_evidence": [
+        "[31f79aeeb3155f24b6f086baea462bdddebe32e3]"
+      ],
+      "notes": "Mobility metrics may overlook structural inequalities."
+    },
+    {
+      "gap": "Remote sensing techniques for poverty mapping lack detailed validation against ground-truth data in many cases.",
+      "supporting_evidence": [
+        "[4f975da00a5b2a2f7236e34edcb7274e5fdab937]",
+        "[fb0a4b13a79ace5db7c70bae5948c819cb3cef3f]",
+        "[609dd5740288cd97882a63e7916a0b695990d453]"
+      ],
+      "notes": "Validation gaps limit confidence in satellite-based poverty estimates."
+    },
+    {
+      "gap": "Changing data sources in machine learning for official statistics can lead to concept drift and affect statistical reporting integrity.",
+      "supporting_evidence": [
+        "[2306.04338v1]"
+      ],
+      "notes": "Data transitions pose risks to continuity and reliability."
+    },
+    {
+      "gap": "Existing generative models for remote sensing data augmentation are task-isolated and ignore spatial constraints.",
+      "supporting_evidence": [
+        "[2510.21391v1]",
+        "[2411.15497v3]"
+      ],
+      "notes": "Generative models lack spatial coherence."
+    },
+    {
+      "gap": "There is a lack of standardized practices for evaluating machine learning models in biological research.",
+      "supporting_evidence": [
+        "[2006.16189v4]"
+      ],
+      "notes": "Evaluation standards are inconsistent in biological ML."
+    },
+    {
+      "gap": "The effectiveness of unsupervised clustering methods varies depending on data structure and domain-specific requirements.",
+      "supporting_evidence": [
+        "[2b42f3e01ccfcfd7ede75fc78d56e41badbaa69c]",
+        "[3dfc5ca167c9d37e86bf307ef63dbd47c0846164]"
+      ],
+      "notes": "Clustering effectiveness is context-dependent."
+    },
+    {
+      "gap": "There is limited discussion on how to handle imbalanced or low-prevalence classes in clustering tasks, especially in healthcare contexts.",
+      "supporting_evidence": [
+        "[1909.12475v2]",
+        "[5a0609629cfb039c5c65bd811f7f82d5ad0011c3]"
+      ],
+      "notes": "Imbalanced data challenges are under-addressed."
+    },
+    {
+      "gap": "Most studies do not fully explore the trade-off between model interpretability and performance in unsupervised learning scenarios.",
+      "supporting_evidence": [
+        "[5a0609629cfb039c5c65bd811f7f82d5ad0011c3]"
+      ],
+      "notes": "Interpretability-performance balance is rarely evaluated."
+    },
+    {
+      "gap": "Model calibration in pediatric dental risk stratification underestimates risk at higher probability levels.",
+      "supporting_evidence": [
+        "[3a33d35f2a93955eb761148d1e285fbcee7bf556]"
+      ],
+      "notes": "Calibration issues affect clinical utility."
+    },
+    {
+      "gap": "High false positive rates in unsupervised clustering for network anomaly detection.",
+      "supporting_evidence": [
+        "[4074556]"
+      ],
+      "notes": "Clustering in cybersecurity is prone to false alarms."
+    },
+    {
+      "gap": "Machine learning models may miss wealthier and better-educated households in targeting malnutrition programs.",
+      "supporting_evidence": [
+        "[3bf620f2c56c3c3a6660b71205e36f6a4be503cb]"
+      ],
+      "notes": "Targeting models may exclude key populations."
+    },
+    {
+      "gap": "Lack of external validation for nurse-accessible hypertension prediction tools.",
+      "supporting_evidence": [
+        "[29d2064a67e6d8914af4675614c9cd73785c99c7]"
+      ],
+      "notes": "Clinical deployment lacks external testing."
+    },
+    {
+      "gap": "Limited clinical adoption of causal analysis methods in medical image analysis despite their potential to mitigate biases.",
+      "supporting_evidence": [
+        "[316014530]"
+      ],
+      "notes": "Causal methods are underutilized in clinical AI."
+    },
+    {
+      "gap": "Fuzzy c-means clustering is sensitive to initialization and parameter choices, affecting stability and biological interpretability.",
+      "supporting_evidence": [
+        "[23995207]"
+      ],
+      "notes": "Parameter sensitivity limits reproducibility."
+    },
+    {
+      "gap": "Theoretical analysis of poverty measures does not fully account for complex interactions between income distribution parameters and poverty dynamics.",
+      "supporting_evidence": [
+        "[physics/0507035v1]"
+      ],
+      "notes": "Theoretical models lack dynamic complexity."
+    },
+    {
+      "gap": "Both discretised lognormal and hooked power law distributions fail to consistently fit citation data across all disciplines, suggesting limitations in theoretical models for citation distributions.",
+      "supporting_evidence": [
+        "[1603.05078v1]",
+        "[1601.00473v1]"
+      ],
+      "notes": "Distributional models are discipline-specific and unreliable."
+    },
+    {
+      "gap": "The presence of interdisciplinary research or impurity in subject categories may affect the accuracy of distributional fits for citation data, making it hard to determine a universally applicable model.",
+      "supporting_evidence": [
+        "[1603.05078v1]"
+      ],
+      "notes": "Subject purity impacts model validity."
+    },
+    {
+      "gap": "While some studies suggest that economic inequality follows a two-class structure (exponential for lower class, power law for upper class), others indicate that the middle class is not clearly defined, creating inconsistency in classification.",
+      "supporting_evidence": [
+        "[124effcea4cd144ec20a308ab58693407326c9a2]",
+        "[bf01242367db9162b559572407d0095bb71e63ba]"
+      ],
+      "notes": "Inequality structure is debated and inconsistently modeled."
+    },
+    {
+      "gap": "Empirical inconsistency in whether income distributions exhibit power-law tails across different datasets and countries.",
+      "supporting_evidence": [
+        "[2699763]",
+        "[4234970]"
+      ],
+      "notes": "Power-law assumptions are not universally supported."
+    },
+    {
+      "gap": "Limited discussion on the applicability of log-normal versus Boltzmann distributions in explaining income variation.",
+      "supporting_evidence": [
+        "[4234970]"
+      ],
+      "notes": "Distributional choice lacks justification."
+    },
+    {
+      "gap": "Need for better methods to identify thresholds in power-law distributions for firm size data.",
+      "supporting_evidence": [
+        "[2661789]"
+      ],
+      "notes": "Threshold identification remains problematic."
+    },
+    {
+      "gap": "Limited discussion on how spatial clustering interacts with policy interventions or public health responses in the identified hotspots.",
+      "supporting_evidence": [
+        "[05d375330971b5777aae4d558b014fe54cdb4f35]",
+        "[d6b58cde0d179b3b3f4d22bb3b027da05fa27190]",
+        "[cd2926dede27b99bda415a6962d326f9032742a6]",
+        "[479c44527ffc414ae84718bc838c3d4145801829]"
+      ],
+      "notes": "Policy relevance of spatial clusters is underexplored."
+    },
+    {
+      "gap": "Inconsistent use of temporal analysis across studies—some focus on temporal trends while others emphasize static spatial patterns.",
+      "supporting_evidence": [
+        "[cd2926dede27b99bda415a6962d326f9032742a6]",
+        "[d6b58cde0d179b3b3f4d22bb3b027da05fa27190]"
+      ],
+      "notes": "Temporal-spatial focus varies inconsistently."
+    },
+    {
+      "gap": "Most studies rely on secondary data sources, which may limit the ability to capture real-time or nuanced local conditions.",
+      "supporting_evidence": [
+        "[05d375330971b5777aae4d558b014fe54cdb4f35]",
+        "[d6b58cde0d179b3b3f4d22bb3b027da05fa27190]",
+        "[cd2926dede27b99bda415a6962d326f9032742a6]",
+        "[479c44527ffc414ae84718bc838c3d4145801829]"
+      ],
+      "notes": "Secondary data limitations constrain local insights."
+    },
+    {
+      "gap": "Limited evaluation of the robustness of geospatial models when applied to diverse geographic contexts beyond specific regions like Selangor or India.",
+      "supporting_evidence": [
+        "[5e29bcf06d9226bd3bd80f6322b28ea79c35edd0]",
+        "[e00e8cce3f72a8fb10de8a0f3e3fd42582d58d02]"
+      ],
+      "notes": "Contextual generalizability is poorly tested."
+    },
+    {
+      "gap": "Inconsistent performance of gridded population estimates across different countries (e.g., Zambia vs. Nigeria) when used for health indicator calculations.",
+      "supporting_evidence": [
+        "[46b8b80a7f587991b3492361a25b32ac938bda4d]"
+      ],
+      "notes": "Population data quality varies by region."
+    },
+    {
+      "gap": "Lack of standardized frameworks for evaluating the effectiveness of clustering algorithms on mixed-type spatial data.",
+      "supporting_evidence": [
+        "[68848996]"
+      ],
+      "notes": "Evaluation lacks standardization for mixed data types."
+    },
+    {
+      "gap": "The effectiveness of global clustering in spatial databases has not been widely studied despite potential performance benefits.",
+      "supporting_evidence": [
+        "[5225834]"
+      ],
+      "notes": "Performance benefits of global clustering are underexplored."
+    },
+    {
+      "gap": "Previous classification methods for spatial data neglected spatial distribution characteristics.",
+      "supporting_evidence": [
+        "[538160]"
+      ],
+      "notes": "Spatial characteristics are often ignored in classification."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Clustering household survey data using K-means with principal component analysis dimensionality reduction will recover income strata that are more consistent with predefined income thresholds than those derived from hierarchical clustering or fuzzy c-means methods.",
+      "rationale": "This hypothesis is grounded in the observation that K-means clustering is commonly used across multiple domains for grouping socioeconomic data and is often combined with PCA for dimensionality reduction and visualization. The gap regarding inconsistent application of clustering techniques across domains and lack of standardized criteria for variable importance supports the need for a comparative evaluation. The suggested variables align with the methods used in papers like [1fbd9c3507f36c72e526ac1d7c724054795a63ac] and [28d6b3aba70d883c0cab0c6e93fb876c4f045d6c].",
+      "related_gaps": [
+        "Inconsistent application of clustering techniques across domains and lack of standardized criteria for variable importance in unsupervised clustering"
+      ],
+      "related_methods": [
+        "K-means clustering",
+        "Principal Component Analysis (PCA)",
+        "Hierarchical clustering",
+        "Fuzzy C Means"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "survey indicators related to income and socioeconomic status"
+        ],
+        "dependent": [
+          "cluster assignments from different clustering methods"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using Mahalanobis distance metric learning in conjunction with K-means clustering improves the alignment between recovered income strata and predefined income thresholds compared to standard Euclidean distance-based clustering.",
+      "rationale": "This hypothesis builds upon the gap concerning the validity of unsupervised clustering in reproducing expert-defined categorization systems, which depends heavily on variable selection and distance metric choice. The method of Mahalanobis distance metric learning is noted as being used to improve clustering accuracy in [09e8718f885163eb469d01c5849e2ecad7bfcfbc], and it addresses the sensitivity of clustering results to input choices. The hypothesis tests a direct improvement in clustering performance based on distance metric optimization.",
+      "related_gaps": [
+        "The validity of unsupervised clustering in reproducing expert-defined categorization systems depends heavily on variable selection and distance metric choice"
+      ],
+      "related_methods": [
+        "K-means clustering",
+        "Mahalanobis distance metric learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "survey indicators related to income and socioeconomic status"
+        ],
+        "dependent": [
+          "alignment score between recovered and predefined income strata"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Clustering household survey data using PAM (Partitioning Around Medoids) with mixed-type data handling will yield more stable income strata than K-means when dealing with ordinal or Likert-type variables commonly found in survey data.",
+      "rationale": "This hypothesis stems from the gap concerning the lack of consensus on how to handle ordinal or Likert-type variables when performing clustering analyses in social sciences, as highlighted in [0855f19bd54340fb04b72ae2745fc773a7d95182]. PAM is specifically mentioned as useful for handling qualitative variables in [fe94f70cbd59af5c880a17333ffed779d0325d60]. This hypothesis directly evaluates the robustness of clustering methods when applied to mixed data types typical in household surveys.",
+      "related_gaps": [
+        "There is a lack of consensus on how to handle ordinal or Likert-type variables when performing clustering analyses in social sciences"
+      ],
+      "related_methods": [
+        "PAM (Partitioning Around Medoids)",
+        "K-means clustering"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "survey indicators including ordinal/Likert-type variables"
+        ],
+        "dependent": [
+          "stability measure of income strata across repeated runs"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses the UCI Adult Census Income dataset (uci_adult_census_income.csv), which contains relevant socioeconomic variables including education, occupation, sex, and income, allowing for direct testing of clustering methods against predefined income thresholds. It is highly testable because it makes a clear, falsifiable claim about the relative performance of K-means with PCA versus other clustering methods. The hypothesis is coherent, focusing on income strata recovery rather than methodological details, and the data directly informs the dependent variable (cluster assignments). It is well-grounded in the literature, referencing papers that apply similar methods to income data and addressing the gap in inconsistent clustering application across domains."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 introduces Mahalanobis distance metric learning, which requires careful tuning and comparison against Euclidean distances. While it is grounded in the literature and addresses a known gap in distance metric sensitivity, it is less feasible because it demands more sophisticated implementation and validation steps beyond standard clustering. It is moderately testable but relies on a more complex setup that may not be easily replicable on a shared GPU cluster. The hypothesis is internally consistent but slightly less focused on the core system (income strata) versus the methodological enhancement (distance metric). Its grounding is solid but less directly tied to the primary dataset's availability."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 proposes using PAM with mixed-type data handling, which is theoretically sound but faces challenges in practical implementation due to the limited availability of ordinal/Likert-type variables in the listed datasets. The UCI Adult dataset has categorical features but lacks explicit ordinal scales common in survey data. This makes it harder to meaningfully evaluate the stability of income strata under mixed-type handling. Although the hypothesis is coherent and addresses a relevant gap in handling ordinal data, its testability is weakened by the lack of suitable data. It also leans more toward methodological novelty than direct system evaluation, making it less aligned with the core research question."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1410.3811v2",
+    "1410.3860v2",
+    "04b607519e399296ccd0910e9f5f5298c2d10f3f",
+    "dfdb59ab3aba8289577457e8cbaf9e979b872b24",
+    "f0713c2b7e25de9dbcb0d6942114bf01aaabe2ed",
+    "1fbd9c3507f36c72e526ac1d7c724054795a63ac",
+    "253979",
+    "8657706",
+    "8657696",
+    "6605cbb8b203b9d4f9fda3fbefe9758e83bf2ab4",
+    "d9ade24da583b5befeb76ec63cc98b172b6e465e",
+    "d5ef9aada03cb5f2036f60ecb3856c6e2660dbb1",
+    "25b6bbbdd9a00e520d5ce867b81ed83385d2d617",
+    "0a889dd62e15a69819f2fbd6ec62bd033a5a07aa",
+    "594f7cd661c6f722330ee8b80acaf2df9b09bb1c",
+    "fe94f70cbd59af5c880a17333ffed779d0325d60",
+    "7cfa401cb3dbeca89bdd5c7f8fc5d883b2262b34",
+    "72665d9ab4bf40326d27d77fef2f8cd215e220e0",
+    "28d6b3aba70d883c0cab0c6e93fb876c4f045d6c",
+    "d37b1672dfa4b72b4b2716f0df1fdb0f2bf67ae9",
+    "09e8718f885163eb469d01c5849e2ecad7bfcfbc",
+    "df8fb9361b182379ef60000fafe6564092dc9b28",
+    "0855f19bd54340fb04b72ae2745fc773a7d95182",
+    "7b26257c946c0b68d0448f0edf1240c6169baec5",
+    "1c792b930618f225c29145dbde7e6b3f383d07cd",
+    "269f572c632be5807a5250b6e541e0dae2cf7aed",
+    "f72212472100a0cc149adde6a259d2d29ad4e9a5",
+    "31f79aeeb3155f24b6f086baea462bdddebe32e3",
+    "4f975da00a5b2a2f7236e34edcb7274e5fdab937",
+    "fb0a4b13a79ace5db7c70bae5948c819cb3cef3f",
+    "609dd5740288cd97882a63e7916a0b695990d453",
+    "d1f80cacd11447420bc41cebaa722edf641926aa",
+    "2005.07866v1",
+    "1110.5626v1",
+    "2510.21391v1",
+    "2411.15497v3",
+    "2306.04338v1",
+    "2006.16189v4",
+    "2201.12150v2",
+    "1909.12475v2",
+    "2302.08893v4",
+    "1dba4bcb9d5406ed11a274ac9ffd9fa3336a5249",
+    "2b42f3e01ccfcfd7ede75fc78d56e41badbaa69c",
+    "eddc5c17e0a5d1c1bdc8e6865f9ba6c31e1115a2",
+    "a0a6a2ef6df22e65a9e965fb2f30c28b818f46ab",
+    "3dfc5ca167c9d37e86bf307ef63dbd47c0846164",
+    "5a0609629cfb039c5c65bd811f7f82d5ad0011c3",
+    "3a33d35f2a93955eb761148d1e285fbcee7bf556",
+    "29d2064a67e6d8914af4675614c9cd73785c99c7",
+    "29d5c07f2074b8795b23faed28287f2e3c040825",
+    "3bf620f2c56c3c3a6660b71205e36f6a4be503cb",
+    "4074556",
+    "402433",
+    "23995207",
+    "15107090",
+    "340052118",
+    "370332381",
+    "316014530",
+    "1910.11775v2",
+    "physics/0507035v1",
+    "1603.05078v1",
+    "physics/0504198v1",
+    "1601.00473v1",
+    "9f0d8cc3831f1eb0d7b08f3a6f3d55a90a5799d6",
+    "124effcea4cd144ec20a308ab58693407326c9a2",
+    "bf01242367db9162b559572407d0095bb71e63ba",
+    "be8d543a00aab9e1c0bff2c227a226c31c4fe19c",
+    "a31a5284e3ac054603268e830ce14e6f0c338e24",
+    "bf4ff5e089e1cafec998d4e6b01a367e952ae50f",
+    "662fe4c2055b03087ef10aa2a60eea54a673a634",
+    "6566855f3976a81f8733e5a9e57e4b4dafb69267",
+    "353892208",
+    "353892259",
+    "353891931",
+    "353892258",
+    "353892073",
+    "2699763",
+    "2611681",
+    "2661789",
+    "2889005",
+    "4234970",
+    "05d375330971b5777aae4d558b014fe54cdb4f35",
+    "edf700380320957591f5af2575b58ec7049c808d",
+    "d6b58cde0d179b3b3f4d22bb3b027da05fa27190",
+    "cd2926dede27b99bda415a6962d326f9032742a6",
+    "479c44527ffc414ae84718bc838c3d4145801829",
+    "5e29bcf06d9226bd3bd80f6322b28ea79c35edd0",
+    "3f0e74a8cee961733ed1ebcdf19705aee98137f9",
+    "e00e8cce3f72a8fb10de8a0f3e3fd42582d58d02",
+    "46b8b80a7f587991b3492361a25b32ac938bda4d",
+    "68848996",
+    "166043162",
+    "5225834",
+    "538160",
+    "390454105",
+    "353892334"
+  ],
+  "generated_at": "2026-09-16T06:09:58.166151+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

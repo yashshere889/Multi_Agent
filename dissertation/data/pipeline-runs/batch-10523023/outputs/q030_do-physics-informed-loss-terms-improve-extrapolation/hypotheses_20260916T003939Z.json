@@ -1,0 +1,894 @@
+{
+  "literature_summary": "The literature presents a comprehensive exploration of Physics-Informed Neural Networks (PINNs) and related methods for solving partial differential equations (PDEs), with a particular emphasis on improving generalization and extrapolation beyond training data ranges. While PINNs are shown to be powerful tools for incorporating physical laws into machine learning models, they face several challenges including sensitivity to loss function weighting, difficulty in handling stiff or high-dimensional problems, and instability in training. Various enhancements have been proposed, such as adaptive training strategies, hybrid architectures, and novel loss formulations, but theoretical understanding remains limited. Additionally, there is growing interest in combining PINNs with uncertainty quantification, robust regression techniques, and geometric integration methods to improve reliability and applicability in scientific computing domains. The field also grapples with broader questions about implicit regularization, generalization bounds, and the interplay between data fidelity and physical constraints in deep learning models.",
+  "methods_overview": [
+    {
+      "method": "Physics-Informed Neural Networks (PINNs)",
+      "papers_using_it": [
+        "2309.17345v3",
+        "2009.04544v5",
+        "2307.12306v6",
+        "d86084808994ac54ef4840ae65295f3c0ec4decd",
+        "e916f69e70a4321f21356f7ce360e380dd976a43",
+        "8efcb1e84f617841520ae9f0c26cb1cd214b0af5",
+        "3c4372b125d0744bb68bfca9f5d6b0abb85dd182",
+        "bdd29cf7f30cfa7991c8259a0d27217c9eafb3bd",
+        "321570633",
+        "166397679",
+        "310111798",
+        "320477174",
+        "e74b1520017f995d7c823c9fdf0aca2d5792ac9d",
+        "e53eba19d2fc08bfca27b154e9c700ffc2740ca3",
+        "3036626abf51efd9f702d5d51348d3bc843940ad",
+        "158224b92b5b62f58b88030a022adeac81ba7729",
+        "f7c902c8d8e23a44a41f5a198b77ffb3b64aa830",
+        "a63b70ba0e65b4b2916093e15078348e8a5ec490",
+        "4affeb6585b1873e55efccdee7e289c61f3d8921",
+        "d724afae8cafd27a64fb7f6418c81436eaf2f6cc",
+        "0b9947c1a8f0a928f26a62ae4997f51cf3d12cf5",
+        "c8adfc281be35ad562a5add73d04a61a892edbb2",
+        "8f0bb3fee6d257af2399575a6692fb300413967d",
+        "bce9e0d9104a0bdb0c6a5cdf31109a874790fce9",
+        "73a8ae914306d9589d1aef420e55e9b39b109623",
+        "7c1ae44dee90ad9e2599405757ecc46ee062b403",
+        "8a2f36c9aa6befc9dbc295babf473d7be78605a3",
+        "b83290899d9e615dd0382756a945c1b73af1f9ad",
+        "bba8eaa382df676e5b6bc68e5e634c3252cc8420",
+        "5d16063484d99341d7c3f1430ef02856f54c3783",
+        "52b975170b33e19855b2970b2e978fa3ea786465"
+      ],
+      "notes": "Common; used primarily for solving PDEs and inverse problems with embedded physical constraints."
+    },
+    {
+      "method": "Deep Arbitrary Polynomial Chaos Neural Networks",
+      "papers_using_it": [
+        "2306.14753v1"
+      ],
+      "notes": "Rare; integrates polynomial chaos expansion to improve neural signal processing and orthogonality."
+    },
+    {
+      "method": "Self-Adaptive PINNs with Soft Attention Mechanism",
+      "papers_using_it": [
+        "2009.04544v5"
+      ],
+      "notes": "Rare; uses trainable weights and soft attention masks to focus on difficult regions."
+    },
+    {
+      "method": "Stochastic Dimension Gradient Descent (SDGD)",
+      "papers_using_it": [
+        "2307.12306v6"
+      ],
+      "notes": "Rare; decomposes PDE gradients across dimensions to mitigate curse of dimensionality."
+    },
+    {
+      "method": "Curriculum Regularization",
+      "papers_using_it": [
+        "3c4372b125d0744bb68bfca9f5d6b0abb85dd182"
+      ],
+      "notes": "Rare; gradually increases complexity in PINN training to avoid optimization pitfalls."
+    },
+    {
+      "method": "Latent Representation Learning",
+      "papers_using_it": [
+        "310111798"
+      ],
+      "notes": "Rare; enables fast adaptation to new velocity models in seismic inversion."
+    },
+    {
+      "method": "Fourier Feature Embeddings",
+      "papers_using_it": [
+        "320477174"
+      ],
+      "notes": "Rare; applied to hard-constrain Neumann boundary conditions in PINNs."
+    },
+    {
+      "method": "Likelihood-Based Imprecise Regression",
+      "papers_using_it": [
+        "5232907",
+        "5233021"
+      ],
+      "notes": "Rare; robust regression approach for handling imprecise data using imprecise probability theory."
+    },
+    {
+      "method": "Hybrid Physics-Augmented Neural Networks (HyPA-Net)",
+      "papers_using_it": [
+        "73a8ae914306d9589d1aef420e55e9b39b109623"
+      ],
+      "notes": "Rare; explicitly integrates known physical dynamics as computational sub-blocks."
+    },
+    {
+      "method": "Bayesian Physics-Informed Neural Networks",
+      "papers_using_it": [
+        "8f0bb3fee6d257af2399575a6692fb300413967d"
+      ],
+      "notes": "Rare; extends PINNs by incorporating uncertainty quantification through Bayesian frameworks."
+    },
+    {
+      "method": "Hierarchical Physics Constraints",
+      "papers_using_it": [
+        "b83290899d9e615dd0382756a945c1b73af1f9ad"
+      ],
+      "notes": "Rare; improves extrapolation by excluding target domains during pretraining."
+    },
+    {
+      "method": "Physically bounded models for zero-noise extrapolation",
+      "papers_using_it": [
+        "d3015f6cade33acf92b49d626fd0c3c156e413ca"
+      ],
+      "notes": "Rare; enforces physical constraints on extrapolation models for quantum observables."
+    },
+    {
+      "method": "Gaussian Processes for extrapolation",
+      "papers_using_it": [
+        "523c869e9c605240c579f57de43974ff91ca59c6"
+      ],
+      "notes": "Rare; utilizes GP models to extrapolate physical properties across phases."
+    },
+    {
+      "method": "Transfer learning with LSTM RNNs",
+      "papers_using_it": [
+        "2502.01654v1"
+      ],
+      "notes": "Rare; applies transfer learning to improve prediction accuracy of air pollutants."
+    },
+    {
+      "method": "Prediction Interval Generation",
+      "papers_using_it": [
+        "2212.06370v4"
+      ],
+      "notes": "Rare; uses dual neural networks to generate narrow and accurate prediction intervals."
+    },
+    {
+      "method": "Evidential Deep Learning (EDL)",
+      "papers_using_it": [
+        "2306.11113v2",
+        "2512.23753v1"
+      ],
+      "notes": "Rare; uses belief theory to quantify uncertainty with regularizers to overcome learning-freeze behavior."
+    },
+    {
+      "method": "PAC-Bayesian Framework",
+      "papers_using_it": [
+        "8e78f6918ca102033f72d2fa69a957092645348b",
+        "304874863"
+      ],
+      "notes": "Rare to moderate; provides adversarially robust generalization bounds for GNNs and other models."
+    },
+    {
+      "method": "Lipschitz-Minimal Interpolation",
+      "papers_using_it": [
+        "32f7525a614cc38a2bcd5c389e6b9ce6dde5bb72"
+      ],
+      "notes": "Rare; approximates functions with minimal Lipschitz constant for generalization bounds."
+    },
+    {
+      "method": "Schatten p-quasi Norms",
+      "papers_using_it": [
+        "c75d897f13b43bff75d3ca3e3918bde12988c608"
+      ],
+      "notes": "Rare; exploits low-rank structures in neural networks to derive generalization bounds."
+    },
+    {
+      "method": "Data-Dependent Generalization Bounds",
+      "papers_using_it": [
+        "a46ff345fb5fdbae68bc794aba294add0c8ab793"
+      ],
+      "notes": "Rare; introduces computable, non-vacuous bounds depending on data geometry."
+    },
+    {
+      "method": "Gi-score and Pal-score",
+      "papers_using_it": [
+        "485dbbc7b0b5d824dcaf52d17d00b29230bbded8"
+      ],
+      "notes": "Rare; novel statistical measures inspired by income inequality metrics for assessing generalization."
+    },
+    {
+      "method": "Implicit Regularization Analysis",
+      "papers_using_it": [
+        "d642b4adf9d1a3da06b0e290b89993255e538f3f"
+      ],
+      "notes": "Rare; challenges norm-based explanations of implicit regularization."
+    },
+    {
+      "method": "Gradient Matching",
+      "papers_using_it": [
+        "df54abdbee15e9322520f04d54e6fd50aab7aef2"
+      ],
+      "notes": "Rare; empirical technique for estimating implicit regularization."
+    },
+    {
+      "method": "Regularization methods for statistical inverse problems",
+      "papers_using_it": [
+        "2790566"
+      ],
+      "notes": "Rare; includes spectral methods, Tikhonov regularization, and iterative methods."
+    },
+    {
+      "method": "A-posteriori choice of regularization parameter",
+      "papers_using_it": [
+        "2092248"
+      ],
+      "notes": "Rare; shows adaptation of convergence rates to effective dimension via validation."
+    },
+    {
+      "method": "Flux conserving meshfree generalized finite difference methods (GFDM)",
+      "papers_using_it": [
+        "1701.08973v1"
+      ],
+      "notes": "Rare; introduces local balance to ensure numerical flux conservation."
+    },
+    {
+      "method": "Numerical approaches for left-invariant diffusions on SE(2)",
+      "papers_using_it": [
+        "1403.3320v7"
+      ],
+      "notes": "Rare; categorizes finite difference, Fourier-based, and stochastic methods."
+    },
+    {
+      "method": "Linear Galerkin method with L1 discretization",
+      "papers_using_it": [
+        "2107.10057v3"
+      ],
+      "notes": "Rare; coupled with spectral Galerkin for quasilinear subdiffusion equations."
+    },
+    {
+      "method": "Numerical Clifford analysis for nonlinear Schrödinger problem",
+      "papers_using_it": [
+        "0706.0433v2"
+      ],
+      "notes": "Rare; uses Witt basis and finite differences with discrete fundamental solution construction."
+    },
+    {
+      "method": "Semi-discrete numerical method for nonlocal nonlinear wave equations",
+      "papers_using_it": [
+        "1805.07264v1"
+      ],
+      "notes": "Rare; applies discrete convolution operator and proves convergence."
+    },
+    {
+      "method": "Neural message passing PDE solvers",
+      "papers_using_it": [
+        "2202.03376v3"
+      ],
+      "notes": "Rare; replaces traditional components with neural approximators."
+    },
+    {
+      "method": "AMFR-W methods with sparse grids",
+      "papers_using_it": [
+        "2408.00559v1"
+      ],
+      "notes": "Rare; high-order time integration for high-dimensional SABR/LIBOR models."
+    },
+    {
+      "method": "Multi-GPU implementation of iterative solvers for anisotropic elliptic PDEs",
+      "papers_using_it": [
+        "1402.3545v2"
+      ],
+      "notes": "Rare; achieves petascale performance using conjugate gradient and geometric multigrid."
+    },
+    {
+      "method": "Variable-scaling methods for training PINNs",
+      "papers_using_it": [
+        "9124ec1fca5f99e93eb695497f13fd9c818c0fa1"
+      ],
+      "notes": "Rare; improves training efficiency for stiff or high-frequency PDEs."
+    },
+    {
+      "method": "Defect correction for PDE inference time scaling",
+      "papers_using_it": [
+        "727b7f490d8290c5b6a9aa56c61b0838159b25fd"
+      ],
+      "notes": "Rare; uses structural-preserving laws to correct surrogate model errors."
+    },
+    {
+      "method": "FreqMoE for dynamic frequency enhancement in FNOs",
+      "papers_using_it": [
+        "290ca749b78c5191998cdbcef3898f0ca079c77b"
+      ],
+      "notes": "Rare; improves efficiency and accuracy of FNOs by leveraging frequency dependencies."
+    },
+    {
+      "method": "Inf-SupNet for high-dimensional elliptic PDEs",
+      "papers_using_it": [
+        "294953df3c6b5e45ca671364ceab2ba5132f348c"
+      ],
+      "notes": "Rare; incorporates inf-sup formulation into loss function for improved stability."
+    },
+    {
+      "method": "M2NO for multi-resolution PDE solving",
+      "papers_using_it": [
+        "1a15431d561805cf2ae8bd01a9c0a8d19ff90ce5"
+      ],
+      "notes": "Rare; integrates multigrid structure with multiwavelet spaces."
+    },
+    {
+      "method": "Tensorized, back-propagation-free optical PINN training",
+      "papers_using_it": [
+        "ab5fe65257fc30020d236c034bb38a482e902891"
+      ],
+      "notes": "Rare; enables real-time PDE solving using photonic computing."
+    },
+    {
+      "method": "Generalized eigenproblems for robust coarse spaces",
+      "papers_using_it": [
+        "6805815"
+      ],
+      "notes": "Rare; constructs robust coarse spaces for domain decomposition methods."
+    },
+    {
+      "method": "Generalized eigenproblems in overlaps for coarse spaces",
+      "papers_using_it": [
+        "333526337"
+      ],
+      "notes": "Rare; used to construct robust coarse spaces for domain decomposition methods."
+    },
+    {
+      "method": "Preconditioned iterative methods for saddle point systems",
+      "papers_using_it": [
+        "8220646"
+      ],
+      "notes": "Rare; applied to PDE-constrained optimization problems."
+    },
+    {
+      "method": "Interior point methods with preconditioned Krylov subspace techniques",
+      "papers_using_it": [
+        "8220695"
+      ],
+      "notes": "Rare; used for solving large-scale quadratic programming problems."
+    },
+    {
+      "method": "Rational deferred correction approach",
+      "papers_using_it": [
+        "8222336"
+      ],
+      "notes": "Rare; improves accuracy of time-stepping schemes for parabolic optimal control."
+    },
+    {
+      "method": "PDE-based shape morphing",
+      "papers_using_it": [
+        "274203"
+      ],
+      "notes": "Rare; utilizes boundary-value formulations to create intermediate shapes."
+    },
+    {
+      "method": "Robust sparse reduced rank regression",
+      "papers_using_it": [
+        "1810.07913v2"
+      ],
+      "notes": "Rare; addresses high-dimensional regression with heavy-tailed noise."
+    },
+    {
+      "method": "LOIRE (l1-regularized outlier isolation and regression)",
+      "papers_using_it": [
+        "1406.0156v2"
+      ],
+      "notes": "Rare; combines outlier detection and regression using l1 regularization."
+    },
+    {
+      "method": "Interval Arithmetic",
+      "papers_using_it": [
+        "1704.04998v1"
+      ],
+      "notes": "Rare; used in genetic programming to handle unprotected operators."
+    },
+    {
+      "method": "Uncertain Geographically Weighted Regression (UGWR)",
+      "papers_using_it": [
+        "e9e57bd8971dc092b52b3cf50d012d4fc258e964"
+      ],
+      "notes": "Rare; integrates uncertainty theory with Tobler's first law of geography."
+    },
+    {
+      "method": "Robust Regression with Imprecise Data",
+      "papers_using_it": [
+        "6683c988669d10d9b07596c8dfb827222e817bee",
+        "474458906aebd80ebd1795ee487d47873b7ed834"
+      ],
+      "notes": "Rare; addresses regression problems involving imprecise observations."
+    },
+    {
+      "method": "Uncertain Least Square Support Vector Regression (ULSSVR)",
+      "papers_using_it": [
+        "d4335c474037748e89a22d62450bc9a2fe100a86"
+      ],
+      "notes": "Rare; combines LSSVR with uncertainty theory and chance constraints."
+    },
+    {
+      "method": "Sharp Identification Regions (SMR and SCR)",
+      "papers_using_it": [
+        "5234602"
+      ],
+      "notes": "Rare; used to characterize identification regions for regression under interval data."
+    },
+    {
+      "method": "Bayesian Linear Regression with Prior-Data Conflict Handling",
+      "papers_using_it": [
+        "5232123"
+      ],
+      "notes": "Rare; considers Bayesian regression under prior-data conflict."
+    },
+    {
+      "method": "Robust Continuum Regression (RCR)",
+      "papers_using_it": [
+        "2502127"
+      ],
+      "notes": "Rare; proposes a robust variant of continuum regression."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Theoretical understanding of PINN training dynamics and convergence remains underdeveloped",
+      "supporting_evidence": [
+        "e916f69e70a4321f21356f7ce360e380dd976a43"
+      ],
+      "notes": "Despite empirical success, there is limited theoretical insight into how PINNs converge or behave during training."
+    },
+    {
+      "gap": "Lack of consensus on optimal loss function design and geometric integration strategies for PINNs",
+      "supporting_evidence": [
+        "8a2f36c9aa6befc9dbc295babf473d7be78605a3"
+      ],
+      "notes": "Different approaches yield varying results, with no clear best practices established."
+    },
+    {
+      "gap": "Limited understanding of when and why PINNs fail to train, despite empirical success",
+      "supporting_evidence": [
+        "52b975170b33e19855b2970b2e978fa3ea786465"
+      ],
+      "notes": "Training failures occur frequently but are not well understood theoretically."
+    },
+    {
+      "gap": "Insufficient knowledge about the practical implementation challenges of flux conservation in meshfree methods",
+      "supporting_evidence": [
+        "1701.08973v1"
+      ],
+      "notes": "While flux conservation is important, its practical realization is not well documented."
+    },
+    {
+      "gap": "Limited direct comparison between neural PDE solvers and classical numerical methods in terms of robustness under extreme conditions",
+      "supporting_evidence": [
+        "2202.03376v3"
+      ],
+      "notes": "There is little work comparing neural solvers against traditional methods in challenging regimes."
+    },
+    {
+      "gap": "No explicit discussion on computational cost trade-offs in applying AMFR-W methods to very high-dimensional problems",
+      "supporting_evidence": [
+        "2408.00559v1"
+      ],
+      "notes": "The scalability and efficiency of these methods in ultra-high dimensions is unclear."
+    },
+    {
+      "gap": "Limited discussion on the practical implementation challenges of robust coarse spaces in real-world heterogeneous PDE systems",
+      "supporting_evidence": [
+        "333526337"
+      ],
+      "notes": "Real-world deployment of these methods lacks detailed implementation guidance."
+    },
+    {
+      "gap": "Lack of comparative analysis between different preconditioning strategies for PDE-constrained optimization problems",
+      "supporting_evidence": [
+        "8220646",
+        "8220695"
+      ],
+      "notes": "There is no systematic evaluation of which preconditioners perform best in practice."
+    },
+    {
+      "gap": "No explicit mention of computational complexity or scalability of the rational deferred correction approach for large-scale problems",
+      "supporting_evidence": [
+        "8222336"
+      ],
+      "notes": "Scalability concerns are not addressed for this method in large-scale settings."
+    },
+    {
+      "gap": "Theoretical guarantees for the convergence of LOIRE in the presence of structured outliers are not fully explored",
+      "supporting_evidence": [
+        "1406.0156v2"
+      ],
+      "notes": "The robustness of LOIRE under outlier conditions is not rigorously analyzed."
+    },
+    {
+      "gap": "No abstracts are available for several papers, limiting understanding of specific methodologies and findings",
+      "supporting_evidence": [
+        "6683c988669d10d9b07596c8dfb827222e817bee",
+        "474458906aebd80ebd1795ee487d47873b7ed834",
+        "5b563b308e47b9ddb2546915348babae6ee576d9"
+      ],
+      "notes": "Missing abstracts hinder comprehensive understanding of key contributions."
+    },
+    {
+      "gap": "The sensitivity of interval arithmetic-based operators to the accuracy of input feature intervals has not been fully explored",
+      "supporting_evidence": [
+        "1704.04998v1"
+      ],
+      "notes": "Impact of interval precision on algorithmic performance is inadequately studied."
+    },
+    {
+      "gap": "The relationship between imprecise probabilities and robust regression techniques is not clearly elaborated across the papers",
+      "supporting_evidence": [
+        "5234602",
+        "5232123"
+      ],
+      "notes": "Interconnections between these two areas are poorly defined in the literature."
+    },
+    {
+      "gap": "Effects of implicit regularization in complex deep learning systems are difficult to derive analytically and require empirical estimation methods",
+      "supporting_evidence": [
+        "df54abdbee15e9322520f04d54e6fd50aab7aef2"
+      ],
+      "notes": "Analytical understanding is lacking, necessitating reliance on empirical techniques."
+    },
+    {
+      "gap": "There is limited direct attention to estimating implicit regularization in practice despite its importance",
+      "supporting_evidence": [
+        "df54abdbee15e9322520f04d54e6fd50aab7aef2"
+      ],
+      "notes": "Despite its significance, practical estimation methods are underexplored."
+    },
+    {
+      "gap": "Limited discussion on how variable-scaling affects convergence rates in PINNs for stiff PDEs",
+      "supporting_evidence": [
+        "9124ec1fca5f99e93eb695497f13fd9c818c0fa1"
+      ],
+      "notes": "The impact of scaling on convergence is not well understood."
+    },
+    {
+      "gap": "No explicit discussion on how the defect correction framework in SCaSML handles non-smooth or discontinuous solutions",
+      "supporting_evidence": [
+        "727b7f490d8290c5b6a9aa56c61b0838159b25fd"
+      ],
+      "notes": "Handling of irregular solutions is not addressed in the framework."
+    },
+    {
+      "gap": "The robustness of generalized eigenproblem-based coarse spaces has been demonstrated mainly on 2D and 3D problems",
+      "supporting_evidence": [
+        "6805815"
+      ],
+      "notes": "Higher-dimensional applications are underexplored."
+    },
+    {
+      "gap": "Limited discussion on how to effectively incorporate spatial heterogeneity in uncertain regression models beyond UGWR",
+      "supporting_evidence": [
+        "e9e57bd8971dc092b52b3cf50d012d4fc258e964"
+      ],
+      "notes": "Spatial modeling beyond UGWR is not sufficiently developed."
+    },
+    {
+      "gap": "Traditional interval arithmetic in genetic programming does not prevent invalid solutions from entering the population",
+      "supporting_evidence": [
+        "1704.04998v1"
+      ],
+      "notes": "This compromises search performance and limits effectiveness."
+    },
+    {
+      "gap": "Extrapolation errors grow significantly with horizon length and initial amplitude in dynamic systems like pendulums",
+      "supporting_evidence": [
+        "122e9c278d0ce51a0143dc712c60d93f54d7895f"
+      ],
+      "notes": "This highlights a fundamental limitation in long-term prediction accuracy."
+    },
+    {
+      "gap": "Byte-based malware classifiers show that better generalization does not always lead to better performance",
+      "supporting_evidence": [
+        "1903.04717v2"
+      ],
+      "notes": "Generalization and performance are not necessarily correlated."
+    },
+    {
+      "gap": "Convergence analysis for regularization methods assumes certain smoothness conditions that may not hold in practice",
+      "supporting_evidence": [
+        "2790566"
+      ],
+      "notes": "Assumptions may not reflect real-world data characteristics."
+    },
+    {
+      "gap": "Adversarial robustness in graph neural networks requires generalization bounds that avoid exponential dependence on maximum node degree",
+      "supporting_evidence": [
+        "304874863"
+      ],
+      "notes": "Current bounds are too restrictive for large graphs."
+    },
+    {
+      "gap": "Existing evidential activation functions create zero evidence regions, preventing learning from certain training samples",
+      "supporting_evidence": [
+        "2306.11113v2"
+      ],
+      "notes": "This creates learning bottlenecks in specific data regions."
+    },
+    {
+      "gap": "Activation-dependent learning-freeze behavior in EDL models leads to poor gradient flow in low-evidence regions",
+      "supporting_evidence": [
+        "2512.23753v1"
+      ],
+      "notes": "This hampers effective training in uncertain data scenarios."
+    },
+    {
+      "gap": "Norm-based explanations of implicit regularization fail for certain matrix factorization problems",
+      "supporting_evidence": [
+        "d642b4adf9d1a3da06b0e290b89993255e538f3f"
+      ],
+      "notes": "Alternative explanations are needed for complex models."
+    },
+    {
+      "gap": "PINNs struggle with stiff PDEs and require adaptive mechanisms to accurately capture sharp gradients",
+      "supporting_evidence": [
+        "2009.04544v5",
+        "2309.17345v3"
+      ],
+      "notes": "Stiffness remains a major challenge for PINN performance."
+    },
+    {
+      "gap": "High-dimensional PDEs remain computationally expensive despite recent advances in PINN-based methods",
+      "supporting_evidence": [
+        "2307.12306v6"
+      ],
+      "notes": "Scalability issues persist in high-dimensional domains."
+    },
+    {
+      "gap": "Neumann boundary conditions are harder to enforce in PINNs compared to Dirichlet conditions",
+      "supporting_evidence": [
+        "320477174"
+      ],
+      "notes": "Boundary enforcement varies significantly by type."
+    },
+    {
+      "gap": "PINNs can fail to learn relevant physical phenomena even with sufficient network expressivity, due to ill-conditioning of the loss landscape",
+      "supporting_evidence": [
+        "3c4372b125d0744bb68bfca9f5d6b0abb85dd182"
+      ],
+      "notes": "Loss landscape issues can impede learning regardless of model capacity."
+    },
+    {
+      "gap": "Transonic flows with shock waves pose significant challenges for PINNs due to local discontinuities",
+      "supporting_evidence": [
+        "321570633"
+      ],
+      "notes": "Discontinuities complicate PINN training and accuracy."
+    },
+    {
+      "gap": "The convergence of inverse PINNs depends on adaptive weighting of loss components and gradient scaling",
+      "supporting_evidence": [
+        "166397679"
+      ],
+      "notes": "Proper loss balancing is critical for convergence."
+    },
+    {
+      "gap": "Traditional PINN implementations require retraining for new velocity models in seismic inversion",
+      "supporting_evidence": [
+        "310111798"
+      ],
+      "notes": "Lack of adaptability limits practical utility."
+    },
+    {
+      "gap": "PINNs are sensitive to the weighting coefficient ε and scaling of physics parameters φ, which can bias solutions toward either data or physics",
+      "supporting_evidence": [
+        "8f0bb3fee6d257af2399575a6692fb300413967d"
+      ],
+      "notes": "Parameter sensitivity affects solution quality and balance."
+    },
+    {
+      "gap": "The effectiveness of physics constraints in extrapolation depends on the causal structure of the data",
+      "supporting_evidence": [
+        "b83290899d9e615dd0382756a945c1b73af1f9ad"
+      ],
+      "notes": "Causal relationships determine whether physics constraints help or hinder extrapolation."
+    },
+    {
+      "gap": "Training PINNs requires careful balance between data fidelity and physical law enforcement, often leading to instability or poor convergence without proper tuning",
+      "supporting_evidence": [
+        "bce9e0d9104a0bdb0c6a5cdf31109a874790fce9"
+      ],
+      "notes": "Balancing act is crucial for stable training."
+    },
+    {
+      "gap": "Standard ZNE extrapolators do not enforce physical bounds on expectation values, leading to potentially invalid predictions",
+      "supporting_evidence": [
+        "d3015f6cade33acf92b49d626fd0c3c156e413ca"
+      ],
+      "notes": "Physical constraints are essential for validity in extrapolation."
+    },
+    {
+      "gap": "PINNs can fail to train due to disparities in convergence rates of loss components, especially in complex scenarios",
+      "supporting_evidence": [
+        "52b975170b33e19855b2970b2e978fa3ea786465"
+      ],
+      "notes": "Loss component imbalance causes training instability."
+    },
+    {
+      "gap": "The reliance of standard DANNs on Gaussian assumptions and lack of orthogonality in neural signals may lead to redundant representations",
+      "supporting_evidence": [
+        "2306.14753v1"
+      ],
+      "notes": "Signal processing limitations affect representational efficiency."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Physics-informed loss terms in PINNs improve extrapolation performance beyond the training range for regression tasks involving experimental measurements of molecular solubility, as measured by lower mean squared error on out-of-distribution test points compared to standard neural networks trained without physical constraints.",
+      "rationale": "This hypothesis builds on the gap regarding the limited understanding of when and why PINNs fail to train and the gap concerning the sensitivity of PINNs to loss function weighting. It leverages the method of Physics-Informed Neural Networks (PINNs) which are commonly used for solving PDEs and inverse problems with embedded physical constraints. The rationale is that incorporating physical laws into the loss function should theoretically improve generalization, especially in domains where the underlying physics governs the behavior of the system. The molecular solubility dataset (moleculenet_esol_delaney_solubility.csv) contains real experimental measurements and can be used to evaluate extrapolation performance beyond the training distribution.",
+      "related_gaps": [
+        "PINNs can fail to learn relevant physical phenomena even with sufficient network expressivity, due to ill-conditioning of the loss landscape",
+        "PINNs struggle with stiff PDEs and require adaptive mechanisms to accurately capture sharp gradients"
+      ],
+      "related_methods": [
+        "Physics-Informed Neural Networks (PINNs)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "use of physics-informed loss terms",
+          "type of neural network architecture"
+        ],
+        "dependent": [
+          "mean squared error on out-of-distribution test points",
+          "extrapolation accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Evidential deep learning models that quantify uncertainty, when applied to regression tasks with imprecise data, produce more reliable extrapolations beyond the training range compared to standard regression models, as evidenced by narrower prediction intervals and higher coverage rates on held-out data.",
+      "rationale": "This hypothesis draws upon the cross-disciplinary bridge insight connecting evidential deep learning from statistical learning theory to the core problem of extrapolation. It builds on the gap concerning the relationship between imprecise probabilities and robust regression techniques. The rationale is that by explicitly modeling uncertainty, evidential models can better assess confidence in extrapolated predictions, thereby improving reliability. The hypothesis is testable using datasets with inherent measurement uncertainty, such as the UCI Air Quality dataset (uci_air_quality_hourly.csv), which includes noisy sensor readings that can be treated as imprecise observations.",
+      "related_gaps": [
+        "The relationship between imprecise probabilities and robust regression techniques is not clearly elaborated across the papers",
+        "Robust regression with imprecise data addresses regression problems involving imprecise observations"
+      ],
+      "related_methods": [
+        "Evidential Deep Learning (EDL)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "use of evidential deep learning",
+          "presence of imprecise data"
+        ],
+        "dependent": [
+          "narrowness of prediction intervals",
+          "coverage rate of prediction intervals",
+          "reliability of extrapolations"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "PINNs trained with curriculum regularization techniques demonstrate superior extrapolation capabilities compared to standard PINNs when dealing with high-dimensional regression problems based on experimental data, as indicated by improved performance on unseen data points that lie outside the training domain's support.",
+      "rationale": "This hypothesis is grounded in the gap concerning the lack of consensus on optimal loss function design and geometric integration strategies for PINNs, and specifically builds on the rare method of Curriculum Regularization. The rationale is that gradual complexity increase during training can help PINNs avoid optimization pitfalls and thus generalize better. The hypothesis is directly testable using datasets with high-dimensional features, such as the UCI Adult Census Income dataset (uci_adult_census_income.csv), which contains numerous categorical and continuous features that can be used to construct high-dimensional regression problems suitable for evaluating extrapolation performance.",
+      "related_gaps": [
+        "Lack of consensus on optimal loss function design and geometric integration strategies for PINNs"
+      ],
+      "related_methods": [
+        "Curriculum Regularization"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "application of curriculum regularization",
+          "dimensionality of input features"
+        ],
+        "dependent": [
+          "performance on out-of-distribution data points",
+          "extrapolation accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses the moleculenet_esol_delaney_solubility.csv dataset, which contains real experimental measurements of molecular solubility and can be used to evaluate extrapolation performance beyond the training distribution. It is testable because it makes a specific claim about lower mean squared error on out-of-distribution test points for PINNs versus standard neural networks, and the result could go either way. The hypothesis is coherent as it focuses on the system (PINNs) rather than analysis methods, and it is well-grounded in the literature, particularly the gaps around PINN training failures and sensitivity to loss function weighting. The method of Physics-Informed Neural Networks is directly applicable to this domain."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 is moderately feasible using the uci_adult_census_income.csv dataset, which has high-dimensional features suitable for evaluating extrapolation. However, it is less testable because the claim about curriculum regularization improving extrapolation is more abstract and harder to disentangle from other factors like dimensionality. It is somewhat coherent but introduces a complex interaction between curriculum regularization and high-dimensional inputs that may obscure the core effect. It is grounded in the literature's gap about loss function design but relies on a less common technique (curriculum regularization) that may not be as straightforward to implement or interpret."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 is least feasible because while it references the uci_air_quality_hourly.csv dataset, the concept of evidential deep learning and uncertainty quantification is more complex to operationalize and measure than the direct MSE comparison in H1. It is also less testable because the metrics (prediction interval width and coverage rate) are more subjective and harder to define precisely. Although it draws on a useful cross-disciplinary bridge insight from statistical learning theory, the hypothesis is less coherent in its focus on uncertainty quantification rather than the core system (PINNs) mentioned in the research question. The grounding is weaker because the connection between evidential learning and extrapolation is more indirect and speculative."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2306.14753v1",
+    "2009.04544v5",
+    "2309.17345v3",
+    "2307.12306v6",
+    "d86084808994ac54ef4840ae65295f3c0ec4decd",
+    "e916f69e70a4321f21356f7ce360e380dd976a43",
+    "8efcb1e84f617841520ae9f0c26cb1cd214b0af5",
+    "3c4372b125d0744bb68bfca9f5d6b0abb85dd182",
+    "bdd29cf7f30cfa7991c8259a0d27217c9eafb3bd",
+    "321570633",
+    "166397679",
+    "310111798",
+    "320477174",
+    "5232907",
+    "5233021",
+    "5233339",
+    "e74b1520017f995d7c823c9fdf0aca2d5792ac9d",
+    "e53eba19d2fc08bfca27b154e9c700ffc2740ca3",
+    "3036626abf51efd9f702d5d51348d3bc843940ad",
+    "158224b92b5b62f58b88030a022adeac81ba7729",
+    "f7c902c8d8e23a44a41f5a198b77ffb3b64aa830",
+    "a63b70ba0e65b4b2916093e15078348e8a5ec490",
+    "4affeb6585b1873e55efccdee7e289c61f3d8921",
+    "d724afae8cafd27a64fb7f6418c81436eaf2f6cc",
+    "0b9947c1a8f0a928f26a62ae4997f51cf3d12cf5",
+    "c8adfc281be35ad562a5add73d04a61a892edbb2",
+    "8f0bb3fee6d257af2399575a6692fb300413967d",
+    "bce9e0d9104a0bdb0c6a5cdf31109a874790fce9",
+    "73a8ae914306d9589d1aef420e55e9b39b109623",
+    "7c1ae44dee90ad9e2599405757ecc46ee062b403",
+    "8a2f36c9aa6befc9dbc295babf473d7be78605a3",
+    "b83290899d9e615dd0382756a945c1b73af1f9ad",
+    "d3015f6cade33acf92b49d626fd0c3c156e413ca",
+    "bba8eaa382df676e5b6bc68e5e634c3252cc8420",
+    "122e9c278d0ce51a0143dc712c60d93f54d7895f",
+    "5d16063484d99341d7c3f1430ef02856f54c3783",
+    "523c869e9c605240c579f57de43974ff91ca59c6",
+    "52b975170b33e19855b2970b2e978fa3ea786465",
+    "53c9f3c34d8481adaf24df3b25581ccf1bc53f5c",
+    "2502.01654v1",
+    "1803.02421v2",
+    "2212.06370v4",
+    "2306.11113v2",
+    "2512.23753v1",
+    "1903.04717v2",
+    "8e78f6918ca102033f72d2fa69a957092645348b",
+    "32f7525a614cc38a2bcd5c389e6b9ce6dde5bb72",
+    "c75d897f13b43bff75d3ca3e3918bde12988c608",
+    "a46ff345fb5fdbae68bc794aba294add0c8ab793",
+    "485dbbc7b0b5d824dcaf52d17d00b29230bbded8",
+    "d642b4adf9d1a3da06b0e290b89993255e538f3f",
+    "5d42df7219d63aee95bf55de4043d42385cc9a7c",
+    "b3c22857095db1df0609975df3359c873ddfaf35",
+    "df54abdbee15e9322520f04d54e6fd50aab7aef2",
+    "304874863",
+    "6804598",
+    "15185194",
+    "6613744",
+    "154014530",
+    "2790566",
+    "2092248",
+    "1701.08973v1",
+    "1403.3320v7",
+    "2107.10057v3",
+    "0706.0433v2",
+    "1805.07264v1",
+    "2202.03376v3",
+    "2408.00559v1",
+    "1402.3545v2",
+    "3dfe26fc7cfda17ff8aa93159b5f21066bdeced2",
+    "f21ef1f3e082d544b329e7066d5dc5ebb4eeeccf",
+    "9124ec1fca5f99e93eb695497f13fd9c818c0fa1",
+    "727b7f490d8290c5b6a9aa56c61b0838159b25fd",
+    "290ca749b78c5191998cdbcef3898f0ca079c77b",
+    "294953df3c6b5e45ca671364ceab2ba5132f348c",
+    "1a15431d561805cf2ae8bd01a9c0a8d19ff90ce5",
+    "ab5fe65257fc30020d236c034bb38a482e902891",
+    "6805815",
+    "333526337",
+    "386036014",
+    "8220646",
+    "8220695",
+    "8222336",
+    "274203",
+    "1001.2939v1",
+    "1810.07913v2",
+    "1401.3084v1",
+    "1406.0156v2",
+    "1704.04998v1",
+    "e9e57bd8971dc092b52b3cf50d012d4fc258e964",
+    "6683c988669d10d9b07596c8dfb827222e817bee",
+    "474458906aebd80ebd1795ee487d47873b7ed834",
+    "5b563b308e47b9ddb2546915348babae6ee576d9",
+    "d4335c474037748e89a22d62450bc9a2fe100a86",
+    "5234602",
+    "5232123",
+    "2502127"
+  ],
+  "generated_at": "2026-09-16T00:39:39.782714+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

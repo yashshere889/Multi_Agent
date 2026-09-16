@@ -1,0 +1,96 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": false,
+      "feasibility_notes": "The hypothesis requires real-world industrial sensor data with known degradation timelines to compare multivariate control charts against fixed-threshold alarms. None of the provided datasets match this requirement. The closest potential fit is uci_air_quality_hourly.csv, which contains multivariate time series sensor data, but lacks labeled degradation events or RUL information necessary to define 'time-to-detection'. To make this feasible, we simplify the hypothesis to test whether multivariate control charts can detect anomalies in a synthetic degradation scenario derived from the air quality dataset's structure, without relying on real degradation timelines.",
+      "objective": "To determine whether a multivariate control chart method detects anomalies in sensor data up to 14 days earlier on average than fixed-threshold alarms, using a synthetic degradation simulation based on multivariate time series data.",
+      "variables": {
+        "independent": [
+          "sensor readings over time",
+          "threshold alarm triggers"
+        ],
+        "dependent": [
+          "time-to-detection of degradation"
+        ]
+      },
+      "design": "A comparative benchmark experiment using synthetic degradation scenarios generated from multivariate time series data. We simulate degradation by introducing gradual shifts in the mean of selected variables over time. Two detection methods are applied: a multivariate control chart (SPC-based) and fixed-threshold alarms. The time-to-detection is measured for each method and compared.",
+      "data_requirements": {
+        "source": "synthetic generation",
+        "description": "Synthetic degradation scenarios are generated from the structure of uci_air_quality_hourly.csv, simulating gradual shifts in sensor values over time to mimic equipment degradation. This allows us to define known degradation start times and measure detection lead time.",
+        "preprocessing_steps": [
+          "Load uci_air_quality_hourly.csv and extract numeric sensor columns",
+          "Normalize sensor values to zero mean and unit variance",
+          "Simulate degradation by gradually shifting means of selected sensors starting at a known time",
+          "Generate fixed-threshold alarms based on historical mean + 2*std dev",
+          "Define ground truth degradation start times for each simulation"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Multivariate Control Chart (SPC)",
+          "description": "A multivariate control chart based on Statistical Process Control principles to detect shifts in the mean vector of multiple correlated sensors. It uses Mahalanobis distance to identify anomalous patterns in multivariate time series.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Fixed Threshold Alarms",
+          "description": "A simple threshold-based anomaly detection method that flags sensor values exceeding a fixed upper bound (mean + 2 * standard deviation) for individual sensors.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Average lead time (days)",
+          "Detection delay (days)"
+        ],
+        "baseline": "Fixed threshold alarms",
+        "success_criteria": "If the multivariate control chart detects anomalies on average 14+ days earlier than fixed threshold alarms, the hypothesis is supported. If not, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_air_quality_hourly.csv and preprocess numeric columns by normalizing to zero mean and unit variance. Identify sensor columns for degradation simulation."
+        },
+        {
+          "step": 2,
+          "description": "Generate synthetic degradation scenarios by introducing gradual shifts in the mean of selected sensor variables over time. Define known degradation start times."
+        },
+        {
+          "step": 3,
+          "description": "Implement the multivariate control chart algorithm using Mahalanobis distance to detect anomalies in the simulated time series."
+        },
+        {
+          "step": 4,
+          "description": "Implement fixed-threshold alarms by flagging sensor values exceeding mean + 2 * std dev for each sensor individually."
+        },
+        {
+          "step": 5,
+          "description": "Run both detection methods on all synthetic degradation scenarios and record detection times relative to known degradation start times."
+        },
+        {
+          "step": 6,
+          "description": "Compute average lead time for multivariate control chart versus fixed threshold alarms and compare against the 14-day threshold."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Synthetic degradation may not accurately reflect real-world degradation dynamics",
+        "Multivariate control chart may not detect subtle shifts in the simulated data",
+        "Fixed threshold alarms might be overly sensitive or insensitive depending on chosen thresholds"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T14:25:10.700317+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

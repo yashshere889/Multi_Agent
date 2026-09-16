@@ -1,0 +1,46 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q029_does-active-learning-reduce-the-number/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [
+    "H1"
+  ],
+  "hypotheses_inconclusive": [],
+  "citations_used": [
+    "2110.08265v4",
+    "4c7dd83d9ec3fc757fa4dc2c02d074ef781b68c6",
+    "1208.3561v3",
+    "82bd847685b571816bfb28c6bac9aa2ff9cea9c9",
+    "86e91b1a2576123a78fb03a8414a8e67919a080c",
+    "be2c0a615ac1bb028a4d7b92c52f15d10ca8326d",
+    "e44f4c253192e357038a2123c3243e954f747c06",
+    "a2e000b121970c8bc3c75dbf742b4c5a882c7fc7",
+    "1507.04155v1",
+    "ad1d037945e1f189ce8fddbbc564f4531d319d68",
+    "1811.05660v1",
+    "2010.06896v1",
+    "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd",
+    "c921b850c0d78c70c1502994ee561ebf9a5eb615"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-16T00:19:20.823675+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

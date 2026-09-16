@@ -1,0 +1,99 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The UCI Statlog German Credit dataset (1000 rows) is available and suitable for testing the hypothesis. Since the hypothesis involves scaling behavior from 1000 to 100,000 records, we will use the full dataset (1000 rows) and simulate larger datasets by repeated sampling with replacement to generate training sets of increasing size (1000, 2000, ..., 100000). This approach allows us to evaluate model performance at different scales without requiring additional data sources.",
+      "objective": "To determine whether gradient-boosted decision trees (XGBoost and LightGBM) maintain or improve their accuracy advantage over neural networks as the training set size increases from 1000 to 100,000 records on the UCI Statlog German Credit dataset.",
+      "variables": {
+        "independent": [
+          "training_set_size"
+        ],
+        "dependent": [
+          "model_accuracy"
+        ]
+      },
+      "design": "Comparative benchmark experiment with increasing training set sizes. We will train three models (XGBoost, LightGBM, and Neural Network) on multiple subsamples of the UCI Statlog German Credit dataset, ranging from 1000 to 100,000 records. For each size, we will evaluate model accuracy and compare performance across models.",
+      "data_requirements": {
+        "source": "uci_statlog_german_credit.csv",
+        "description": "The UCI Statlog German Credit dataset contains 1000 records with 20 features describing credit applicants and a binary target variable indicating credit risk (good/bad). This dataset is ideal for evaluating tabular credit-risk modeling approaches and provides sufficient samples to demonstrate scaling behavior when augmented through sampling.",
+        "preprocessing_steps": [
+          "Load the dataset from uci_statlog_german_credit.csv",
+          "Encode categorical variables using one-hot encoding",
+          "Handle missing values if any (none expected in this dataset)",
+          "Split into features (X) and target (y) variables",
+          "Convert target variable to binary (1 for good credit, 0 for bad credit)"
+        ]
+      },
+      "methods": [
+        {
+          "name": "XGBoost",
+          "description": "A gradient boosting framework that uses decision trees as base learners. In this experiment, it will be trained with default parameters optimized for classification tasks on the German Credit dataset.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "LightGBM",
+          "description": "A fast gradient boosting framework that uses tree-based learning algorithms. It will be trained with default parameters optimized for classification tasks on the German Credit dataset.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Neural Networks",
+          "description": "A feedforward neural network with configurable hidden layers and neurons. In this experiment, it will be implemented using scikit-learn's MLPClassifier with default parameters for fair comparison with tree-based methods.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy_score"
+        ],
+        "baseline": "Performance of all models on the original 1000-record dataset",
+        "success_criteria": "Supporting the hypothesis would mean that both XGBoost and LightGBM maintain or improve their accuracy advantage over neural networks as training set size increases. Refuting the hypothesis would occur if neural networks show equal or greater accuracy than GBDTs at larger training set sizes."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the uci_statlog_german_credit.csv dataset using pandas and perform initial preprocessing steps including encoding categorical variables and converting target to binary format."
+        },
+        {
+          "step": 2,
+          "description": "Define a function to generate training sets of varying sizes (1000, 2000, ..., 100000) by sampling with replacement from the original 1000 records."
+        },
+        {
+          "step": 3,
+          "description": "Initialize XGBoost, LightGBM, and Neural Network models with default parameters for classification tasks."
+        },
+        {
+          "step": 4,
+          "description": "For each training set size, train all three models on the generated subset and evaluate their accuracy on a held-out test set (80/20 split)."
+        },
+        {
+          "step": 5,
+          "description": "Record accuracy scores for each model at each training set size and store results in a structured format for analysis."
+        },
+        {
+          "step": 6,
+          "description": "Plot accuracy vs training set size for all three models to visualize scaling behavior and determine if GBDTs maintain their advantage."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Limited dataset size may not fully capture true scaling behavior",
+        "Potential overfitting with very small training sets",
+        "Computational overhead of running multiple model configurations"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T05:33:40.141099+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,57 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q018_does-transfer-learning-from-data-rich-weather/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "00afb63be945b82f215459c97fefa4bab334a86e",
+    "d057428b14a7a09aa1778d0e7ec7dbf3c47158dd",
+    "c1c0fbc6af64fdcad25a630b4bcb89d1a2e0bdbb",
+    "2410.21361v2",
+    "0a8f46f7d2561727c84f21950277148e42ac91e3",
+    "2502.01654v1",
+    "aa1cdf863770b00027c6ddbef4a9aa869a859248",
+    "679759377fb68309e7e078de9526f0853d1c4798",
+    "14f7c494218efe7aaac5250997e6aa44503a1cb2",
+    "2207.02337v1",
+    "359d0c71751352b55537fa994037d826ac793ba3",
+    "358412",
+    "310798715",
+    "1bd3ece38861875082be6191c6552fa590d95432",
+    "8847979",
+    "298274825",
+    "6cd56316db06350aef52d536dc5a5fe56a3d0804",
+    "8a8ac2467aee4d70866a1b2410e59565ef6ae292",
+    "231733",
+    "c6d202ae0f3bafdff350084290b78b9e1a99d92d",
+    "2505.13784v2",
+    "5719274ed7c2ddf7da7e8fafbb90ebab2a365461",
+    "345afa0e85cb2f5cb438ae44027499ff2c392409",
+    "4176fc3ca45ea61f19b765d4d83eb08efc2c430f",
+    "7fa4aaecd8c6f831c357a5f3ba77b9f834f28d8c",
+    "cafcee20d282a346e923965cfad8d689f4c6c92a",
+    "1911.08967v1"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-16T05:39:05.707375+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

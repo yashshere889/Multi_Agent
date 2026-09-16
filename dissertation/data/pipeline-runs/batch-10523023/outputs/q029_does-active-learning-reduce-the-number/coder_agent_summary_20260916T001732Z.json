@@ -1,0 +1,291 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1",
+      "assumptions_made": [
+        "The MoleculeNet ESOL dataset is representative of materials property landscapes",
+        "Gaussian Process Regression provides reliable uncertainty estimates",
+        "Convergence is determined by a small change in validation MSE",
+        "The initial training set size is sufficient for both approaches",
+        "The maximum iterations limit prevents infinite loops",
+        "The dataset preprocessing steps are correctly implemented",
+        "The random seed ensures reproducible results",
+        "The experiment will complete within the allocated time"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether using active learning with uncertainty sampling based on Gaussian Process Regression reduces the number of required simulations by at least 30% compared to random sampling when mapping materials property landscapes on the MoleculeNet ESOL dataset.",
+        "author": "coder-agent",
+        "baseline": "Random sampling strategy where molecules are selected uniformly at random for each iteration",
+        "success_criteria": "If the active learning approach requires at least 30% fewer simulations than random sampling to achieve equivalent prediction accuracy, the hypothesis is supported. If the reduction is less than 30%, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-16T00:17:31.980200+00:00",
+        "status": "success",
+        "elapsed_seconds": 1.0409,
+        "resumed": false,
+        "metrics": {
+          "reduction_percentage": -31.818181818181817,
+          "random_simulations": 22,
+          "active_simulations": 29,
+          "random_mse": 2.064945853594092,
+          "active_mse": 2.3081806790010795
+        },
+        "meets_success_criteria": false,
+        "notes": "Random sampling required 22 simulations.\nActive learning required 29 simulations.\nReduction: -31.82%.\nSuccess criteria (≥30% reduction): Not met.\nRandom MSE: 2.0649\nActive MSE: 2.3082",
+        "error": null
+      },
+      "fix_attempts": 4,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 5: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using the MoleculeNet ESOL dataset as provided without modification",
+            "Using Gaussian Process Regression with RBF kernel and WhiteKernel for noise modeling as specified in the literature",
+            "Implementing uncertainty sampling by selecting samples with highest predictive variance",
+            "Setting convergence threshold to 0.01 MSE change over 5 iterations",
+            "Using 20 initial samples for both protocols",
+            "Running up to 50 iterations maximum for each protocol",
+            "Splitting data 80/10/10 for train/validation/test sets",
+            "Normalizing all features to zero mean and unit variance",
+            "Using the same GP model configuration for both protocols",
+            "Using the same random seed for reproducibility across runs",
+            "Assuming the experiment will complete within 2-minute wall clock time limit"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "compile_check",
+          "error_summary": "Generated code has a syntax error, not executed: run.py: invalid syntax (line 397)",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The experiment falls back to a small synthetic dataset when the real data file is not found at the specified path",
+            "The synthetic dataset maintains the same column structure as the real dataset for compatibility",
+            "The synthetic dataset is sufficient to run the experiment with minimal impact on results quality",
+            "The experiment will run with reduced statistical power due to smaller dataset size but will still demonstrate the core methodology"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: tocol(\n            X_train_full, y_train_full, X_val, y_val, X_test, y_test,\n            \"active\", model, data[\"scaler\"]\n        )\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 467, in run_sampling_protocol\n        var = y_var[val_indices.index(idx)]\n              ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n    IndexError: index 113 is out of bounds for axis 0 with size 113\n========================================================================\n\n\n — Starting random sampling protocol...\n2026-09-16T01:05:10 [INFO] __main__ — Converged after 12 iterations\n2026-09-16T01:05:10 [INFO] H1 — Starting active learning protocol...\n2026-09-16T01:05:10 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 621, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 327, in run_experiment\n    active_results = run_sampling_protocol(\n        X_train_full, y_train_full, X_val, y_val, X_test, y_test,\n        \"active\", model, data[\"scaler\"]\n    )\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 467, in run_sampling_protocol\n    var = y_var[val_indices.index(idx)]\n          ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\nIndexError: index 113 is out of bounds for axis 0 with size 113",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The original code had a syntax error due to improper handling of the `run_sampling_protocol` function definition and its usage in the main experiment loop. The function was defined but not properly integrated with the rest of the code structure.",
+            "The active learning protocol was incorrectly implemented with a flawed index management system that could lead to duplicate selections or missed samples.",
+            "The validation set was being used incorrectly for both model selection and uncertainty sampling, which could introduce data leakage.",
+            "Fixed the function signature and implementation to correctly manage indices and ensure proper sampling strategies.",
+            "Used a more robust convergence detection mechanism with patience-based early stopping.",
+            "Ensured that the validation set is properly separated from the training set during active learning iterations."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 4,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport logging\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.gaussian_process import GaussianProcessRegressor\\nfrom sklearn.gaussian_process.kernels import RBF, WhiteKernel\\nfrom sklearn.preprocessing import StandardScaler\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import mean_squared_error\\nimport json\\nimport random\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration===\\nRANDOM_SEED: int = 7\\nDATA_PATH: str = \"/mnt/fastscratch/u'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/fix_attempts/attempt_4/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "regression",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "moleculenet_esol_delaney_solubility.csv",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/moleculenet_esol_delaney_solubility.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/moleculenet_esol_delaney_solubility.csv",
+            "credentials": [],
+            "preview": {
+              "data_format": "csv",
+              "read_hint": "comma-separated, with a header row (pandas.read_csv)",
+              "columns": [
+                "Compound ID",
+                "ESOL predicted log solubility in mols per litre",
+                "Minimum Degree",
+                "Molecular Weight",
+                "Number of H-Bond Donors",
+                "Number of Rings",
+                "Number of Rotatable Bonds",
+                "Polar Surface Area",
+                "measured log solubility in mols per litre",
+                "smiles"
+              ],
+              "sample_rows": [
+                {
+                  "Compound ID": "Amigdalin",
+                  "ESOL predicted log solubility in mols per litre": "-0.9740000000000001",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "457.4320000000001",
+                  "Number of H-Bond Donors": "7",
+                  "Number of Rings": "3",
+                  "Number of Rotatable Bonds": "7",
+                  "Polar Surface Area": "202.31999999999996",
+                  "measured log solubility in mols per litre": "-0.77",
+                  "smiles": "OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O "
+                },
+                {
+                  "Compound ID": "Fenfuram",
+                  "ESOL predicted log solubility in mols per litre": "-2.885",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "201.22500000000002",
+                  "Number of H-Bond Donors": "1",
+                  "Number of Rings": "2",
+                  "Number of Rotatable Bonds": "2",
+                  "Polar Surface Area": "42.24",
+                  "measured log solubility in mols per litre": "-3.3",
+                  "smiles": "Cc1occc1C(=O)Nc2ccccc2"
+                },
+                {
+                  "Compound ID": "citral",
+                  "ESOL predicted log solubility in mols per litre": "-2.5789999999999997",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "152.237",
+                  "Number of H-Bond Donors": "0",
+                  "Number of Rings": "0",
+                  "Number of Rotatable Bonds": "4",
+                  "Polar Surface Area": "17.07",
+                  "measured log solubility in mols per litre": "-2.06",
+                  "smiles": "CC(C)=CCCC(C)=CC(=O)"
+                }
+              ],
+              "notes": "moleculenet_esol_delaney_solubility.csv  (1128 rows)\n  Source: MoleculeNet ESOL (Delaney) via the DeepChem repository, unmodified.\n  Columns include \"Compound ID\", \"measured log solubility in mols per litre\"\n  (the regression target), \"ESOL predicted log solubility in mols per litre\"\n  (a published baseline prediction, NOT a feature — using it as input leaks\n  the target), \"smiles\", and computed descriptors.",
+              "row_count": 1128,
+              "last_rows": [
+                {
+                  "Compound ID": "Thiometon",
+                  "ESOL predicted log solubility in mols per litre": "-3.323",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "246.35899999999998",
+                  "Number of H-Bond Donors": "0",
+                  "Number of Rings": "0",
+                  "Number of Rotatable Bonds": "7",
+                  "Polar Surface Area": "18.46",
+                  "measured log solubility in mols per litre": "-3.091",
+                  "smiles": "CCSCCSP(=S)(OC)OC"
+                },
+                {
+                  "Compound ID": "2-Methylbutane",
+                  "ESOL predicted log solubility in mols per litre": "-2.245",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "72.151",
+                  "Number of H-Bond Donors": "0",
+                  "Number of Rings": "0",
+                  "Number of Rotatable Bonds": "1",
+                  "Polar Surface Area": "0.0",
+                  "measured log solubility in mols per litre": "-3.18",
+                  "smiles": "CCC(C)C"
+                },
+                {
+                  "Compound ID": "Stirofos",
+                  "ESOL predicted log solubility in mols per litre": "-4.32",
+                  "Minimum Degree": "1",
+                  "Molecular Weight": "365.96400000000006",
+                  "Number of H-Bond Donors": "0",
+                  "Number of Rings": "1",
+                  "Number of Rotatable Bonds": "5",
+                  "Polar Surface Area": "44.760000000000005",
+                  "measured log solubility in mols per litre": "-4.522",
+                  "smiles": "COP(=O)(OC)OC(=CCl)c1cc(Cl)c(Cl)cc1Cl"
+                }
+              ]
+            }
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      },
+      "reference_implementations": [
+        {
+          "paper_id": "2006.09916",
+          "title": "Bayesian active learning for production, a systematic study and a reusable library",
+          "year": "2020",
+          "citation_count": 30,
+          "tldr": "A study addresses challenges in deep active learning, including model convergence, annotation errors, and dataset imbalance, proposing techniques to improve efficiency and introducing an open-source library.",
+          "url_abs": "https://arxiv.org/abs/2006.09916",
+          "repositories": [
+            {
+              "url": "https://github.com/ElementAI/baal",
+              "is_official": true,
+              "stars": 933
+            },
+            {
+              "url": "https://github.com/baal-org/baal",
+              "is_official": false,
+              "stars": 933
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2106.12059",
+          "title": "Stochastic Batch Acquisition: A Simple Baseline for Deep Active Learning",
+          "year": "2021",
+          "citation_count": 43,
+          "tldr": "A simple stochastic strategy for batch active learning using standard acquisition functions outperforms complex, compute-intensive methods with significantly less computational cost.",
+          "url_abs": "https://arxiv.org/abs/2106.12059v3",
+          "repositories": [
+            {
+              "url": "https://github.com/baal-org/baal",
+              "is_official": true,
+              "stars": 933
+            },
+            {
+              "url": "https://github.com/ElementAI/baal",
+              "is_official": false,
+              "stars": 933
+            }
+          ],
+          "methods": []
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T00:17:32.371670+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

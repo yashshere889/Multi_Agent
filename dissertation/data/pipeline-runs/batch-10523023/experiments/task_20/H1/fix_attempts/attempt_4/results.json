@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether K-means clustering with PCA dimensionality reduction recovers income strata more consistently with predefined income thresholds than hierarchical clustering or fuzzy c-means methods.",
+  "author": "coder-agent",
+  "baseline": "Predefined income thresholds ('>50K' vs '<=50K') serving as ground truth for cluster alignment",
+  "success_criteria": "K-means with PCA will show higher Adjusted Rand Index and Normalized Mutual Information scores compared to hierarchical clustering and fuzzy c-means when evaluated against predefined income thresholds, indicating better recovery of income strata consistency.",
+  "timestamp_utc": "2026-09-16T06:23:55.233321+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.3456,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_20/H1/run.py\", line 631, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_20/H1/run.py\", line 287, in run_experiment\n    kmeans_raw = KMeans(n_clusters=k, random_state=random_state, n_init=10)\n                 ^^^^^^\nUnboundLocalError: cannot access local variable 'KMeans' where it is not associated with a value\n"
+}

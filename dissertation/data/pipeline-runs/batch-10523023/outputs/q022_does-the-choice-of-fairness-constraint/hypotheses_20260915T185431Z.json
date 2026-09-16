@@ -1,0 +1,623 @@
+{
+  "literature_summary": "The literature consistently highlights the tension between fairness and accuracy or profitability in algorithmic lending and decision-making systems. Multiple studies show that applying fairness constraints—such as demographic parity, equal opportunity, or counterfactual fairness—can reduce model accuracy or profitability, though some approaches like 'fairness through unawareness' or subgroup threshold optimization suggest ways to mitigate these trade-offs. Researchers explore various techniques including association rule mining, reinforcement learning, adversarial training, and causal inference to detect and reduce bias. However, there is a recurring gap in understanding how fairness constraints actually change which individuals are rejected or approved in practice, especially when overall accuracy is held constant. Many papers also point out limitations in current fairness methods, such as reliance on simplified models, lack of real-world validation, and insufficient attention to long-term impacts or strategic behavior in response to algorithmic decisions.",
+  "methods_overview": [
+    {
+      "method": "Fairness through unawareness",
+      "papers_using_it": [
+        "2505.13469v2",
+        "64fc108b5b952908e1e963343a8006f98b343a47"
+      ],
+      "notes": "Common; involves removing protected attributes from models to improve fairness and profitability."
+    },
+    {
+      "method": "Counterfactual Fairness",
+      "papers_using_it": [
+        "2112.02170v1",
+        "2009.02841v2",
+        "1703.06856v3",
+        "900a5486e5f065a9803f6b4a33cf5d1f0b1f2872"
+      ],
+      "notes": "Moderately common; used to assess fairness under hypothetical scenarios and often involves matching or causal modeling."
+    },
+    {
+      "method": "Demographic Parity",
+      "papers_using_it": [
+        "64fc108b5b952908e1e963343a8006f98b343a47"
+      ],
+      "notes": "Common; requires equal acceptance rates across groups and is often contrasted with other fairness criteria."
+    },
+    {
+      "method": "Equal Opportunity",
+      "papers_using_it": [
+        "64fc108b5b952908e1e963343a8006f98b343a47"
+      ],
+      "notes": "Common; focuses on equalizing true positive rates across groups and is shown to impose lower profit costs."
+    },
+    {
+      "method": "Reinforcement Learning with Stepwise Fairness Constraints",
+      "papers_using_it": [
+        "2211.03994v1"
+      ],
+      "notes": "Rare; designed for dynamic environments where fairness must be maintained at each time step."
+    },
+    {
+      "method": "Wasserstein Projections for Statistical Hypothesis Testing",
+      "papers_using_it": [
+        "a8859fd864013ba48c39c142ede4a07b14374bcd"
+      ],
+      "notes": "Rare; used to jointly evaluate fairness and utility tradeoffs in machine learning models."
+    },
+    {
+      "method": "Subgroup Threshold Optimization",
+      "papers_using_it": [
+        "61c31f9c4b70825626d447573d8d9f158f792048",
+        "548aee0adaac7674572f41f128bd0d2680b80d25"
+      ],
+      "notes": "Moderately common; adjusts decision thresholds based on subgroup characteristics to optimize fairness metrics."
+    },
+    {
+      "method": "Fairness Constraints in Model Training",
+      "papers_using_it": [
+        "c05de3fc1677b01beab1d19bce7392eeee817063",
+        "fb3c4de76d721fe0a44b5145659537fb0021d1d5",
+        "d4bc280fb17dc597cbe4f764efc0bc5358c5a670"
+      ],
+      "notes": "Common; directly incorporated into model design to reduce disparate impacts across protected groups."
+    },
+    {
+      "method": "Multi-objective Programming (ϵ-constraint scalarization)",
+      "papers_using_it": [
+        "c05de3fc1677b01beab1d19bce7392eeee817063"
+      ],
+      "notes": "Rare; used to formulate fairness objectives alongside performance objectives in model training."
+    },
+    {
+      "method": "Fairness-Aware Learning Algorithms",
+      "papers_using_it": [
+        "c6c209c365877057d52012232fe6ff31da5918ee",
+        "03dd78ec596b47f5148c699125e567d219e7c36a"
+      ],
+      "notes": "Common; used to reduce bias in credit scoring models by adjusting training or post-processing steps."
+    },
+    {
+      "method": "Adversarial Training",
+      "papers_using_it": [
+        "03dd78ec596b47f5148c699125e567d219e7c36a"
+      ],
+      "notes": "Moderately common; in-processing technique used to adjust algorithms for fairness during decision-making."
+    },
+    {
+      "method": "Post-processing Tools",
+      "papers_using_it": [
+        "03dd78ec596b47f5148c699125e567d219e7c36a"
+      ],
+      "notes": "Moderately common; applied to adjust credit scoring outputs to minimize disparities without reducing predictive efficiency."
+    },
+    {
+      "method": "Data Reweighting and Fairness Constraints",
+      "papers_using_it": [
+        "80c5e5706219c7902a77517fdc39e454c7f5f7fc"
+      ],
+      "notes": "Rare; technical approaches to reduce algorithmic disparities by adjusting training data or model objectives."
+    },
+    {
+      "method": "Distributionally Robust Optimisation",
+      "papers_using_it": [
+        "658aaf3cfe1a15555cd81c6d2e3c655fe40002f3"
+      ],
+      "notes": "Rare; used to develop fair credit scoring models by addressing biases in training data and proxy attributes."
+    },
+    {
+      "method": "Fairness-Aware Techniques",
+      "papers_using_it": [
+        "483b7fcfa5a42acffe6d36c9ad2bcb9967cc6a20"
+      ],
+      "notes": "Moderately common; applied during model development to ensure equitable outcomes across demographic groups."
+    },
+    {
+      "method": "Quantitative Bias Analysis Using Protected Classes",
+      "papers_using_it": [
+        "ae6ecae03a2dab8efff0206f254b8b6f484f0762"
+      ],
+      "notes": "Rare; employs classical fairness benchmarks and threshold comparisons to measure bias in ML models."
+    },
+    {
+      "method": "Fairness-Constrained Optimization Attack in Federated Learning",
+      "papers_using_it": [
+        "0897a72a27d6605b2bc14f511d232bdeddcbac8c"
+      ],
+      "notes": "Rare; introduces a malicious client strategy that increases fairness loss while maintaining global accuracy."
+    },
+    {
+      "method": "Many-Objective Optimization for Resource Management in IoV",
+      "papers_using_it": [
+        "06bc2c09aa6ded02dbe1a720add6d796450f39fd"
+      ],
+      "notes": "Rare; uses interval-constrained evolutionary algorithm to manage vehicle scheduling and bandwidth allocation with fairness considerations."
+    },
+    {
+      "method": "Surrogate Models",
+      "papers_using_it": [
+        "344205482"
+      ],
+      "notes": "Rare; used in multiobjective optimization to reduce computational cost."
+    },
+    {
+      "method": "Differential Evolution",
+      "papers_using_it": [
+        "2949403"
+      ],
+      "notes": "Rare; applied to multiobjective portfolio optimization with real-world constraints."
+    },
+    {
+      "method": "Preconditioned Iterative Solvers",
+      "papers_using_it": [
+        "8220646"
+      ],
+      "notes": "Rare; utilized for solving PDE-constrained optimization problems."
+    },
+    {
+      "method": "Steepest Descent Method Without Scalarization",
+      "papers_using_it": [
+        "2727129"
+      ],
+      "notes": "Rare; for box-constrained vector optimization using projected gradients."
+    },
+    {
+      "method": "First-Order Optimality Conditions",
+      "papers_using_it": [
+        "2727890"
+      ],
+      "notes": "Rare; established for constrained set-valued optimization problems."
+    },
+    {
+      "method": "LS+GS Algorithm",
+      "papers_using_it": [
+        "2311.13123v2"
+      ],
+      "notes": "Rare; parallel algorithm for submodular p-superseparable maximization."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "How fairness constraints actually change which applicants are rejected at equal overall accuracy",
+      "supporting_evidence": [
+        "2606.12435v1",
+        "2112.02170v1",
+        "2505.13469v2",
+        "2211.03994v1",
+        "64fc108b5b952908e1e963343a8006f98b343a47",
+        "61c31f9c4b70825626d447573d8d9f158f792048",
+        "548aee0adaac7674572f41f128bd0d2680b80d25",
+        "c05de3fc1677b01beab1d19bce7392eeee817063",
+        "fb3c4de76d721fe0a44b5145659537fb0021d1d5",
+        "d4bc280fb17dc597cbe4f764efc0bc5358c5a670",
+        "c6c209c365877057d52012232fe6ff31da5918ee",
+        "03dd78ec596b47f5148c699125e567d219e7c36a",
+        "80c5e5706219c7902a77517fdc39e454c7f5f7fc",
+        "483b7fcfa5a42acffe6d36c9ad2bcb9967cc6a20",
+        "658aaf3cfe1a15555cd81c6d2e3c655fe40002f3",
+        "ae6ecae03a2dab8efff0206f254b8b6f484f0762",
+        "28c6e71e418cf69bcc47defe0c3cf5733b09fb8f",
+        "add87f5166ae7e59d030987e97802a35b3ebc3f3",
+        "34d7548e388a4b89de3bac2358c8829a562819b9",
+        "f4dd83c22915ea5273f03e357e10a145168e5f9a",
+        "f1f4604c7120d1ed93a5c838ecd248ae5ba663b8",
+        "16ab5911ca99c30800570035b1316dc864ca894f",
+        "cfc2dc40210dcd2e9e0a6b79d88eb73839b39f2a",
+        "d42b11ce90c9c69a20ed015b73dc33e0e4100a7b",
+        "adaa0523a5c9d5f92aa2009a51226391d8e62380",
+        "4c64ee852f082f8f4e0113cfc1302b34e31539a2",
+        "ed6297433cfc580837e87592f550cc96296c7d0a",
+        "57797e2432b06dfbb7debd6f13d0aab45d374426",
+        "1506.03880v2",
+        "2110.10200v1",
+        "2209.03013v1",
+        "1905.11374v5",
+        "2309.13103v1",
+        "2009.02841v2",
+        "1703.06856v3",
+        "aeaffe41e8ee8adc7aa2b58c45202b8c930ebc19",
+        "99e78e297653b9c1af7fdac7c7634deabcaf3523",
+        "3a74772a6011675ce2bdc87100fffcf4d18f5907",
+        "900a5486e5f065a9803f6b4a33cf5d1f0b1f2872",
+        "e706c89c914aaa5c58502fa69b2112ff15c4c40d",
+        "cb39129d23d427b397d930bca1079a7b8d0176c6",
+        "05c452aaef288d396bc3a498087228ef523f5701",
+        "fd5f85e0b70afe16787a2fcec97576afbb6f9ba6",
+        "169447337",
+        "16175463",
+        "147675268",
+        "145618824",
+        "147675756",
+        "391403888",
+        "360820041",
+        "2205.00528v1",
+        "1808.06100v6",
+        "1506.08019v1",
+        "2501.19214v2",
+        "2501.00258v1",
+        "2303.08710v1",
+        "2201.02491v3",
+        "db45499844906abf53603e6716d2ba30d707277f",
+        "90bcda167d5dab995ca7f556c3f2e6d4f9ef9a5d",
+        "22a912107bddb8c09c2a86bb755cbcb02f7283b0",
+        "3f1a2695057fe3c4dd68829abc24c63fb0fd2733",
+        "22a3b5be98595a912870ec689fd2e716c84bb638",
+        "68230b51df7221558787a011e46b19e6b5f5b43a",
+        "0897a72a27d6605b2bc14f511d232bdeddcbac8c",
+        "45210d8ac0506108078c27e0c3b3fb1f749ca68d",
+        "2736e8dc08ae0800b6fa5ac09dd952ed257eec9a",
+        "06bc2c09aa6ded02dbe1a720add6d796450f39fd",
+        "344205482",
+        "2949403",
+        "405532096",
+        "2726914",
+        "2583596",
+        "8220646",
+        "2727129",
+        "2727890",
+        "2311.13123v2",
+        "2001.09784v1",
+        "2609.03853v1",
+        "2511.14722v2",
+        "2304.12573v1",
+        "2310.08349v3",
+        "1cc8bbf933768c489d21f4d6c99823f4712dbdd1",
+        "8461a10a5566903be919937373b5a28388c7d461",
+        "e88f868805721ac7b06217cafc381edb51a15b0f",
+        "26edb738c7d2134e05a1015edcb02ce1398c1a4f",
+        "8fc6012ee96856046866b5e56f99f2f0552f338c",
+        "92fac156b11bd76740d793d565bb517fe6fbef93",
+        "294000098",
+        "299505418",
+        "320296107",
+        "4230583",
+        "2503422"
+      ],
+      "notes": "Despite extensive study of fairness constraints, few papers empirically demonstrate how these constraints alter individual-level outcomes when accuracy is controlled."
+    },
+    {
+      "gap": "Effectiveness of fairness interventions varies significantly across different model types",
+      "supporting_evidence": [
+        "fe8190fec94d5ef4291aaba7f86d400351eadedc"
+      ],
+      "notes": "Identified as a key limitation in the literature, suggesting a need for tailored approaches depending on the algorithm used."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for evaluating fairness in credit scoring models for underrepresented groups",
+      "supporting_evidence": [
+        "b0a5f3d7c12d4e31d76b229f5e92cb8f783efb6e"
+      ],
+      "notes": "Points to a need for more rigorous and inclusive evaluation standards."
+    },
+    {
+      "gap": "Need for fair data processing pipelines and learning algorithms that are aware of Data Quality Disparity (DQD)",
+      "supporting_evidence": [
+        "3e3f3f3cbffc32cd0d1cfd66d58e02ec97177879"
+      ],
+      "notes": "Highlights a critical gap in addressing unequal data quality affecting model performance."
+    },
+    {
+      "gap": "Long-term implications of temporal fairness in sequential lending decisions remain understudied",
+      "supporting_evidence": [
+        "47e49c575eee9607b873c2f6e80816ec4616f521"
+      ],
+      "notes": "Emphasizes the need for research on how fairness evolves over time in dynamic environments."
+    },
+    {
+      "gap": "Effectiveness of Wasserstein projection-based tests for fairness-utility tradeoffs needs further validation",
+      "supporting_evidence": [
+        "a8859fd864013ba48c39c142ede4a07b14374bcd"
+      ],
+      "notes": "Calls for more empirical validation on diverse real-world datasets."
+    },
+    {
+      "gap": "Impact of fairness constraints on consumer welfare beyond TPR is understudied",
+      "supporting_evidence": [
+        "61c31f9c4b70825626d447573d8d9f158f792048"
+      ],
+      "notes": "Points to a lack of focus on long-term financial consequences for those classified as 'losers'."
+    },
+    {
+      "gap": "Legal clarity around implementing group-specific lending thresholds under fair lending laws",
+      "supporting_evidence": [
+        "61c31f9c4b70825626d447573d8d9f158f792048"
+      ],
+      "notes": "Leaves open the question of regulatory compliance for such approaches."
+    },
+    {
+      "gap": "Real-world deployment effectiveness of fairness-aware techniques remains understudied",
+      "supporting_evidence": [
+        "483b7fcfa5a42acffe6d36c9ad2bcb9967cc6a20"
+      ],
+      "notes": "Indicates a gap in understanding how these methods perform outside controlled settings."
+    },
+    {
+      "gap": "Lack of integration between fairness auditing and causal inference in practical applications",
+      "supporting_evidence": [
+        "05c452aaef288d396bc3a498087228ef523f5701",
+        "169447337"
+      ],
+      "notes": "Highlights a missed opportunity for combining these two important areas."
+    },
+    {
+      "gap": "Need for better integration of economic considerations in fair lending practices",
+      "supporting_evidence": [
+        "paper_54"
+      ],
+      "notes": "Points to a gap in aligning fairness with economic realities."
+    },
+    {
+      "gap": "Limited exploration of how to implement feature-specific interventions for fairness",
+      "supporting_evidence": [
+        "paper_53"
+      ],
+      "notes": "Suggests a need for more granular approaches to fairness in feature space."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for fairness-aware multiobjective optimization in real-world applications",
+      "supporting_evidence": [
+        "3f1a2695057fe3c4dd68829abc24c63fb0fd2733",
+        "68230b51df7221558787a011e46b19e6b5f5b43a"
+      ],
+      "notes": "Points to a need for more robust evaluation frameworks."
+    },
+    {
+      "gap": "Insufficient exploration of adversarial fairness attacks in federated learning beyond theoretical models",
+      "supporting_evidence": [
+        "0897a72a27d6605b2bc14f511d232bdeddcbac8c"
+      ],
+      "notes": "Highlights a gap in understanding real-world threats to fairness in distributed learning."
+    },
+    {
+      "gap": "Limited discussion on how surrogate models perform in real-world multiobjective optimization beyond test functions",
+      "supporting_evidence": [
+        "344205482"
+      ],
+      "notes": "Points to a gap in practical validation of optimization techniques."
+    },
+    {
+      "gap": "Lack of explicit treatment of fairness in build-to-order supply chain decision support despite multiobjective optimization being applied",
+      "supporting_evidence": [
+        "405532096"
+      ],
+      "notes": "Identifies a domain-specific oversight in fairness integration."
+    },
+    {
+      "gap": "Retrospective fairness measures fail to account for performative effects that occur after deployment",
+      "supporting_evidence": [
+        "2310.08349v3"
+      ],
+      "notes": "Raises concerns about the adequacy of current fairness evaluation methods."
+    },
+    {
+      "gap": "Fairness among similar individuals remains an understudied area",
+      "supporting_evidence": [
+        "e88f868805721ac7b06217cafc381edb51a15b0f"
+      ],
+      "notes": "Points to a gap in understanding how small data differences can lead to disparate outcomes."
+    },
+    {
+      "gap": "Relationship between fairness and cost-benefit evaluation in bargaining situations needs further empirical investigation",
+      "supporting_evidence": [
+        "4230583"
+      ],
+      "notes": "Highlights a need for more experimental work in this area."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "When applying demographic parity and equal opportunity fairness constraints to a credit approval model trained on the UCI German Credit dataset, the set of applicants rejected at equal overall accuracy will differ significantly, with demographic parity leading to a higher rejection rate among male applicants compared to equal opportunity.",
+      "rationale": "This hypothesis directly addresses the identified gap regarding how fairness constraints change individual-level rejection decisions at equal accuracy. It leverages the UCI Statlog German Credit dataset, which contains sensitive attributes like gender (personal_status_sex) and credit risk outcomes. The hypothesis contrasts two commonly used fairness criteria—demographic parity and equal opportunity—that are known to have different impacts on model outputs. By controlling for overall accuracy, we can isolate the effect of the fairness constraint on who is rejected.",
+      "related_gaps": [
+        "How fairness constraints actually change which applicants are rejected at equal overall accuracy"
+      ],
+      "related_methods": [
+        "Demographic Parity",
+        "Equal Opportunity",
+        "Fairness-Constrained Optimization"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "fairness_constraint",
+          "gender"
+        ],
+        "dependent": [
+          "rejection_decision",
+          "accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using counterfactual fairness methods derived from causal inference on the UCI Adult Census Income dataset will reveal that applying fairness constraints leads to a shift in the distribution of rejected applicants toward those with lower predicted risk scores, even when overall model accuracy is held constant.",
+      "rationale": "This hypothesis builds on the cross-disciplinary bridge insight connecting causal inference and fairness in lending decisions. Counterfactual fairness allows us to model what would happen if an applicant belonged to a different protected group, thereby assessing how fairness constraints alter individual-level outcomes. The UCI Adult Census Income dataset includes both sensitive attributes (race, sex) and income targets, making it suitable for testing this claim. This approach directly confronts the gap in understanding how fairness constraints change which individuals are rejected.",
+      "related_gaps": [
+        "How fairness constraints actually change which applicants are rejected at equal overall accuracy",
+        "Retrospective fairness measures fail to account for performative effects that occur after deployment"
+      ],
+      "related_methods": [
+        "Counterfactual Fairness",
+        "Causal Inference"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "fairness_constraint",
+          "predicted_risk_score"
+        ],
+        "dependent": [
+          "rejection_decision",
+          "accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Implementing subgroup threshold optimization techniques on the UCI Credit Approval dataset results in a measurable difference in the proportion of applicants from different ethnic backgrounds being rejected, even when overall model accuracy remains unchanged.",
+      "rationale": "This hypothesis stems from the gap concerning the lack of empirical demonstration of how fairness constraints alter individual-level outcomes at equal accuracy. Subgroup threshold optimization is a method that adjusts decision thresholds based on subgroup characteristics to optimize fairness metrics. The UCI Credit Approval dataset contains anonymized categorical features and a binary approval outcome, allowing for such subgroup analysis. This hypothesis tests whether the method produces observable differences in rejections across subgroups, supporting the idea that fairness interventions can indeed change who gets rejected.",
+      "related_gaps": [
+        "How fairness constraints actually change which applicants are rejected at equal overall accuracy"
+      ],
+      "related_methods": [
+        "Subgroup Threshold Optimization",
+        "Fairness-Aware Learning Algorithms"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "subgroup",
+          "threshold_setting"
+        ],
+        "dependent": [
+          "rejection_decision",
+          "accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is most feasible because it uses the UCI German Credit dataset (uci_statlog_german_credit.csv), which contains the required sensitive attribute 'personal_status_sex' and credit risk outcome. It is testable since it makes a clear, falsifiable claim about rejection differences under demographic parity vs. equal opportunity constraints at equal accuracy. The hypothesis is coherent as it directly contrasts two fairness methods (demographic parity and equal opportunity) applied to a concrete lending system (credit approval). The data is sufficient to make the claim, as the dataset includes all necessary variables to compute both fairness constraints and rejection decisions. It is well-grounded in the literature, directly addressing the key gap about how fairness constraints change individual-level rejections at equal accuracy, and aligns with the core research question."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 is less feasible because while it references the UCI Adult Census Income dataset (uci_adult_census_income.csv), counterfactual fairness methods require complex causal modeling that goes beyond simple fairness constraint application. It is somewhat testable but relies heavily on assumptions about counterfactual generation and causal structure, making the outcome less predictable. The hypothesis is coherent but introduces a more advanced method (counterfactual fairness) that may not be easily implemented without additional modeling steps. While the data exists, it's unclear if it would decisively support or refute the claim due to the complexity of counterfactual estimation. It is grounded in bridge insights from causal inference but pushes beyond what can be straightforwardly tested with the available data."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 5.0,
+      "justification": "H3 is least feasible because subgroup threshold optimization requires detailed subgroup analysis and potentially multiple models or thresholds per subgroup, which is not straightforwardly supported by the UCI Credit Approval dataset (uci_credit_approval.csv). The hypothesis is testable in principle but lacks specificity in how subgroups are defined or how thresholds are optimized, making it harder to validate definitively. It is somewhat coherent but introduces a method (subgroup threshold optimization) that is not clearly aligned with the dataset's structure. The data is insufficient to fully support the claim without significant assumptions or preprocessing. It is grounded in the literature but less directly tied to the core research question compared to H1."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2606.12435v1",
+    "2112.02170v1",
+    "2211.03994v1",
+    "2505.13469v2",
+    "2011.09865v3",
+    "9bedf28cdcfffcbcead05bbf52eafb0f0dedc1cd",
+    "962c625f06e020ad1484323512c40675f9e9211f",
+    "a8859fd864013ba48c39c142ede4a07b14374bcd",
+    "64fc108b5b952908e1e963343a8006f98b343a47",
+    "11354f0d497f874d0bb36066b35ef6c2402113da",
+    "b0a5f3d7c12d4e31d76b229f5e92cb8f783efb6e",
+    "e9ec7469c943133d2006a46cce5378f6f5187434",
+    "60cd8c9bc4c91e6fdbfe9c0e716a8865f56a733e",
+    "3e3f3f3cbffc32cd0d1cfd66d58e02ec97177879",
+    "37fd0a5524a5fe180da2a9cee3154250b346ed12",
+    "61c31f9c4b70825626d447573d8d9f158f792048",
+    "548aee0adaac7674572f41f128bd0d2680b80d25",
+    "c05de3fc1677b01beab1d19bce7392eeee817063",
+    "fb3c4de76d721fe0a44b5145659537fb0021d1d5",
+    "da7ca0667f5f89eed75727044c3888b3be557841",
+    "5379dc9b1ab44da89e8b870ebe222dd48144252e",
+    "d4bc280fb17dc597cbe4f764efc0bc5358c5a670",
+    "fe8190fec94d5ef4291aaba7f86d400351eadedc",
+    "0675086110950cdaef2778a6900337e566aa2a4b",
+    "47e49c575eee9607b873c2f6e80816ec4616f521",
+    "c6c209c365877057d52012232fe6ff31da5918ee",
+    "80c5e5706219c7902a77517fdc39e454c7f5f7fc",
+    "03dd78ec596b47f5148c699125e567d219e7c36a",
+    "483b7fcfa5a42acffe6d36c9ad2bcb9967cc6a20",
+    "658aaf3cfe1a15555cd81c6d2e3c655fe40002f3",
+    "5e4ccb5b8702b555b89844e8fea1642975eefab2",
+    "ae6ecae03a2dab8efff0206f254b8b6f484f0762",
+    "9f3c85f0df20a8ee7feea78c3a00973862404a84",
+    "998cf821781b46c4e28c36b4286900e00a6b18ed",
+    "28c6e71e418cf69bcc47defe0c3cf5733b09fb8f",
+    "add87f5166ae7e59d030987e97802a35b3ebc3f3",
+    "34d7548e388a4b89de3bac2358c8829a562819b9",
+    "d4d7bcdd6d22885adae449f3331202e99b30d9bb",
+    "3b5183245d7ca56451bd62ba7c35349148c8f174",
+    "cac132125c20bb98b34f6222fa0983d93b5c92a2",
+    "9845d8cac2e67cd64dd4fcf907f259ded8b1f618",
+    "2f1cc99925932c2e414f0f06444ff372700f9dec",
+    "5e947dce4bf10731651ae9ac1c6ac23902281d23",
+    "f4dd83c22915ea5273f03e357e10a145168e5f9a",
+    "f1f4604c7120d1ed93a5c838ecd248ae5ba663b8",
+    "16ab5911ca99c30800570035b1316dc864ca894f",
+    "cfc2dc40210dcd2e9e0a6b79d88eb73839b39f2a",
+    "d42b11ce90c9c69a20ed015b73dc33e0e4100a7b",
+    "adaa0523a5c9d5f92aa2009a51226391d8e62380",
+    "4c64ee852f082f8f4e0113cfc1302b34e31539a2",
+    "ed6297433cfc580837e87592f550cc96296c7d0a",
+    "57797e2432b06dfbb7debd6f13d0aab45d374426",
+    "97a98065c1fec5c36104f586c93ca756caf5caaf",
+    "paper_53",
+    "paper_54",
+    "1506.03880v2",
+    "2110.10200v1",
+    "2209.03013v1",
+    "1905.11374v5",
+    "2309.13103v1",
+    "2009.02841v2",
+    "1703.06856v3",
+    "aeaffe41e8ee8adc7aa2b58c45202b8c930ebc19",
+    "99e78e297653b9c1af7fdac7c7634deabcaf3523",
+    "3a74772a6011675ce2bdc87100fffcf4d18f5907",
+    "900a5486e5f065a9803f6b4a33cf5d1f0b1f2872",
+    "e706c89c914aaa5c58502fa69b2112ff15c4c40d",
+    "cb39129d23d427b397d930bca1079a7b8d0176c6",
+    "05c452aaef288d396bc3a498087228ef523f5701",
+    "fd5f85e0b70afe16787a2fcec97576afbb6f9ba6",
+    "169447337",
+    "16175463",
+    "147675268",
+    "145618824",
+    "147675756",
+    "391403888",
+    "360820041",
+    "2205.00528v1",
+    "1808.06100v6",
+    "1506.08019v1",
+    "2501.19214v2",
+    "2501.00258v1",
+    "2303.08710v1",
+    "2201.02491v3",
+    "db45499844906abf53603e6716d2ba30d707277f",
+    "90bcda167d5dab995ca7f556c3f2e6d4f9ef9a5d",
+    "22a912107bddb8c09c2a86bb755cbcb02f7283b0",
+    "3f1a2695057fe3c4dd68829abc24c63fb0fd2733",
+    "22a3b5be98595a912870ec689fd2e716c84bb638",
+    "68230b51df7221558787a011e46b19e6b5f5b43a",
+    "0897a72a27d6605b2bc14f511d232bdeddcbac8c",
+    "45210d8ac0506108078c27e0c3b3fb1f749ca68d",
+    "2736e8dc08ae0800b6fa5ac09dd952ed257eec9a",
+    "06bc2c09aa6ded02dbe1a720add6d796450f39fd",
+    "344205482",
+    "2949403",
+    "405532096",
+    "2726914",
+    "2583596",
+    "8220646",
+    "2727129",
+    "2727890",
+    "2311.13123v2",
+    "2001.09784v1",
+    "2609.03853v1",
+    "2511.14722v2",
+    "2304.12573v1",
+    "2310.08349v3",
+    "1cc8bbf933768c489d21f4d6c99823f4712dbdd1",
+    "8461a10a5566903be919937373b5a28388c7d461",
+    "e88f868805721ac7b06217cafc381edb51a15b0f",
+    "26edb738c7d2134e05a1015edcb02ce1398c1a4f",
+    "8fc6012ee96856046866b5e56f99f2f0552f338c",
+    "92fac156b11bd76740d793d565bb517fe6fbef93",
+    "294000098",
+    "299505418",
+    "320296107",
+    "4230583",
+    "2503422"
+  ],
+  "generated_at": "2026-09-15T18:54:31.486697+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

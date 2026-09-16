@@ -1,0 +1,779 @@
+{
+  "literature_summary": "The literature presents a broad examination of model validation, performance evaluation, and generalization across diverse domains including machine learning, biomedical applications, and computational biology. Central themes revolve around the challenges of accurately estimating model performance using validation sets, particularly when dealing with small datasets, data leakage, and variability in model behavior. Studies highlight the limitations of certain validation techniques such as leave-one-out cross-validation and systematic sampling, while also exploring alternatives like fivefold cross-validation, bootstrap methods, and train-test splits. There is a recurring concern about the reliability of performance rankings on small validation sets predicting test set outcomes, with evidence suggesting significant discrepancies due to data characteristics and methodological choices. Additionally, several works underscore the importance of avoiding data leakage, ensuring proper dataset partitioning, and considering the impact of model architecture and training dynamics on generalization. The literature also touches on broader issues such as test set representativeness, the need for standardized evaluation protocols, and the influence of experimental design on perceived model capabilities.",
+  "methods_overview": [
+    {
+      "method": "Fivefold cross-validation",
+      "papers_using_it": [
+        "9f8b9a38998d4dc78712e4c9da5a53e63c8de4d9",
+        "56506a64450d5d17a6fdd0f7dfc3837c5c4d9294",
+        "f9820ced946c4aa246dd8cba75262acfb4a34b6e"
+      ],
+      "notes": "Commonly used for assessing model stability and performance; recommended for estimating c-statistics and generalization."
+    },
+    {
+      "method": "Leave-one-out cross-validation",
+      "papers_using_it": [
+        "9f8b9a38998d4dc78712e4c9da5a53e63c8de4d9"
+      ],
+      "notes": "Rarely used due to introduced bias, especially for penalized estimators."
+    },
+    {
+      "method": "Bootstrap methods",
+      "papers_using_it": [
+        "9f8b9a38998d4dc78712e4c9da5a53e63c8de4d9",
+        "b6de027159450d79966537df34b24db23d86873f"
+      ],
+      "notes": "Used alongside cross-validation for estimating generalization performance; .632+ bootstrap suggested as an alternative."
+    },
+    {
+      "method": "Systematic sampling (K-S, SPXY)",
+      "papers_using_it": [
+        "b6de027159450d79966537df34b24db23d86873f"
+      ],
+      "notes": "Rarely effective; found to yield poor estimation of model performance."
+    },
+    {
+      "method": "Train-test split",
+      "papers_using_it": [
+        "56506a64450d5d17a6fdd0f7dfc3837c5c4d9294",
+        "225e899c2629da91d8af8c467fe4c55271185c6a",
+        "5a5c01e2d7d1d668ce2ea9cb62dccc910fb3489d"
+      ],
+      "notes": "Commonly used for initial model evaluation and validation; combined with cross-validation for robustness checks."
+    },
+    {
+      "method": "Cross-fold comparison (Kruskal-Wallis test)",
+      "papers_using_it": [
+        "5a5c01e2d7d1d668ce2ea9cb62dccc910fb3489d"
+      ],
+      "notes": "Rarely used; applied to assess stability of model performance across different validation folds."
+    },
+    {
+      "method": "Data leakage correction via filtering",
+      "papers_using_it": [
+        "2c0823b20f48402e9559a7feccb672294dfc4699"
+      ],
+      "notes": "Rarely used; proposed to eliminate train-test data leakage and improve generalization."
+    },
+    {
+      "method": "Dataset partitioning (training, validation, test sets)",
+      "papers_using_it": [
+        "0de1b6138d4bc6c3911e61a3ad93cfd680a11556",
+        "7c6e3c9a30e578e191915d878efc71ac4401d65b",
+        "af62ce4f9e1c61370fc673426facdab3a8bb1f27",
+        "31366c889da905a99d3e2db2fc8404a298349447",
+        "9a1015109170184a8aeb8817172b8b1644b2a0c2",
+        "df00546a81ed8ac3df187eb5aa3c69a5581ddc61"
+      ],
+      "notes": "Common practice for model training and evaluation."
+    },
+    {
+      "method": "Data augmentation",
+      "papers_using_it": [
+        "27c765b660aba877425934cde30d7b3593d68324",
+        "0de1b6138d4bc6c3911e61a3ad93cfd680a11556"
+      ],
+      "notes": "Used to improve model generalization, especially in cases with limited data."
+    },
+    {
+      "method": "Test set evaluation for generalization",
+      "papers_using_it": [
+        "0de1b6138d4bc6c3911e61a3ad93cfd680a11556",
+        "901a25ad0603770624cf02762c25d72096131ac7",
+        "82023aad0b99b4cc21d126dcfe504e942f723800",
+        "42ed4a9994e6121a9f325f5b901c5b3d7ce104f5"
+      ],
+      "notes": "Commonly used to assess how well models generalize to unseen data."
+    },
+    {
+      "method": "Overfitting detection via validation and test accuracy comparison",
+      "papers_using_it": [
+        "3de7f35750f449011c6ff73a48de5bc1fdc76af5"
+      ],
+      "notes": "Rarely used; used to detect overfitting by comparing validation and test accuracy."
+    },
+    {
+      "method": "Loss-based validation criteria",
+      "papers_using_it": [
+        "b9f04be531d809c76720d948735210616e184c29"
+      ],
+      "notes": "Rarely used; found to be more robust and reliable than accuracy-based validation."
+    },
+    {
+      "method": "YOLO (You Only Look Once)",
+      "papers_using_it": [
+        "f8e79ac0ea341056ef20f2616628b3e964764cfd"
+      ],
+      "notes": "Rarely used; a unified, real-time object detection framework."
+    },
+    {
+      "method": "Support-Vector Networks (SVN)",
+      "papers_using_it": [
+        "52b7bf3ba59b31f362aa07f957f1543a29a4279e"
+      ],
+      "notes": "Rarely used; a method for pattern recognition using support vector machines."
+    },
+    {
+      "method": "RoBERTa pretraining approach",
+      "papers_using_it": [
+        "077f8329a7b6fa3b7c877a57b81eb6c18b5f87de"
+      ],
+      "notes": "Rarely used; a robustly optimized BERT pretraining method."
+    },
+    {
+      "method": "XLNet generalized autoregressive pretraining",
+      "papers_using_it": [
+        "e0c6abdbdecf04ffac65c440da77fb9d66bb474c"
+      ],
+      "notes": "Rarely used; combines bidirectional context modeling with autoregressive training."
+    },
+    {
+      "method": "AlphaFold 3",
+      "papers_using_it": [
+        "7572ba7f604ef95d7acdd657ebac458106bd35df"
+      ],
+      "notes": "Rarely used; predicts biomolecular structures including proteins, nucleic acids, and small molecules."
+    },
+    {
+      "method": "GLUE benchmark",
+      "papers_using_it": [
+        "451d4a16e425ecbf38c4b1cca0dcf5d9bec8255c"
+      ],
+      "notes": "Rarely used; a multi-task benchmark for evaluating natural language understanding models."
+    },
+    {
+      "method": "Evolutionary-scale protein structure prediction using language models",
+      "papers_using_it": [
+        "c49a0912595a1cc70aab63524f64ed08c92194a8"
+      ],
+      "notes": "Rarely used; uses large language models trained on protein sequences to predict 3D structures."
+    },
+    {
+      "method": "Genetic algorithms for software model refactoring",
+      "papers_using_it": [
+        "2308.13875v1"
+      ],
+      "notes": "Rarely used; compares performance of PESA2, NSGA-II, and other genetic algorithms."
+    },
+    {
+      "method": "Sample complexity of simple binary hypothesis testing",
+      "papers_using_it": [
+        "2403.16981v2"
+      ],
+      "notes": "Rarely used; characterizes sample complexity using Hellinger and Jensen-Shannon divergences."
+    },
+    {
+      "method": "Compressed hypothesis testing with mixed observations",
+      "papers_using_it": [
+        "1609.07528v3"
+      ],
+      "notes": "Rarely used; introduces mixed observations to improve error exponents."
+    },
+    {
+      "method": "MCMC-based Wald test",
+      "papers_using_it": [
+        "1801.00973v1"
+      ],
+      "notes": "Rarely used; proposes a χ² Wald test using posterior MCMC samples."
+    },
+    {
+      "method": "Mutual information privacy-constrained hypothesis testing",
+      "papers_using_it": [
+        "1704.08347v1"
+      ],
+      "notes": "Rarely used; studies hypothesis testing under mutual information privacy constraints."
+    },
+    {
+      "method": "Simulator-based performance metrics",
+      "papers_using_it": [
+        "ea09d9dbfa8aef193bbb0a5364d7267e7195c5fe"
+      ],
+      "notes": "Rarely used; used to estimate reliability of control room operators."
+    },
+    {
+      "method": "Modified Neuro Fuzzy Inference System (MNFIS)",
+      "papers_using_it": [
+        "2db7606ec6c2f28ff85d3b23bada759aff6ce5b7"
+      ],
+      "notes": "Rarely used; proposed for estimating component-based software system reliability."
+    },
+    {
+      "method": "Test-retest reliability analysis",
+      "papers_using_it": [
+        "80a501804499eda1462ba64e354d8c823800c974",
+        "15110350",
+        "4c06fd257aaf39773f3e58dcc5dfe9af67b7940e"
+      ],
+      "notes": "Used to assess stability of metacognitive performance, cycling performance, and postural vertical perception over time."
+    },
+    {
+      "method": "Respondent-driven sampling with ego network data",
+      "papers_using_it": [
+        "8e9f8c6f50c5cad34425c13c70dde87b9e6735c6"
+      ],
+      "notes": "Rarely used; improves estimation reliability for hard-to-access populations."
+    },
+    {
+      "method": "Empirical Bayes estimation",
+      "papers_using_it": [
+        "340127559"
+      ],
+      "notes": "Rarely used; used to estimate reliability of one-shot devices."
+    },
+    {
+      "method": "Bartlett correction",
+      "papers_using_it": [
+        "3160939"
+      ],
+      "notes": "Rarely used; applied in multivariate autoregressive models to improve hypothesis testing accuracy."
+    },
+    {
+      "method": "Fuzzy Preference Relations (FPR) in AHP",
+      "papers_using_it": [
+        "4ca2b7edd07255b0a4ff61c5af1331dfa7eb511e"
+      ],
+      "notes": "Rarely used; enhances consistency of judgment matrices in multi-criteria decision-making."
+    },
+    {
+      "method": "T2VPhysBench",
+      "papers_using_it": [
+        "f5ca644e6487ff4cceb2fa06204161601aa95e90"
+      ],
+      "notes": "Rarely used; evaluates physical consistency in text-to-video generation."
+    },
+    {
+      "method": "Analytic Hierarchy Process (AHP)",
+      "papers_using_it": [
+        "ce030ae0f7fe90f55cb7afa3f6aa0441f508626c",
+        "82b11ccfc5762fc862787776aae7320ac4834217"
+      ],
+      "notes": "Used for examining judgment consistency in multi-attribute decision-making tasks."
+    },
+    {
+      "method": "Psychophysics Toolbox",
+      "papers_using_it": [
+        "16875954"
+      ],
+      "notes": "Rarely used; software for visual psychophysics experiments."
+    },
+    {
+      "method": "Accelerated Life Test (ALT)",
+      "papers_using_it": [
+        "145068683"
+      ],
+      "notes": "Rarely used; used for estimating reliability of Inertial Measurement Units."
+    },
+    {
+      "method": "Propositionwise judgment aggregation",
+      "papers_using_it": [
+        "2606910"
+      ],
+      "notes": "Rarely used; aggregates individual judgments into collective decisions."
+    },
+    {
+      "method": "Data encoding for Byzantine-resilient optimization",
+      "papers_using_it": [
+        "1907.02664v2"
+      ],
+      "notes": "Rarely used; uses error-correcting codes to protect distributed optimization algorithms."
+    },
+    {
+      "method": "Byzantine-resilient SGD with outlier filtering",
+      "papers_using_it": [
+        "2005.07866v1"
+      ],
+      "notes": "Rarely used; filters corrupt gradients in heterogeneous data settings."
+    },
+    {
+      "method": "TerraGen - layout-to-image generation framework",
+      "papers_using_it": [
+        "2510.21391v1"
+      ],
+      "notes": "Rarely used; unifies multi-task remote sensing image generation."
+    },
+    {
+      "method": "AeroGen - diffusion-driven data generation",
+      "papers_using_it": [
+        "2411.15497v3"
+      ],
+      "notes": "Rarely used; generates high-quality synthetic remote sensing images."
+    },
+    {
+      "method": "Divide-and-next largest difference-based user pairing",
+      "papers_using_it": [
+        "1801.00121v1"
+      ],
+      "notes": "Rarely used; proposed for cluster fairness in NOMA systems."
+    },
+    {
+      "method": "Finite Dominating Set approach",
+      "papers_using_it": [
+        "2511.00300v1"
+      ],
+      "notes": "Rarely used; solves multi-item multi-period order allocation."
+    },
+    {
+      "method": "Feedback bits allocation for interference minimization",
+      "papers_using_it": [
+        "1604.01464v1"
+      ],
+      "notes": "Rarely used; allocates feedback bits among PUs to minimize maximum interference."
+    },
+    {
+      "method": "Censored semi-bandits for resource allocation",
+      "papers_using_it": [
+        "2104.05781v1"
+      ],
+      "notes": "Rarely used; models resource allocation with hidden thresholds."
+    },
+    {
+      "method": "Temporal-autocorrelation feature learning in EEG decoding",
+      "papers_using_it": [
+        "cdeb86170da90f72ecf6a9effce7170b198eb6eb"
+      ],
+      "notes": "Rarely used; highlights risk of models learning spurious correlations."
+    },
+    {
+      "method": "Machine Learning (ML) for material discovery and optimization",
+      "papers_using_it": [
+        "6b610afe9e2cca4dd5b4e0f4e0ebf9486247040f"
+      ],
+      "notes": "Rarely used; applies ML to accelerate discovery and optimize performance of metal oxide photoanodes."
+    },
+    {
+      "method": "Particle Swarm Optimization coupled with ML (PSO-ML)",
+      "papers_using_it": [
+        "0040f3ca37040c171d4b493a7932272eb8c5db19"
+      ],
+      "notes": "Rarely used; applies PSO to optimize ML algorithms for predicting splitting tensile strength."
+    },
+    {
+      "method": "SHapley Additive exPlanations (SHAP)",
+      "papers_using_it": [
+        "0040f3ca37040c171d4b493a7932272eb8c5db19"
+      ],
+      "notes": "Rarely used; used for feature importance and model interpretability."
+    },
+    {
+      "method": "Catastrophe Theory for modeling chip-splitting catastrophe",
+      "papers_using_it": [
+        "5b3f0d9a8f137312b3aac2d933b213f1f8f7b89d"
+      ],
+      "notes": "Rarely used; develops a mathematical model to predict critical conditions of chip-splitting."
+    },
+    {
+      "method": "Risk scoring models for heart transplant candidates",
+      "papers_using_it": [
+        "a2b5aa854e34b6478c0e4ab38eea7def92119e9b"
+      ],
+      "notes": "Rarely used; develops and validates a continuous multivariable risk score."
+    },
+    {
+      "method": "Global irrigation scheme in ORCHIDEE land surface model",
+      "papers_using_it": [
+        "a350c9ce9fbfa7c9fab906e1a12e42bce3da8a67"
+      ],
+      "notes": "Rarely used; incorporates freshwater availability limits and local infrastructure allocation rules."
+    },
+    {
+      "method": "Deep convolutional neural network (CNN) for tooth segmentation and classification",
+      "papers_using_it": [
+        "6537454e95e5f6b7ebb70affb8391c7646007ca3"
+      ],
+      "notes": "Rarely used; segments and classifies teeth with orthodontic brackets in CBCT images."
+    },
+    {
+      "method": "Deterministic experimental design algorithm",
+      "papers_using_it": [
+        "8984190"
+      ],
+      "notes": "Rarely used; optimizes survey designs in tomographic and microseismic monitoring."
+    },
+    {
+      "method": "Laboratory ultrasonic experiments on fractured rocks",
+      "papers_using_it": [
+        "17398269"
+      ],
+      "notes": "Rarely used; investigates shear wave splitting in synthetic sandstones."
+    },
+    {
+      "method": "Operations on IndetermSoft Set, IndetermHyperSoft Set, and TreeSoft Set",
+      "papers_using_it": [
+        "289551573"
+      ],
+      "notes": "Rarely used; defines complement, intersection, and union operations for indeterminate soft set structures."
+    },
+    {
+      "method": "Procrustes Cross-Validation",
+      "papers_using_it": [
+        "150702026"
+      ],
+      "notes": "Rarely used; extends k-fold cross-validation to generate pseudo-validation sets."
+    },
+    {
+      "method": "Partition Function Form Game",
+      "papers_using_it": [
+        "2644594"
+      ],
+      "notes": "Rarely used; cooperative game theory framework for cost allocation."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Small datasets lead to significant discrepancies between validation and test set performance estimates across all data splitting methods.",
+      "supporting_evidence": [
+        "b6de027159450d79966537df34b24db23d86873f"
+      ],
+      "notes": "A consistent finding across multiple studies indicating that validation set performance does not reliably predict test set performance in small data scenarios."
+    },
+    {
+      "gap": "There is variability in how different cross-validation strategies affect model performance metrics such as accuracy and precision.",
+      "supporting_evidence": [
+        "f9820ced946c4aa246dd8cba75262acfb4a34b6e"
+      ],
+      "notes": "Different CV methods can yield different performance estimates, complicating model selection."
+    },
+    {
+      "gap": "The robustness of loss-based validation criteria across different parameterization regimes remains underexplored in terms of theoretical justification.",
+      "supporting_evidence": [
+        "b9f04be531d809c76720d948735210616e184c29"
+      ],
+      "notes": "Despite empirical benefits, theoretical grounding for loss-based validation is lacking."
+    },
+    {
+      "gap": "There is limited discussion on how test validation and inference validity relate to practical implementation in real-world scenarios beyond controlled experiments.",
+      "supporting_evidence": [
+        "3b57e216c1c976d89db70dcf7613eabb57d56a77"
+      ],
+      "notes": "Validation practices may not translate well to real-world deployment."
+    },
+    {
+      "gap": "The impact of varying training data sizes and hyperparameters on model performance in large-scale language models has not been fully addressed.",
+      "supporting_evidence": [
+        "077f8329a7b6fa3b7c877a57b81eb6c18b5f87de"
+      ],
+      "notes": "Understanding of scaling behavior in large language models is incomplete."
+    },
+    {
+      "gap": "While XLNet improves upon BERT by addressing pretrain-finetune discrepancies, the extent to which this improvement translates to downstream tasks is not fully quantified.",
+      "supporting_evidence": [
+        "e0c6abdbdecf04ffac65c440da77fb9d66bb474c"
+      ],
+      "notes": "Performance gains in pretraining do not necessarily translate to downstream tasks."
+    },
+    {
+      "gap": "Models evaluated on GLUE still achieve low absolute scores despite using advanced techniques like ELMo and sentence representation models.",
+      "supporting_evidence": [
+        "451d4a16e425ecbf38c4b1cca0dcf5d9bec8255c"
+      ],
+      "notes": "Even advanced NLP models struggle with benchmark performance."
+    },
+    {
+      "gap": "The performance of genetic algorithms in software model refactoring varies significantly, with PESA2 being fastest and NSGA-II using least memory.",
+      "supporting_evidence": [
+        "2308.13875v1"
+      ],
+      "notes": "Algorithm choice impacts efficiency and resource usage in optimization."
+    },
+    {
+      "gap": "Prior-free and Bayesian settings in hypothesis testing have been studied only under symmetric error conditions; general asymmetric cases remain less explored.",
+      "supporting_evidence": [
+        "2403.16981v2"
+      ],
+      "notes": "Asymmetric error conditions are under-researched in hypothesis testing."
+    },
+    {
+      "gap": "While mixed observations improve error exponents in compressed hypothesis testing, optimal construction methods for large-scale problems are still under development.",
+      "supporting_evidence": [
+        "1609.07528v3"
+      ],
+      "notes": "Scalability of compressed hypothesis testing methods is not yet resolved."
+    },
+    {
+      "gap": "Privacy-preserving hypothesis testing under mutual information constraints lacks comprehensive solutions for practical implementation in high privacy regimes.",
+      "supporting_evidence": [
+        "1704.08347v1"
+      ],
+      "notes": "High privacy regime implementations are not well-developed."
+    },
+    {
+      "gap": "Current metacognitive performance measures are dependent on type 1 performance and often lack sufficient test-retest reliability due to low trial numbers.",
+      "supporting_evidence": [
+        "80a501804499eda1462ba64e354d8c823800c974"
+      ],
+      "notes": "Reliability of metacognitive measures is compromised by low trial counts."
+    },
+    {
+      "gap": "Traditional RDS methods may produce significant bias and variance, especially when assumptions are not fully met in real-world settings.",
+      "supporting_evidence": [
+        "8e9f8c6f50c5cad34425c13c70dde87b9e6735c6"
+      ],
+      "notes": "Real-world application of RDS may introduce bias."
+    },
+    {
+      "gap": "The reliability of estimates in one-shot devices is challenging to assess without historical data, though empirical Bayes methods help incorporate prior knowledge.",
+      "supporting_evidence": [
+        "340127559"
+      ],
+      "notes": "Historical data is needed for reliable estimates in one-shot devices."
+    },
+    {
+      "gap": "There is limited understanding of how subjective decision-making affects consistency in AHP judgment matrices, despite proposed solutions using fuzzy logic.",
+      "supporting_evidence": [
+        "4ca2b7edd07255b0a4ff61c5af1331dfa7eb511e"
+      ],
+      "notes": "Subjective factors in AHP remain poorly understood."
+    },
+    {
+      "gap": "There is limited research on how sequential effects in perceptual judgments apply to non-physical dimensions such as price judgments.",
+      "supporting_evidence": [
+        "233230"
+      ],
+      "notes": "Sequential effects in non-physical judgments are understudied."
+    },
+    {
+      "gap": "Judgment consistency in complex multiattribute tasks remains poorly understood, particularly regarding how context influences decisions.",
+      "supporting_evidence": [
+        "ce030ae0f7fe90f55cb7afa3f6aa0441f508626c",
+        "82b11ccfc5762fc862787776aae7320ac4834217"
+      ],
+      "notes": "Contextual influences on judgment consistency are not well understood."
+    },
+    {
+      "gap": "Existing judgment aggregation frameworks do not fully address requirements like non-oligarchy, anonymity, and no individual veto power.",
+      "supporting_evidence": [
+        "2606910"
+      ],
+      "notes": "Aggregation frameworks lack full compliance with key principles."
+    },
+    {
+      "gap": "There is limited research on how sequential effects in perceptual judgments apply to non-physical dimensions such as price judgments.",
+      "supporting_evidence": [
+        "233230"
+      ],
+      "notes": "Sequential effects in non-physical judgments are understudied."
+    },
+    {
+      "gap": "Existing generative models for remote sensing data often isolate tasks and ignore spatial/geographic constraints, limiting cross-task generalization.",
+      "supporting_evidence": [
+        "2510.21391v1",
+        "2411.15497v3"
+      ],
+      "notes": "Spatial constraints are often ignored in generative models."
+    },
+    {
+      "gap": "There is a lack of comprehensive analysis on how gradient compression affects convergence rates in Byzantine-resilient SGD under heterogeneous data.",
+      "supporting_evidence": [
+        "2005.07866v1"
+      ],
+      "notes": "Impact of gradient compression on convergence is not well-analyzed."
+    },
+    {
+      "gap": "Limited exploration of how varying blending ratios impact procurement cost optimization in multi-period order allocation problems.",
+      "supporting_evidence": [
+        "2511.00300v1"
+      ],
+      "notes": "Blending ratio effects on cost optimization are underexplored."
+    },
+    {
+      "gap": "Need for standardized data formats and validation protocols in ML-based material science research.",
+      "supporting_evidence": [
+        "6b610afe9e2cca4dd5b4e0f4e0ebf9486247040f"
+      ],
+      "notes": "Lack of standardization hampers reproducibility and comparison."
+    },
+    {
+      "gap": "The application of Procrustes Cross-Validation to real-world chemical datasets requires further empirical validation to confirm its robustness and generalizability beyond simulated data.",
+      "supporting_evidence": [
+        "150702026"
+      ],
+      "notes": "Empirical validation is needed for real-world applicability."
+    },
+    {
+      "gap": "The relationship between partition function form games and characteristic function form games in terms of solution concepts like the core remains underexplored in practical cost allocation contexts.",
+      "supporting_evidence": [
+        "2644594"
+      ],
+      "notes": "Theoretical linkages between game forms are not well-explored."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Model performance rankings based on fivefold cross-validation on the AG News dataset will differ significantly from rankings based on the held-out test set, with Spearman rank correlation below 0.7.",
+      "rationale": "This hypothesis directly addresses the gap regarding discrepancies between validation and test set performance estimates in small data scenarios [b6de027159450d79966537df34b24db23d86873f]. The AG News dataset provides a real-world text classification task with a moderate-sized validation set (7600 rows) that allows for robust cross-validation while maintaining a distinct test set for comparison. Fivefold cross-validation is a commonly used method for assessing model stability and performance [9f8b9a38998d4dc78712e4c9da5a53e63c8de4d9], making this a relevant and testable scenario.",
+      "related_gaps": [
+        "Small datasets lead to significant discrepancies between validation and test set performance estimates across all data splitting methods."
+      ],
+      "related_methods": [
+        "Fivefold cross-validation",
+        "Train-test split"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model performance metric (accuracy, F1-score) from 5-fold CV",
+          "model performance metric (accuracy, F1-score) from test set"
+        ],
+        "dependent": [
+          "Spearman rank correlation coefficient"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using Bayesian approaches to quantify uncertainty in model performance estimates from small validation sets will result in wider confidence intervals for performance predictions compared to frequentist methods, indicating higher variance in small-sample estimates.",
+      "rationale": "This hypothesis leverages the cross-disciplinary bridge insight connecting Bayesian methods in hypothesis testing with the challenge of small validation sets [2403.16981v2, 340127559]. It builds on the gap concerning the robustness of loss-based validation criteria and the need for uncertainty quantification in small data settings. The UCI Adult Census Income dataset offers a suitable environment for testing this, with its moderate size (32561 rows) allowing for small validation splits while providing enough data for Bayesian inference.",
+      "related_gaps": [
+        "The robustness of loss-based validation criteria across different parameterization regimes remains underexplored in terms of theoretical justification."
+      ],
+      "related_methods": [
+        "Bayesian approaches in hypothesis testing",
+        "Train-test split"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "type of method (Bayesian vs frequentist)",
+          "validation set size"
+        ],
+        "dependent": [
+          "width of confidence intervals for performance estimates",
+          "variance in performance estimates"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Models trained on the UCI Statlog German Credit dataset with different hyperparameter configurations will show inconsistent performance rankings between 5-fold cross-validation and the held-out test set, with a kappa statistic < 0.4 indicating poor agreement.",
+      "rationale": "This hypothesis addresses the gap regarding variability in performance metrics across different cross-validation strategies [f9820ced946c4aa246dd8cba75262acfb4a34b6e] and builds on the methodological gap related to test-retest reliability in model performance assessment [80a501804499eda1462ba64e354d8c823800c974]. The German Credit dataset (1000 rows) is ideal for this investigation because it's small enough to exhibit significant variance in validation performance but large enough to support both cross-validation and test set evaluation. This allows for a direct comparison of how model rankings change between validation and test conditions.",
+      "related_gaps": [
+        "There is variability in how different cross-validation strategies affect model performance metrics such as accuracy and precision."
+      ],
+      "related_methods": [
+        "Fivefold cross-validation",
+        "Train-test split",
+        "Test set evaluation for generalization"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model hyperparameter configuration",
+          "evaluation method (CV vs test)"
+        ],
+        "dependent": [
+          "kappa statistic measuring agreement between rankings"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses the AG News dataset which is publicly available and contains both training and test sets with 120,000 and 7,600 rows respectively. It directly tests the core research question about validation vs test set performance rankings using fivefold cross-validation and Spearman correlation, making it highly testable with clear binary outcomes. The hypothesis is internally coherent, focusing on the system (model performance) rather than analysis methods, and is well-grounded in the literature gap about discrepancies in small datasets. The data itself will determine whether correlations fall below 0.7, making it genuinely falsifiable."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 uses the UCI Statlog German Credit dataset which is real and publicly available with 1000 rows. It addresses the gap about variability in cross-validation strategies and uses kappa statistic to measure agreement between rankings. However, it's less testable than H1 because the kappa threshold of < 0.4 is somewhat arbitrary and may not clearly distinguish between agreement and disagreement. While it's internally coherent and grounded in literature, it's more complex to interpret results and less directly aligned with the core research question compared to H1."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 attempts to use Bayesian approaches to quantify uncertainty in small validation sets with the UCI Adult Census Income dataset. While it draws on a valuable cross-disciplinary bridge insight from statistical hypothesis testing, it's less feasible because it requires implementing Bayesian methods rather than simply comparing metrics. It's also less testable as the 'wider confidence intervals' claim is more subjective and harder to operationalize definitively. The hypothesis is internally consistent but less directly tied to the core research question about validation/test set performance ranking, and the data alone won't decisively support or refute the claim without complex modeling assumptions."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "9f8b9a38998d4dc78712e4c9da5a53e63c8de4d9",
+    "48689c4bb52a45c0bc97d1421d72d11bab6c346b",
+    "b6de027159450d79966537df34b24db23d86873f",
+    "2c0823b20f48402e9559a7feccb672294dfc4699",
+    "8386320",
+    "147960417",
+    "56506a64450d5d17a6fdd0f7dfc3837c5c4d9294",
+    "225e899c2629da91d8af8c467fe4c55271185c6a",
+    "5a5c01e2d7d1d668ce2ea9cb62dccc910fb3489d",
+    "f9820ced946c4aa246dd8cba75262acfb4a34b6e",
+    "d0e89b60cc51a443cdea22e722b1dbe667cd0a1c",
+    "0de1b6138d4bc6c3911e61a3ad93cfd680a11556",
+    "901a25ad0603770624cf02762c25d72096131ac7",
+    "7c6e3c9a30e578e191915d878efc71ac4401d65b",
+    "82023aad0b99b4cc21d126dcfe504e942f723800",
+    "af62ce4f9e1c61370fc673426facdab3a8bb1f27",
+    "31366c889da905a99d3e2db2fc8404a298349447",
+    "27c765b660aba877425934cde30d7b3593d68324",
+    "42ed4a9994e6121a9f325f5b901c5b3d7ce104f5",
+    "9a1015109170184a8aeb8817172b8b1644b2a0c2",
+    "df00546a81ed8ac3df187eb5aa3c69a5581ddc61",
+    "3de7f35750f449011c6ff73a48de5bc1fdc76af5",
+    "b91ffa72de5663b1b90597100eb7b75b244f10f0",
+    "b9f04be531d809c76720d948735210616e184c29",
+    "3b57e216c1c976d89db70dcf7613eabb57d56a77",
+    "f8e79ac0ea341056ef20f2616628b3e964764cfd",
+    "52b7bf3ba59b31f362aa07f957f1543a29a4279e",
+    "8213dbed4db44e113af3ed17d6dad57471a0c048",
+    "077f8329a7b6fa3b7c877a57b81eb6c18b5f87de",
+    "6c4b76232bb72897685d19b3d264c6ee3005bc2b",
+    "4cd4ccd9225f0a3c79cd4c72bd171039e28f2ab6",
+    "fe84db9e87a513b285ab32147cd901782e66616d",
+    "83b6755242f1cff6bacf270f65b4626d4d118f32",
+    "7572ba7f604ef95d7acdd657ebac458106bd35df",
+    "e0c6abdbdecf04ffac65c440da77fb9d66bb474c",
+    "451d4a16e425ecbf38c4b1cca0dcf5d9bec8255c",
+    "42e5ed832d4310ce4378c44d05570439df28a393",
+    "7abeda3a20c13bfee416d94efa313ff870656fec",
+    "c49a0912595a1cc70aab63524f64ed08c92194a8",
+    "2308.13875v1",
+    "2403.16981v2",
+    "1609.07528v3",
+    "1801.00973v1",
+    "1704.08347v1",
+    "ea09d9dbfa8aef193bbb0a5364d7267e7195c5fe",
+    "2db7606ec6c2f28ff85d3b23bada759aff6ce5b7",
+    "80a501804499eda1462ba64e354d8c823800c974",
+    "8e9f8c6f50c5cad34425c13c70dde87b9e6735c6",
+    "340127559",
+    "15110350",
+    "3160939",
+    "4c06fd257aaf39773f3e58dcc5dfe9af67b7940e",
+    "e41fa48cfb1ec6821c8e09d7179522bf2b6e1f0b",
+    "d990a2e27ee1273c68b9c5629ccfbb7646addca1",
+    "4ca2b7edd07255b0a4ff61c5af1331dfa7eb511e",
+    "f5ca644e6487ff4cceb2fa06204161601aa95e90",
+    "ce030ae0f7fe90f55cb7afa3f6aa0441f508626c",
+    "82b11ccfc5762fc862787776aae7320ac4834217",
+    "16875954",
+    "5480854",
+    "145068683",
+    "2606910",
+    "233230",
+    "1907.02664v2",
+    "2005.07866v1",
+    "2510.21391v1",
+    "2411.15497v3",
+    "1801.00121v1",
+    "2511.00300v1",
+    "1604.01464v1",
+    "2104.05781v1",
+    "cdeb86170da90f72ecf6a9effce7170b198eb6eb",
+    "6b610afe9e2cca4dd5b4e0f4e0ebf9486247040f",
+    "0040f3ca37040c171d4b493a7932272eb8c5db19",
+    "e716665ef1d7fc787676072fe2e8b781e5374d63",
+    "5b3f0d9a8f137312b3aac2d933b213f1f8f7b89d",
+    "78894c59cfdc8f2b7645890b695f53a98bd805fe",
+    "a2b5aa854e34b6478c0e4ab38eea7def92119e9b",
+    "a350c9ce9fbfa7c9fab906e1a12e42bce3da8a67",
+    "468f95518c9681f3e10fcae455be8eacf2cd5aed",
+    "6537454e95e5f6b7ebb70affb8391c7646007ca3",
+    "8984190",
+    "17398269",
+    "3147100",
+    "289551573",
+    "150702026",
+    "2644594"
+  ],
+  "generated_at": "2026-09-16T02:41:35.932926+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

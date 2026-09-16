@@ -1,0 +1,95 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": false,
+      "feasibility_notes": "The hypothesis requires time-to-event data with censoring and evaluation using time-dependent AUC, which cannot be meaningfully tested on the provided datasets. None of the listed datasets contain survival time data with censoring indicators or patient follow-up times that vary between individuals. The closest match is the 'historical_stock_market_daily_closing_price_financial_data.csv', but it lacks patient-level survival outcomes and censoring. To make this feasible, we simplify the hypothesis to test whether survival models (using Cox regression) perform better than binary classifiers (logistic regression) on a synthetic survival dataset generated to mimic hospital readmission patterns, while varying time horizons for evaluation. This allows us to test the core idea without requiring real-world readmission data.",
+      "objective": "To determine whether survival models utilizing time-to-event data with censoring demonstrate higher discriminatory performance (as measured by time-dependent AUC) compared to binary classifiers when the follow-up window varies between patients, particularly when using nonparametric predictive inference methods for right-censored data.",
+      "variables": {
+        "independent": [
+          "follow_up_window",
+          "model_type"
+        ],
+        "dependent": [
+          "time_dependent_auc"
+        ]
+      },
+      "design": "Comparative benchmark study between survival models (Cox regression) and binary classifiers (logistic regression) using synthetic time-to-event data with varying follow-up windows and censoring patterns.",
+      "data_requirements": {
+        "source": "synthetic generation",
+        "description": "Synthetic survival data mimicking hospital readmission patterns with time-to-event outcomes, censoring indicators, and patient-specific follow-up windows. This enables testing of the hypothesis without needing real-world readmission data.",
+        "preprocessing_steps": [
+          "Generate synthetic patient cohort with baseline covariates",
+          "Simulate time-to-event outcomes using Weibull distribution",
+          "Introduce random censoring to simulate incomplete follow-up",
+          "Vary follow-up windows between patients according to specified distribution"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Cox Regression",
+          "description": "Used as a baseline survival model to predict time-to-event outcomes with censoring, implemented using scikit-survival library",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Logistic Regression",
+          "description": "Used as binary classifier to predict readmission within fixed time windows, serving as comparison baseline",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Time-dependent AUC",
+          "description": "Evaluation metric measuring discriminatory performance of models at different time points, calculated using scikit-survival's time-dependent ROC implementation",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "time_dependent_auc"
+        ],
+        "baseline": "Binary logistic regression model with fixed 30-day readmission window",
+        "success_criteria": "If survival models show consistently higher time-dependent AUC across varying follow-up windows compared to binary classifiers, supporting the hypothesis. If binary classifiers perform equally or better, refuting the hypothesis."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate synthetic survival dataset with 1000 patients using Weibull distribution for time-to-event, incorporating baseline covariates (age, comorbidities, etc.) and random censoring"
+        },
+        {
+          "step": 2,
+          "description": "Implement Cox regression model using scikit-survival to fit survival data with censoring and calculate time-dependent AUC at multiple time points (15, 30, 60, 90 days)"
+        },
+        {
+          "step": 3,
+          "description": "Implement logistic regression model to predict binary readmission outcomes within fixed time windows (30 days) and calculate corresponding AUC"
+        },
+        {
+          "step": 4,
+          "description": "Compare time-dependent AUC values between survival and binary models across varying follow-up windows and report statistical significance of differences"
+        },
+        {
+          "step": 5,
+          "description": "Analyze results to determine whether survival models demonstrate superior discriminatory performance when follow-up windows vary, supporting or refuting the hypothesis"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Synthetic data may not perfectly replicate real-world readmission patterns",
+        "Time-dependent AUC calculation may be computationally intensive for large datasets",
+        "Potential overfitting in synthetic data generation leading to misleading results"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T11:05:59.072391+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

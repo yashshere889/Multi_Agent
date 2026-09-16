@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether a Graph Neural Network (GNN) model using SMILES representations and attention mechanisms achieves statistically significant higher predictive accuracy for compound solubility compared to a fingerprint-based model with an equal number of trainable parameters, as measured by RMSE on the MoleculeNet ESOL dataset.",
+  "author": "coder-agent",
+  "baseline": "The fingerprint-based model with equal number of trainable parameters",
+  "success_criteria": "If the GNN model achieves a lower RMSE than the fingerprint-based model, supporting the hypothesis. If the RMSE values are not significantly different, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T23:33:51.842418+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.0481,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_28/H1/run.py\", line 664, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_28/H1/run.py\", line 398, in run_experiment\n    out = gnn_model(batch)\n  File \"/tmp/users/sgyshere/coder-venvs-10535244/0bec93febb2faee9/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10535244/0bec93febb2faee9/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_28/H1/run.py\", line 292, in forward\n    x = self.conv1(x, edge_index)\n  File \"/tmp/users/sgyshere/coder-venvs-10535244/0bec93febb2faee9/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10535244/0bec93febb2faee9/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10535244/0bec93febb2faee9/.venv/lib/python3.14/site-packages/torch_geometric/nn/conv/gcn_conv.py\", line 242, in forward\n    edge_index, edge_weight, x.size(self.node_dim),\n                             ~~~~~~^^^^^^^^^^^^^^^\nIndexError: Dimension out of range (expected to be in range of [-1, 0], but got -2)\n"
+}

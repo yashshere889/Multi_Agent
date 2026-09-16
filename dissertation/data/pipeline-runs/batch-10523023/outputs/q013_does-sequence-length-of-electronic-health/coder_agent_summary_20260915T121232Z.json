@@ -1,0 +1,274 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: -runs/batch-10523023/experiments/task_13/H1/run.py\", line 876, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 450, in run_experiment\n        if CHECKPOINT_DIR / f\"{key}_best.pth\".exists():\n                            ^^^^^^^^^^^^^^^^^^^^^^^^\n    AttributeError: 'str' object has no attribute 'exists'\n========================================================================\n\n\nh 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 58.70it/s, loss=1.8651]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 58.70it/s, loss=2.3109]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 58.70it/s, loss=2.8853]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 58.70it/s, loss=1.7957]\nEpoch 1/1: 100%|██████████| 2754/2754 [00:47<00:00, 58.34it/s, loss=1.7957]\n2026-09-15T13:12:30 [INFO] __main__ — Epoch 1: BERT at seq_len 128, Loss: 2.7714\n2026-09-15T13:12:31 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 876, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 450, in run_experiment\n    if CHECKPOINT_DIR / f\"{key}_best.pth\".exists():\n                        ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'exists' after 10 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1",
+      "assumptions_made": [
+        "Reduced training epochs from 3 to 1 to fit within time constraints",
+        "Reduced batch size from 8 to 4 to fit within memory constraints",
+        "Used a simplified tokenization approach without external libraries to avoid dependency issues",
+        "Implemented early stopping to prevent unnecessary computation",
+        "Simplified model architecture to ensure compatibility with limited resources"
+      ],
+      "results": null,
+      "fix_attempts": 10,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead; line 7: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using the 20 Newsgroups dataset as a proxy for EHR data due to lack of available EHR datasets",
+            "Training for 3 epochs with early stopping as a compromise between computational budget and model convergence",
+            "Using standard hyperparameters (learning rate 2e-5, batch size 16) for all models",
+            "All models are evaluated on the same test set for fair comparison",
+            "The sliding window technique is implemented through HuggingFace tokenizer's built-in truncation and padding",
+            "Using weighted F1 score to account for class imbalance in the 20 Newsgroups dataset",
+            "Resuming training from checkpoints when possible to maximize training time utilization",
+            "Using the same sequence lengths (128, 256, 512, 1024, 2048) as specified in the plan",
+            "Using the same model architectures (BERT, RoBERTa, DistilBERT) as specified in the plan",
+            "Using accuracy and F1 score as primary metrics as specified in the evaluation section"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 51, in <module>\n    from transformers import AdamW, get_linear_schedule_with_warmup\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10527231/fa5d0a00670b0506/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaP",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment falls back to a synthetic dataset when the real 20 Newsgroups data files are not found at the expected paths",
+            "The synthetic dataset mimics the structure of the real dataset with similar text lengths and category distribution",
+            "The synthetic data is sufficient to run the experiment without requiring the full real dataset",
+            "Network access is available to download required dependencies but not to fetch the dataset files"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 51, in <module>\n    from transformers import AdamW, get_linear_schedule_with_warmup\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10527231/fa5d0a00670b0506/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaP",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The transformers library's AdamW optimizer is available in the installed version, and we've corrected the import path to use torch.optim.AdamW instead of transformers.AdamW which doesn't exist",
+            "The 20 Newsgroups dataset provides sufficient variation in document lengths to study sequence length effects",
+            "The experimental design can be adapted from clinical EHR settings to natural language text classification",
+            "Transformer models maintain their relative performance characteristics when applied to this domain",
+            "The sliding window technique is appropriate for creating sequences of specified lengths from longer documents"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: e/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 776, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 361, in run_experiment\n        model = model_class(**model_args)\n    TypeError: BertForSequenceClassification.__init__() got an unexpected keyword argument 'num_labels'\n========================================================================\n\n\ndels/distilbert-base-uncased/tree/main?recursive=true&expand=false \"HTTP/1.1 307 Temporary Redirect\"\n2026-09-15T12:37:36 [INFO] httpx — HTTP Request: GET https://huggingface.co/api/models/distilbert/distilbert-base-uncased/tree/main?recursive=true&expand=false \"HTTP/1.1 200 OK\"\n2026-09-15T12:37:36 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-15T12:37:36 [INFO] H1 — Training BERT model...\n2026-09-15T12:37:36 [INFO] H1 —   Testing sequence length: 128\n2026-09-15T12:37:38 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 776, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 361, in run_experiment\n    model = model_class(**model_args)\nTypeError: BertForSequenceClassification.__init__() got an unexpected keyword argument 'num_labels' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 3 -> 1; batch_size: 16 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset provides sufficient document length variation to observe sequence length effects",
+            "Transformer models can be effectively fine-tuned for text classification tasks",
+            "The experimental design maintains the core principles of the original hypothesis while adapting to available data",
+            "Using PyTorch's built-in AdamW optimizer instead of transformers' AdamW resolves the import issue",
+            "Using PyTorch's LinearLR scheduler instead of transformers' get_linear_schedule_with_warmup resolves the import issue"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: 0523023/experiments/task_13/H1/run_smoke.py\", line 776, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 361, in run_experiment\n        model = model_class(num_labels=model_args['num_labels'])\n    TypeError: BertForSequenceClassification.__init__() got an unexpected keyword argument 'num_labels'\n========================================================================\n\n\ncased/tree/main?recursive=true&expand=false \"HTTP/1.1 307 Temporary Redirect\"\n2026-09-15T12:38:28 [INFO] httpx — HTTP Request: GET https://huggingface.co/api/models/distilbert/distilbert-base-uncased/tree/main?recursive=true&expand=false \"HTTP/1.1 200 OK\"\n2026-09-15T12:38:28 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-15T12:38:28 [INFO] H1 — Training BERT model...\n2026-09-15T12:38:28 [INFO] H1 —   Testing sequence length: 128\n2026-09-15T12:38:30 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 776, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 361, in run_experiment\n    model = model_class(num_labels=model_args['num_labels'])\nTypeError: BertForSequenceClassification.__init__() got an unexpected keyword argument 'num_labels' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 3 -> 1; batch_size: 16 -> 8). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The transformers library version being used supports the model initialization syntax we're using",
+            "The model classes (BertForSequenceClassification, etc.) accept num_labels as a positional argument rather than a keyword argument",
+            "The 20 Newsgroups dataset provides enough samples to train meaningful models at different sequence lengths",
+            "The sequence length variations are sufficient to detect meaningful performance differences",
+            "The model architectures are compatible with the available hardware resources"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The model initialization issue was due to incorrect constructor signatures for different transformer variants, which was fixed by using a more robust initialization approach with fallbacks",
+            "The experiment will run successfully with the provided data files and GPU availability",
+            "The sequence length effects can be properly analyzed with the chosen metrics (accuracy, F1-score)",
+            "The sliding window technique is not needed since we're using the full documents and truncating them to desired lengths"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 7,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_7/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced training epochs from 3 to 2 to reduce computational cost and prevent timeout",
+            "Reduced batch size from 16 to 8 to fit within memory constraints",
+            "Reduced patience for early stopping from 2 to 1 to accelerate convergence",
+            "Used synthetic data as fallback when real data files are not found",
+            "Simplified model initialization to avoid potential loading issues with pretrained models",
+            "Limited the number of sequence lengths tested to keep within computational budget",
+            "Used weighted F1 score to account for class imbalance in the dataset"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 8,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1:  \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 848, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 401, in run_experiment\n        loss = outputs.loss\n               ^^^^^^^^^^^^\n    AttributeError: 'dict' object has no attribute 'loss'\n========================================================================\n\n\n26-09-15T13:03:01 [INFO] __main__ — Loaded 11014 training samples and 7317 test samples\n2026-09-15T13:03:01 [INFO] __main__ — Number of classes: 20\n2026-09-15T13:03:01 [INFO] H1 — Phase 2/4 — Building model...\n2026-09-15T13:03:01 [INFO] H1 — Phase 3/4 — Running experiment...\n2026-09-15T13:03:01 [INFO] H1 — Training BERT model...\n2026-09-15T13:03:01 [INFO] H1 —   Testing sequence length: 128\n\nEpoch 1/1:   0%|          | 0/2754 [00:00<?, ?it/s]\nEpoch 1/1:   0%|          | 0/2754 [00:00<?, ?it/s]\n2026-09-15T13:03:07 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 848, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run_smoke.py\", line 401, in run_experiment\n    loss = outputs.loss\n           ^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'loss' This was found by a fast pre-run of this same code with its cost knobs at their minimum (epochs: 2 -> 1). The failure is of a kind that does not depend on how much data or how many iterations there are, so it will happen identically at full size — fix the defect itself, not the knobs.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_8/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced batch size (4 instead of 8) and epochs (2 instead of 3) to stay within time limits",
+            "Implemented simplified transformer models without external dependencies to avoid complex installations",
+            "Used synthetic tokenization approach to avoid HuggingFace dependencies",
+            "Limited the number of sequence lengths tested to reduce computational burden",
+            "Implemented manual model construction to avoid reliance on external model libraries"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 9,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: le \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 855, in run\n        experiment_output = run_experiment(data, model)\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 458, in run_experiment\n        logits = outputs.logits\n                 ^^^^^^^^^^^^^^\n    AttributeError: 'dict' object has no attribute 'logits'\n========================================================================\n\n\n4 [00:47<00:00, 59.45it/s, loss=2.6340]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 59.45it/s, loss=2.6955]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 59.45it/s, loss=2.6622]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 59.45it/s, loss=2.5681]\nEpoch 1/1: 100%|█████████▉| 2749/2754 [00:47<00:00, 59.45it/s, loss=2.4187]\nEpoch 1/1: 100%|██████████| 2754/2754 [00:47<00:00, 58.45it/s, loss=2.4187]\n2026-09-15T13:04:49 [INFO] __main__ — Epoch 1: BERT at seq_len 128, Loss: 2.7688\n2026-09-15T13:04:51 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 855, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/run.py\", line 458, in run_experiment\n    logits = outputs.logits\n             ^^^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'logits'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_9/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment uses a simplified transformer implementation due to constraints on external dependencies",
+            "The 20 Newsgroups dataset provides sufficient variation in document lengths to explore sequence length effects",
+            "The simple tokenization approach is adequate for this exploratory experiment",
+            "The model training process will complete within the allocated resources",
+            "The experiment focuses on accuracy and F1 score as primary metrics"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 10,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/H1/fix_attempts/attempt_10/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment adapts the original hypothesis to use the 20 Newsgroups dataset instead of EHR data, which is the only available dataset that supports sequence length exploration",
+            "The custom transformer implementation provides a reasonable approximation of the reference architectures for this experimental setup",
+            "Using a single epoch per configuration is sufficient to observe the main trends in the data",
+            "The simple tokenization approach is acceptable for this exploratory experiment",
+            "The model architecture choice has a meaningful impact on performance that can be measured within the constraints of this experiment"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2010.10499",
+          "title": "Optimal Subarchitecture Extraction For BERT",
+          "year": "2020",
+          "citation_count": 18,
+          "tldr": "A smaller and more efficient version of BERT, named Bort, is obtained through neural architecture search and demonstrates improved performance on NLU benchmarks.",
+          "url_abs": "https://arxiv.org/abs/2010.10499v2",
+          "repositories": [
+            {
+              "url": "https://github.com/alexa/bort",
+              "is_official": true,
+              "stars": 470
+            },
+            {
+              "url": "https://github.com/huggingface/transformers",
+              "is_official": false,
+              "stars": 166143
+            }
+          ],
+          "methods": [
+            "Adam",
+            "AdamW",
+            "BERT",
+            "Dropout",
+            "Embedding",
+            "Key-value cache",
+            "Knowledge Distillation",
+            "Layer Normalization",
+            "Multi-head attention",
+            "Softmax",
+            "Transformer"
+          ]
+        },
+        {
+          "paper_id": "2006.03654",
+          "title": "DeBERTa: Decoding-enhanced BERT with Disentangled Attention",
+          "year": "2020",
+          "citation_count": 4095,
+          "tldr": "DeBERTa enhances BERT and RoBERTa with disentangled attention and an improved mask decoder, leading to better performance on NLP tasks and surpassing human performance on SuperGLUE.",
+          "url_abs": "https://arxiv.org/abs/2006.03654v6",
+          "repositories": [
+            {
+              "url": "https://github.com/microsoft/DeBERTa",
+              "is_official": true,
+              "stars": 2243
+            },
+            {
+              "url": "https://github.com/huggingface/transformers",
+              "is_official": false,
+              "stars": 166143
+            }
+          ],
+          "methods": [
+            "Adafactor",
+            "Adam",
+            "AdamW",
+            "BERT",
+            "BPE",
+            "Dropout",
+            "Few-shot prompting",
+            "Fine-tuning",
+            "GPT-3",
+            "Layer Normalization",
+            "Multi-head attention",
+            "Pre-training",
+            "Sliding window attention",
+            "Softmax",
+            "T5"
+          ]
+        }
+      ],
+      "reported_attempt": 11
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_13/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T12:12:32.399828+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

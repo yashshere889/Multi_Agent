@@ -1,0 +1,24 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether incorporating a spatial lag model into a machine learning framework for predicting PM2.5 concentrations improves prediction accuracy compared to models using only temporal features, as measured by reduced mean absolute error on the UCI Air Quality dataset.",
+  "author": "coder-agent",
+  "baseline": "Performance of a Random Forest model trained exclusively on temporal features",
+  "success_criteria": "If the MAE of the model incorporating spatial lag is lower than that of the temporal-only model, the hypothesis is supported. Conversely, if the MAE is higher or similar, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T13:29:37.308071+00:00",
+  "status": "success",
+  "elapsed_seconds": 5.0449,
+  "resumed": false,
+  "metrics": {
+    "mae_temporal": 83.29625347415231,
+    "mae_spatial": 89.87818232351304,
+    "improvement": -6.581928849360736,
+    "training_history": {
+      "temporal_only": [],
+      "spatial_lag": []
+    }
+  },
+  "meets_success_criteria": false,
+  "notes": "Temporal-only model MAE: 83.2963. Spatial model MAE: 89.8782. Spatial model does not show improvement.",
+  "error": null
+}

@@ -1,0 +1,63 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q002_do-gradient-boosted-decision-trees-retain-their/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "95b2cb3f4a765014ce025afe5679660982554e6c",
+    "d019d36cf7c777d485599bca3d8410d505a966ea",
+    "4a38c0111d9d66ca33fa120db918076a232de4b2",
+    "27444284",
+    "1ce9f073bd6f23dd2b600c4eb59b24c12e8b9958",
+    "0bb210d6768852e9abb44a030f4a7cbd9051ae57",
+    "cf69d81193ced740aec2fb9c01e1e6e94238f7b5",
+    "5fa06d856ba6ae9cd1366888f8134d7fd0db75b9",
+    "6b238b17e419c7dd3912b9845449496bfb0a571a",
+    "3587538",
+    "d1943e7e55153763015dca6980a85a7679d3a26b",
+    "15110183",
+    "2859684",
+    "2710713",
+    "c4101150483cdc26862b76848c4f31ae5d738f4d",
+    "52a3bfb311e941a816163c7db4abe09bce05066c",
+    "f400ff181ba03253be75b6517ffbdd13b2309098",
+    "48893e1ca345aa4b5e0901f71844dbfee5a97f9d",
+    "2bf8842e8557c5a1e5a20055c08bf2da120e8b85",
+    "bac3fb40214440da59017e23dcaab29a2e41e2de",
+    "009560d2710138a446e6e254d8ddcb65eaa0e687",
+    "2321e2d3bc14224b06c4145737b96dcd27754128",
+    "d7bb7522b0d21f90fb034fe8c6acb8cd33248692",
+    "673bd9237d8f8de32374f9ea6602a1e1aeb872d8",
+    "7076a90eb73e8b5239e89f19159d19176fa36475",
+    "b884d35c5182b1483e61b7f304881fe99f4d3f39",
+    "f7c4551724a3e0cb72013685a1a6c9147af521b7"
+  ],
+  "notes_for_review": [
+    "Removed fabricated-looking citation text \"Durrant (2013)\" in the Future Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Future Work section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T05:38:16.876931+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

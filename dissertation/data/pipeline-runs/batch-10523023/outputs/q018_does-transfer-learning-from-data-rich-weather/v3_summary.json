@@ -1,0 +1,34 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q018_does-transfer-learning-from-data-rich-weather/v3.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "00afb63be945b82f215459c97fefa4bab334a86e",
+    "2410.21361v2",
+    "2502.01654v1",
+    "359d0c71751352b55537fa994037d826ac793ba3",
+    "2205.04675v2",
+    "7fa4aaecd8c6f831c357a5f3ba77b9f834f28d8c"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'PAPER_ID' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-16T05:43:22.728944+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

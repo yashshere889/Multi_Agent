@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether centrality measures derived from the distance backbone of a weighted international trade network predict post-shock GDP growth rates more accurately than bilateral trade volume alone.",
+  "author": "coder-agent",
+  "baseline": "Predictive performance of a model using only bilateral trade volume as a predictor",
+  "success_criteria": "If the model using centrality measures from the distance backbone achieves lower MAE than the bilateral trade volume model, the hypothesis is supported. If the reverse occurs, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T18:29:31.937807+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.7785,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_21/H1/run.py\", line 902, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_21/H1/run.py\", line 609, in run_experiment\n    weights_volumes, bias_volumes, history_volumes = _train_linear_regression(\n                                                     ~~~~~~~~~~~~~~~~~~~~~~~~^\n        data[\"X_train_volumes\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<4 lines>...\n        \"volumes\"\n        ^^^^^^^^^\n    )\n    ^\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_21/H1/run.py\", line 671, in _train_linear_regression\n    squared_errors = [(pred - target) ** 2 for pred, target in zip(predictions, y)]\n                      ~~~~~~~~~~~~~~~~^^~~\nOverflowError: (34, 'Numerical result out of range')\n"
+}

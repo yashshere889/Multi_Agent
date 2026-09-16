@@ -1,0 +1,109 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute constraints. We use the Fama-French three-factor daily returns dataset (fama_french_three_factor_daily_returns.csv) which provides the necessary equity index return data and factor exposures to compute daily volatility and apply transaction costs. The dataset spans 1926-2026 with sufficient daily observations (~26k) to train and validate models over multiple market regimes. The compute requirements are within limits: training and evaluating transformer and ARIMA models on this dataset will require only a few hours per model on a single GPU node, well within SLURM scheduling constraints.",
+      "objective": "To empirically determine whether transformer-based sequence models (PatchTST-lite and Informer) outperform ARIMA models in forecasting daily volatility of equity index returns when transaction costs are explicitly incorporated into the performance metric using a Sharpe ratio adjusted for turnover and proportional transaction costs.",
+      "variables": {
+        "independent": [
+          "model_type",
+          "transaction_cost_model"
+        ],
+        "dependent": [
+          "volatility_forecast_accuracy",
+          "adjusted_sharpe_ratio"
+        ]
+      },
+      "design": "A comparative benchmark experiment where we train and evaluate two sets of models: (1) Transformer-based models (PatchTST-lite and Informer) and (2) ARIMA models, each on the same dataset. For each model type, we compute forecast accuracy and adjusted Sharpe ratio using a rolling window approach with transaction cost adjustments. The adjusted Sharpe ratio accounts for turnover and proportional transaction costs. We compare the performance of the two model types using paired t-tests on the adjusted Sharpe ratios and forecast accuracy metrics.",
+      "data_requirements": {
+        "source": "fama_french_three_factor_daily_returns.csv",
+        "description": "Daily returns data from the Fama-French three-factor model, including market excess return (Mkt-RF), size premium (SMB), and value premium (HML). This dataset allows us to compute daily equity index returns and volatility forecasts. The dataset covers 1926-2026 with ~26,000 daily observations, providing sufficient historical data for training and validating forecasting models across multiple market conditions.",
+        "preprocessing_steps": [
+          "Load the CSV file with pandas",
+          "Convert date column to datetime format",
+          "Compute daily equity index returns as Mkt-RF + RF (risk-free rate) to get total return",
+          "Calculate rolling 20-day volatility (standard deviation) of returns as the target variable",
+          "Normalize all variables to zero mean and unit variance for model input",
+          "Create lagged features for ARIMA models and sequence inputs for Transformers",
+          "Split data into train/validation/test sets (e.g., 70/15/15) ensuring temporal order"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Transformer architectures (Vanilla, PatchTST-lite, Informer)",
+          "description": "Transformer-based sequence models that capture long-range dependencies in time series data. In this experiment, we use PatchTST-lite and Informer variants to forecast daily volatility. These models process sequences of past returns and factors to predict future volatility. They are trained using masked autoencoding objectives and optimized with AdamW optimizer.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "ARIMA models",
+          "description": "Autoregressive Integrated Moving Average models, commonly used as baseline forecasting methods in financial time series. In this experiment, we fit ARIMA(p,d,q) models to the daily volatility series, where p, d, q are selected via grid search on AIC/BIC criteria. The models are used to generate point forecasts of volatility.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Sharpe ratio adjustment for transaction costs",
+          "description": "A performance metric that adjusts the standard Sharpe ratio to account for transaction costs. Specifically, we compute the Sharpe ratio as (portfolio_return - risk_free_rate) / portfolio_volatility, but subtract a penalty term proportional to the turnover (number of trades) and the transaction cost rate. This reflects the economic reality that high-frequency trading strategies incur costs that reduce net returns.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Mean Squared Error (MSE) of volatility forecasts",
+          "Adjusted Sharpe Ratio (with transaction costs)"
+        ],
+        "baseline": "Performance of ARIMA models on the same dataset and task, serving as the standard against which transformer models are compared.",
+        "success_criteria": "If the transformer models (PatchTST-lite and Informer) achieve significantly higher adjusted Sharpe ratios and/or lower MSE in volatility forecasts compared to ARIMA models, the hypothesis is supported. Conversely, if ARIMA models perform better or similarly, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load fama_french_three_factor_daily_returns.csv using pandas, convert date column to datetime, and compute daily equity index returns as Mkt-RF + RF. Calculate 20-day rolling volatility as the target variable for forecasting."
+        },
+        {
+          "step": 2,
+          "description": "Preprocess the data by normalizing all variables to zero mean and unit variance, creating lagged features for ARIMA models, and preparing sequences for Transformer models. Split the dataset into train (70%), validation (15%), and test (15%) sets maintaining temporal order."
+        },
+        {
+          "step": 3,
+          "description": "Implement and train ARIMA models on the volatility series using grid search over p,d,q parameters to minimize AIC/BIC. Save trained models for forecasting."
+        },
+        {
+          "step": 4,
+          "description": "Implement and train PatchTST-lite and Informer models on the same dataset using PyTorch Lightning framework. Define model architectures with appropriate sequence lengths and embedding dimensions. Train using AdamW optimizer with cosine decay schedule."
+        },
+        {
+          "step": 5,
+          "description": "Generate volatility forecasts from all models using a walk-forward validation scheme. For each time step, use historical data up to that point to make predictions. Store forecasted volatility values for both models."
+        },
+        {
+          "step": 6,
+          "description": "Compute adjusted Sharpe ratios for each model by simulating a trading strategy with fixed transaction costs (e.g., 0.1% per trade) and turnover penalties. Calculate MSE of volatility forecasts for each model."
+        },
+        {
+          "step": 7,
+          "description": "Perform statistical significance testing (paired t-test) on the adjusted Sharpe ratios and MSE values between transformer and ARIMA models to determine if differences are statistically significant."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data quality or missing values in the Fama-French dataset that could bias results",
+        "Overfitting of transformer models due to limited sample size relative to model capacity",
+        "Computational cost exceeding SLURM limits during model training if hyperparameter search is too extensive",
+        "Misalignment between the volatility forecasting task and the transaction cost adjustment mechanism leading to misleading performance comparisons"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T04:17:28.030743+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

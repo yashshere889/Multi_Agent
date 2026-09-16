@@ -1,0 +1,22 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether using active learning with uncertainty sampling based on Gaussian Process Regression reduces the number of required simulations by at least 30% compared to random sampling when mapping materials property landscapes on the MoleculeNet ESOL dataset.",
+  "author": "coder-agent",
+  "baseline": "Random sampling strategy where molecules are selected uniformly at random for each iteration",
+  "success_criteria": "If the active learning approach requires at least 30% fewer simulations than random sampling to achieve equivalent prediction accuracy, the hypothesis is supported. If the reduction is less than 30%, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T00:17:31.980200+00:00",
+  "status": "success",
+  "elapsed_seconds": 1.0409,
+  "resumed": false,
+  "metrics": {
+    "reduction_percentage": -31.818181818181817,
+    "random_simulations": 22,
+    "active_simulations": 29,
+    "random_mse": 2.064945853594092,
+    "active_mse": 2.3081806790010795
+  },
+  "meets_success_criteria": false,
+  "notes": "Random sampling required 22 simulations.\nActive learning required 29 simulations.\nReduction: -31.82%.\nSuccess criteria (\u226530% reduction): Not met.\nRandom MSE: 2.0649\nActive MSE: 2.3082",
+  "error": null
+}

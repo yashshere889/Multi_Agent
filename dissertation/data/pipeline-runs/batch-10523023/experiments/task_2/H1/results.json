@@ -1,0 +1,85 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether gradient-boosted decision trees (XGBoost and LightGBM) maintain or improve their accuracy advantage over neural networks as the training set size increases from 1000 to 100,000 records on the UCI Statlog German Credit dataset.",
+  "author": "coder-agent",
+  "baseline": "Performance of all models on the original 1000-record dataset",
+  "success_criteria": "Supporting the hypothesis would mean that both XGBoost and LightGBM maintain or improve their accuracy advantage over neural networks as training set size increases. Refuting the hypothesis would occur if neural networks show equal or greater accuracy than GBDTs at larger training set sizes.",
+  "timestamp_utc": "2026-09-15T05:36:29.409652+00:00",
+  "status": "success",
+  "elapsed_seconds": 101.3942,
+  "resumed": false,
+  "metrics": {
+    "accuracy_XGBoost": [
+      0.675,
+      0.67,
+      0.67,
+      0.68,
+      0.685,
+      0.66,
+      0.665
+    ],
+    "accuracy_LightGBM": [
+      0.715,
+      0.725,
+      0.685,
+      0.69,
+      0.705,
+      0.68,
+      0.705
+    ],
+    "accuracy_NeuralNetwork": [
+      0.89,
+      0.96,
+      0.998,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "training_set_sizes": [
+      1000,
+      2000,
+      5000,
+      10000,
+      20000,
+      50000,
+      100000
+    ],
+    "baseline_XGBoost": 0.675,
+    "baseline_LightGBM": 0.715,
+    "baseline_NeuralNetwork": 0.89,
+    "training_history": {
+      "XGBoost": [
+        0.675,
+        0.67,
+        0.67,
+        0.68,
+        0.685,
+        0.66,
+        0.665
+      ],
+      "LightGBM": [
+        0.715,
+        0.725,
+        0.685,
+        0.69,
+        0.705,
+        0.68,
+        0.705
+      ],
+      "NeuralNetwork": [
+        0.89,
+        0.96,
+        0.998,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "meets_success_criteria": false,
+  "notes": "Neural networks show equal or greater accuracy than GBDTs at larger training set sizes, refuting the hypothesis.",
+  "error": null
+}

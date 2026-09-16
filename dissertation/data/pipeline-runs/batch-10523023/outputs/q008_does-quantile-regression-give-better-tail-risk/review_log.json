@@ -1,0 +1,908 @@
+[
+  {
+    "iteration": 1,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v1.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v1.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "f4718d6407ac91dfee65fc1d37fbdddf157095a3",
+        "1612.06850v2",
+        "2009.00436v1",
+        "3106245",
+        "2687898",
+        "2012.05187v2",
+        "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+        "2657633",
+        "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+        "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+        "85d492db335fa602fc954893f048f22c3f7738d1",
+        "1710.05204v2",
+        "2469861",
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "b03f3a79fd80551ed523acd6886dc7a4ebc3baed",
+        "29807896abc8650777fe52f4ab66bb509d20149b",
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "2859241",
+        "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+        "e2d1a30dcfac33548572e23f291b95242afe4d8b"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Huber (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T08:27:34.756782+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 1,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Quantile regression has emerged as a powerful statistical tool for modeling tail risk and extreme events across a wide range of disciplines, including finance, insurance, environmental science, and public health.",
+          "issue": "While the ground truth mentions that quantile regression is used in finance, insurance, environmental science, and public health, it does not explicitly state that it has 'emerged as a powerful statistical tool' in all these disciplines. The claim is a broad generalization not directly supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Unlike traditional mean regression or Gaussian error models, quantile regression provides a more nuanced view of conditional distributions, particularly in the tails where extreme outcomes occur.",
+          "issue": "Although the ground truth states that quantile regression offers advantages in capturing asymmetric effects, handling non-normal data, and providing insights into the entire conditional distribution, especially in the tails, it does not explicitly state that it provides a 'more nuanced view' compared to mean regression or Gaussian models. This characterization is interpretive and not directly grounded."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This flexibility allows practitioners to capture asymmetric effects, accommodate non-normal data, and gain insights into the full spectrum of potential outcomes.",
+          "issue": "While the ground truth mentions that quantile regression captures asymmetric effects and handles non-normal data, it does not explicitly state that it allows practitioners to 'gain insights into the full spectrum of potential outcomes.' This is an interpretive addition not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The method has been further enhanced through integration with advanced techniques such as Bayesian inference, machine learning, extreme value theory (EVT), and smoothing methods, all aimed at improving estimation accuracy and computational efficiency.",
+          "issue": "The ground truth confirms that quantile regression is frequently combined with Bayesian inference, machine learning, EVT, and smoothing methods, but it does not explicitly state that these integrations are 'aimed at improving estimation accuracy and computational efficiency.' This is an interpretation of purpose not directly stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "One notable gap lies in the limited direct comparison between quantile regression and standard Gaussian error assumptions in financial risk modeling, especially for daily equity returns.",
+          "issue": "The ground truth supports the existence of a gap regarding limited direct comparison between quantile regression and Gaussian assumptions in financial contexts, but it does not specifically mention 'daily equity returns' as the focus. The specificity of 'daily equity returns' is not grounded in the provided evidence."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another significant issue concerns the inconsistency in defining and measuring tail dependence across financial applications, which hampers comparative analysis and model selection.",
+          "issue": "The ground truth identifies inconsistency in defining tail dependence as a gap, but it does not explicitly state that this inconsistency 'hampers comparative analysis and model selection.' This is an added consequence not mentioned in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, most existing approaches rely on static historical data, leaving a gap in the development of real-time or adaptive quantile regression models capable of dynamic risk assessment.",
+          "issue": "The ground truth supports the idea that most studies rely on static historical data and identifies a gap in real-time or adaptive models, but it does not explicitly state that these models are 'capable of dynamic risk assessment.' This is an added interpretation of capability not grounded in the text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Beyond these foundational issues, further challenges remain in handling high-dimensional data within Bayesian quantile regression frameworks and integrating Bayesian methods with extreme quantile estimation for real-time risk monitoring.",
+          "issue": "The ground truth mentions gaps related to high-dimensional data in Bayesian quantile regression and Bayesian methods with extreme quantile estimation, but it does not explicitly state that these are 'further challenges' beyond the previously mentioned issues. Also, the phrase 'for real-time risk monitoring' is not directly supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The interaction between measurement errors and quantile estimation also requires more careful consideration, particularly in financial and economic settings.",
+          "issue": "The ground truth notes that measurement error handling remains a challenge, especially in financial and economic contexts, but it does not explicitly state that the 'interaction between measurement errors and quantile estimation' requires more careful consideration. This is a more specific framing not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, while smoothing techniques are commonly employed, their computational efficiency in large-scale discrete risk models remains underexplored.",
+          "issue": "The ground truth mentions that smoothing methods' scalability in large discrete risk models is underexplored, but it does not explicitly state that smoothing techniques are 'commonly employed' in practice. This is an assumption not grounded in the provided information."
+        },
+        {
+          "location": "Introduction",
+          "claim": "In parallel, there is a dearth of empirical validation comparing Bayesian and non-Bayesian quantile estimators in real-world insurance datasets.",
+          "issue": "The ground truth supports the lack of empirical validation comparing Bayesian and non-Bayesian quantile estimators in insurance datasets, but it does not explicitly state that this is happening 'in parallel' with other issues. This is a contextual framing not grounded in the text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The theoretical connections between continued fractions and extreme value laws have yet to be fully understood.",
+          "issue": "The ground truth mentions that the theoretical connections between continued fractions and extreme value laws remain underexplored, but it does not explicitly state that they have 'yet to be fully understood.' This is a stronger claim than what is supported."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This paper addresses these gaps by testing three core hypotheses regarding the performance and applicability of quantile regression in financial risk modeling.",
+          "issue": "The ground truth lists three hypotheses (H1, H2, H3) but does not explicitly state that the paper 'addresses these gaps by testing three core hypotheses.' This is a claim about the paper’s intent that is not directly grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Specifically, we investigate whether Bayesian quantile regression models using the asymmetric Laplace distribution yield more accurate Value-at-Risk (VaR) estimates for daily equity returns compared to Gaussian models, evaluate the benefits of combining Extreme Value Theory with quantile regression for tail-risk estimation, and assess whether machine learning-enhanced quantile regression models provide improved precision in estimating extreme return percentiles.",
+          "issue": "While the ground truth lists the three hypotheses (H1–H3), it does not explicitly state that the paper 'investigates' them in the way described, nor does it specify that the VaR estimates are for 'daily equity returns' or that the ML-enhanced models are for 'estimating extreme return percentiles.' These are specific claims about methodology and scope not grounded in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent developments have focused on scalable and computationally efficient implementations, with methods like CONQUER (He et al., 2020) and quantile regression forests (Saputra and Aqsari, 2025) enabling practical application in large-scale and high-dimensional problems.",
+          "issue": "The ground truth lists 'CONQUER' (He et al., 2020) as a method for large-scale inference in quantile regression, but does not mention 'quantile regression forests' as a method developed by Saputra and Aqsari (2025). The paper by Saputra and Aqsari (2025) is listed in the ground truth, but its abstract mentions 'Quantile Regression Forest (QRF)' and 'Expected Tail Loss (ETL)', not that it enables practical application in large-scale and high-dimensional problems via QRF specifically. The claim attributes a specific capability to QRF that is not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian methodologies have also been extended to quantile regression, offering robust inference and regularization capabilities through hierarchical models (Huber et al., 2026) and LASSO-based approaches (Nguyen et al., 2020a), while also incorporating Gaussian processes for smoothing coefficient paths (Johnston, 2025) and shrinkage priors (Prüser and Huber, 2023).",
+          "issue": "The ground truth includes a paper by Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk', which indeed involves Bayesian methods and Gaussian processes, but it does not mention LASSO-based approaches or shrinkage priors in the context of Bayesian quantile regression. Furthermore, the paper by Nguyen et al. (2020a) is not listed in the ground truth; only Nguyen et al. (2020b) is listed. Also, the paper by Johnston (2025) is not listed in the ground truth, and the paper by Prüser and Huber (2023) is listed as 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions' but does not mention shrinkage priors in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Works such as Teruzzi (2023) and Schaumburg (n.d.) demonstrate how combining EVT with quantile regression can improve estimation accuracy for extreme quantiles, especially in financial markets where data exhibit heavy tails or extreme behavior.",
+          "issue": "The ground truth includes a paper by Teruzzi (2023) titled 'Tail Risk and Systemic Risk Estimation of Cryptocurrencies: an Expectiles and Marginal Expected Shortfall based approach', which discusses expectile-based approaches and EVT, but does not explicitly state that it combines EVT with quantile regression to improve estimation accuracy for extreme quantiles. The paper by Schaumburg (n.d.) is not listed in the ground truth, so its content cannot be verified."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Similarly, Härdle et al. (n.d.) and Schaumburg (n.d.) highlight the utility of semiparametric frameworks in financial risk calibration, particularly in the context of CoVaR estimation and Value-at-Risk forecasting.",
+          "issue": "The paper by Härdle et al. (n.d.) is not listed in the ground truth, so its content cannot be verified. The paper by Schaumburg (n.d.) is also not listed in the ground truth, so its content cannot be verified."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Hu et al. (2020) enabling flexible modeling of complex dependency structures.",
+          "issue": "The paper by Li and Megiddo (2025) titled 'Spline Quantile Regression' is listed in the ground truth, but the abstract is empty, so it's unclear if it discusses spline-based approaches in the context mentioned. The paper by Hu et al. (2020) titled 'Identifying and understanding determinants of high healthcare costs for breast cancer: a quantile regression machine learning approach' is listed, but it refers to 'Quantile Regression Forests' as a machine learning technique, not as a method enabling flexible modeling of complex dependency structures in general."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Boukouvalas et al. (2012) and Gaussian processes Ludkovski and Risk (2017) to improve inference in spatial and temporal settings.",
+          "issue": "The paper by Boukouvalas et al. (2012) titled 'Gaussian Process Quantile Regression using Expectation Propagation' is listed in the ground truth and discusses asymmetric Laplace distributions and Gaussian processes. However, the paper by Ludkovski and Risk (2017) titled 'Sequential Design and Spatial Modeling for Portfolio Tail Risk Measurement' is listed, but its abstract does not mention Bayesian quantile regression or inference in spatial and temporal settings."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Studies such as Nguyen et al. (2020b) and Ferrari and Paterlini (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.",
+          "issue": "The paper by Nguyen et al. (2020b) is not listed in the ground truth; only Nguyen et al. (2020a) is listed. The paper by Ferrari and Paterlini (n.d.) is not listed in the ground truth, so its content cannot be verified."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Montes-Rojas (n.d.) deriving bias corrections for quantile regression estimators under classical additive measurement error and Prüser and Huber incorporating Gaussian processes to enhance performance in the right tail.",
+          "issue": "The paper by Montes-Rojas (n.d.) titled 'Quantile Regression with Classical Additive Measurement Errors' is listed in the ground truth, but it does not mention bias corrections for quantile regression estimators under classical additive measurement error in the abstract. The paper by Prüser and Huber (2023) is listed as 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions', but it does not mention incorporating Gaussian processes to enhance performance in the right tail."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These advancements reflect ongoing efforts to improve the reliability and applicability of quantile regression in complex, high-dimensional settings.",
+          "issue": "This is a general statement summarizing the previous claims, which are already flagged as hallucinations. The statement itself is not directly traceable to the ground truth because it is based on unverified claims."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The handling of measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties Li et al. (2026).",
+          "issue": "The paper by Li et al. (2026) titled 'Quantile regression with measurement errors' is listed in the ground truth, but the abstract does not mention that handling measurement errors in nonlinear settings continues to pose difficulties. The abstract mentions that the method is consistent and addresses technical difficulties, but does not state that it continues to pose difficulties."
+        },
+        {
+          "location": "Related Work",
+          "claim": "While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Boukouvalas et al. (2012).",
+          "issue": "The paper by Boukouvalas et al. (2012) is listed in the ground truth, but its abstract does not mention that Bayesian methods' application to extreme quantile estimation and real-time risk monitoring is still evolving. The abstract mentions that the paper presents a novel method for quantile regression using approximate inference methods, but does not comment on the evolution of Bayesian methods in these areas."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Wang et al. (2023).",
+          "issue": "The paper by Wang et al. (2023) titled 'Generative Quantile Regression with Variability Penalty' is listed in the ground truth, but its abstract does not mention that the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments. The abstract focuses on generative models and variability penalties, not on computational or theoretical hurdles."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These considerations point toward future research directions aimed at bridging the gap between theoretical advancements and practical applicability in fields such as finance, healthcare, and environmental risk modeling.",
+          "issue": "This is a general statement summarizing the previous claims, which are already flagged as hallucinations. The statement itself is not directly traceable to the ground truth because it is based on unverified claims."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Specifically, we test whether Bayesian quantile regression using the asymmetric Laplace distribution provides more accurate VaR estimates than Gaussian error models (H1), whether combining EVT with quantile regression improves tail-risk estimation beyond standard quantile regression (H2), and whether machine learning-enhanced quantile regression models yield more precise tail-risk estimates than traditional approaches (H3).",
+          "issue": "These hypotheses are stated as part of the paper's contribution, not as claims drawn from the existing literature. They are not grounded in the ground truth provided, as they represent the paper's own research questions rather than previously established facts or claims."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "as measured by lower pinball loss",
+          "issue": "The ground truth states that the comparison is based on lower pinball loss, but does not specify that this is the exact metric used to measure accuracy in H1. The phrase 'as measured by' introduces a level of specificity not present in the ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim stems from the recognized gap in directly comparing quantile regression with Gaussian assumptions in financial risk modeling",
+          "issue": "While the ground truth mentions a related gap, it does not explicitly state that this is the 'recognized gap' in the literature, nor does it attribute this framing directly to the rationale of H1."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "where VaR estimation can be conducted under both modeling frameworks for comparative analysis (Chernozhukov et al., 2016; He et al., 2020)",
+          "issue": "The ground truth mentions that VaR can be computed using both approaches, but does not reference Chernozhukov et al., 2016 or He et al., 2020 as sources for this specific application or methodology."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "especially in capturing extreme negative returns beyond the 1st percentile",
+          "issue": "The ground truth states that H2 focuses on extreme negative returns beyond the 1st percentile, but does not specify that this is a defining characteristic of the hypothesis itself, nor does it explicitly state that this is part of the 'especially' clause."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Testing this hypothesis involves leveraging real equity return data to evaluate the performance of both conventional and EVT-enhanced quantile regression approaches in forecasting extreme losses (Chernozhukov et al., 2020; Huber et al., 2026)",
+          "issue": "The ground truth supports the use of real equity return data and evaluation of performance, but does not mention Chernozhukov et al., 2020 or Huber et al., 2026 as references for this particular testing framework or application."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "as evidenced by reduced mean absolute error in estimating the 1st and 99th percentiles of returns",
+          "issue": "The ground truth states that the comparison is based on reduced mean absolute error, but does not specify that this applies to the 1st and 99th percentiles, nor does it define the error metric in terms of these specific percentiles."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This idea is supported by the emerging trend of applying machine learning techniques to improve quantile estimation within financial contexts",
+          "issue": "The ground truth supports the idea that ML techniques are applied to improve quantile estimation, but does not describe this as an 'emerging trend', nor does it link this concept directly to the rationale of H3."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It can be evaluated using empirical equity return data to contrast the predictive accuracy of traditional versus ML-augmented quantile regression models (Nguyen et al., 2020a; Shukla and Gupta, 2025)",
+          "issue": "The ground truth confirms that empirical equity return data can be used for evaluation and contrasts traditional vs ML-augmented models, but does not cite Nguyen et al., 2020a or Shukla and Gupta, 2025 as sources for this specific application."
+        },
+        {
+          "location": "Methods",
+          "claim": "The experimental design for hypothesis H1 was structured as a comparative benchmark study aimed at evaluating the accuracy of Value-at-Risk (VaR) estimates obtained through two distinct modeling approaches: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.",
+          "issue": "This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here."
+        },
+        {
+          "location": "Methods",
+          "claim": "Both models were applied to the Fama-French three-factor daily returns dataset, which encompasses market excess returns (Mkt-RF), size factor (SMB), and value factor (HML) over the period from 1926-07-01 to 2026-06-30, providing 26,274 observations.",
+          "issue": "This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here."
+        },
+        {
+          "location": "Methods",
+          "claim": "The objective was to estimate VaR at the 5th percentile and assess model performance using pinball loss as the primary evaluation metric.",
+          "issue": "This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here."
+        },
+        {
+          "location": "Methods",
+          "claim": "The dataset underwent preprocessing steps including conversion of percentage returns to decimals, removal of missing values, and computation of rolling 252-day windows to ensure stable return characteristics for analysis.",
+          "issue": "This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here."
+        },
+        {
+          "location": "Methods",
+          "claim": "In line with the planned methodology, the Coder Agent implemented both models according to the specified procedures.",
+          "issue": "This claim introduces information not present in the ground truth—specifically, that the 'Coder Agent' implemented the models. The ground truth only states that the implementation steps were followed but does not mention a 'Coder Agent'. This is a hallucination."
+        },
+        {
+          "location": "Methods",
+          "claim": "For the Bayesian quantile regression, a simplified empirical quantile approach was adopted due to computational constraints, rather than full Bayesian sampling, while the Gaussian error model was implemented using standard methods for computing VaR based on mean and standard deviation under normality assumptions.",
+          "issue": "This claim introduces information not present in the ground truth—specifically, that a 'simplified empirical quantile approach' was used for Bayesian quantile regression. The ground truth explicitly states that the Bayesian method uses 'asymmetric Laplace distribution as the likelihood function', without mentioning an empirical quantile approach. This is a hallucination."
+        },
+        {
+          "location": "Methods",
+          "claim": "Pinball loss was calculated across all rolling windows to quantify predictive accuracy.",
+          "issue": "This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here."
+        },
+        {
+          "location": "Methods",
+          "claim": "The agent also introduced fallback mechanisms, including the use of a synthetic dataset if the real Fama-French data was unavailable, ensuring continuity of the experiment despite potential data access issues.",
+          "issue": "This claim introduces information not present in the ground truth—specifically, that the 'agent' introduced fallback mechanisms. The ground truth mentions that 'the experiment falls back to a synthetic dataset if the real Fama-French data file is not found at the expected location', but does not refer to an 'agent' doing so. This is a hallucination."
+        },
+        {
+          "location": "Methods",
+          "claim": "These assumptions are critical to interpreting the results, particularly since the Bayesian method deviated slightly from full probabilistic inference and relied on synthetic data in certain cases.",
+          "issue": "This claim introduces information not present in the ground truth—specifically, that the Bayesian method 'deviated slightly from full probabilistic inference' and that it 'relied on synthetic data in certain cases'. While the ground truth lists assumptions about synthetic datasets and simplified approaches, it does not describe these deviations or reliance as 'slight' or 'certain cases'. This is a hallucination."
+        },
+        {
+          "location": "Results",
+          "claim": "The Bayesian quantile regression model yielded an average pinball loss of 0.000893, while the Gaussian error model achieved a lower average pinball loss of 0.000720",
+          "issue": "This claim contradicts the ground truth. According to the ground truth, the Gaussian error model achieved a lower average pinball loss (0.000720) than the Bayesian quantile regression model (0.000893). The section text incorrectly states that the Bayesian model had a higher loss and the Gaussian model had a lower one."
+        },
+        {
+          "location": "Results",
+          "claim": "This difference in performance indicates that the Gaussian model outperformed the Bayesian quantile regression model according to the specified metric",
+          "issue": "This claim misrepresents the ground truth. The ground truth explicitly states that 'Gaussian error model achieved lower average pinball loss (0.000720) than Bayesian quantile regression (0.000893)', meaning the Gaussian model performed better, but the section text incorrectly frames this as the Bayesian model being superior."
+        },
+        {
+          "location": "Results",
+          "claim": "Due to the synthetic nature of the input data used in this experiment, the findings cannot be considered as evidence for or against the stated hypothesis regarding VaR estimation in actual financial markets",
+          "issue": "While the ground truth confirms that the data is synthetic and that the findings are not interpretable as evidence for or against the hypothesis, the section text adds the phrase 'regarding VaR estimation in actual financial markets' which is not present in the ground truth. The ground truth refers to 'real-world hypothesis' without specifying 'actual financial markets'."
+        },
+        {
+          "location": "Results",
+          "claim": "The pipeline behavior on generated data does not reflect real-world conditions, and thus, the empirical support for the hypothesis remains inconclusive under the current experimental setup",
+          "issue": "This statement introduces a conclusion not explicitly stated in the ground truth. While the ground truth notes that the methodological validity is compromised due to synthetic data and that the verdict is withheld because of synthetic inputs, it does not conclude that 'empirical support for the hypothesis remains inconclusive under the current experimental setup'. This is an interpretive addition."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Our study acknowledges several limitations that may impact the robustness and generalizability of our findings",
+          "issue": "This introductory statement about 'robustness and generalizability' is not mentioned in the ground truth. The ground truth only lists specific risks and assumptions but does not discuss the overall robustness or generalizability of the study."
+        },
+        {
+          "location": "Limitations",
+          "claim": "A primary concern relates to data quality and stability, particularly in scenarios where insufficient data points exist within rolling time windows",
+          "issue": "While the ground truth mentions 'insufficient data points in some rolling windows leading to unstable estimates', it does not describe this as a 'primary concern' or frame it in terms of 'data quality and stability'. The framing here adds interpretive emphasis not present in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "This condition can lead to unstable estimates, which may compromise the reliability of the quantile regression models used to assess Value-at-Risk (VaR) predictions",
+          "issue": "Although the ground truth states 'insufficient data points in some rolling windows leading to unstable estimates', it does not explicitly connect this to compromising 'reliability of the quantile regression models' or specify that they are used 'to assess Value-at-Risk (VaR) predictions'. These details are not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Additionally, the computational demands of Bayesian inference pose a significant challenge, as the fitting process for Bayesian quantile regression may exceed available GPU time limits, potentially constraining the depth and scope of model training",
+          "issue": "The ground truth includes 'Computational overhead of Bayesian inference may exceed available GPU time limits', but does not describe this as a 'significant challenge' nor does it mention 'constraining the depth and scope of model training'. These elaborations are not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Another set of limitations stems from the assumptions made during implementation, which were necessary due to practical constraints",
+          "issue": "The ground truth lists assumptions under 'assumptions_by_hypothesis', but does not refer to them collectively as being 'necessary due to practical constraints'. This characterization is not found in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Specifically, when real-world datasets such as the Fama-French data are unavailable, the experiment relies on synthetic datasets that attempt to mirror the structure and statistical properties of the original",
+          "issue": "The ground truth confirms that the experiment falls back to a synthetic dataset if the real Fama-French data file is not found, and that the synthetic dataset mimics the structure and statistical properties of the real data. However, the phrase 'attempt to mirror' is not present in the ground truth; it implies an imperfect mimicry that is not stated there."
+        },
+        {
+          "location": "Limitations",
+          "claim": "While this ensures continuity of experimentation, it introduces potential discrepancies between synthetic and real-world behaviors",
+          "issue": "The ground truth does not mention anything about 'continuity of experimentation' or 'potential discrepancies between synthetic and real-world behaviors'. These are added interpretations not grounded in the provided data."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Furthermore, the Bayesian quantile regression implementation adopts a simplified empirical quantile approach instead of full Bayesian sampling, which may limit the precision of uncertainty quantification",
+          "issue": "The ground truth confirms that the implementation uses a simplified empirical quantile approach rather than full Bayesian sampling, but does not state that this 'may limit the precision of uncertainty quantification'. This consequence is not mentioned in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These approximations, while computationally feasible, could affect the accuracy of VaR estimates and the interpretation of model outputs",
+          "issue": "The ground truth does not mention anything about 'accuracy of VaR estimates' or 'interpretation of model outputs' being affected by the approximations. These consequences are not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Finally, interpretability challenges arise from the pinball loss metric, which varies across different window sizes and thus complicates direct comparisons between models",
+          "issue": "The ground truth states that pinball loss is affected by varying window sizes and affects comparability, but does not describe this as 'interpretability challenges' or say that it 'complicates direct comparisons between models'. These framing elements are not in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Misinterpretation of this metric could lead to erroneous conclusions regarding model performance",
+          "issue": "The ground truth mentions 'Misinterpretation of pinball loss due to varying window sizes affecting comparability', but does not state that misinterpretation leads to 'erroneous conclusions regarding model performance'. This added consequence is not grounded."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Together, these limitations highlight the trade-offs between theoretical rigor and practical feasibility in multi-agent experimental design, and suggest avenues for future work that might address these concerns through improved data availability, enhanced computational resources, or more sophisticated modeling techniques",
+          "issue": "The ground truth does not mention anything about 'multi-agent experimental design', 'trade-offs between theoretical rigor and practical feasibility', or suggest future work involving 'improved data availability, enhanced computational resources, or more sophisticated modeling techniques'. These are speculative additions not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The present investigation into quantile regression models for Value-at-Risk estimation yielded inconclusive results due to the use of synthetic data",
+          "issue": "While the ground truth states that the experiment used synthetic surrogates and its metrics describe the pipeline's behavior on generated data, it does not explicitly state that the investigation 'yielded inconclusive results' due to this reason. The ground truth only notes that the experiment ran to completion but no verdict was drawn from the metrics, and that one or more inputs were synthetic, so the metrics say nothing about the real-world hypothesis. Therefore, the specific claim about yielding 'inconclusive results' due to synthetic data is not directly supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Such studies should directly compare quantile regression with Gaussian error assumptions using empirical equity return data to assess practical differences in VaR prediction accuracy",
+          "issue": "The ground truth supports the idea of comparing quantile regression with Gaussian error assumptions using equity return data, but it does not specify that such studies should be conducted to 'assess practical differences in VaR prediction accuracy'. The ground truth mentions that VaR can be computed and compared using both approaches, but does not assert that assessing 'practical differences in VaR prediction accuracy' is a necessary next step or goal."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing these issues through new methodological developments—such as incorporating time-varying parameters or exploring Bayesian techniques tailored for streaming data—would enhance the applicability of quantile regression in evolving financial environments",
+          "issue": "The ground truth identifies a lack of real-time or adaptive quantile regression models as a gap, and mentions that most studies rely on static historical data. However, it does not mention anything about 'incorporating time-varying parameters' or 'exploring Bayesian techniques tailored for streaming data' as potential solutions or methodological developments to address this gap. These specific suggestions are not grounded in the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "While some studies touch upon smoothing techniques for managing dimensionality, few examine how these methods perform in large-scale discrete risk models or integrate well with Bayesian inference",
+          "issue": "The ground truth mentions that there is a lack of discussion on handling high-dimensional data in Bayesian quantile regression frameworks beyond smoothing techniques, and also notes that smoothing methods' scalability in large discrete risk models is underexplored. However, it does not state that 'some studies touch upon smoothing techniques', nor does it suggest that 'few examine how these methods perform in large-scale discrete risk models'. These claims introduce new information not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, while many works focus on parametric or semi-parametric frameworks, fully nonparametric approaches in dynamic or streaming data contexts deserve deeper investigation",
+          "issue": "The ground truth states that most papers focus on either parametric or semi-parametric frameworks and that fully nonparametric approaches are underutilized in dynamic or streaming data scenarios. However, it does not state that 'many works focus on parametric or semi-parametric frameworks' as a general observation, nor does it explicitly say that 'fully nonparametric approaches in dynamic or streaming data contexts deserve deeper investigation'. These are interpretive additions not directly supported by the ground truth."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Boukouvalas et\nal., 2012)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.000720, 0.000893, 1, 5",
+          "actual": "Coder Agent reports gaussian_avg_pinball_loss=0.0007195363514234043"
+        },
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.000720, 0.000893, 1, 5",
+          "actual": "Coder Agent reports difference=0.00017394883560075238"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text states, 'The investigation into whether quantile regression models estimated using the asymmetric Laplace distribution provide more accurate Value-at-Risk estimates compared to Gaussian error models remains inconclusive due to the experimental design's reliance on synthetic data.' This overstates the inconclusive nature of the outcome by implying that the lack of conclusion is solely due to the use of synthetic data, while the ground truth explicitly states that the experiment ran to completion and metrics were reported, but no verdict is drawn because the inputs are synthetic surrogates. The framing suggests a stronger causal relationship between synthetic data and the inconclusive result than what is actually stated in the ground truth."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 3
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Quantile regression has emerged as a powerful statistical tool for modeling tail risk and extreme events across a wide range of disciplines, including finance, insurance, environmental science, and public health.\" — While the ground truth mentions that quantile regression is used in finance, insurance, environmental science, and public health, it does not explicitly state that it has 'emerged as a powerful statistical tool' in all these disciplines. The claim is a broad generalization not directly supported by the ground truth.\n- Introduction: \"Unlike traditional mean regression or Gaussian error models, quantile regression provides a more nuanced view of conditional distributions, particularly in the tails where extreme outcomes occur.\" — Although the ground truth states that quantile regression offers advantages in capturing asymmetric effects, handling non-normal data, and providing insights into the entire conditional distribution, especially in the tails, it does not explicitly state that it provides a 'more nuanced view' compared to mean regression or Gaussian models. This characterization is interpretive and not directly grounded.\n- Introduction: \"This flexibility allows practitioners to capture asymmetric effects, accommodate non-normal data, and gain insights into the full spectrum of potential outcomes.\" — While the ground truth mentions that quantile regression captures asymmetric effects and handles non-normal data, it does not explicitly state that it allows practitioners to 'gain insights into the full spectrum of potential outcomes.' This is an interpretive addition not found in the ground truth.\n- Introduction: \"The method has been further enhanced through integration with advanced techniques such as Bayesian inference, machine learning, extreme value theory (EVT), and smoothing methods, all aimed at improving estimation accuracy and computational efficiency.\" — The ground truth confirms that quantile regression is frequently combined with Bayesian inference, machine learning, EVT, and smoothing methods, but it does not explicitly state that these integrations are 'aimed at improving estimation accuracy and computational efficiency.' This is an interpretation of purpose not directly stated in the ground truth.\n- Introduction: \"One notable gap lies in the limited direct comparison between quantile regression and standard Gaussian error assumptions in financial risk modeling, especially for daily equity returns.\" — The ground truth supports the existence of a gap regarding limited direct comparison between quantile regression and Gaussian assumptions in financial contexts, but it does not specifically mention 'daily equity returns' as the focus. The specificity of 'daily equity returns' is not grounded in the provided evidence.\n- Introduction: \"Another significant issue concerns the inconsistency in defining and measuring tail dependence across financial applications, which hampers comparative analysis and model selection.\" — The ground truth identifies inconsistency in defining tail dependence as a gap, but it does not explicitly state that this inconsistency 'hampers comparative analysis and model selection.' This is an added consequence not mentioned in the ground truth.\n- Introduction: \"Additionally, most existing approaches rely on static historical data, leaving a gap in the development of real-time or adaptive quantile regression models capable of dynamic risk assessment.\" — The ground truth supports the idea that most studies rely on static historical data and identifies a gap in real-time or adaptive models, but it does not explicitly state that these models are 'capable of dynamic risk assessment.' This is an added interpretation of capability not grounded in the text.\n- Introduction: \"Beyond these foundational issues, further challenges remain in handling high-dimensional data within Bayesian quantile regression frameworks and integrating Bayesian methods with extreme quantile estimation for real-time risk monitoring.\" — The ground truth mentions gaps related to high-dimensional data in Bayesian quantile regression and Bayesian methods with extreme quantile estimation, but it does not explicitly state that these are 'further challenges' beyond the previously mentioned issues. Also, the phrase 'for real-time risk monitoring' is not directly supported by the ground truth.\n- Introduction: \"The interaction between measurement errors and quantile estimation also requires more careful consideration, particularly in financial and economic settings.\" — The ground truth notes that measurement error handling remains a challenge, especially in financial and economic contexts, but it does not explicitly state that the 'interaction between measurement errors and quantile estimation' requires more careful consideration. This is a more specific framing not found in the ground truth.\n- Introduction: \"Moreover, while smoothing techniques are commonly employed, their computational efficiency in large-scale discrete risk models remains underexplored.\" — The ground truth mentions that smoothing methods' scalability in large discrete risk models is underexplored, but it does not explicitly state that smoothing techniques are 'commonly employed' in practice. This is an assumption not grounded in the provided information.\n- Introduction: \"In parallel, there is a dearth of empirical validation comparing Bayesian and non-Bayesian quantile estimators in real-world insurance datasets.\" — The ground truth supports the lack of empirical validation comparing Bayesian and non-Bayesian quantile estimators in insurance datasets, but it does not explicitly state that this is happening 'in parallel' with other issues. This is a contextual framing not grounded in the text.\n- Introduction: \"The theoretical connections between continued fractions and extreme value laws have yet to be fully understood.\" — The ground truth mentions that the theoretical connections between continued fractions and extreme value laws remain underexplored, but it does not explicitly state that they have 'yet to be fully understood.' This is a stronger claim than what is supported.\n- Introduction: \"This paper addresses these gaps by testing three core hypotheses regarding the performance and applicability of quantile regression in financial risk modeling.\" — The ground truth lists three hypotheses (H1, H2, H3) but does not explicitly state that the paper 'addresses these gaps by testing three core hypotheses.' This is a claim about the paper’s intent that is not directly grounded in the provided text.\n- Introduction: \"Specifically, we investigate whether Bayesian quantile regression models using the asymmetric Laplace distribution yield more accurate Value-at-Risk (VaR) estimates for daily equity returns compared to Gaussian models, evaluate the benefits of combining Extreme Value Theory with quantile regression for tail-risk estimation, and assess whether machine learning-enhanced quantile regression models provide improved precision in estimating extreme return percentiles.\" — While the ground truth lists the three hypotheses (H1–H3), it does not explicitly state that the paper 'investigates' them in the way described, nor does it specify that the VaR estimates are for 'daily equity returns' or that the ML-enhanced models are for 'estimating extreme return percentiles.' These are specific claims about methodology and scope not grounded in the ground truth.\n- Related Work: \"Recent developments have focused on scalable and computationally efficient implementations, with methods like CONQUER (He et al., 2020) and quantile regression forests (Saputra and Aqsari, 2025) enabling practical application in large-scale and high-dimensional problems.\" — The ground truth lists 'CONQUER' (He et al., 2020) as a method for large-scale inference in quantile regression, but does not mention 'quantile regression forests' as a method developed by Saputra and Aqsari (2025). The paper by Saputra and Aqsari (2025) is listed in the ground truth, but its abstract mentions 'Quantile Regression Forest (QRF)' and 'Expected Tail Loss (ETL)', not that it enables practical application in large-scale and high-dimensional problems via QRF specifically. The claim attributes a specific capability to QRF that is not supported by the ground truth.\n- Related Work: \"Bayesian methodologies have also been extended to quantile regression, offering robust inference and regularization capabilities through hierarchical models (Huber et al., 2026) and LASSO-based approaches (Nguyen et al., 2020a), while also incorporating Gaussian processes for smoothing coefficient paths (Johnston, 2025) and shrinkage priors (Prüser and Huber, 2023).\" — The ground truth includes a paper by Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk', which indeed involves Bayesian methods and Gaussian processes, but it does not mention LASSO-based approaches or shrinkage priors in the context of Bayesian quantile regression. Furthermore, the paper by Nguyen et al. (2020a) is not listed in the ground truth; only Nguyen et al. (2020b) is listed. Also, the paper by Johnston (2025) is not listed in the ground truth, and the paper by Prüser and Huber (2023) is listed as 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions' but does not mention shrinkage priors in the abstract.\n- Related Work: \"Works such as Teruzzi (2023) and Schaumburg (n.d.) demonstrate how combining EVT with quantile regression can improve estimation accuracy for extreme quantiles, especially in financial markets where data exhibit heavy tails or extreme behavior.\" — The ground truth includes a paper by Teruzzi (2023) titled 'Tail Risk and Systemic Risk Estimation of Cryptocurrencies: an Expectiles and Marginal Expected Shortfall based approach', which discusses expectile-based approaches and EVT, but does not explicitly state that it combines EVT with quantile regression to improve estimation accuracy for extreme quantiles. The paper by Schaumburg (n.d.) is not listed in the ground truth, so its content cannot be verified.\n- Related Work: \"Similarly, Härdle et al. (n.d.) and Schaumburg (n.d.) highlight the utility of semiparametric frameworks in financial risk calibration, particularly in the context of CoVaR estimation and Value-at-Risk forecasting.\" — The paper by Härdle et al. (n.d.) is not listed in the ground truth, so its content cannot be verified. The paper by Schaumburg (n.d.) is also not listed in the ground truth, so its content cannot be verified.\n- Related Work: \"Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Hu et al. (2020) enabling flexible modeling of complex dependency structures.\" — The paper by Li and Megiddo (2025) titled 'Spline Quantile Regression' is listed in the ground truth, but the abstract is empty, so it's unclear if it discusses spline-based approaches in the context mentioned. The paper by Hu et al. (2020) titled 'Identifying and understanding determinants of high healthcare costs for breast cancer: a quantile regression machine learning approach' is listed, but it refers to 'Quantile Regression Forests' as a machine learning technique, not as a method enabling flexible modeling of complex dependency structures in general.\n- Related Work: \"Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Boukouvalas et al. (2012) and Gaussian processes Ludkovski and Risk (2017) to improve inference in spatial and temporal settings.\" — The paper by Boukouvalas et al. (2012) titled 'Gaussian Process Quantile Regression using Expectation Propagation' is listed in the ground truth and discusses asymmetric Laplace distributions and Gaussian processes. However, the paper by Ludkovski and Risk (2017) titled 'Sequential Design and Spatial Modeling for Portfolio Tail Risk Measurement' is listed, but its abstract does not mention Bayesian quantile regression or inference in spatial and temporal settings.\n- Related Work: \"Studies such as Nguyen et al. (2020b) and Ferrari and Paterlini (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.\" — The paper by Nguyen et al. (2020b) is not listed in the ground truth; only Nguyen et al. (2020a) is listed. The paper by Ferrari and Paterlini (n.d.) is not listed in the ground truth, so its content cannot be verified.\n- Related Work: \"Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Montes-Rojas (n.d.) deriving bias corrections for quantile regression estimators under classical additive measurement error and Prüser and Huber incorporating Gaussian processes to enhance performance in the right tail.\" — The paper by Montes-Rojas (n.d.) titled 'Quantile Regression with Classical Additive Measurement Errors' is listed in the ground truth, but it does not mention bias corrections for quantile regression estimators under classical additive measurement error in the abstract. The paper by Prüser and Huber (2023) is listed as 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions', but it does not mention incorporating Gaussian processes to enhance performance in the right tail.\n- Related Work: \"These advancements reflect ongoing efforts to improve the reliability and applicability of quantile regression in complex, high-dimensional settings.\" — This is a general statement summarizing the previous claims, which are already flagged as hallucinations. The statement itself is not directly traceable to the ground truth because it is based on unverified claims.\n- Related Work: \"The handling of measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties Li et al. (2026).\" — The paper by Li et al. (2026) titled 'Quantile regression with measurement errors' is listed in the ground truth, but the abstract does not mention that handling measurement errors in nonlinear settings continues to pose difficulties. The abstract mentions that the method is consistent and addresses technical difficulties, but does not state that it continues to pose difficulties.\n- Related Work: \"While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Boukouvalas et al. (2012).\" — The paper by Boukouvalas et al. (2012) is listed in the ground truth, but its abstract does not mention that Bayesian methods' application to extreme quantile estimation and real-time risk monitoring is still evolving. The abstract mentions that the paper presents a novel method for quantile regression using approximate inference methods, but does not comment on the evolution of Bayesian methods in these areas.\n- Related Work: \"Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Wang et al. (2023).\" — The paper by Wang et al. (2023) titled 'Generative Quantile Regression with Variability Penalty' is listed in the ground truth, but its abstract does not mention that the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments. The abstract focuses on generative models and variability penalties, not on computational or theoretical hurdles.\n- Related Work: \"These considerations point toward future research directions aimed at bridging the gap between theoretical advancements and practical applicability in fields such as finance, healthcare, and environmental risk modeling.\" — This is a general statement summarizing the previous claims, which are already flagged as hallucinations. The statement itself is not directly traceable to the ground truth because it is based on unverified claims.\n- Related Work: \"Specifically, we test whether Bayesian quantile regression using the asymmetric Laplace distribution provides more accurate VaR estimates than Gaussian error models (H1), whether combining EVT with quantile regression improves tail-risk estimation beyond standard quantile regression (H2), and whether machine learning-enhanced quantile regression models yield more precise tail-risk estimates than traditional approaches (H3).\" — These hypotheses are stated as part of the paper's contribution, not as claims drawn from the existing literature. They are not grounded in the ground truth provided, as they represent the paper's own research questions rather than previously established facts or claims.\n- Hypotheses: \"as measured by lower pinball loss\" — The ground truth states that the comparison is based on lower pinball loss, but does not specify that this is the exact metric used to measure accuracy in H1. The phrase 'as measured by' introduces a level of specificity not present in the ground truth.\n- Hypotheses: \"The rationale for this claim stems from the recognized gap in directly comparing quantile regression with Gaussian assumptions in financial risk modeling\" — While the ground truth mentions a related gap, it does not explicitly state that this is the 'recognized gap' in the literature, nor does it attribute this framing directly to the rationale of H1.\n- Hypotheses: \"where VaR estimation can be conducted under both modeling frameworks for comparative analysis (Chernozhukov et al., 2016; He et al., 2020)\" — The ground truth mentions that VaR can be computed using both approaches, but does not reference Chernozhukov et al., 2016 or He et al., 2020 as sources for this specific application or methodology.\n- Hypotheses: \"especially in capturing extreme negative returns beyond the 1st percentile\" — The ground truth states that H2 focuses on extreme negative returns beyond the 1st percentile, but does not specify that this is a defining characteristic of the hypothesis itself, nor does it explicitly state that this is part of the 'especially' clause.\n- Hypotheses: \"Testing this hypothesis involves leveraging real equity return data to evaluate the performance of both conventional and EVT-enhanced quantile regression approaches in forecasting extreme losses (Chernozhukov et al., 2020; Huber et al., 2026)\" — The ground truth supports the use of real equity return data and evaluation of performance, but does not mention Chernozhukov et al., 2020 or Huber et al., 2026 as references for this particular testing framework or application.\n- Hypotheses: \"as evidenced by reduced mean absolute error in estimating the 1st and 99th percentiles of returns\" — The ground truth states that the comparison is based on reduced mean absolute error, but does not specify that this applies to the 1st and 99th percentiles, nor does it define the error metric in terms of these specific percentiles.\n- Hypotheses: \"This idea is supported by the emerging trend of applying machine learning techniques to improve quantile estimation within financial contexts\" — The ground truth supports the idea that ML techniques are applied to improve quantile estimation, but does not describe this as an 'emerging trend', nor does it link this concept directly to the rationale of H3.\n- Hypotheses: \"It can be evaluated using empirical equity return data to contrast the predictive accuracy of traditional versus ML-augmented quantile regression models (Nguyen et al., 2020a; Shukla and Gupta, 2025)\" — The ground truth confirms that empirical equity return data can be used for evaluation and contrasts traditional vs ML-augmented models, but does not cite Nguyen et al., 2020a or Shukla and Gupta, 2025 as sources for this specific application.\n- Methods: \"The experimental design for hypothesis H1 was structured as a comparative benchmark study aimed at evaluating the accuracy of Value-at-Risk (VaR) estimates obtained through two distinct modeling approaches: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.\" — This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here.\n- Methods: \"Both models were applied to the Fama-French three-factor daily returns dataset, which encompasses market excess returns (Mkt-RF), size factor (SMB), and value factor (HML) over the period from 1926-07-01 to 2026-06-30, providing 26,274 observations.\" — This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here.\n- Methods: \"The objective was to estimate VaR at the 5th percentile and assess model performance using pinball loss as the primary evaluation metric.\" — This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here.\n- Methods: \"The dataset underwent preprocessing steps including conversion of percentage returns to decimals, removal of missing values, and computation of rolling 252-day windows to ensure stable return characteristics for analysis.\" — This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here.\n- Methods: \"In line with the planned methodology, the Coder Agent implemented both models according to the specified procedures.\" — This claim introduces information not present in the ground truth—specifically, that the 'Coder Agent' implemented the models. The ground truth only states that the implementation steps were followed but does not mention a 'Coder Agent'. This is a hallucination.\n- Methods: \"For the Bayesian quantile regression, a simplified empirical quantile approach was adopted due to computational constraints, rather than full Bayesian sampling, while the Gaussian error model was implemented using standard methods for computing VaR based on mean and standard deviation under normality assumptions.\" — This claim introduces information not present in the ground truth—specifically, that a 'simplified empirical quantile approach' was used for Bayesian quantile regression. The ground truth explicitly states that the Bayesian method uses 'asymmetric Laplace distribution as the likelihood function', without mentioning an empirical quantile approach. This is a hallucination.\n- Methods: \"Pinball loss was calculated across all rolling windows to quantify predictive accuracy.\" — This claim is a faithful summary of the ground truth and is therefore grounded. No hallucination here.\n- Methods: \"The agent also introduced fallback mechanisms, including the use of a synthetic dataset if the real Fama-French data was unavailable, ensuring continuity of the experiment despite potential data access issues.\" — This claim introduces information not present in the ground truth—specifically, that the 'agent' introduced fallback mechanisms. The ground truth mentions that 'the experiment falls back to a synthetic dataset if the real Fama-French data file is not found at the expected location', but does not refer to an 'agent' doing so. This is a hallucination.\n- Methods: \"These assumptions are critical to interpreting the results, particularly since the Bayesian method deviated slightly from full probabilistic inference and relied on synthetic data in certain cases.\" — This claim introduces information not present in the ground truth—specifically, that the Bayesian method 'deviated slightly from full probabilistic inference' and that it 'relied on synthetic data in certain cases'. While the ground truth lists assumptions about synthetic datasets and simplified approaches, it does not describe these deviations or reliance as 'slight' or 'certain cases'. This is a hallucination.\n- Results: \"The Bayesian quantile regression model yielded an average pinball loss of 0.000893, while the Gaussian error model achieved a lower average pinball loss of 0.000720\" — This claim contradicts the ground truth. According to the ground truth, the Gaussian error model achieved a lower average pinball loss (0.000720) than the Bayesian quantile regression model (0.000893). The section text incorrectly states that the Bayesian model had a higher loss and the Gaussian model had a lower one.\n- Results: \"This difference in performance indicates that the Gaussian model outperformed the Bayesian quantile regression model according to the specified metric\" — This claim misrepresents the ground truth. The ground truth explicitly states that 'Gaussian error model achieved lower average pinball loss (0.000720) than Bayesian quantile regression (0.000893)', meaning the Gaussian model performed better, but the section text incorrectly frames this as the Bayesian model being superior.\n- Results: \"Due to the synthetic nature of the input data used in this experiment, the findings cannot be considered as evidence for or against the stated hypothesis regarding VaR estimation in actual financial markets\" — While the ground truth confirms that the data is synthetic and that the findings are not interpretable as evidence for or against the hypothesis, the section text adds the phrase 'regarding VaR estimation in actual financial markets' which is not present in the ground truth. The ground truth refers to 'real-world hypothesis' without specifying 'actual financial markets'.\n- Results: \"The pipeline behavior on generated data does not reflect real-world conditions, and thus, the empirical support for the hypothesis remains inconclusive under the current experimental setup\" — This statement introduces a conclusion not explicitly stated in the ground truth. While the ground truth notes that the methodological validity is compromised due to synthetic data and that the verdict is withheld because of synthetic inputs, it does not conclude that 'empirical support for the hypothesis remains inconclusive under the current experimental setup'. This is an interpretive addition.\n- Limitations: \"Our study acknowledges several limitations that may impact the robustness and generalizability of our findings\" — This introductory statement about 'robustness and generalizability' is not mentioned in the ground truth. The ground truth only lists specific risks and assumptions but does not discuss the overall robustness or generalizability of the study.\n- Limitations: \"A primary concern relates to data quality and stability, particularly in scenarios where insufficient data points exist within rolling time windows\" — While the ground truth mentions 'insufficient data points in some rolling windows leading to unstable estimates', it does not describe this as a 'primary concern' or frame it in terms of 'data quality and stability'. The framing here adds interpretive emphasis not present in the ground truth.\n- Limitations: \"This condition can lead to unstable estimates, which may compromise the reliability of the quantile regression models used to assess Value-at-Risk (VaR) predictions\" — Although the ground truth states 'insufficient data points in some rolling windows leading to unstable estimates', it does not explicitly connect this to compromising 'reliability of the quantile regression models' or specify that they are used 'to assess Value-at-Risk (VaR) predictions'. These details are not grounded in the provided information.\n- Limitations: \"Additionally, the computational demands of Bayesian inference pose a significant challenge, as the fitting process for Bayesian quantile regression may exceed available GPU time limits, potentially constraining the depth and scope of model training\" — The ground truth includes 'Computational overhead of Bayesian inference may exceed available GPU time limits', but does not describe this as a 'significant challenge' nor does it mention 'constraining the depth and scope of model training'. These elaborations are not supported by the ground truth.\n- Limitations: \"Another set of limitations stems from the assumptions made during implementation, which were necessary due to practical constraints\" — The ground truth lists assumptions under 'assumptions_by_hypothesis', but does not refer to them collectively as being 'necessary due to practical constraints'. This characterization is not found in the ground truth.\n- Limitations: \"Specifically, when real-world datasets such as the Fama-French data are unavailable, the experiment relies on synthetic datasets that attempt to mirror the structure and statistical properties of the original\" — The ground truth confirms that the experiment falls back to a synthetic dataset if the real Fama-French data file is not found, and that the synthetic dataset mimics the structure and statistical properties of the real data. However, the phrase 'attempt to mirror' is not present in the ground truth; it implies an imperfect mimicry that is not stated there.\n- Limitations: \"While this ensures continuity of experimentation, it introduces potential discrepancies between synthetic and real-world behaviors\" — The ground truth does not mention anything about 'continuity of experimentation' or 'potential discrepancies between synthetic and real-world behaviors'. These are added interpretations not grounded in the provided data.\n- Limitations: \"Furthermore, the Bayesian quantile regression implementation adopts a simplified empirical quantile approach instead of full Bayesian sampling, which may limit the precision of uncertainty quantification\" — The ground truth confirms that the implementation uses a simplified empirical quantile approach rather than full Bayesian sampling, but does not state that this 'may limit the precision of uncertainty quantification'. This consequence is not mentioned in the ground truth.\n- Limitations: \"These approximations, while computationally feasible, could affect the accuracy of VaR estimates and the interpretation of model outputs\" — The ground truth does not mention anything about 'accuracy of VaR estimates' or 'interpretation of model outputs' being affected by the approximations. These consequences are not grounded in the provided information.\n- Limitations: \"Finally, interpretability challenges arise from the pinball loss metric, which varies across different window sizes and thus complicates direct comparisons between models\" — The ground truth states that pinball loss is affected by varying window sizes and affects comparability, but does not describe this as 'interpretability challenges' or say that it 'complicates direct comparisons between models'. These framing elements are not in the ground truth.\n- Limitations: \"Misinterpretation of this metric could lead to erroneous conclusions regarding model performance\" — The ground truth mentions 'Misinterpretation of pinball loss due to varying window sizes affecting comparability', but does not state that misinterpretation leads to 'erroneous conclusions regarding model performance'. This added consequence is not grounded.\n- Limitations: \"Together, these limitations highlight the trade-offs between theoretical rigor and practical feasibility in multi-agent experimental design, and suggest avenues for future work that might address these concerns through improved data availability, enhanced computational resources, or more sophisticated modeling techniques\" — The ground truth does not mention anything about 'multi-agent experimental design', 'trade-offs between theoretical rigor and practical feasibility', or suggest future work involving 'improved data availability, enhanced computational resources, or more sophisticated modeling techniques'. These are speculative additions not present in the ground truth.\n- Future Work: \"The present investigation into quantile regression models for Value-at-Risk estimation yielded inconclusive results due to the use of synthetic data\" — While the ground truth states that the experiment used synthetic surrogates and its metrics describe the pipeline's behavior on generated data, it does not explicitly state that the investigation 'yielded inconclusive results' due to this reason. The ground truth only notes that the experiment ran to completion but no verdict was drawn from the metrics, and that one or more inputs were synthetic, so the metrics say nothing about the real-world hypothesis. Therefore, the specific claim about yielding 'inconclusive results' due to synthetic data is not directly supported by the ground truth.\n- Future Work: \"Such studies should directly compare quantile regression with Gaussian error assumptions using empirical equity return data to assess practical differences in VaR prediction accuracy\" — The ground truth supports the idea of comparing quantile regression with Gaussian error assumptions using equity return data, but it does not specify that such studies should be conducted to 'assess practical differences in VaR prediction accuracy'. The ground truth mentions that VaR can be computed and compared using both approaches, but does not assert that assessing 'practical differences in VaR prediction accuracy' is a necessary next step or goal.\n- Future Work: \"Addressing these issues through new methodological developments—such as incorporating time-varying parameters or exploring Bayesian techniques tailored for streaming data—would enhance the applicability of quantile regression in evolving financial environments\" — The ground truth identifies a lack of real-time or adaptive quantile regression models as a gap, and mentions that most studies rely on static historical data. However, it does not mention anything about 'incorporating time-varying parameters' or 'exploring Bayesian techniques tailored for streaming data' as potential solutions or methodological developments to address this gap. These specific suggestions are not grounded in the provided evidence.\n- Future Work: \"While some studies touch upon smoothing techniques for managing dimensionality, few examine how these methods perform in large-scale discrete risk models or integrate well with Bayesian inference\" — The ground truth mentions that there is a lack of discussion on handling high-dimensional data in Bayesian quantile regression frameworks beyond smoothing techniques, and also notes that smoothing methods' scalability in large discrete risk models is underexplored. However, it does not state that 'some studies touch upon smoothing techniques', nor does it suggest that 'few examine how these methods perform in large-scale discrete risk models'. These claims introduce new information not found in the ground truth.\n- Future Work: \"Finally, while many works focus on parametric or semi-parametric frameworks, fully nonparametric approaches in dynamic or streaming data contexts deserve deeper investigation\" — The ground truth states that most papers focus on either parametric or semi-parametric frameworks and that fully nonparametric approaches are underutilized in dynamic or streaming data scenarios. However, it does not state that 'many works focus on parametric or semi-parametric frameworks' as a general observation, nor does it explicitly say that 'fully nonparametric approaches in dynamic or streaming data contexts deserve deeper investigation'. These are interpretive additions not directly supported by the ground truth.\nCitation issues:\n- Related Work: citation-like text \"(Boukouvalas et\nal., 2012)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.000720, 0.000893, 1, 5; actual — Coder Agent reports gaussian_avg_pinball_loss=0.0007195363514234043. Correct this.\n- Results > H1: claimed — figure(s) actually present in the text: 0.000720, 0.000893, 1, 5; actual — Coder Agent reports difference=0.00017394883560075238. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text states, 'The investigation into whether quantile regression models estimated using the asymmetric Laplace distribution provide more accurate Value-at-Risk estimates compared to Gaussian error models remains inconclusive due to the experimental design's reliance on synthetic data.' This overstates the inconclusive nature of the outcome by implying that the lack of conclusion is solely due to the use of synthetic data, while the ground truth explicitly states that the experiment ran to completion and metrics were reported, but no verdict is drawn because the inputs are synthetic surrogates. The framing suggests a stronger causal relationship between synthetic data and the inconclusive result than what is actually stated in the ground truth.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections feel somewhat abrupt, particularly between related work and hypotheses, and between methods and results.\n- limitations_honesty: 3/5 — The paper mentions limitations related to synthetic data and computational constraints but fails to adequately acknowledge the specific risks and assumptions listed in the ground truth, such as convergence issues in Bayesian quantile regression fitting and misinterpretation of pinball loss due to varying window sizes.",
+      "generated_at": "2026-09-15T08:28:49.379961+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 2,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v2.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v2.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "2731600",
+        "386043177",
+        "3f10434156433abfc2ff6783fc1cfdeccb765231",
+        "1612.06850v2",
+        "2009.00436v1",
+        "4228abc01aed8bdca23a823a6e732ecc59581c97",
+        "2012.05187v2",
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+        "2657633",
+        "2730884",
+        "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+        "2469861",
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "2859241",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc"
+      ],
+      "notes_for_review": [],
+      "generated_at": "2026-09-15T08:30:36.868728+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 2,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "For daily returns of individual equities, quantile regression models estimated using the asymmetric Laplace distribution (a common Bayesian approach) provide more accurate Value-at-Risk (VaR) estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss.",
+          "issue": "This specific hypothesis (H1) about quantile regression models using the asymmetric Laplace distribution providing more accurate VaR estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss, is not mentioned in the ground truth. The ground truth lists H1 as one of its hypotheses but does not validate or assert its correctness; it merely states that the paper tests this hypothesis."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Combining Extreme Value Theory (EVT) with quantile regression improves tail-risk estimation for daily stock returns compared to standard quantile regression alone, particularly in capturing extreme negative returns beyond the 1st percentile.",
+          "issue": "This specific hypothesis (H2) regarding the improvement of tail-risk estimation through combining EVT with quantile regression for daily stock returns, especially beyond the 1st percentile, is not stated in the ground truth. Although the ground truth mentions H2 as a tested hypothesis, it does not confirm or imply its validity or outcome."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Machine learning-enhanced quantile regression models (e.g., Quantile Regression Forests) yield more precise tail-risk estimates for daily equity returns than traditional quantile regression models, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns.",
+          "issue": "This specific hypothesis (H3) about ML-enhanced quantile regression models yielding more precise estimates than traditional ones, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles, is not found in the ground truth. The ground truth includes H3 among its hypotheses but does not affirm or refute its claims."
+        },
+        {
+          "location": "Introduction",
+          "claim": "These characteristics make it a valuable tool for understanding extreme outcomes in various fields.",
+          "issue": "While the ground truth supports that quantile regression is useful for modeling tail risk and extreme events, it does not explicitly state that it is a 'valuable tool for understanding extreme outcomes in various fields.' This is a reasonable interpretation but not directly grounded in the provided text."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent developments have focused on scalable and computationally efficient implementations, with methods like CONQUER He et al. (2020) enabling practical application in large-scale problems.",
+          "issue": "The ground truth states that He et al. (2020) introduced CONQUER as a method for large-scale inference in quantile regression, but it does not mention that CONQUER enables 'practical application in large-scale problems' or that recent developments have specifically focused on scalable implementations. The claim adds a qualitative judgment ('scalable and computationally efficient', 'enabling practical application') not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian methodologies have also been extended to quantile regression, offering robust inference through hierarchical models Huber et al. (2026) and LASSO-based approaches Nguyen et al. (2020), while also incorporating Gaussian processes for smoothing coefficient paths Huber et al. (2026).",
+          "issue": "The ground truth indicates that Huber et al. (2026) developed a hierarchical Bayesian panel quantile regression model with Gaussian processes for smoothing, but it does not support the claim that Bayesian methodologies have been extended to quantile regression through 'LASSO-based approaches' or that Huber et al. (2026) incorporate LASSO. The claim conflates different aspects of Bayesian quantile regression and misattributes LASSO usage to Huber et al. (2026)."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Works such as Teruzzi (2023) and Schaumburg (n.d.) demonstrate how EVT can inform quantile regression approaches, particularly in financial markets where data exhibit heavy tails or extreme behavior.",
+          "issue": "The ground truth mentions Teruzzi (2023) and Schaumburg (n.d.), but it does not state that these works demonstrate how EVT informs quantile regression approaches. The claim attributes a specific role to these papers that is not substantiated in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Similarly, Härdle et al. (n.d.) highlights the utility of semiparametric frameworks in financial risk calibration, particularly in the context of CoVaR estimation.",
+          "issue": "The ground truth lists Härdle et al. (n.d.) as a paper on quantile regression in risk calibration, but it does not state that this paper 'highlights the utility of semiparametric frameworks' or that it focuses on CoVaR estimation. The claim adds interpretive content not present in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Bieshaar et al. (2020) enabling flexible modeling of complex dependency structures.",
+          "issue": "The ground truth includes Li and Megiddo (2025) and Bieshaar et al. (2020) as papers on spline quantile regression and quantile surfaces, respectively, but it does not describe them as enhancing 'adaptability' or enabling 'flexible modeling of complex dependency structures.' The claim adds interpretive claims not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Ally (2010) and Gaussian processes Huber et al. (2026) to improve inference in spatial and temporal settings.",
+          "issue": "The ground truth states that Ally (2010) discusses asymmetric Laplace distributions in quantile regression and that Huber et al. (2026) use Gaussian processes, but it does not say that Bayesian quantile regression 'continues to evolve' or that these methods are used 'to improve inference in spatial and temporal settings.' The claim adds interpretive content not grounded in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Studies such as Allen et al. (n.d.) and Kramadibrata et al. (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.",
+          "issue": "The ground truth lists Allen et al. (n.d.) and Kramadibrata et al. (n.d.) as papers on quantile regression and Monte Carlo simulation in Merton structural credit models, but it does not state that these papers 'demonstrate how quantile regression can be used to understand systemic risk propagation' or that they 'improve forecasting performance in small-sample or high-dimensional settings.' The claim adds interpretive content not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Montes-Rojas (n.d.) deriving bias corrections for quantile regression estimators under classical additive measurement error and Nguyen et al. (2020) incorporating LASSO techniques for variable selection in high-dimensional settings.",
+          "issue": "The ground truth states that Montes-Rojas (n.d.) derived bias of quantile regression estimator under classical additive measurement error, but it does not mention that this work addresses 'measurement errors and model misspecification' or that it 'derives bias corrections for quantile regression estimators.' The claim adds interpretive content. Also, Nguyen et al. (2020) is listed in the ground truth as a paper on LASSO quantile regression, but the ground truth does not state that it incorporates LASSO for variable selection in high-dimensional settings—this is a new interpretation not grounded in the data."
+        },
+        {
+          "location": "Related Work",
+          "claim": "While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Ally (2010).",
+          "issue": "The ground truth states that Ally (2010) discusses quantile methods for inference but does not indicate that Bayesian methods are applied to 'extreme quantile estimation and real-time risk monitoring' or that such application is 'still evolving.' The claim adds interpretive content not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Ding et al. (2020).",
+          "issue": "The ground truth lists Ding et al. (2020) as a paper on envelope quantile regression, but it does not state that this paper discusses 'computational and theoretical hurdles' in 'dynamic or streaming data environments.' The claim attributes content to the paper that is not present in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These considerations point toward future research directions aimed at bridging the gap between theoretical advancements and practical applicability in fields such as finance, healthcare, and environmental risk modeling.",
+          "issue": "This is a general statement about future research directions and does not contradict any specific claim in the ground truth. However, since the ground truth does not explicitly list these future research directions, the claim is not grounded in the provided data. It is a reasonable extrapolation but not traceable to the ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "for daily equity returns compared to Gaussian error models",
+          "issue": "The ground truth states that the comparison is specifically for Value-at-Risk (VaR) estimates at the 5th percentile, not for all daily equity returns. The phrase 'compared to Gaussian error models' is too broad and omits the specific context of VaR estimation."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "as measured by lower pinball loss",
+          "issue": "The ground truth does not mention pinball loss as the metric for evaluating VaR estimates. It only states that the comparison is based on lower pinball loss but does not include this as part of the hypothesis statement itself."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "particularly in capturing extreme negative returns beyond the 1st percentile",
+          "issue": "While the ground truth mentions the 1st percentile in relation to tail risk, it does not specify that the focus is on extreme negative returns beyond the 1st percentile. This addition introduces a specific directional emphasis not present in the original hypothesis."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "yield more precise tail-risk estimates for daily equity returns than traditional quantile regression models, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns",
+          "issue": "The ground truth describes H3 as focusing on precision in tail-risk estimates but does not specify that the metric is reduced mean absolute error nor does it explicitly mention the 1st and 99th percentiles being estimated. These details are added without grounding in the provided information."
+        },
+        {
+          "location": "Methods",
+          "claim": "The experimental design for hypothesis H1 was structured as a comparative benchmark study aimed at evaluating the accuracy of Value-at-Risk (VaR) estimates obtained through two distinct modeling approaches: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.",
+          "issue": "This claim is a reasonable summary of the design but introduces a level of specificity not explicitly stated in the ground truth. The ground truth describes the design as 'Comparative benchmark experiment where we fit two models on the same dataset' without specifying that the goal is to evaluate 'accuracy' directly, nor does it describe the models as 'distinct modeling approaches'—this is an interpretive addition."
+        },
+        {
+          "location": "Methods",
+          "claim": "In cases where the real Fama-French data file was not found at the expected location, the experiment fell back to a synthetic dataset that mimicked the structure and statistical properties of the real data.",
+          "issue": "While the coder assumptions mention that the experiment falls back to a synthetic dataset, the actual section text claims this fallback happened during execution, which is not stated in the ground truth. The ground truth only lists this as an assumption, not a realized condition in the completed experiment."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The experiment examining quantile regression models for Value-at-Risk estimation was conducted using synthetic surrogates, meaning its results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics.",
+          "issue": "While the ground truth states that 'One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis', it does not explicitly state that the experiment was conducted *using* synthetic surrogates. The claim adds specificity about the experimental design that is not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "As such, no definitive conclusions can be drawn regarding the practical applicability of these models in estimating risk for actual equity returns.",
+          "issue": "The ground truth indicates that the experiment 'ran to completion' and 'metrics are reported', but concludes that 'no verdict is drawn from them'. It does not explicitly state that 'no definitive conclusions can be drawn' about practical applicability, which is a stronger claim than what is substantiated by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing these issues may involve developing new methodologies tailored to evolving financial environments, though specific technical solutions such as time-varying parameters or specialized Bayesian techniques for streaming data are not indicated in the available evidence.",
+          "issue": "The ground truth lists several gaps including 'Lack of real-time or adaptive quantile regression models for dynamic risk assessment', but does not indicate that addressing these issues would necessarily require 'developing new methodologies tailored to evolving financial environments'. This is an interpretive addition not grounded in the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "no explicit claims are made about the extent to which prior studies engage with smoothing techniques or their performance in such settings.",
+          "issue": "The ground truth mentions that 'Limited discussion on handling high-dimensional data in Bayesian quantile regression frameworks beyond smoothing techniques' and 'Limited discussion on computational efficiency of smoothing techniques for large-scale discrete risk models', but does not contain any statement about 'prior studies engaging with smoothing techniques or their performance in such settings'—this is a reinterpretation rather than a direct claim from the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Similarly, while the literature points to a lack of fully nonparametric approaches in dynamic or streaming data contexts, it does not support assertions about the prevalence of parametric or semi-parametric methods as a dominant trend.",
+          "issue": "The ground truth states that 'Most papers focus on either parametric or semi-parametric frameworks, with limited exploration of fully nonparametric quantile regression in dynamic or streaming data contexts', but it does not assert that parametric or semi-parametric methods are a 'dominant trend'. This characterization is not supported by the ground truth."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Huber et\nal., 2026)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.000720, 0.000893, 1, 5",
+          "actual": "Coder Agent reports gaussian_avg_pinball_loss=0.0007195363514234043"
+        },
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.000720, 0.000893, 1, 5",
+          "actual": "Coder Agent reports difference=0.00017394883560075238"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text states, 'As a result, the experiment does not resolve the stated gap concerning direct comparisons between quantile regression and Gaussian error assumptions in financial risk modeling.' This overstates the outcome by implying that the experiment failed to address the gap entirely. However, according to the ground truth, the experiment was completed and metrics were reported—only the data provenance prevents real-world inference. The framing incorrectly suggests the experiment did not contribute to resolving the gap at all, when in fact it was a step toward testing the hypothesis, albeit with synthetic data."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 3
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"For daily returns of individual equities, quantile regression models estimated using the asymmetric Laplace distribution (a common Bayesian approach) provide more accurate Value-at-Risk (VaR) estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss.\" — This specific hypothesis (H1) about quantile regression models using the asymmetric Laplace distribution providing more accurate VaR estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss, is not mentioned in the ground truth. The ground truth lists H1 as one of its hypotheses but does not validate or assert its correctness; it merely states that the paper tests this hypothesis.\n- Introduction: \"Combining Extreme Value Theory (EVT) with quantile regression improves tail-risk estimation for daily stock returns compared to standard quantile regression alone, particularly in capturing extreme negative returns beyond the 1st percentile.\" — This specific hypothesis (H2) regarding the improvement of tail-risk estimation through combining EVT with quantile regression for daily stock returns, especially beyond the 1st percentile, is not stated in the ground truth. Although the ground truth mentions H2 as a tested hypothesis, it does not confirm or imply its validity or outcome.\n- Introduction: \"Machine learning-enhanced quantile regression models (e.g., Quantile Regression Forests) yield more precise tail-risk estimates for daily equity returns than traditional quantile regression models, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns.\" — This specific hypothesis (H3) about ML-enhanced quantile regression models yielding more precise estimates than traditional ones, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles, is not found in the ground truth. The ground truth includes H3 among its hypotheses but does not affirm or refute its claims.\n- Introduction: \"These characteristics make it a valuable tool for understanding extreme outcomes in various fields.\" — While the ground truth supports that quantile regression is useful for modeling tail risk and extreme events, it does not explicitly state that it is a 'valuable tool for understanding extreme outcomes in various fields.' This is a reasonable interpretation but not directly grounded in the provided text.\n- Related Work: \"Recent developments have focused on scalable and computationally efficient implementations, with methods like CONQUER He et al. (2020) enabling practical application in large-scale problems.\" — The ground truth states that He et al. (2020) introduced CONQUER as a method for large-scale inference in quantile regression, but it does not mention that CONQUER enables 'practical application in large-scale problems' or that recent developments have specifically focused on scalable implementations. The claim adds a qualitative judgment ('scalable and computationally efficient', 'enabling practical application') not supported by the ground truth.\n- Related Work: \"Bayesian methodologies have also been extended to quantile regression, offering robust inference through hierarchical models Huber et al. (2026) and LASSO-based approaches Nguyen et al. (2020), while also incorporating Gaussian processes for smoothing coefficient paths Huber et al. (2026).\" — The ground truth indicates that Huber et al. (2026) developed a hierarchical Bayesian panel quantile regression model with Gaussian processes for smoothing, but it does not support the claim that Bayesian methodologies have been extended to quantile regression through 'LASSO-based approaches' or that Huber et al. (2026) incorporate LASSO. The claim conflates different aspects of Bayesian quantile regression and misattributes LASSO usage to Huber et al. (2026).\n- Related Work: \"Works such as Teruzzi (2023) and Schaumburg (n.d.) demonstrate how EVT can inform quantile regression approaches, particularly in financial markets where data exhibit heavy tails or extreme behavior.\" — The ground truth mentions Teruzzi (2023) and Schaumburg (n.d.), but it does not state that these works demonstrate how EVT informs quantile regression approaches. The claim attributes a specific role to these papers that is not substantiated in the ground truth.\n- Related Work: \"Similarly, Härdle et al. (n.d.) highlights the utility of semiparametric frameworks in financial risk calibration, particularly in the context of CoVaR estimation.\" — The ground truth lists Härdle et al. (n.d.) as a paper on quantile regression in risk calibration, but it does not state that this paper 'highlights the utility of semiparametric frameworks' or that it focuses on CoVaR estimation. The claim adds interpretive content not present in the ground truth.\n- Related Work: \"Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Bieshaar et al. (2020) enabling flexible modeling of complex dependency structures.\" — The ground truth includes Li and Megiddo (2025) and Bieshaar et al. (2020) as papers on spline quantile regression and quantile surfaces, respectively, but it does not describe them as enhancing 'adaptability' or enabling 'flexible modeling of complex dependency structures.' The claim adds interpretive claims not supported by the ground truth.\n- Related Work: \"Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Ally (2010) and Gaussian processes Huber et al. (2026) to improve inference in spatial and temporal settings.\" — The ground truth states that Ally (2010) discusses asymmetric Laplace distributions in quantile regression and that Huber et al. (2026) use Gaussian processes, but it does not say that Bayesian quantile regression 'continues to evolve' or that these methods are used 'to improve inference in spatial and temporal settings.' The claim adds interpretive content not grounded in the ground truth.\n- Related Work: \"Studies such as Allen et al. (n.d.) and Kramadibrata et al. (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.\" — The ground truth lists Allen et al. (n.d.) and Kramadibrata et al. (n.d.) as papers on quantile regression and Monte Carlo simulation in Merton structural credit models, but it does not state that these papers 'demonstrate how quantile regression can be used to understand systemic risk propagation' or that they 'improve forecasting performance in small-sample or high-dimensional settings.' The claim adds interpretive content not supported by the ground truth.\n- Related Work: \"Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Montes-Rojas (n.d.) deriving bias corrections for quantile regression estimators under classical additive measurement error and Nguyen et al. (2020) incorporating LASSO techniques for variable selection in high-dimensional settings.\" — The ground truth states that Montes-Rojas (n.d.) derived bias of quantile regression estimator under classical additive measurement error, but it does not mention that this work addresses 'measurement errors and model misspecification' or that it 'derives bias corrections for quantile regression estimators.' The claim adds interpretive content. Also, Nguyen et al. (2020) is listed in the ground truth as a paper on LASSO quantile regression, but the ground truth does not state that it incorporates LASSO for variable selection in high-dimensional settings—this is a new interpretation not grounded in the data.\n- Related Work: \"While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Ally (2010).\" — The ground truth states that Ally (2010) discusses quantile methods for inference but does not indicate that Bayesian methods are applied to 'extreme quantile estimation and real-time risk monitoring' or that such application is 'still evolving.' The claim adds interpretive content not supported by the ground truth.\n- Related Work: \"Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Ding et al. (2020).\" — The ground truth lists Ding et al. (2020) as a paper on envelope quantile regression, but it does not state that this paper discusses 'computational and theoretical hurdles' in 'dynamic or streaming data environments.' The claim attributes content to the paper that is not present in the ground truth.\n- Related Work: \"These considerations point toward future research directions aimed at bridging the gap between theoretical advancements and practical applicability in fields such as finance, healthcare, and environmental risk modeling.\" — This is a general statement about future research directions and does not contradict any specific claim in the ground truth. However, since the ground truth does not explicitly list these future research directions, the claim is not grounded in the provided data. It is a reasonable extrapolation but not traceable to the ground truth.\n- Hypotheses: \"for daily equity returns compared to Gaussian error models\" — The ground truth states that the comparison is specifically for Value-at-Risk (VaR) estimates at the 5th percentile, not for all daily equity returns. The phrase 'compared to Gaussian error models' is too broad and omits the specific context of VaR estimation.\n- Hypotheses: \"as measured by lower pinball loss\" — The ground truth does not mention pinball loss as the metric for evaluating VaR estimates. It only states that the comparison is based on lower pinball loss but does not include this as part of the hypothesis statement itself.\n- Hypotheses: \"particularly in capturing extreme negative returns beyond the 1st percentile\" — While the ground truth mentions the 1st percentile in relation to tail risk, it does not specify that the focus is on extreme negative returns beyond the 1st percentile. This addition introduces a specific directional emphasis not present in the original hypothesis.\n- Hypotheses: \"yield more precise tail-risk estimates for daily equity returns than traditional quantile regression models, as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns\" — The ground truth describes H3 as focusing on precision in tail-risk estimates but does not specify that the metric is reduced mean absolute error nor does it explicitly mention the 1st and 99th percentiles being estimated. These details are added without grounding in the provided information.\n- Methods: \"The experimental design for hypothesis H1 was structured as a comparative benchmark study aimed at evaluating the accuracy of Value-at-Risk (VaR) estimates obtained through two distinct modeling approaches: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.\" — This claim is a reasonable summary of the design but introduces a level of specificity not explicitly stated in the ground truth. The ground truth describes the design as 'Comparative benchmark experiment where we fit two models on the same dataset' without specifying that the goal is to evaluate 'accuracy' directly, nor does it describe the models as 'distinct modeling approaches'—this is an interpretive addition.\n- Methods: \"In cases where the real Fama-French data file was not found at the expected location, the experiment fell back to a synthetic dataset that mimicked the structure and statistical properties of the real data.\" — While the coder assumptions mention that the experiment falls back to a synthetic dataset, the actual section text claims this fallback happened during execution, which is not stated in the ground truth. The ground truth only lists this as an assumption, not a realized condition in the completed experiment.\n- Future Work: \"The experiment examining quantile regression models for Value-at-Risk estimation was conducted using synthetic surrogates, meaning its results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics.\" — While the ground truth states that 'One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis', it does not explicitly state that the experiment was conducted *using* synthetic surrogates. The claim adds specificity about the experimental design that is not supported by the ground truth.\n- Future Work: \"As such, no definitive conclusions can be drawn regarding the practical applicability of these models in estimating risk for actual equity returns.\" — The ground truth indicates that the experiment 'ran to completion' and 'metrics are reported', but concludes that 'no verdict is drawn from them'. It does not explicitly state that 'no definitive conclusions can be drawn' about practical applicability, which is a stronger claim than what is substantiated by the ground truth.\n- Future Work: \"Addressing these issues may involve developing new methodologies tailored to evolving financial environments, though specific technical solutions such as time-varying parameters or specialized Bayesian techniques for streaming data are not indicated in the available evidence.\" — The ground truth lists several gaps including 'Lack of real-time or adaptive quantile regression models for dynamic risk assessment', but does not indicate that addressing these issues would necessarily require 'developing new methodologies tailored to evolving financial environments'. This is an interpretive addition not grounded in the provided evidence.\n- Future Work: \"no explicit claims are made about the extent to which prior studies engage with smoothing techniques or their performance in such settings.\" — The ground truth mentions that 'Limited discussion on handling high-dimensional data in Bayesian quantile regression frameworks beyond smoothing techniques' and 'Limited discussion on computational efficiency of smoothing techniques for large-scale discrete risk models', but does not contain any statement about 'prior studies engaging with smoothing techniques or their performance in such settings'—this is a reinterpretation rather than a direct claim from the ground truth.\n- Future Work: \"Similarly, while the literature points to a lack of fully nonparametric approaches in dynamic or streaming data contexts, it does not support assertions about the prevalence of parametric or semi-parametric methods as a dominant trend.\" — The ground truth states that 'Most papers focus on either parametric or semi-parametric frameworks, with limited exploration of fully nonparametric quantile regression in dynamic or streaming data contexts', but it does not assert that parametric or semi-parametric methods are a 'dominant trend'. This characterization is not supported by the ground truth.\nCitation issues:\n- Related Work: citation-like text \"(Huber et\nal., 2026)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.000720, 0.000893, 1, 5; actual — Coder Agent reports gaussian_avg_pinball_loss=0.0007195363514234043. Correct this.\n- Results > H1: claimed — figure(s) actually present in the text: 0.000720, 0.000893, 1, 5; actual — Coder Agent reports difference=0.00017394883560075238. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text states, 'As a result, the experiment does not resolve the stated gap concerning direct comparisons between quantile regression and Gaussian error assumptions in financial risk modeling.' This overstates the outcome by implying that the experiment failed to address the gap entirely. However, according to the ground truth, the experiment was completed and metrics were reported—only the data provenance prevents real-world inference. The framing incorrectly suggests the experiment did not contribute to resolving the gap at all, when in fact it was a step toward testing the hypothesis, albeit with synthetic data.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections are sometimes abrupt or underdeveloped; for example, the jump from introduction to related work lacks a smooth bridge, and the hypotheses section directly follows without sufficient contextual linking.\n- limitations_honesty: 3/5 — The paper acknowledges several risks and assumptions tied to H1, such as data instability and computational constraints, but fails to explicitly mention that no experiments were actually run using real market data—a key omission that undermines honest limitation reporting. The not_run_reasons field in ground truth indicates no experiments were skipped, yet the paper's core finding is based solely on synthetic data, which should be more transparently framed.",
+      "generated_at": "2026-09-15T08:31:14.793041+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 3,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v3.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v3.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "2731600",
+        "82ca2f5f04786b2d9ea66a834889c7694fd3018b",
+        "1612.06850v2",
+        "2009.00436v1",
+        "2012.05187v2",
+        "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+        "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+        "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+        "85d492db335fa602fc954893f048f22c3f7738d1",
+        "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+        "29807896abc8650777fe52f4ab66bb509d20149b",
+        "992e2f5557ccf4a1dbda2db0db173553160c5890",
+        "2859241",
+        "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+        "20396c9443c8858bbfd5ac27c18f2f9b5b1ed4ac"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Huber (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text."
+      ],
+      "generated_at": "2026-09-15T08:32:58.221141+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 3,
+      "hallucinations": [
+        {
+          "location": "Related Work",
+          "claim": "Early foundational work established the theoretical underpinnings of quantile regression, with contributions such as Chernozhukov et al. (2016) and Chernozhukov et al. (2020) laying the groundwork for understanding extremal and instrumental variable quantile regression, respectively.",
+          "issue": "The ground truth lists Chernozhukov et al. (2016) as 'Extremal Quantile Regression: An Overview', which aligns with the claim about extremal quantile regression. However, the ground truth lists Chernozhukov et al. (2020) as 'Instrumental Variable Quantile Regression', which aligns with the claim about instrumental variable quantile regression. But the claim implies that these two papers laid the groundwork for their respective areas, which is not explicitly stated in the abstracts provided. The abstracts do not contain sufficient detail to confirm that these works specifically 'laid the groundwork' for these areas, nor do they describe the 'early foundational work' in quantile regression itself."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent developments have focused on large-scale inference, with methods like He et al. (2020) enabling computation in large-scale problems.",
+          "issue": "The ground truth includes He et al. (2020) titled 'Smoothed Quantile Regression with Large-Scale Inference'. The abstract mentions 'large-scale data in the \"increasing dimension\" regime' and 'large-scale inference for quantile regression'. However, the claim attributes to this paper the ability to 'enable computation in large-scale problems' which is a stronger assertion than what is stated in the abstract. The abstract focuses on theoretical analysis and methodology but doesn't explicitly state that it enables computation in large-scale problems."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian methodologies have also been extended to quantile regression, offering robust inference through hierarchical models Huber et al. (2026) and LASSO-based approaches Nguyen et al. (2020), while also incorporating Gaussian processes for smoothing coefficient paths Huber et al. (2026).",
+          "issue": "The ground truth includes Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk'. The abstract mentions 'hierarchical Bayesian panel quantile regression model' and 'Gaussian processes'. However, the claim attributes to this paper the extension of Bayesian methodologies to quantile regression generally, and also mentions LASSO-based approaches, which are not mentioned in the abstract. Additionally, the claim attributes to Nguyen et al. (2020) 'LASSO-based approaches' in the context of Bayesian quantile regression, but the ground truth lists Nguyen et al. (2020) as 'Investigating tail-risk dependence in the cryptocurrency markets: A LASSO quantile regression approach', which uses LASSO in a quantile regression context but not necessarily in a Bayesian framework."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Studies such as Teruzzi (2023) and Johnston (2025) emphasize the importance of estimating extreme quantiles in financial risk management, highlighting challenges associated with small sample sizes and advocating for Bayesian methods to incorporate prior information and loss functions in quantile estimation.",
+          "issue": "The ground truth includes Teruzzi (2023) titled 'Tail Risk and Systemic Risk Estimation of Cryptocurrencies: an Expectiles and Marginal Expected Shortfall based approach'. The abstract mentions 'expectile-based approach for assessing the tail risk of dependent data' and 'Marginal Expected Shortfall (MES)' but does not mention anything about Bayesian methods or incorporating prior information and loss functions in quantile estimation. Similarly, the ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract discusses Bayesian estimation of extreme quantiles and exceedance distributions but does not mention advocating for Bayesian methods to incorporate prior information and loss functions specifically in quantile estimation."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Similarly, Prüser and Huber employ large datasets within quantile regression models to predict the conditional distribution of GDP growth, demonstrating improved accuracy in the tails through the use of shrinkage priors and Gaussian processes.",
+          "issue": "The ground truth includes Prüser and Huber (2023) titled 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions'. The abstract mentions 'using large datasets in quantile regression models to forecast the conditional distribution of US GDP growth' and 'Gaussian processes to approximate the nonlinear component'. However, the claim attributes to them 'improved accuracy in the tails' and 'shrinkage priors', which are not explicitly mentioned in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Saputra and Aqsari (2025) enabling flexible modeling of complex dependency structures.",
+          "issue": "The ground truth includes Li and Megiddo (2025) titled 'Spline Quantile Regression', but the abstract is empty. Therefore, it cannot be confirmed that this paper indeed contains 'spline-based approaches' or that they enable 'flexible modeling of complex dependency structures'. Similarly, the ground truth includes Saputra and Aqsari (2025) titled 'Quantile Regression Forest Modeling in Investment Risk Calculation of Bond Mutual Funds Using Expected Tail Losses'. The abstract mentions 'Quantile Regression Forest (QRF) model' and 'Expected Tail Loss (ETL)', but does not explicitly state that QRF enables 'flexible modeling of complex dependency structures'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Johnston (2025) and Gaussian processes Huber et al. (2026) to improve inference in spatial and temporal settings.",
+          "issue": "The ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract mentions Bayesian methods but does not specify the use of asymmetric Laplace distributions. Similarly, the ground truth includes Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk'. The abstract mentions Bayesian methods and Gaussian processes but does not specify that these are used to improve inference in spatial and temporal settings."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In the context of financial risk management, quantile regression has been extensively applied to estimate Value-at-Risk (VaR) and Expected Shortfall (ES), offering a more nuanced view of risk compared to traditional mean-based approaches Chao et al. (2012).",
+          "issue": "The ground truth includes Chao et al. (2012) titled 'Quantile Regression in Risk Calibration'. The abstract is empty, so it cannot be confirmed that this paper specifically addresses VaR and ES estimation or offers a more nuanced view compared to mean-based approaches."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Studies such as Schaumburg (n.d.) and Allen et al. (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.",
+          "issue": "The ground truth does not list any papers by Schaumburg (n.d.) or Allen et al. (n.d.). Therefore, claims about these authors' work cannot be traced back to the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Li et al. (2026) deriving bias of quantile regression estimator under classical additive measurement error and Nguyen et al. (2020) incorporating LASSO techniques for variable selection in high-dimensional settings.",
+          "issue": "The ground truth includes Li et al. (2026) titled 'Quantile regression with measurement errors'. The abstract mentions 'measurement error in covariates' and 'nonlinear quantile regression' but does not mention 'deriving bias of quantile regression estimator under classical additive measurement error'. Also, the ground truth includes Nguyen et al. (2020) titled 'Investigating tail-risk dependence in the cryptocurrency markets: A LASSO quantile regression approach'. The abstract mentions 'LASSO quantile regression' and 'tail risk spillovers' but does not mention 'incorporating LASSO techniques for variable selection in high-dimensional settings' in the context of quantile regression."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The handling of measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties Li et al. (2026).",
+          "issue": "While the ground truth includes Li et al. (2026) titled 'Quantile regression with measurement errors', the abstract mentions 'nonlinear quantile regression with measurement error' but does not state that 'handling measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties'. This is a subjective interpretation not supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Johnston (2025).",
+          "issue": "The ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract mentions Bayesian estimation of extreme quantiles but does not state that 'their application to extreme quantile estimation and real-time risk monitoring is still evolving'. This is a subjective interpretation not supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Yang and Wang (2024).",
+          "issue": "The ground truth includes Yang and Wang (2024) titled 'Multiple-output composite quantile regression through an optimal transport lens'. The abstract mentions 'multiple-output linear regression' and 'heavy-tailed noise' but does not mention 'practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments'. This is a subjective interpretation not supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These hypotheses position our work at the intersection of established methodological developments in quantile regression and emerging applications in financial risk analytics.",
+          "issue": "This is a general statement about the paper's contribution and does not represent a factual claim that can be traced back to the ground truth. It is an interpretive or transitional sentence and therefore acceptable."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "for daily equity returns compared to Gaussian error models",
+          "issue": "The ground truth states that the comparison is specifically for 'Value-at-Risk (VaR) estimates at the 5th percentile', not for all daily equity returns. The hypothesis does not make a general statement about daily equity returns but rather focuses on VaR estimates."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "as measured by lower pinball loss",
+          "issue": "The ground truth does not mention pinball loss as the metric for measuring accuracy of VaR estimates. It only states that the comparison is based on lower pinball loss without specifying it as the measure."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "particularly in capturing extreme negative returns beyond the 1st percentile",
+          "issue": "While the ground truth mentions 'extreme negative returns beyond the 1st percentile' in relation to H2, it does not specify that this is the focus of the hypothesis itself. The ground truth describes H2 as addressing tail-risk estimation generally, not specifically focusing on extreme negative returns beyond the 1st percentile."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns",
+          "issue": "The ground truth states that H3 compares precision using 'mean absolute error' but does not specify that it is for the 1st and 99th percentiles. The ground truth also does not explicitly state that the comparison is made for these specific percentiles."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "where VaR can be computed and compared using both approaches",
+          "issue": "The ground truth mentions that the hypothesis is testable using real equity return data such as from the Fama-French factors dataset, but it does not explicitly state that VaR can be computed and compared using both approaches within the context of the hypothesis."
+        },
+        {
+          "location": "Methods",
+          "claim": "The experimental design for hypothesis H1 was structured as a comparative benchmark experiment in which two models were fit on the same dataset: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.",
+          "issue": "This claim is accurately reflected in the ground truth under 'design' but the ground truth specifies that the Bayesian quantile regression uses 'asymmetric Laplace distribution as the likelihood function' and the Gaussian model uses 'normally distributed errors'. The section text omits these key technical details about the likelihood functions and error assumptions, which are critical to understanding the models."
+        },
+        {
+          "location": "Methods",
+          "claim": "The objective was to estimate Value-at-Risk (VaR) at the 5th percentile and assess model performance using pinball loss as the evaluation metric.",
+          "issue": "While the ground truth confirms the objective and evaluation metric, it also specifies that the baseline for comparison is 'Gaussian error model VaR estimates', which is not mentioned in the section text. Additionally, the ground truth states that success criteria involve comparing pinball loss between models, but this is not explicitly stated in the section text."
+        },
+        {
+          "location": "Methods",
+          "claim": "The Bayesian quantile regression model employed the asymmetric Laplace distribution as the likelihood function to estimate the 5th percentile VaR.",
+          "issue": "This is consistent with the ground truth, but the ground truth further specifies that the Bayesian quantile regression is specifically targeted at estimating the 5th percentile VaR by fitting the model to daily returns data. The section text omits this important contextual detail about targeting the 5th percentile."
+        },
+        {
+          "location": "Methods",
+          "claim": "As noted in the coder agent’s assumptions, the experiment was designed to fall back to a synthetic dataset if the real Fama-French data file was not found; however, since the experiment was marked as completed, it is not possible to confirm whether this fallback was triggered.",
+          "issue": "This statement introduces information not present in the ground truth. While the ground truth lists 'coder_assumptions_by_hypothesis' that include a fallback to synthetic data, it does not mention anything about confirming or not confirming whether the fallback was triggered. This is speculative commentary not grounded in the provided data."
+        },
+        {
+          "location": "Methods",
+          "claim": "Readers should note that the use of a synthetic dataset, as well as potential simplifications in model implementation such as the use of an empirical quantile approach instead of full Bayesian sampling, may influence the interpretation of results.",
+          "issue": "This statement attributes potential limitations to the implementation that are not mentioned in the ground truth. The ground truth includes 'risks' related to insufficient data points, computational overhead, convergence issues, and misinterpretation of pinball loss, but does not mention anything about using a synthetic dataset or simplifying the Bayesian approach to an empirical quantile method. These are new claims not supported by the ground truth."
+        },
+        {
+          "location": "Results",
+          "claim": "The results of Experiment H1, which evaluated the accuracy of quantile regression models estimated using the asymmetric Laplace distribution against Gaussian error models for Value-at-Risk (VaR) estimation at the 5th percentile, are reported based on pinball loss metrics.",
+          "issue": "This claim implies that the experiment was conducted under real-world conditions and that the results are directly interpretable as evidence for or against the hypothesis. However, according to the ground truth, the experiment used synthetic surrogate data ('fama_french_three_factor_daily_returns.csv' is marked as 'synthetic_surrogate'), and the methodological validity is explicitly stated as 'synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis'. Therefore, reporting results 'based on pinball loss metrics' without acknowledging their synthetic nature constitutes a misrepresentation of the data provenance and interpretability of the findings."
+        },
+        {
+          "location": "Results",
+          "claim": "As such, while the quantitative comparison between the two models is presented, the conclusions drawn from these metrics remain speculative and are withheld from formal interpretation.",
+          "issue": "While the ground truth states that the verdict is withheld because inputs are synthetic, it does not say that the conclusions are 'withheld from formal interpretation' or that they are 'speculative'. The ground truth says the findings are 'NOT interpretable as evidence for or against the hypothesis', which is stronger than calling them 'speculative' or 'withheld'. Thus, characterizing the conclusions as 'speculative and withheld from formal interpretation' goes beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Results",
+          "claim": "The pipeline behavior on generated data does not reflect real-world conditions, and thus, the empirical support for the hypothesis cannot be assessed under the current experimental setup.",
+          "issue": "Although the ground truth confirms that the data is synthetic and that the findings do not reflect real-world conditions, it does not explicitly state that 'empirical support for the hypothesis cannot be assessed under the current experimental setup.' This conclusion is an inference not directly supported by the ground truth, which only says the findings are not interpretable as evidence for or against the hypothesis due to synthetic data."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The experiment examining quantile regression models for Value-at-Risk estimation was completed and its metrics are reported, yet no verdict is drawn from them due to the use of synthetic surrogates, which means the results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics.",
+          "issue": "While the ground truth confirms that the experiment ran to completion and its metrics are reported, and that one or more inputs are synthetic surrogates, it does not explicitly state that the results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics. The ground truth only states that these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis, but does not make the specific claim about 'real-world financial dynamics' as stated in the section text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Several key gaps identified in prior work offer promising directions for further exploration.",
+          "issue": "This is a general statement summarizing the purpose of the section, which is acceptable. However, the specific gaps mentioned (standardized framework for tail dependence, static models, lack of empirical comparisons) are indeed present in the ground truth, so this sentence itself is not a hallucination. But the phrase 'offer promising directions for further exploration' implies a level of certainty or endorsement that is not explicitly supported by the ground truth. The ground truth lists these as 'gaps' but does not assert they are necessarily 'promising directions'."
+        },
+        {
+          "location": "Future Work",
+          "claim": "A notable absence is a standardized framework for defining and measuring tail dependence, which hinders comparability across studies and limits the development of unified risk assessment tools.",
+          "issue": "The ground truth identifies this as a gap ('Inconsistency in defining and measuring tail dependence across financial contexts'), but it does not mention anything about hindering comparability across studies or limiting the development of unified risk assessment tools. These consequences are added speculatively in the section text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Additionally, most existing approaches rely on static models, while dynamic or adaptive quantile regression methods—particularly those suited for real-time risk monitoring—are underexplored.",
+          "issue": "The ground truth supports that most studies rely on static historical data and that there is a gap related to lack of real-time or adaptive quantile regression models for dynamic risk assessment. However, it does not explicitly state that 'most existing approaches rely on static models', nor does it specify that these are 'particularly those suited for real-time risk monitoring'. These details are not grounded in the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The lack of direct empirical comparisons between quantile regression and Gaussian error assumptions in financial contexts also presents an opportunity for future research.",
+          "issue": "This is accurately reflected in the ground truth as a known gap ('Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling'). However, the section text adds the interpretation that this 'presents an opportunity for future research', which is not explicitly stated in the ground truth. The ground truth merely identifies the gap without asserting it as an opportunity."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These areas highlight the importance of developing models capable of adapting to changing market conditions and ensuring consistency in risk evaluation methodologies.",
+          "issue": "While the ground truth mentions dynamic risk assessment and consistency issues, it does not explicitly state that these areas 'highlight the importance of developing models capable of adapting to changing market conditions and ensuring consistency in risk evaluation methodologies.' This is an interpretive addition not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The lack of direct empirical comparisons between quantile regression and Gaussian error assumptions in financial contexts also presents an opportunity for future research.",
+          "issue": "This is a restatement of a previously mentioned point and is already covered in the previous hallucination entry. It is repeated here without additional grounding."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The extent to which prior studies engage with smoothing techniques or their performance in such settings is not explicitly stated.",
+          "issue": "The ground truth notes that high-dimensional challenges remain underexplored in Bayesian quantile regression and that scalability in large discrete risk models is not well understood, but it does not say that 'prior studies do not explicitly state' how they engage with smoothing techniques or their performance. This is a speculative claim not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Similarly, although the literature points to a lack of fully nonparametric approaches in dynamic or streaming data contexts, it does not support claims about the prevalence of parametric or semi-parametric methods as a dominant trend.",
+          "issue": "The ground truth states that most papers focus on either parametric or semi-parametric frameworks and that fully nonparametric approaches are underutilized in dynamic or streaming data scenarios. However, it does not support the claim that the literature 'points to a lack of fully nonparametric approaches' as a dominant trend. This is a misinterpretation of the evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These directions aim to strengthen both the theoretical grounding and practical relevance of quantile regression in risk modeling without introducing unsupported claims.",
+          "issue": "This is a general evaluative statement about the proposed directions. The ground truth does not contain any information supporting or contradicting whether these directions aim to strengthen theoretical grounding and practical relevance, nor does it comment on whether they introduce unsupported claims. Therefore, this statement is not grounded in the provided information."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the inconclusive result by implying that the experiment itself was flawed or incomplete, when in fact the ground truth indicates the experiment 'ran to completion' and 'metrics are reported'. The claim that 'the findings do not support a definitive conclusion' misrepresents the actual verdict, which is simply 'inconclusive' due to synthetic data, not because of any failure in the experimental design or execution. Phrases like 'the findings do not support a definitive conclusion' and 'the absence of authentic market data means that the outcomes cannot be interpreted as evidence for or against the hypothesis' overstate the lack of clarity in the outcome."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 3
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Related Work: \"Early foundational work established the theoretical underpinnings of quantile regression, with contributions such as Chernozhukov et al. (2016) and Chernozhukov et al. (2020) laying the groundwork for understanding extremal and instrumental variable quantile regression, respectively.\" — The ground truth lists Chernozhukov et al. (2016) as 'Extremal Quantile Regression: An Overview', which aligns with the claim about extremal quantile regression. However, the ground truth lists Chernozhukov et al. (2020) as 'Instrumental Variable Quantile Regression', which aligns with the claim about instrumental variable quantile regression. But the claim implies that these two papers laid the groundwork for their respective areas, which is not explicitly stated in the abstracts provided. The abstracts do not contain sufficient detail to confirm that these works specifically 'laid the groundwork' for these areas, nor do they describe the 'early foundational work' in quantile regression itself.\n- Related Work: \"Recent developments have focused on large-scale inference, with methods like He et al. (2020) enabling computation in large-scale problems.\" — The ground truth includes He et al. (2020) titled 'Smoothed Quantile Regression with Large-Scale Inference'. The abstract mentions 'large-scale data in the \"increasing dimension\" regime' and 'large-scale inference for quantile regression'. However, the claim attributes to this paper the ability to 'enable computation in large-scale problems' which is a stronger assertion than what is stated in the abstract. The abstract focuses on theoretical analysis and methodology but doesn't explicitly state that it enables computation in large-scale problems.\n- Related Work: \"Bayesian methodologies have also been extended to quantile regression, offering robust inference through hierarchical models Huber et al. (2026) and LASSO-based approaches Nguyen et al. (2020), while also incorporating Gaussian processes for smoothing coefficient paths Huber et al. (2026).\" — The ground truth includes Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk'. The abstract mentions 'hierarchical Bayesian panel quantile regression model' and 'Gaussian processes'. However, the claim attributes to this paper the extension of Bayesian methodologies to quantile regression generally, and also mentions LASSO-based approaches, which are not mentioned in the abstract. Additionally, the claim attributes to Nguyen et al. (2020) 'LASSO-based approaches' in the context of Bayesian quantile regression, but the ground truth lists Nguyen et al. (2020) as 'Investigating tail-risk dependence in the cryptocurrency markets: A LASSO quantile regression approach', which uses LASSO in a quantile regression context but not necessarily in a Bayesian framework.\n- Related Work: \"Studies such as Teruzzi (2023) and Johnston (2025) emphasize the importance of estimating extreme quantiles in financial risk management, highlighting challenges associated with small sample sizes and advocating for Bayesian methods to incorporate prior information and loss functions in quantile estimation.\" — The ground truth includes Teruzzi (2023) titled 'Tail Risk and Systemic Risk Estimation of Cryptocurrencies: an Expectiles and Marginal Expected Shortfall based approach'. The abstract mentions 'expectile-based approach for assessing the tail risk of dependent data' and 'Marginal Expected Shortfall (MES)' but does not mention anything about Bayesian methods or incorporating prior information and loss functions in quantile estimation. Similarly, the ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract discusses Bayesian estimation of extreme quantiles and exceedance distributions but does not mention advocating for Bayesian methods to incorporate prior information and loss functions specifically in quantile estimation.\n- Related Work: \"Similarly, Prüser and Huber employ large datasets within quantile regression models to predict the conditional distribution of GDP growth, demonstrating improved accuracy in the tails through the use of shrinkage priors and Gaussian processes.\" — The ground truth includes Prüser and Huber (2023) titled 'Nonlinearities in macroeconomic tail risk through the lens of big data quantile regressions'. The abstract mentions 'using large datasets in quantile regression models to forecast the conditional distribution of US GDP growth' and 'Gaussian processes to approximate the nonlinear component'. However, the claim attributes to them 'improved accuracy in the tails' and 'shrinkage priors', which are not explicitly mentioned in the abstract.\n- Related Work: \"Extensions to machine learning and nonparametric techniques have further enhanced the adaptability of quantile regression, with spline-based approaches Li and Megiddo (2025) and quantile regression forests Saputra and Aqsari (2025) enabling flexible modeling of complex dependency structures.\" — The ground truth includes Li and Megiddo (2025) titled 'Spline Quantile Regression', but the abstract is empty. Therefore, it cannot be confirmed that this paper indeed contains 'spline-based approaches' or that they enable 'flexible modeling of complex dependency structures'. Similarly, the ground truth includes Saputra and Aqsari (2025) titled 'Quantile Regression Forest Modeling in Investment Risk Calculation of Bond Mutual Funds Using Expected Tail Losses'. The abstract mentions 'Quantile Regression Forest (QRF) model' and 'Expected Tail Loss (ETL)', but does not explicitly state that QRF enables 'flexible modeling of complex dependency structures'.\n- Related Work: \"Bayesian quantile regression continues to evolve, with recent work exploring the use of asymmetric Laplace distributions Johnston (2025) and Gaussian processes Huber et al. (2026) to improve inference in spatial and temporal settings.\" — The ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract mentions Bayesian methods but does not specify the use of asymmetric Laplace distributions. Similarly, the ground truth includes Huber et al. (2026) titled 'Soft-Noncrossing Bayesian Panel Quantile Regression for Measuring Climate Tail Risk'. The abstract mentions Bayesian methods and Gaussian processes but does not specify that these are used to improve inference in spatial and temporal settings.\n- Related Work: \"In the context of financial risk management, quantile regression has been extensively applied to estimate Value-at-Risk (VaR) and Expected Shortfall (ES), offering a more nuanced view of risk compared to traditional mean-based approaches Chao et al. (2012).\" — The ground truth includes Chao et al. (2012) titled 'Quantile Regression in Risk Calibration'. The abstract is empty, so it cannot be confirmed that this paper specifically addresses VaR and ES estimation or offers a more nuanced view compared to mean-based approaches.\n- Related Work: \"Studies such as Schaumburg (n.d.) and Allen et al. (n.d.) demonstrate how quantile regression can be used to understand systemic risk propagation and improve forecasting performance in small-sample or high-dimensional settings.\" — The ground truth does not list any papers by Schaumburg (n.d.) or Allen et al. (n.d.). Therefore, claims about these authors' work cannot be traced back to the ground truth.\n- Related Work: \"Moreover, recent efforts have addressed the challenges of measurement errors and model misspecification, with Li et al. (2026) deriving bias of quantile regression estimator under classical additive measurement error and Nguyen et al. (2020) incorporating LASSO techniques for variable selection in high-dimensional settings.\" — The ground truth includes Li et al. (2026) titled 'Quantile regression with measurement errors'. The abstract mentions 'measurement error in covariates' and 'nonlinear quantile regression' but does not mention 'deriving bias of quantile regression estimator under classical additive measurement error'. Also, the ground truth includes Nguyen et al. (2020) titled 'Investigating tail-risk dependence in the cryptocurrency markets: A LASSO quantile regression approach'. The abstract mentions 'LASSO quantile regression' and 'tail risk spillovers' but does not mention 'incorporating LASSO techniques for variable selection in high-dimensional settings' in the context of quantile regression.\n- Related Work: \"The handling of measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties Li et al. (2026).\" — While the ground truth includes Li et al. (2026) titled 'Quantile regression with measurement errors', the abstract mentions 'nonlinear quantile regression with measurement error' but does not state that 'handling measurement errors in quantile regression, particularly in nonlinear settings, continues to pose difficulties'. This is a subjective interpretation not supported by the abstract.\n- Related Work: \"While Bayesian methods offer rich uncertainty quantification, their application to extreme quantile estimation and real-time risk monitoring is still evolving Johnston (2025).\" — The ground truth includes Johnston (2025) titled 'Bayesian Estimation of Extreme Quantiles and the Distribution of Exceedances for Measuring Tail Risk'. The abstract mentions Bayesian estimation of extreme quantiles but does not state that 'their application to extreme quantile estimation and real-time risk monitoring is still evolving'. This is a subjective interpretation not supported by the abstract.\n- Related Work: \"Additionally, the practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments Yang and Wang (2024).\" — The ground truth includes Yang and Wang (2024) titled 'Multiple-output composite quantile regression through an optimal transport lens'. The abstract mentions 'multiple-output linear regression' and 'heavy-tailed noise' but does not mention 'practical implementation of nonparametric and high-dimensional quantile regression faces computational and theoretical hurdles, especially in dynamic or streaming data environments'. This is a subjective interpretation not supported by the abstract.\n- Related Work: \"These hypotheses position our work at the intersection of established methodological developments in quantile regression and emerging applications in financial risk analytics.\" — This is a general statement about the paper's contribution and does not represent a factual claim that can be traced back to the ground truth. It is an interpretive or transitional sentence and therefore acceptable.\n- Hypotheses: \"for daily equity returns compared to Gaussian error models\" — The ground truth states that the comparison is specifically for 'Value-at-Risk (VaR) estimates at the 5th percentile', not for all daily equity returns. The hypothesis does not make a general statement about daily equity returns but rather focuses on VaR estimates.\n- Hypotheses: \"as measured by lower pinball loss\" — The ground truth does not mention pinball loss as the metric for measuring accuracy of VaR estimates. It only states that the comparison is based on lower pinball loss without specifying it as the measure.\n- Hypotheses: \"particularly in capturing extreme negative returns beyond the 1st percentile\" — While the ground truth mentions 'extreme negative returns beyond the 1st percentile' in relation to H2, it does not specify that this is the focus of the hypothesis itself. The ground truth describes H2 as addressing tail-risk estimation generally, not specifically focusing on extreme negative returns beyond the 1st percentile.\n- Hypotheses: \"as indicated by reduced mean absolute error in estimating the 1st and 99th percentiles of returns\" — The ground truth states that H3 compares precision using 'mean absolute error' but does not specify that it is for the 1st and 99th percentiles. The ground truth also does not explicitly state that the comparison is made for these specific percentiles.\n- Hypotheses: \"where VaR can be computed and compared using both approaches\" — The ground truth mentions that the hypothesis is testable using real equity return data such as from the Fama-French factors dataset, but it does not explicitly state that VaR can be computed and compared using both approaches within the context of the hypothesis.\n- Methods: \"The experimental design for hypothesis H1 was structured as a comparative benchmark experiment in which two models were fit on the same dataset: Bayesian quantile regression with asymmetric Laplace distribution and a standard Gaussian error model.\" — This claim is accurately reflected in the ground truth under 'design' but the ground truth specifies that the Bayesian quantile regression uses 'asymmetric Laplace distribution as the likelihood function' and the Gaussian model uses 'normally distributed errors'. The section text omits these key technical details about the likelihood functions and error assumptions, which are critical to understanding the models.\n- Methods: \"The objective was to estimate Value-at-Risk (VaR) at the 5th percentile and assess model performance using pinball loss as the evaluation metric.\" — While the ground truth confirms the objective and evaluation metric, it also specifies that the baseline for comparison is 'Gaussian error model VaR estimates', which is not mentioned in the section text. Additionally, the ground truth states that success criteria involve comparing pinball loss between models, but this is not explicitly stated in the section text.\n- Methods: \"The Bayesian quantile regression model employed the asymmetric Laplace distribution as the likelihood function to estimate the 5th percentile VaR.\" — This is consistent with the ground truth, but the ground truth further specifies that the Bayesian quantile regression is specifically targeted at estimating the 5th percentile VaR by fitting the model to daily returns data. The section text omits this important contextual detail about targeting the 5th percentile.\n- Methods: \"As noted in the coder agent’s assumptions, the experiment was designed to fall back to a synthetic dataset if the real Fama-French data file was not found; however, since the experiment was marked as completed, it is not possible to confirm whether this fallback was triggered.\" — This statement introduces information not present in the ground truth. While the ground truth lists 'coder_assumptions_by_hypothesis' that include a fallback to synthetic data, it does not mention anything about confirming or not confirming whether the fallback was triggered. This is speculative commentary not grounded in the provided data.\n- Methods: \"Readers should note that the use of a synthetic dataset, as well as potential simplifications in model implementation such as the use of an empirical quantile approach instead of full Bayesian sampling, may influence the interpretation of results.\" — This statement attributes potential limitations to the implementation that are not mentioned in the ground truth. The ground truth includes 'risks' related to insufficient data points, computational overhead, convergence issues, and misinterpretation of pinball loss, but does not mention anything about using a synthetic dataset or simplifying the Bayesian approach to an empirical quantile method. These are new claims not supported by the ground truth.\n- Results: \"The results of Experiment H1, which evaluated the accuracy of quantile regression models estimated using the asymmetric Laplace distribution against Gaussian error models for Value-at-Risk (VaR) estimation at the 5th percentile, are reported based on pinball loss metrics.\" — This claim implies that the experiment was conducted under real-world conditions and that the results are directly interpretable as evidence for or against the hypothesis. However, according to the ground truth, the experiment used synthetic surrogate data ('fama_french_three_factor_daily_returns.csv' is marked as 'synthetic_surrogate'), and the methodological validity is explicitly stated as 'synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis'. Therefore, reporting results 'based on pinball loss metrics' without acknowledging their synthetic nature constitutes a misrepresentation of the data provenance and interpretability of the findings.\n- Results: \"As such, while the quantitative comparison between the two models is presented, the conclusions drawn from these metrics remain speculative and are withheld from formal interpretation.\" — While the ground truth states that the verdict is withheld because inputs are synthetic, it does not say that the conclusions are 'withheld from formal interpretation' or that they are 'speculative'. The ground truth says the findings are 'NOT interpretable as evidence for or against the hypothesis', which is stronger than calling them 'speculative' or 'withheld'. Thus, characterizing the conclusions as 'speculative and withheld from formal interpretation' goes beyond what is stated in the ground truth.\n- Results: \"The pipeline behavior on generated data does not reflect real-world conditions, and thus, the empirical support for the hypothesis cannot be assessed under the current experimental setup.\" — Although the ground truth confirms that the data is synthetic and that the findings do not reflect real-world conditions, it does not explicitly state that 'empirical support for the hypothesis cannot be assessed under the current experimental setup.' This conclusion is an inference not directly supported by the ground truth, which only says the findings are not interpretable as evidence for or against the hypothesis due to synthetic data.\n- Future Work: \"The experiment examining quantile regression models for Value-at-Risk estimation was completed and its metrics are reported, yet no verdict is drawn from them due to the use of synthetic surrogates, which means the results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics.\" — While the ground truth confirms that the experiment ran to completion and its metrics are reported, and that one or more inputs are synthetic surrogates, it does not explicitly state that the results reflect the behavior of the modeling pipeline on generated data rather than real-world financial dynamics. The ground truth only states that these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis, but does not make the specific claim about 'real-world financial dynamics' as stated in the section text.\n- Future Work: \"Several key gaps identified in prior work offer promising directions for further exploration.\" — This is a general statement summarizing the purpose of the section, which is acceptable. However, the specific gaps mentioned (standardized framework for tail dependence, static models, lack of empirical comparisons) are indeed present in the ground truth, so this sentence itself is not a hallucination. But the phrase 'offer promising directions for further exploration' implies a level of certainty or endorsement that is not explicitly supported by the ground truth. The ground truth lists these as 'gaps' but does not assert they are necessarily 'promising directions'.\n- Future Work: \"A notable absence is a standardized framework for defining and measuring tail dependence, which hinders comparability across studies and limits the development of unified risk assessment tools.\" — The ground truth identifies this as a gap ('Inconsistency in defining and measuring tail dependence across financial contexts'), but it does not mention anything about hindering comparability across studies or limiting the development of unified risk assessment tools. These consequences are added speculatively in the section text.\n- Future Work: \"Additionally, most existing approaches rely on static models, while dynamic or adaptive quantile regression methods—particularly those suited for real-time risk monitoring—are underexplored.\" — The ground truth supports that most studies rely on static historical data and that there is a gap related to lack of real-time or adaptive quantile regression models for dynamic risk assessment. However, it does not explicitly state that 'most existing approaches rely on static models', nor does it specify that these are 'particularly those suited for real-time risk monitoring'. These details are not grounded in the provided evidence.\n- Future Work: \"The lack of direct empirical comparisons between quantile regression and Gaussian error assumptions in financial contexts also presents an opportunity for future research.\" — This is accurately reflected in the ground truth as a known gap ('Limited direct comparison between quantile regression and Gaussian error assumptions in financial risk modeling'). However, the section text adds the interpretation that this 'presents an opportunity for future research', which is not explicitly stated in the ground truth. The ground truth merely identifies the gap without asserting it as an opportunity.\n- Future Work: \"These areas highlight the importance of developing models capable of adapting to changing market conditions and ensuring consistency in risk evaluation methodologies.\" — While the ground truth mentions dynamic risk assessment and consistency issues, it does not explicitly state that these areas 'highlight the importance of developing models capable of adapting to changing market conditions and ensuring consistency in risk evaluation methodologies.' This is an interpretive addition not found in the ground truth.\n- Future Work: \"The lack of direct empirical comparisons between quantile regression and Gaussian error assumptions in financial contexts also presents an opportunity for future research.\" — This is a restatement of a previously mentioned point and is already covered in the previous hallucination entry. It is repeated here without additional grounding.\n- Future Work: \"The extent to which prior studies engage with smoothing techniques or their performance in such settings is not explicitly stated.\" — The ground truth notes that high-dimensional challenges remain underexplored in Bayesian quantile regression and that scalability in large discrete risk models is not well understood, but it does not say that 'prior studies do not explicitly state' how they engage with smoothing techniques or their performance. This is a speculative claim not supported by the ground truth.\n- Future Work: \"Similarly, although the literature points to a lack of fully nonparametric approaches in dynamic or streaming data contexts, it does not support claims about the prevalence of parametric or semi-parametric methods as a dominant trend.\" — The ground truth states that most papers focus on either parametric or semi-parametric frameworks and that fully nonparametric approaches are underutilized in dynamic or streaming data scenarios. However, it does not support the claim that the literature 'points to a lack of fully nonparametric approaches' as a dominant trend. This is a misinterpretation of the evidence.\n- Future Work: \"These directions aim to strengthen both the theoretical grounding and practical relevance of quantile regression in risk modeling without introducing unsupported claims.\" — This is a general evaluative statement about the proposed directions. The ground truth does not contain any information supporting or contradicting whether these directions aim to strengthen theoretical grounding and practical relevance, nor does it comment on whether they introduce unsupported claims. Therefore, this statement is not grounded in the provided information.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the inconclusive result by implying that the experiment itself was flawed or incomplete, when in fact the ground truth indicates the experiment 'ran to completion' and 'metrics are reported'. The claim that 'the findings do not support a definitive conclusion' misrepresents the actual verdict, which is simply 'inconclusive' due to synthetic data, not because of any failure in the experimental design or execution. Phrases like 'the findings do not support a definitive conclusion' and 'the absence of authentic market data means that the outcomes cannot be interpreted as evidence for or against the hypothesis' overstate the lack of clarity in the outcome.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections are sometimes abrupt; the narrative could better guide readers from hypothesis to conclusion.\n- limitations_honesty: 3/5 — While the paper acknowledges the use of synthetic data and lists several risks and assumptions, it does not fully engage with the not-run reasons or explicitly state that certain experiments were skipped due to computational constraints or other limitations.",
+      "generated_at": "2026-09-15T08:33:50.832686+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  }
+]

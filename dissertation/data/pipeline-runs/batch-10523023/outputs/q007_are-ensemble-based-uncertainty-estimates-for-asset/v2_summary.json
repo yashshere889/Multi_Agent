@@ -1,0 +1,39 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q007_are-ensemble-based-uncertainty-estimates-for-asset/v2.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+    "eba4b5f8b45b85d564bd54922d6e0ba6bfc6b4e4",
+    "bae3097cae5247471d659a266b8286398e384526",
+    "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6",
+    "787cf5a8fce34c6897e08fd5ce227cd5b705dcb5",
+    "3852b20287a63d2d7162f512a490ba0fcac691ca",
+    "2410.23296v2",
+    "366380004",
+    "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+    "c35e8169813cc0b43dc4e6b1541c8b50ced503a1",
+    "5413521",
+    "c396a27d72748e25baf08df5e1f87be31662d26f",
+    "2511.13766v1"
+  ],
+  "notes_for_review": [],
+  "generated_at": "2026-09-15T08:05:31.669316+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

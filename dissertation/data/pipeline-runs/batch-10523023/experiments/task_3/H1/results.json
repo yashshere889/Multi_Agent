@@ -1,0 +1,22 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether applying SMOTE oversampling reduces fraud-detection recall at a fixed false-positive budget compared to using class-weighted models or decision-threshold tuning in a credit approval dataset with class imbalance.",
+  "author": "coder-agent",
+  "baseline": "The recall achieved by a standard Random Forest trained without any imbalance correction (i.e., no SMOTE, no class weights, no threshold tuning).",
+  "success_criteria": "If SMOTE results in lower recall at a fixed false-positive rate compared to CWRF or threshold tuning, the hypothesis is supported. Conversely, if SMOTE achieves equal or higher recall, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T06:15:49.689160+00:00",
+  "status": "success",
+  "elapsed_seconds": 0.587,
+  "resumed": false,
+  "metrics": {
+    "recall_at_fixed_fpr": {
+      "smote": 0.8666666666666667,
+      "class_weighted_rf": 0.8266666666666667,
+      "threshold_tuning": 0.6933333333333334
+    }
+  },
+  "meets_success_criteria": false,
+  "notes": "Recall at 10.0% FPR:\n  SMOTE: 0.8667\n  Class-weighted RF: 0.8267\n  Threshold Tuning: 0.6933\nBest method: smote\nWorst method: threshold_tuning\nHypothesis supported: False",
+  "error": null
+}

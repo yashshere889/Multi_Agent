@@ -1,0 +1,541 @@
+{
+  "literature_summary": "The literature broadly explores the relationship between economic policy uncertainty (EPU) and labor market outcomes, particularly unemployment, using a mix of econometric and textual analysis methods. Studies often employ EPU indices derived from news text, sentiment analysis, and advanced machine learning models to understand how policy uncertainty influences unemployment at various time horizons. While some papers find a negative relationship between EPU and unemployment, others observe mixed or inconclusive results. Text mining and natural language processing techniques are widely applied to construct EPU measures and forecast macroeconomic variables, though there is a noted lack of standardization in methodologies and limited cross-country validation. Several studies also highlight the need for better integration of textual data with traditional economic indicators and improved evaluation frameworks for forecasting models.",
+  "methods_overview": [
+    {
+      "method": "Text mining methods",
+      "papers_using_it": [
+        "b1c3219b5b776dc05b6698114e2a256800e0f493",
+        "4184a42f15a708ce6565a8e9ea3d8e542bfecd74",
+        "1320fa9540a474e8303c64b0ba4a2b9aceb72c64",
+        "95a22235845169ee3eec5422b3a9c0f51e8d814c",
+        "99729ddb7a992ba57b9659c7d115bfebd37252b9",
+        "0cb461e678d809f80bc38e8a2ea6f1fed0c875a4",
+        "e6aab6c6c9b99fde36c199dd1b0ad301d6118f1d",
+        "0eb918608abbf9af8cf41d5a2cbd7b685ccfd397",
+        "3d4bd0802eb90bf8c149259193390da656c46360",
+        "34328e52055655dbd912b469b779bc15b4ecb91e",
+        "96ffd18cf448734faee445f9ca8af28d43b7e2e4",
+        "6f3dc1a75dafa0090e8e55511edf10fdfab6b3b7",
+        "ff215faa045f6e9acd38d9861ffc567e688bf09c",
+        "333202357",
+        "804fa1725a3144a9379f5752374c5b02ff0e66da"
+      ],
+      "notes": "Commonly used across multiple studies to construct EPU indices and analyze textual data from news and social media sources."
+    },
+    {
+      "method": "Econometric modeling (ARDL, VAR, Granger Causality)",
+      "papers_using_it": [
+        "e64b423087c06b0c7ebd5bc362917b0cef356eee",
+        "bd84f489b8a3d4cee0a6e1ddd9862a67c682126d",
+        "69057c6bd2c26c9d857fd2f157adb5457eaf4501",
+        "3015520",
+        "2791565",
+        "2648415",
+        "2510279",
+        "2800869",
+        "2619635",
+        "2877180",
+        "a7b7f45a93a19139177ad632043b93bdf2f2e01e",
+        "61e765c8fc2f46919a1a91c403503b76e1f67234"
+      ],
+      "notes": "Commonly used to analyze long-run and short-run relationships between EPU, unemployment, and other macroeconomic variables."
+    },
+    {
+      "method": "Sentiment and emotion analysis",
+      "papers_using_it": [
+        "93926d9a2110af3f90e3689d44ffbf3b0932a595",
+        "0af367ba41a4842776d8500e3297aaad2d3de8e6",
+        "b93916d46e9caa833a45444f56b77df4ab16189c",
+        "804fa1725a3144a9379f5752374c5b02ff0e66da",
+        "99729ddb7a992ba57b9659c7d115bfebd37252b9"
+      ],
+      "notes": "Used to understand emotional dynamics in news coverage and public perception of economic policies."
+    },
+    {
+      "method": "Machine Learning Models",
+      "papers_using_it": [
+        "040dd087386a9bfecf5257b4e779aa591a143cc7",
+        "0af367ba41a4842776d8500e3297aaad2d3de8e6",
+        "b93916d46e9caa833a45444f56b77df4ab16189c",
+        "d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4",
+        "648d0647c96ddfbad742b652e63786ecd09f94b8",
+        "38601dd11a944743357ab7322ab3034be94b437b",
+        "fd0485c4b757588642815faba9155acd6e29b324"
+      ],
+      "notes": "Used for classification, forecasting, and interpretability in analyzing economic and policy-related texts."
+    },
+    {
+      "method": "Unsupervised word embedding-based method",
+      "papers_using_it": [
+        "06c62f7ac27b013f644fefb62671f83908dbda3a"
+      ],
+      "notes": "A relatively rare method proposed for measuring EPU using news data, aiming to improve upon traditional text mining."
+    },
+    {
+      "method": "Quantile regression",
+      "papers_using_it": [
+        "8958857"
+      ],
+      "notes": "Rarely used; applied to analyze the effect of investor sentiment on EPU across different market samples."
+    },
+    {
+      "method": "Simultaneous equation model",
+      "papers_using_it": [
+        "bd84f489b8a3d4cee0a6e1ddd9862a67c682126d"
+      ],
+      "notes": "Used in one study to analyze the effects of EPU on unemployment and moderating effects of vaccination and confidence indices."
+    },
+    {
+      "method": "Structural Vector Autoregression (SVAR)",
+      "papers_using_it": [
+        "bd84f489b8a3d4cee0a6e1ddd9862a67c682126d"
+      ],
+      "notes": "Used in one study to assess long-term impacts of policy uncertainty on unemployment."
+    },
+    {
+      "method": "Markov Switching Dynamic Regression",
+      "papers_using_it": [
+        "69057c6bd2c26c9d857fd2f157adb5457eaf4501"
+      ],
+      "notes": "Used to identify different economic regimes and analyze varying impacts of policy uncertainties over time."
+    },
+    {
+      "method": "Weak Supervision",
+      "papers_using_it": [
+        "040dd087386a9bfecf5257b4e779aa591a143cc7"
+      ],
+      "notes": "Rarely used; applied for classifying news articles related to EPU in low-resource settings."
+    },
+    {
+      "method": "Semantic Path Model",
+      "papers_using_it": [
+        "38601dd11a944743357ab7322ab3034be94b437b"
+      ],
+      "notes": "Used for interpretable macroeconomic forecasting using semantic features from news."
+    },
+    {
+      "method": "Zero-Shot Probabilistic Forecasting with LLMs",
+      "papers_using_it": [
+        "fd0485c4b757588642815faba9155acd6e29b324"
+      ],
+      "notes": "A rare method utilizing large language models for forecasting with uncertainty awareness."
+    },
+    {
+      "method": "Large Language Models (LLMs)",
+      "papers_using_it": [
+        "d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4"
+      ],
+      "notes": "Used for unemployment rate forecasting with interpretability via attention visualization and SHAP analysis."
+    },
+    {
+      "method": "XL (extra long) Transformer and LSTM models",
+      "papers_using_it": [
+        "198d4a0d215ea72bf626a83821e97efb36e9ca18"
+      ],
+      "notes": "Used to forecast unexpected earnings by blending news text and EPU data."
+    },
+    {
+      "method": "Event-Centric Index Measures (ECIM)",
+      "papers_using_it": [
+        "1320fa9540a474e8303c64b0ba4a2b9aceb72c64"
+      ],
+      "notes": "Used to generate indices from event extraction in news corpora to track socio-economic indicators."
+    },
+    {
+      "method": "Generative models combined with sparse computation",
+      "papers_using_it": [
+        "15104322"
+      ],
+      "notes": "Proposed for scalable text mining using inverted indices."
+    },
+    {
+      "method": "Adaptive Multi-Objective Knowledge Distillation",
+      "papers_using_it": [
+        "6be90ca1daedf606b1c4eb05987ba5dbc318a67c"
+      ],
+      "notes": "Used for transferring knowledge from PubMedBERT to MiniLM in biomedical text processing."
+    },
+    {
+      "method": "Entropy-guided dynamic-temperature mechanism",
+      "papers_using_it": [
+        "6be90ca1daedf606b1c4eb05987ba5dbc318a67c"
+      ],
+      "notes": "Used to adjust softening of teacher logits based on predictive uncertainty for improved distillation."
+    },
+    {
+      "method": "Adaptive techniques from text compression",
+      "papers_using_it": [
+        "15106516"
+      ],
+      "notes": "Applied for inferring structure from text sequences."
+    },
+    {
+      "method": "Dual-track architecture of emotional discrimination and demand theme mining",
+      "papers_using_it": [
+        "87261e492e8e8f1af38c6fb4e0d5dabf26505ea3"
+      ],
+      "notes": "Used to integrate domain lexicon guidance and temperature calibration for customer feedback analysis."
+    },
+    {
+      "method": "Transformer-based models for Portuguese clinical text",
+      "papers_using_it": [
+        "fd11b2dbc1c67f5de5f724f2f488136b36eb4447"
+      ],
+      "notes": "Used for referral conduct analysis in clinical settings."
+    },
+    {
+      "method": "K-Means clustering",
+      "papers_using_it": [
+        "6f3dc1a75dafa0090e8e55511edf10fdfab6b3b7"
+      ],
+      "notes": "Used to categorize public discourse into thematic clusters."
+    },
+    {
+      "method": "Multi-agent systems",
+      "papers_using_it": [
+        "96ffd18cf448734faee445f9ca8af28d43b7e2e4"
+      ],
+      "notes": "Used to model complex systems evolving with external information from news and social media."
+    },
+    {
+      "method": "Machine learning (XGBoost, Random Forest)",
+      "papers_using_it": [
+        "96ffd18cf448734faee445f9ca8af28d43b7e2e4"
+      ],
+      "notes": "Used for predicting commodity values and currency fluctuations based on textual and social media data."
+    },
+    {
+      "method": "Semi-supervised self-training for text classification",
+      "papers_using_it": [
+        "ff215faa045f6e9acd38d9861ffc567e688bf09c"
+      ],
+      "notes": "Used to detect misinformation in Twitter data."
+    },
+    {
+      "method": "Android-based text analytics",
+      "papers_using_it": [
+        "8363106"
+      ],
+      "notes": "Developed for multi-criteria analysis and variant selection in text materials."
+    },
+    {
+      "method": "Text mining for genomics",
+      "papers_using_it": [
+        "333202357"
+      ],
+      "notes": "Used to extract knowledge from biomedical literature and databases."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited exploration of how EPU interacts with other macroeconomic variables beyond GDP, inflation, and population in explaining unemployment volatility",
+      "supporting_evidence": [
+        "e64b423087c06b0c7ebd5bc362917b0cef356eee"
+      ],
+      "notes": "Repeated across multiple studies indicating a consistent lack of comprehensive analysis."
+    },
+    {
+      "gap": "Lack of detailed discussion on how different types of news content (e.g., headlines vs. full articles) interact with EPU in influencing economic behavior",
+      "supporting_evidence": [
+        "198d4a0d215ea72bf626a83821e97efb36e9ca18"
+      ],
+      "notes": "Identified as a key limitation in one study."
+    },
+    {
+      "gap": "Limited cross-country validation of EPU indices beyond the original Baker et al. (2016) framework",
+      "supporting_evidence": [
+        "4184a42f15a708ce6565a8e9ea3d8e542bfecd74",
+        "95a22235845169ee3eec5422b3a9c0f51e8d814c"
+      ],
+      "notes": "Repeated across multiple studies indicating a persistent gap."
+    },
+    {
+      "gap": "Potential inconsistency in how uncertainty is defined and measured across different studies",
+      "supporting_evidence": [
+        "4184a42f15a708ce6565a8e9ea3d8e542bfecd74",
+        "95a22235845169ee3eec5422b3a9c0f51e8d814c"
+      ],
+      "notes": "Identified as a contradiction in multiple studies."
+    },
+    {
+      "gap": "Lack of standardized auditing procedures for validating news-based indices across different languages and regions",
+      "supporting_evidence": [
+        "4184a42f15a708ce6565a8e9ea3d8e542bfecd74",
+        "1320fa9540a474e8303c64b0ba4a2b9aceb72c64"
+      ],
+      "notes": "Repeated across studies indicating a methodological limitation."
+    },
+    {
+      "gap": "Limited discussion on how specific types of economic policy uncertainty (e.g., fiscal, monetary, trade) interact differently with unemployment across different economic regimes",
+      "supporting_evidence": [
+        "69057c6bd2c26c9d857fd2f157adb5457eaf4501"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "The role of global crises and geopolitical events in shaping EPU is acknowledged but not deeply explored in relation to their differential impact on unemployment across countries",
+      "supporting_evidence": [
+        "06c62f7ac27b013f644fefb62671f83908dbda3a"
+      ],
+      "notes": "Identified as a limitation in one study."
+    },
+    {
+      "gap": "Limited discussion on how textual data from different sources (e.g., news vs. social media) compares in terms of predictive power for economic policy uncertainty",
+      "supporting_evidence": [
+        "040dd087386a9bfecf5257b4e779aa591a143cc7",
+        "6d978e0061f1b841ffaf463124805b02bbe46f0a"
+      ],
+      "notes": "Identified as a gap in multiple studies."
+    },
+    {
+      "gap": "Lack of standardized evaluation criteria across different models for comparing forecasting performance in unemployment rate predictions",
+      "supporting_evidence": [
+        "38601dd11a944743357ab7322ab3034be94b437b",
+        "d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4",
+        "648d0647c96ddfbad742b652e63786ecd09f94b8"
+      ],
+      "notes": "Repeated across multiple studies indicating a consistent limitation."
+    },
+    {
+      "gap": "The relationship between economic uncertainty and macroeconomic outcomes such as industrial production is not fully understood beyond the scope of the identified shocks",
+      "supporting_evidence": [
+        "a381e176f5a8ab4cd60a1b38917bd49550dc6796"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "The applicability of text mining approaches to assess social resilience in disaster contexts remains underexplored, particularly in terms of validation through real-world case studies",
+      "supporting_evidence": [
+        "3d4bd0802eb90bf8c149259193390da656c46360"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "The effectiveness of neutral news content in driving social media engagement is not clearly established across different cultural or media environments",
+      "supporting_evidence": [
+        "34328e52055655dbd912b469b779bc15b4ecb91e"
+      ],
+      "notes": "Identified as a contradiction in one study."
+    },
+    {
+      "gap": "Limited discussion on how alternative news media influence misinformation spread in high-trust media environments",
+      "supporting_evidence": [
+        "ff215faa045f6e9acd38d9861ffc567e688bf09c"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "No mention of ethical considerations or bias mitigation in the application of text mining for misinformation detection",
+      "supporting_evidence": [
+        "ff215faa045f6e9acd38d9861ffc567e688bf09c"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "Lack of clarity in defining text-mining in genomics and inconsistent application across studies",
+      "supporting_evidence": [
+        "333202357"
+      ],
+      "notes": "Identified as a limitation in one study."
+    },
+    {
+      "gap": "Limited empirical studies specifically addressing the interaction between economic policy uncertainty and investor sentiment in emerging markets like Indonesia",
+      "supporting_evidence": [
+        "be2f66cbf4087a2b0776fb71f282957513ba4a5f",
+        "4c8812241b38fb77de9ae84a76b66d7370719e2a"
+      ],
+      "notes": "Repeated across multiple studies indicating a consistent gap."
+    },
+    {
+      "gap": "Inconsistent performance across different sentiment analysis models when identifying neutral sentiments in Indonesian text data",
+      "supporting_evidence": [
+        "0af367ba41a4842776d8500e3297aaad2d3de8e6",
+        "b93916d46e9caa833a45444f56b77df4ab16189c"
+      ],
+      "notes": "Identified as a limitation in multiple studies."
+    },
+    {
+      "gap": "Lack of comprehensive analysis on how specific economic policy changes affect long-term economic outcomes in developing economies",
+      "supporting_evidence": [
+        "2791565",
+        "2648415",
+        "2510279"
+      ],
+      "notes": "Repeated across multiple studies indicating a consistent gap."
+    },
+    {
+      "gap": "Lack of detailed evaluation metrics and comparison with other baselines in the e-commerce benchmark study",
+      "supporting_evidence": [
+        "d79dc86c907387938d2b6fc854c824f2e62c6cae"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "Limited discussion on how managerial perception of uncertainty affects investment decisions in the context of text mining",
+      "supporting_evidence": [
+        "b94db3f43405c1a273fd4cf05988de1389003a84"
+      ],
+      "notes": "Identified as a gap in one study."
+    },
+    {
+      "gap": "Need for more robust external validation and subgroup analysis in teleconsultation studies",
+      "supporting_evidence": [
+        "fd11b2dbc1c67f5de5f724f2f488136b36eb4447"
+      ],
+      "notes": "Identified as a limitation in one study."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Policy uncertainty indices derived from news text using dictionary-based methods will show a stronger correlation with subsequent regional unemployment changes compared to lagged unemployment alone, when controlling for macroeconomic factors such as GDP growth and inflation.",
+      "rationale": "This hypothesis builds on the gap regarding limited exploration of how EPU interacts with other macroeconomic variables beyond GDP, inflation, and population in explaining unemployment volatility [e64b423087c06b0c7ebd5bc362917b0cef356eee]. It leverages the bridge insight that news-based sentiment and uncertainty indices constructed using dictionary-based text mining methods can serve as proxies for economic policy uncertainty [99729ddb7a992ba57b9659c7d115bfebd37252b9, 0cb461e678d809f80bc38e8a2ea6f1fed0c875a4]. The use of dictionary-based methods aligns with the widespread adoption of such techniques in EPU construction [99729ddb7a992ba57b9659c7d115bfebd37252b9, 0cb461e678d809f80bc38e8a2ea6f1fed0c875a4] and supports testing the predictive strength of textual EPU against traditional lagged unemployment measures.",
+      "related_gaps": [
+        "Limited exploration of how EPU interacts with other macroeconomic variables beyond GDP, inflation, and population in explaining unemployment volatility"
+      ],
+      "related_methods": [
+        "Text mining methods",
+        "Econometric modeling (ARDL, VAR, Granger Causality)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Policy Uncertainty Index (from news text)",
+          "Lagged Unemployment",
+          "GDP Growth",
+          "Inflation"
+        ],
+        "dependent": [
+          "Subsequent Regional Unemployment Changes"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Machine learning models trained on news text data incorporating policy uncertainty signals will produce more accurate forecasts of regional unemployment rates than models relying solely on lagged unemployment data, as measured by mean absolute error.",
+      "rationale": "This hypothesis draws from the bridge insight that machine learning models trained on news text data can improve forecasts of macroeconomic indicators like unemployment [96ffd18cf448734faee445f9ca8af28d43b7e2e4, d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4]. It addresses the gap in lack of standardized evaluation criteria across different models for comparing forecasting performance in unemployment rate predictions [38601dd11a944743357ab7322ab3034be94b437b, d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4, 648d0647c96ddfbad742b652e63786ecd09f94b8]. By focusing on real-world accuracy using actual datasets, this hypothesis tests whether textual features enhance predictive power over traditional time-series inputs.",
+      "related_gaps": [
+        "Lack of standardized evaluation criteria across different models for comparing forecasting performance in unemployment rate predictions"
+      ],
+      "related_methods": [
+        "Machine Learning Models",
+        "Text mining methods"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "News Text Features (Policy Uncertainty Signals)",
+          "Lagged Unemployment"
+        ],
+        "dependent": [
+          "Regional Unemployment Rate Forecast Accuracy (Mean Absolute Error)"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Regional unemployment changes are significantly influenced by policy uncertainty derived from news text, even after accounting for the impact of global crises and geopolitical events, suggesting that textual policy uncertainty provides unique explanatory value beyond exogenous shocks.",
+      "rationale": "This hypothesis connects to the gap concerning the role of global crises and geopolitical events in shaping EPU, which is acknowledged but not deeply explored in relation to their differential impact on unemployment across countries [06c62f7ac27b013f644fefb62671f83908dbda3a]. It uses the bridge insight that time series econometric models such as ARDL can be used to test the causal relationship between policy uncertainty indices derived from news text and subsequent unemployment rates [e64b423087c06b0c7ebd5bc362917b0cef356eee]. This hypothesis tests whether policy uncertainty from news text adds incremental explanatory power beyond known macroeconomic disruptions, thus supporting the idea that textual signals capture distinct aspects of economic behavior.",
+      "related_gaps": [
+        "The role of global crises and geopolitical events in shaping EPU is acknowledged but not deeply explored in relation to their differential impact on unemployment across countries"
+      ],
+      "related_methods": [
+        "Econometric modeling (ARDL, VAR, Granger Causality)",
+        "Text mining methods"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Policy Uncertainty Index (from news text)",
+          "Global Crisis Indicators",
+          "Geopolitical Event Indicators"
+        ],
+        "dependent": [
+          "Regional Unemployment Changes"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it can be tested using real datasets like Fama-French factor returns and news text from AG News or 20 Newsgroups, which contain sufficient temporal and categorical information to construct policy uncertainty indices and measure unemployment changes. It is highly testable due to its clear comparative structure between textual EPU and lagged unemployment, with a defined dependent variable (regional unemployment changes). The hypothesis is coherent as it focuses on the system (unemployment) rather than methodology, and aligns well with the literature gap on macroeconomic interactions beyond GDP/inflation. Its grounding is strong, drawing from bridge insights on dictionary-based text mining and econometric modeling (ARDL), supported by multiple papers including those cited in the gaps and insights."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible but less so than H1, as it requires training machine learning models on news text data and comparing forecast accuracy using metrics like MAE. While the AG News and 20 Newsgroups datasets provide text data, there's no direct unemployment or forecasting target in the listed datasets to evaluate model performance. Testability is moderate since it depends on model architecture and feature engineering choices, which may not yield definitive results. Coherence is acceptable, but the focus shifts somewhat toward model performance rather than the core system (unemployment). Grounding is solid in terms of bridge insights from computational social science, but lacks direct alignment with available data for validation."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because it requires controlling for global crises and geopolitical events, which are not represented in any of the listed datasets. Without access to such event data, the hypothesis cannot be meaningfully tested. It is also less testable due to the complexity of isolating textual policy uncertainty from exogenous shocks. While the hypothesis is internally coherent and grounded in econometric modeling and bridge insights, its reliance on unavailable data makes it impractical for experimental validation. The literature gap it addresses is important, but the lack of supporting data severely undermines its implementation potential."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "198d4a0d215ea72bf626a83821e97efb36e9ca18",
+    "b1c3219b5b776dc05b6698114e2a256800e0f493",
+    "93926d9a2110af3f90e3689d44ffbf3b0932a595",
+    "8958857",
+    "e64b423087c06b0c7ebd5bc362917b0cef356eee",
+    "93244fddfc53e4699008cdf4c90ef9e3b09e6ce3",
+    "bd84f489b8a3d4cee0a6e1ddd9862a67c682126d",
+    "06c62f7ac27b013f644fefb62671f83908dbda3a",
+    "69057c6bd2c26c9d857fd2f157adb5457eaf4501",
+    "4184a42f15a708ce6565a8e9ea3d8e542bfecd74",
+    "1320fa9540a474e8303c64b0ba4a2b9aceb72c64",
+    "99729ddb7a992ba57b9659c7d115bfebd37252b9",
+    "0cb461e678d809f80bc38e8a2ea6f1fed0c875a4",
+    "e6aab6c6c9b99fde36c199dd1b0ad301d6118f1d",
+    "95a22235845169ee3eec5422b3a9c0f51e8d814c",
+    "040dd087386a9bfecf5257b4e779aa591a143cc7",
+    "6d978e0061f1b841ffaf463124805b02bbe46f0a",
+    "38601dd11a944743357ab7322ab3034be94b437b",
+    "fd0485c4b757588642815faba9155acd6e29b324",
+    "d7fbdc89e71e1065b99f43d32e0193e8fd6bf8a4",
+    "648d0647c96ddfbad742b652e63786ecd09f94b8",
+    "7bcfd182db05a0092039714fa52777dc804e511b",
+    "960555093afd78a2219dc6e79ee0f3eae5dfdf05",
+    "a381e176f5a8ab4cd60a1b38917bd49550dc6796",
+    "0eb918608abbf9af8cf41d5a2cbd7b685ccfd397",
+    "1b6145b9b4baa47866915fb30c50e6f819ca86df",
+    "3d4bd0802eb90bf8c149259193390da656c46360",
+    "34328e52055655dbd912b469b779bc15b4ecb91e",
+    "96ffd18cf448734faee445f9ca8af28d43b7e2e4",
+    "6f3dc1a75dafa0090e8e55511edf10fdfab6b3b7",
+    "ff215faa045f6e9acd38d9861ffc567e688bf09c",
+    "8363106",
+    "2465975",
+    "15104322",
+    "333202357",
+    "bd7ca520b5e9b8e62d4447a50aed829d7e9a3c3d",
+    "3f5770dc97c72c8b74b8553fc489bbdd2abdf3c9",
+    "61e765c8fc2f46919a1a91c403503b76e1f67234",
+    "8103875b5a0b9f7f3bbff2751bb8a69b6f2ffdca",
+    "a7b7f45a93a19139177ad632043b93bdf2f2e01e",
+    "2800869",
+    "2877180",
+    "2619635",
+    "2513141",
+    "3015520",
+    "2791565",
+    "18782633",
+    "2648415",
+    "2510279",
+    "0af367ba41a4842776d8500e3297aaad2d3de8e6",
+    "b93916d46e9caa833a45444f56b77df4ab16189c",
+    "be2f66cbf4087a2b0776fb71f282957513ba4a5f",
+    "804fa1725a3144a9379f5752374c5b02ff0e66da",
+    "4c8812241b38fb77de9ae84a76b66d7370719e2a",
+    "87261e492e8e8f1af38c6fb4e0d5dabf26505ea3",
+    "fd11b2dbc1c67f5de5f724f2f488136b36eb4447",
+    "6be90ca1daedf606b1c4eb05987ba5dbc318a67c",
+    "d79dc86c907387938d2b6fc854c824f2e62c6cae",
+    "b94db3f43405c1a273fd4cf05988de1389003a84",
+    "15106516"
+  ],
+  "generated_at": "2026-09-15T14:59:08.751305+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

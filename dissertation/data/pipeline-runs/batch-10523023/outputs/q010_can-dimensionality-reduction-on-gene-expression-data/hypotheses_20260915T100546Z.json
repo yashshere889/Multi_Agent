@@ -1,0 +1,853 @@
+{
+  "literature_summary": "The literature presents a diverse array of methods for dimensionality reduction and feature selection in high-dimensional gene expression data, with a strong emphasis on improving classification accuracy, reducing overfitting, and addressing the 'curse of dimensionality'. Commonly employed techniques include Principal Component Analysis (PCA), t-SNE, and various hybrid approaches combining statistical and machine learning methods. Many studies integrate domain knowledge, such as Gene Ontology annotations, to enhance biological interpretability. However, there is a notable lack of standardized benchmarks, consistent interpretability assessments, and comparative evaluations across different methods and domains. While numerous papers propose innovative algorithms, they often fail to demonstrate broad applicability or provide sufficient validation in real-world clinical or biological contexts.",
+  "methods_overview": [
+    {
+      "method": "Principal Component Analysis (PCA)",
+      "papers_using_it": [
+        "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+        "171050456",
+        "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2",
+        "89398ecb2e4e566e2dbaf84e8d603dbc1e2b0e85",
+        "66391146",
+        "2508.07773v1"
+      ],
+      "notes": "Commonly used for linear dimensionality reduction in gene expression data and other high-dimensional domains."
+    },
+    {
+      "method": "t-distributed Stochastic Neighbor Embedding (t-SNE)",
+      "papers_using_it": [
+        "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+        "688f393b69ba398fccf9f497308e261a40b1756c"
+      ],
+      "notes": "Used for nonlinear visualization and dimensionality reduction, particularly in cancer subtyping and gene expression analysis."
+    },
+    {
+      "method": "Feature Selection Library (FSLib)",
+      "papers_using_it": [
+        "1607.01327v8"
+      ],
+      "notes": "A MATLAB toolbox offering filter, embedded, and wrapper feature selection methods; relatively rare."
+    },
+    {
+      "method": "Boruta and LIME",
+      "papers_using_it": [
+        "2502.13080v2"
+      ],
+      "notes": "Integrated approach combining statistical filtering with local interpretability; rare but promising."
+    },
+    {
+      "method": "Ensemble Classifiers",
+      "papers_using_it": [
+        "5d21619629e6f63763d4a6b26ec959593effa9ee"
+      ],
+      "notes": "Combined multiple top-performing classifiers for improved cancer classification; moderately common."
+    },
+    {
+      "method": "Hybrid Heuristic Dimensionality Reduction",
+      "papers_using_it": [
+        "9634bc4eb0dc97b1d3d7941720d28aab8aed2405"
+      ],
+      "notes": "Combines feature selection and extraction to reduce noise and improve classification; rare."
+    },
+    {
+      "method": "Robust Gaussian Mixture Model based clustering",
+      "papers_using_it": [
+        "688f393b69ba398fccf9f497308e261a40b1756c"
+      ],
+      "notes": "Used alongside t-SNE for identifying well-separated cancer subtypes; rare."
+    },
+    {
+      "method": "Serial filter-wrapper feature selection with elite guided mutation",
+      "papers_using_it": [
+        "fff700b24dd1d816c07feb22e222e0a7b8ba686b"
+      ],
+      "notes": "Proposed hybrid method combining filter and wrapper strategies; rare."
+    },
+    {
+      "method": "Multi-strategy fusion binary sea-horse optimizer with Gaussian transfer function",
+      "papers_using_it": [
+        "3f956d97bbf8be066e9609acccf868be2f648a0a"
+      ],
+      "notes": "Optimization algorithm for feature selection in high-dimensional cancer gene expression data; rare."
+    },
+    {
+      "method": "Genetic Clustering Algorithm (GCA) for feature selection",
+      "papers_using_it": [
+        "09181eb32feb76dd8e85b1815b440f4c26596a04"
+      ],
+      "notes": "Used for selecting optimal features from gene expression data for multiclass cancer classification; rare."
+    },
+    {
+      "method": "Wrapper Recursive Feature Elimination (RFE)",
+      "papers_using_it": [
+        "171050456"
+      ],
+      "notes": "Applied after PCA to select the best principal components for classification; rare."
+    },
+    {
+      "method": "Nonlinear dimensionality reduction",
+      "papers_using_it": [
+        "42730331",
+        "7e8765917a4087a640c48f755ae82deb4b782b95"
+      ],
+      "notes": "Applied to gene expression data to uncover intrinsic geometry and improve biological relevance; moderately common."
+    },
+    {
+      "method": "Sliced inverse regression (SIR)",
+      "papers_using_it": [
+        "fbe9e4597bd5a34a3741ba9988cea1991e500926",
+        "2d99e2aa27a02a6cb5591071a9d9dfc8dc52b5a7"
+      ],
+      "notes": "Used for supervised dimensionality reduction, especially in spatial transcriptomics and survival modeling; rare."
+    },
+    {
+      "method": "Niching memetic algorithm for clustering and feature selection",
+      "papers_using_it": [
+        "346989154"
+      ],
+      "notes": "Simultaneously performs clustering and feature selection without assuming the number of clusters; rare."
+    },
+    {
+      "method": "Graph coloring",
+      "papers_using_it": [
+        "749f861164860e12c8f3b5a5a719e68202599db5"
+      ],
+      "notes": "Used to extract discriminative genes in cancer data by addressing high dimensionality and noise; rare."
+    },
+    {
+      "method": "Domain-enhanced analysis using GO annotations",
+      "papers_using_it": [
+        "2d99e2aa27a02a6cb5591071a9d9dfc8dc52b5a7"
+      ],
+      "notes": "Integrates biological knowledge via Gene Ontology to improve interpretability of reduced dimensions; rare."
+    },
+    {
+      "method": "Neural network autoencoders",
+      "papers_using_it": [
+        "3ba5aeb67347cb151d558b2660c894f4e3b92050"
+      ],
+      "notes": "Used for learning biologically interpretable latent representations through sparse feature combinations; rare."
+    },
+    {
+      "method": "Multi-dimensional PCA",
+      "papers_using_it": [
+        "89398ecb2e4e566e2dbaf84e8d603dbc1e2b0e85"
+      ],
+      "notes": "Applies PCA with varying numbers of components to explore multi-scale data structures for clustering; rare."
+    },
+    {
+      "method": "Deep learning-based imputation",
+      "papers_using_it": [
+        "6c241a9e258e66ed81b702539922cbdf285d0821"
+      ],
+      "notes": "Uses deep learning to predict missing gene expression values and reconstruct full transcriptomes; rare."
+    },
+    {
+      "method": "Kernel PCA",
+      "papers_using_it": [
+        "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2"
+      ],
+      "notes": "Employs kernel methods for nonlinear dimensionality reduction, enhancing interpretability through gene visualization; rare."
+    },
+    {
+      "method": "Binary Particle Swarm Optimization with Manta Ray Foraging Learning Strategies",
+      "papers_using_it": [
+        "8d320d9b8d9428bacaed9ae7ae7f5f9fe054ae78"
+      ],
+      "notes": "Used for high-dimensional feature selection in gene expression datasets; rare."
+    },
+    {
+      "method": "Dual-process sample selection",
+      "papers_using_it": [
+        "a2527244d4c6967f8cb935f02baba0c848102e8b"
+      ],
+      "notes": "Proposed for feature selection in gene expression data; rare."
+    },
+    {
+      "method": "Nearest Neighbor Feature Selection and Redundancy Removal",
+      "papers_using_it": [
+        "b657afda7bf3c25f98d97161ac0715f7c4cc2e83"
+      ],
+      "notes": "Applied to microarray gene expression data for feature selection; rare."
+    },
+    {
+      "method": "Rule-based algorithm for gene selection",
+      "papers_using_it": [
+        "4858de0d3c75fc098e13611073d81e97e2d50af0"
+      ],
+      "notes": "Designed to avoid losing important information during feature selection; rare."
+    },
+    {
+      "method": "Gene Set Enrichment Analysis (GSEA)",
+      "papers_using_it": [
+        "a7c1642509397ccebaa98bf5ec67b8b6ba219cc8"
+      ],
+      "notes": "Used for interpreting gene expression data through gene sets; moderately common."
+    },
+    {
+      "method": "Locally Linear Embedding (LLE)",
+      "papers_using_it": [
+        "f0a3e1752e1146da927adc24ae07144ab2e744ec"
+      ],
+      "notes": "Nonlinear dimensionality reduction technique; rare."
+    },
+    {
+      "method": "Non-negative Matrix Factorization (NMF)",
+      "papers_using_it": [
+        "29bae9472203546847ec1352a604566d0f602728"
+      ],
+      "notes": "Used for learning parts of objects in a non-negative way; rare."
+    },
+    {
+      "method": "Global Geometric Framework for Nonlinear Dimensionality Reduction",
+      "papers_using_it": [
+        "3537fcd0ff99a3b3cb3d279012df826358420556"
+      ],
+      "notes": "Approach for nonlinear dimensionality reduction using manifold learning; rare."
+    },
+    {
+      "method": "Gene Set Variation Analysis (GSVA)",
+      "papers_using_it": [
+        "3af045503abf81705fc1833aadf5db93a9be854c"
+      ],
+      "notes": "Unsupervised method for estimating variation of pathway activity; rare."
+    },
+    {
+      "method": "Mutual Information Criteria (Max-Dependency, Max-Relevance, Min-Redundancy)",
+      "papers_using_it": [
+        "ba969a4f3bc5f5a84f6025478e566c40661d85f3"
+      ],
+      "notes": "Feature selection method based on mutual information; moderately common."
+    },
+    {
+      "method": "Nonlinear dimensionality reduction on graphs",
+      "papers_using_it": [
+        "1801.09390v2"
+      ],
+      "notes": "A framework that captures nonlinear correlations in graph-structured data; rare."
+    },
+    {
+      "method": "Joint tensor decomposition (J-HOSVD)",
+      "papers_using_it": [
+        "a93fc1bf56782703c9081ba36caabeed76bccc03"
+      ],
+      "notes": "Used for feature extraction in high-dimensional data within Cyber-Physical-Social systems; rare."
+    },
+    {
+      "method": "Swin Transformer with iterative encoder",
+      "papers_using_it": [
+        "34a6a6d96fc891793afbe7577352939816dc3154"
+      ],
+      "notes": "Proposed for robust high-dimensional medical image analysis with adaptive attention mechanisms; rare."
+    },
+    {
+      "method": "Multirate signal processing",
+      "papers_using_it": [
+        "296074182"
+      ],
+      "notes": "Techniques for efficient digital information processing in wireless and multimedia applications; rare."
+    },
+    {
+      "method": "Genetic algorithms and particle swarm optimization",
+      "papers_using_it": [
+        "219485e0c3b950fb31ede2d7c23c5bc4beacb964"
+      ],
+      "notes": "Used for optimal feature subset selection in high-dimensional data classification; rare."
+    },
+    {
+      "method": "Explicit mappings for dimensionality reduction",
+      "papers_using_it": [
+        "5496201"
+      ],
+      "notes": "General approach extending dimensionality reduction to out-of-sample data points using cost functions; rare."
+    },
+    {
+      "method": "Nonlinear Dynamic Field Embedding",
+      "papers_using_it": [
+        "4463728"
+      ],
+      "notes": "A unifying nonlinear graph embedding framework using force field interpretation and bilateral kernel functions; rare."
+    },
+    {
+      "method": "Folded-PCA",
+      "papers_using_it": [
+        "340428709",
+        "124587"
+      ],
+      "notes": "An efficient matrix-based PCA variant that improves feature extraction and data reduction for hyperspectral and SAR imaging; rare."
+    },
+    {
+      "method": "Seg-PCA",
+      "papers_using_it": [
+        "124856"
+      ],
+      "notes": "A variation of PCA designed to reduce computational cost and memory requirements while improving classification accuracy; rare."
+    },
+    {
+      "method": "Continuous Embedding Space Optimization for Feature Selection",
+      "papers_using_it": [
+        "2302.13221v4"
+      ],
+      "notes": "A deep learning-based approach reformulating feature selection as a differentiable optimization task in a continuous embedding space; rare."
+    },
+    {
+      "method": "SPSA-FSR",
+      "papers_using_it": [
+        "1804.05589v1"
+      ],
+      "notes": "An improved Simultaneous Perturbation Stochastic Approximation method for fast and effective feature selection and ranking; rare."
+    },
+    {
+      "method": "Deep Feature Selection",
+      "papers_using_it": [
+        "ac2ac075773cc936a206c3ebb2339376d586bcbd"
+      ],
+      "notes": "A deep learning-based feature selection technique applied to identify enhancers and promoters in genomics; rare."
+    },
+    {
+      "method": "Information Fusion and Feature Selection using Dempster-Shafer Theory",
+      "papers_using_it": [
+        "30b7c6797a91eff3c31ae8a99a8b43c7bafaaad8"
+      ],
+      "notes": "A method combining Dempster-Shafer evidence theory and K-nearest neighbors for multi-source data feature selection; rare."
+    },
+    {
+      "method": "Margin Based Feature Selection",
+      "papers_using_it": [
+        "894967541ba49c416e81b426770d612cb1d4d135"
+      ],
+      "notes": "A theoretical and algorithmic approach to feature selection based on margin maximization; rare."
+    },
+    {
+      "method": "Consistency Approximation for Incremental Feature Selection",
+      "papers_using_it": [
+        "387f3072e92a46ae5d5cc39b595f56d019ca7e97"
+      ],
+      "notes": "An incremental feature selection method using fuzzy rough set theory; rare."
+    },
+    {
+      "method": "Rough Set Theory-Based Group Incremental Feature Selection",
+      "papers_using_it": [
+        "6b7cd2288c6c31e49a60e5c1bd4475425bf904c6"
+      ],
+      "notes": "An incremental feature selection approach leveraging rough set theory in a group setting; rare."
+    },
+    {
+      "method": "Sparse Representation Classification (SRC)",
+      "papers_using_it": [
+        "2f7bebea5541c290bf6a4cb643bb13a0b6383ba6",
+        "e7d711915071db9992eade9acdc9b66d7a54d238",
+        "d4050f586fbb5461afe86e5074e157cc2ce644a4"
+      ],
+      "notes": "Used for classification tasks in EEG, fNIRS, and rotating machinery fault diagnosis; moderately common."
+    },
+    {
+      "method": "LASSO Homotopy-based Sparse Representation",
+      "papers_using_it": [
+        "e7d711915071db9992eade9acdc9b66d7a54d238"
+      ],
+      "notes": "Applied for channel selection in fNIRS-BCI to improve classification accuracy; rare."
+    },
+    {
+      "method": "Mutual Information",
+      "papers_using_it": [
+        "6092518",
+        "333002206"
+      ],
+      "notes": "Used for feature selection in real-valued data and text categorization; moderately common."
+    },
+    {
+      "method": "Coalitional Game Theory",
+      "papers_using_it": [
+        "8983314"
+      ],
+      "notes": "Applied for feature selection using multiperturbation Shapley analysis (MSA) to optimize classification performance; rare."
+    },
+    {
+      "method": "Incremental MSE-based Feature Selection",
+      "papers_using_it": [
+        "332650274"
+      ],
+      "notes": "Integrates feature selection with incremental training using minimum squared error for ranking and removal of irrelevant features; rare."
+    },
+    {
+      "method": "Adaptive spatial support in sparse representation",
+      "papers_using_it": [
+        "124583",
+        "333707982"
+      ],
+      "notes": "Used for target detection in hyperspectral imagery by incorporating spatial correlation and spectral similarity; rare."
+    },
+    {
+      "method": "Sparse representation for voxel selection in fMRI",
+      "papers_using_it": [
+        "231733"
+      ],
+      "notes": "Employs iterative sparse-representation-based algorithm to detect task-relevant voxels in functional MRI data; rare."
+    },
+    {
+      "method": "Single-set spectral sparsification",
+      "papers_using_it": [
+        "1506.05173v2"
+      ],
+      "notes": "Deterministic sampling technique for feature selection in ridge regression with provable generalization guarantees; rare."
+    },
+    {
+      "method": "Leverage-score sampling",
+      "papers_using_it": [
+        "1506.05173v2"
+      ],
+      "notes": "Randomized feature selection method for ridge regression with risk bounds in fixed design setting; rare."
+    },
+    {
+      "method": "Sufficient Dimension Reduction (SDR)",
+      "papers_using_it": [
+        "2110.09620v1"
+      ],
+      "notes": "Tutorial covering inverse and forward regression methods such as SIR, SAVE, pHd, and KDR for high-dimensional regression; rare."
+    },
+    {
+      "method": "PCA-guided autoencoding",
+      "papers_using_it": [
+        "2508.07773v1"
+      ],
+      "notes": "Structured dimensionality reduction framework for active infrared thermography using PCA-distilled loss function; rare."
+    },
+    {
+      "method": "Semidefinite Programming for kernel learning and MVU",
+      "papers_using_it": [
+        "2106.15379v2"
+      ],
+      "notes": "Unified framework for spectral dimensionality reduction, kernel learning, and maximum variance unfolding via SDP; rare."
+    },
+    {
+      "method": "Gradient Boosted and Statistical Feature Selection Workflow",
+      "papers_using_it": [
+        "d5fcc45fc8662626d30d5ff173b9889c0f897fdf",
+        "2d09b2a87826535dbd18bd995acc56a637d45886"
+      ],
+      "notes": "Used for predicting material properties including band gaps and metallicity; leverages Bayesian optimization and recursive feature elimination; moderately common."
+    },
+    {
+      "method": "Boruta Algorithm",
+      "papers_using_it": [
+        "2521663"
+      ],
+      "notes": "A wrapper method using Random Forest to identify all relevant variables in feature selection tasks; rare."
+    },
+    {
+      "method": "Relative Importance Factor (RIF)",
+      "papers_using_it": [
+        "345357",
+        "345333"
+      ],
+      "notes": "Proposed for modular genetic algorithm-based classification to remove irrelevant features and reduce classification error; rare."
+    },
+    {
+      "method": "Local Feature Discriminant Projection (LFDP)",
+      "papers_using_it": [
+        "8700237"
+      ],
+      "notes": "Supervised subspace learning technique for dimensionality reduction of local features in image classification; rare."
+    },
+    {
+      "method": "Correlation Analysis and XGBoost",
+      "papers_using_it": [
+        "6f46f9cd1191d9e47f28aedc5c7eb03c6b393e22"
+      ],
+      "notes": "Applied for PM2.5 forecasting to select key environmental features using statistical methods; rare."
+    },
+    {
+      "method": "Statistical Feature Selection for Intrusion Detection",
+      "papers_using_it": [
+        "808f009e1fe014829c379ab6505bae4efa005d86"
+      ],
+      "notes": "Utilizes basic statistical techniques to reduce computational overhead and improve detection accuracy in IoT-based IDS; rare."
+    },
+    {
+      "method": "Hybrid Feature Selection Method",
+      "papers_using_it": [
+        "14190cae771f2cf4e1337e613179f4cfeaee4066"
+      ],
+      "notes": "Applied to pancreatic cancer prediction using health survey datasets to improve diagnostic accuracy; rare."
+    },
+    {
+      "method": "Mixed-norm penalty function",
+      "papers_using_it": [
+        "[192207786]"
+      ],
+      "notes": "Minimizes the 1-norm of the weight vector while keeping the 2-norm constant for dimensionality reduction and feature selection; rare."
+    },
+    {
+      "method": "Artificial Neural Networks (ANNs)",
+      "papers_using_it": [
+        "[192207786]"
+      ],
+      "notes": "Used alongside bi-level optimization to implement the mixed-norm penalty for reducing dimensionality and selecting features; rare."
+    },
+    {
+      "method": "Bi-level optimization (BLO)",
+      "papers_using_it": [
+        "[192207786]"
+      ],
+      "notes": "Technique combined with the mixed-norm penalty to enhance performance in both synthetic data and hyperspectral images; rare."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited discussion on the comparative effectiveness of different feature selection methods in specific domains such as cancer classification versus general pattern recognition",
+      "supporting_evidence": [
+        "1607.01327v8",
+        "2209.02746v1",
+        "5d21619629e6f63763d4a6b26ec959593effa9ee"
+      ],
+      "notes": "There is insufficient comparative analysis across domains."
+    },
+    {
+      "gap": "Lack of standardized benchmarks or comparisons among different dimensionality reduction techniques in gene expression data analysis",
+      "supporting_evidence": [
+        "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+        "9634bc4eb0dc97b1d3d7941720d28aab8aed2405"
+      ],
+      "notes": "No consistent evaluation framework exists."
+    },
+    {
+      "gap": "Limited availability of abstracts for some papers makes it difficult to assess their specific contributions and methodologies in detail",
+      "supporting_evidence": [
+        "77f6085fa5db79dcadb1b81875d0103420b282c7",
+        "08ad01586ceb5ecbcbe18c9b0c459e08b9d10f0f"
+      ],
+      "notes": "Abstracts are missing or incomplete."
+    },
+    {
+      "gap": "There is a lack of direct comparative analysis across multiple papers regarding the relative performance of different feature selection or clustering methods on the same datasets",
+      "supporting_evidence": [
+        "688f393b69ba398fccf9f497308e261a40b1756c",
+        "fff700b24dd1d816c07feb22e222e0a7b8ba686b",
+        "3f956d97bbf8be066e9609acccf868be2f648a0a",
+        "09181eb32feb76dd8e85b1815b440f4c26596a04",
+        "171050456"
+      ],
+      "notes": "Comparative studies are lacking."
+    },
+    {
+      "gap": "Most papers focus on improving classification or subtype separation but do not extensively discuss the biological interpretability or clinical applicability of the identified features or clusters",
+      "supporting_evidence": [
+        "688f393b69ba398fccf9f497308e261a40b1756c",
+        "fff700b24dd1d816c07feb22e222e0a7b8ba686b",
+        "3f956d97bbf8be066e9609acccf868be2f648a0a",
+        "09181eb32feb76dd8e85b1815b440f4c26596a04",
+        "171050456"
+      ],
+      "notes": "Clinical relevance is underexplored."
+    },
+    {
+      "gap": "The effectiveness of different feature selection algorithms in gene expression data remains an open question, with limited comparative studies across methods",
+      "supporting_evidence": [
+        "f84e31457efc688b2607aa78944efce958e26023"
+      ],
+      "notes": "No comprehensive comparison of methods."
+    },
+    {
+      "gap": "There is a lack of consensus on whether linear or nonlinear dimensionality reduction techniques are superior for gene expression data",
+      "supporting_evidence": [
+        "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2"
+      ],
+      "notes": "Contradictory findings exist."
+    },
+    {
+      "gap": "Most gene expression feature selection methods do not adequately address the issue of losing important information when features have only one highly correlated feature value",
+      "supporting_evidence": [
+        "4858de0d3c75fc098e13611073d81e97e2d50af0"
+      ],
+      "notes": "Information loss is a recurring concern."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively integrate semantic information in signal processing tasks beyond basic classification or enhancement",
+      "supporting_evidence": [
+        "2109.11885v1"
+      ],
+      "notes": "Semantic integration is underexplored."
+    },
+    {
+      "gap": "The effectiveness of hybrid model-based and data-driven approaches in speech enhancement remains underexplored in terms of practical implementation and comparative performance",
+      "supporting_evidence": [
+        "2501.07215v1"
+      ],
+      "notes": "Practical validation is lacking."
+    },
+    {
+      "gap": "Limited discussion on the applicability of nonlinear dimensionality reduction techniques in real-world scenarios beyond synthetic datasets",
+      "supporting_evidence": [
+        "1801.09390v2"
+      ],
+      "notes": "Real-world applicability is unclear."
+    },
+    {
+      "gap": "Lack of comparative studies between different tensor decomposition methods for feature extraction in high-dimensional data",
+      "supporting_evidence": [
+        "a93fc1bf56782703c9081ba36caabeed76bccc03"
+      ],
+      "notes": "Methodological comparisons are absent."
+    },
+    {
+      "gap": "Current feature selection methods struggle with generalization across different domains and perform poorly under high-dimensional spaces with small sample sizes",
+      "supporting_evidence": [
+        "2302.13221v4"
+      ],
+      "notes": "Generalizability is a major limitation."
+    },
+    {
+      "gap": "There is limited exploration of how feature selection methods handle multi-source data fusion effectively",
+      "supporting_evidence": [
+        "30b7c6797a91eff3c31ae8a99a8b43c7bafaaad8"
+      ],
+      "notes": "Multi-source fusion is underdeveloped."
+    },
+    {
+      "gap": "The applicability of traditional feature selection techniques in bioinformatics, such as identifying enhancers and promoters, remains underexplored despite advances in deep learning",
+      "supporting_evidence": [
+        "ac2ac075773cc936a206c3ebb2339376d586bcbd"
+      ],
+      "notes": "Bioinformatics applications are underexplored."
+    },
+    {
+      "gap": "The use of mutual information in text categorization has been shown to suffer from incorrect formulation leading to negative values, conflicting with standard information theory definitions",
+      "supporting_evidence": [
+        "333002206"
+      ],
+      "notes": "Theoretical inconsistency exists."
+    },
+    {
+      "gap": "There is limited discussion on how to handle missing data in feature selection methods, particularly in real-world applications involving complex sensor data",
+      "supporting_evidence": [
+        "6092518"
+      ],
+      "notes": "Missing data handling is underdeveloped."
+    },
+    {
+      "gap": "Limited exploration of how adaptive spatial support in sparse representation interacts with different types of hyperspectral data or environmental conditions",
+      "supporting_evidence": [
+        "124583",
+        "333707982"
+      ],
+      "notes": "Environmental adaptability is unexplored."
+    },
+    {
+      "gap": "There is a lack of comparative studies between deterministic and randomized feature selection methods in ridge regression beyond synthetic datasets",
+      "supporting_evidence": [
+        "1506.05173v2"
+      ],
+      "notes": "Comparative studies are limited."
+    },
+    {
+      "gap": "Limited comparison of feature selection methods across different domains such as materials science and healthcare",
+      "supporting_evidence": [
+        "d5fcc45fc8662626d30d5ff173b9889c0f897fdf",
+        "2d09b2a87826535dbd18bd995acc56a637d45886",
+        "14190cae771f2cf4e1337e613179f4cfeaee4066"
+      ],
+      "notes": "Cross-domain comparisons are missing."
+    },
+    {
+      "gap": "The effectiveness of statistical versus machine learning-based feature selection methods has not been systematically compared across multiple real-world applications",
+      "supporting_evidence": [
+        "d5fcc45fc8662626d30d5ff173b9889c0f897fdf",
+        "6f46f9cd1191d9e47f28aedc5c7eb03c6b393e22",
+        "808f009e1fe014829c379ab6505bae4efa005d86"
+      ],
+      "notes": "Systematic comparison is lacking."
+    },
+    {
+      "gap": "The paper focuses on the application of mixed-norm penalties in hyperspectral images but does not discuss potential limitations or comparisons with other modern deep learning approaches",
+      "supporting_evidence": [
+        "[192207786]"
+      ],
+      "notes": "Limitations and comparisons are missing."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Using nonlinear dimensionality reduction techniques such as t-SNE or Locally Linear Embedding (LLE) on gene expression data can preserve sufficient signal for accurate tissue-type classification when reducing the feature space to less than 10% of the original dimensions.",
+      "rationale": "The literature shows that nonlinear methods like t-SNE and LLE are commonly applied to gene expression data for visualization and classification purposes. However, there is a lack of standardized benchmarks comparing their effectiveness against linear methods in preserving classification signal at low-dimensional representations. This hypothesis directly addresses the gap regarding comparative effectiveness of different dimensionality reduction techniques in gene expression data analysis [d8c12bc535bae530cb95b3f39248ebb49a8d7d1a, 9634bc4eb0dc97b1d3d7941720d28aab8aed2405].",
+      "related_gaps": [
+        "Lack of standardized benchmarks or comparisons among different dimensionality reduction techniques in gene expression data analysis"
+      ],
+      "related_methods": [
+        "t-distributed Stochastic Neighbor Embedding (t-SNE)",
+        "Locally Linear Embedding (LLE)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "dimensionality_reduction_method",
+          "reduction_ratio"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "A hybrid feature selection approach combining statistical filtering (e.g., Mutual Information) with machine learning-based optimization (e.g., Continuous Embedding Space Optimization) will achieve higher tissue-type classification accuracy than using either method alone when applied to high-dimensional gene expression data.",
+      "rationale": "Cross-disciplinary insights suggest that feature selection methods from machine learning theory that optimize continuous embedding spaces can be adapted to gene expression data. The current literature lacks comparative studies between different feature selection methods, particularly hybrid approaches that combine statistical and machine learning techniques. This hypothesis builds on the gap concerning the lack of comparative analysis across multiple papers regarding relative performance of different feature selection methods [1607.01327v8, 2209.02746v1, 5d21619629e6f63763d4a6b26ec959593effa9ee].",
+      "related_gaps": [
+        "Limited discussion on the comparative effectiveness of different feature selection methods in specific domains such as cancer classification versus general pattern recognition",
+        "There is a lack of direct comparative analysis across multiple papers regarding the relative performance of different feature selection or clustering methods on the same datasets"
+      ],
+      "related_methods": [
+        "Mutual Information",
+        "Continuous Embedding Space Optimization for Feature Selection"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "feature_selection_approach"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Folded-PCA variants, originally developed for hyperspectral imaging, can reduce computational costs and memory requirements for gene expression data classification while maintaining classification accuracy comparable to standard PCA when applied to datasets with more than 1000 features.",
+      "rationale": "Bridge insights indicate that Folded-PCA techniques developed for hyperspectral imaging can efficiently handle large dimensional datasets by folding spectral vectors into matrices, thereby reducing computational costs and memory requirements without sacrificing classification accuracy. This hypothesis leverages this cross-disciplinary finding to test its applicability to gene expression data, addressing the gap in computational efficiency for high-dimensional gene expression analysis [340428709, 124587].",
+      "related_gaps": [
+        "Limited discussion on how to effectively integrate semantic information in signal processing tasks beyond basic classification or enhancement"
+      ],
+      "related_methods": [
+        "Folded-PCA"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "data_dimensionality",
+          "computational_cost"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it can be tested using real gene expression data if available, though none of the provided datasets match this domain exactly. However, it is testable because it makes a specific claim about classification accuracy using t-SNE and LLE on reduced dimensions, which can be evaluated empirically. It is coherent since it contrasts specific nonlinear methods against each other in a clear system (gene expression data classification). The hypothesis is grounded in the literature gap around benchmarking nonlinear methods, and the bridge insight from signal processing supports its validity. Although no gene expression dataset is listed, the hypothesis aligns with the core research question and can be validated with appropriate data."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 is moderately feasible but relies heavily on a cross-disciplinary bridge insight from signal processing (Folded-PCA from hyperspectral imaging) applied to gene expression data. While theoretically sound, it may not be easily testable due to the lack of direct gene expression datasets in the provided list. Its testability is somewhat limited because Folded-PCA's applicability to gene expression data is speculative without empirical validation. It is internally consistent and grounded in the bridge insight, but lacks concrete data support from the listed datasets."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 is least feasible because it proposes a hybrid feature selection approach combining statistical and machine learning methods, but there is no real-world dataset listed that matches the context of gene expression data or supports testing such a hybrid method. It is also less testable because the claim is vague and does not specify how the combination would be implemented or measured. While it is internally coherent and grounded in the literature gaps, it fails to connect to any of the real datasets provided, making it hard to validate empirically."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1607.01327v8",
+    "2209.02746v1",
+    "2502.13080v2",
+    "5d21619629e6f63763d4a6b26ec959593effa9ee",
+    "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+    "9634bc4eb0dc97b1d3d7941720d28aab8aed2405",
+    "688f393b69ba398fccf9f497308e261a40b1756c",
+    "77f6085fa5db79dcadb1b81875d0103420b282c7",
+    "fff700b24dd1d816c07feb22e222e0a7b8ba686b",
+    "08ad01586ceb5ecbcbe18c9b0c459e08b9d10f0f",
+    "3f956d97bbf8be066e9609acccf868be2f648a0a",
+    "09181eb32feb76dd8e85b1815b440f4c26596a04",
+    "171050456",
+    "42730331",
+    "346989154",
+    "106138546f8267f421afe9130023c99c6ccc857e",
+    "fbe9e4597bd5a34a3741ba9988cea1991e500926",
+    "749f861164860e12c8f3b5a5a719e68202599db5",
+    "2d99e2aa27a02a6cb5591071a9d9dfc8dc52b5a7",
+    "7e8765917a4087a640c48f755ae82deb4b782b95",
+    "3ba5aeb67347cb151d558b2660c894f4e3b92050",
+    "89398ecb2e4e566e2dbaf84e8d603dbc1e2b0e85",
+    "6c241a9e258e66ed81b702539922cbdf285d0821",
+    "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2",
+    "568ef092ed79e075444602400731a498402e1c07",
+    "2c4ff76c2ba227fd4991eda5fb0ab5e45585608b",
+    "f84e31457efc688b2607aa78944efce958e26023",
+    "fb2ae12b4558862848f2502db56743694592a2b5",
+    "e3bff8864c852befe09245de9d435abc0bd10340",
+    "84dfc21110abe45ad4fd43f38bc491cb1673739b",
+    "09581d2db78129b88b13f2b94560f8a9e904854b",
+    "27a483ba673f9468c7002ecf9f8c7e4b39587b96",
+    "0b345452b2ce92b35175fe1efd016046c7aacde4",
+    "8d320d9b8d9428bacaed9ae7ae7f5f9fe054ae78",
+    "a2527244d4c6967f8cb935f02baba0c848102e8b",
+    "b657afda7bf3c25f98d97161ac0715f7c4cc2e83",
+    "4858de0d3c75fc098e13611073d81e97e2d50af0",
+    "8407e02edbb92ade963e3150cb1886135c95966e",
+    "a7c1642509397ccebaa98bf5ec67b8b6ba219cc8",
+    "05d96498be887fd8896c6e607a233ff9025a336a",
+    "f0a3e1752e1146da927adc24ae07144ab2e744ec",
+    "29bae9472203546847ec1352a604566d0f602728",
+    "3537fcd0ff99a3b3cb3d279012df826358420556",
+    "3af045503abf81705fc1833aadf5db93a9be854c",
+    "41c6f229c4b149d502f89ffc386febb24116bd25",
+    "1b37279dce5ca9606cbf62a1daf2cbc4dfecc339",
+    "ba969a4f3bc5f5a84f6025478e566c40661d85f3",
+    "2501.07215v1",
+    "2109.11885v1",
+    "1905.00690v2",
+    "1801.09390v2",
+    "219485e0c3b950fb31ede2d7c23c5bc4beacb964",
+    "633984abbe9e0358136c18af550975d9604d6366",
+    "34a6a6d96fc891793afbe7577352939816dc3154",
+    "a93fc1bf56782703c9081ba36caabeed76bccc03",
+    "5496201",
+    "66391146",
+    "296074182",
+    "4463728",
+    "340428709",
+    "124587",
+    "124856",
+    "2302.13221v4",
+    "1804.05589v1",
+    "ac2ac075773cc936a206c3ebb2339376d586bcbd",
+    "30b7c6797a91eff3c31ae8a99a8b43c7bafaaad8",
+    "894967541ba49c416e81b426770d612cb1d4d135",
+    "387f3072e92a46ae5d5cc39b595f56d019ca7e97",
+    "6b7cd2288c6c31e49a60e5c1bd4475425bf904c6",
+    "56a9982fb6dd4164b70ae5245db28b9183c62892",
+    "2f7bebea5541c290bf6a4cb643bb13a0b6383ba6",
+    "e7d711915071db9992eade9acdc9b66d7a54d238",
+    "dda08f85479e8d17313b253d0ca377737dfa9c65",
+    "d4050f586fbb5461afe86e5074e157cc2ce644a4",
+    "8983314",
+    "6092518",
+    "333002206",
+    "332650274",
+    "124583",
+    "333707982",
+    "231733",
+    "1506.05173v2",
+    "2110.09620v1",
+    "2508.07773v1",
+    "2106.15379v2",
+    "d5fcc45fc8662626d30d5ff173b9889c0f897fdf",
+    "2d09b2a87826535dbd18bd995acc56a637d45886",
+    "808f009e1fe014829c379ab6505bae4efa005d86",
+    "6f46f9cd1191d9e47f28aedc5c7eb03c6b393e22",
+    "14190cae771f2cf4e1337e613179f4cfeaee4066",
+    "2521663",
+    "345357",
+    "345333",
+    "8700237",
+    "192207786"
+  ],
+  "generated_at": "2026-09-15T10:05:46.644368+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

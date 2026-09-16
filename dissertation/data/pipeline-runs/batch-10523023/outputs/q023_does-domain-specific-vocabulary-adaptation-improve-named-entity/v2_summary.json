@@ -1,0 +1,49 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v2.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "2bb92e8c07958f2f936456f8103d70dedc2a8175",
+    "976f537d1b84de682351fba6f2600272acf825ae",
+    "2423905453ea1bbae03727fd81890007cccedd43",
+    "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+    "623f6d9184e470def8fcf13806cf9c40c1f5f0e3",
+    "2310.05276v1",
+    "82bf6de32ec47745ac6866246de6798808d91c80",
+    "02eb3ff713ac33eb0fb43d32ca5bce2663c95943",
+    "03aa38229a6c853d96430edfc8f1542598f2116e",
+    "2112.10474v1",
+    "2311.08890v1",
+    "6e7830b0a04e483901bdaaf321c4f13f45977618",
+    "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+    "d7acf190030b1cdf001a456277698a9cf76a31e9",
+    "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+    "875612e795d76e37ddc6c2cb45680f80197a41e7",
+    "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+    "74f6823b44ff0072f0170fe6cbfb0ee560220c7f",
+    "ba1aa518fd69d34da6a0eb23251a275681bba9c6",
+    "2104.10376v1",
+    "2308.13515v5"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T19:30:50.827313+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

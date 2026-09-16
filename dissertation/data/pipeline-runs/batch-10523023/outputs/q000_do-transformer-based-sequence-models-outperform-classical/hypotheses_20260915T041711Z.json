@@ -1,0 +1,835 @@
+{
+  "literature_summary": "The literature demonstrates that transformer-based models have shown promise in financial time-series forecasting, particularly in capturing long-range dependencies and complex temporal dynamics, often outperforming classical ARIMA models in various domains. However, their superiority is not universal, as some studies report mixed or inferior performance, especially in domains with linear structures or when data is limited. A significant body of work emphasizes the importance of accounting for transaction costs in portfolio optimization and trading strategies, revealing that even superior forecasting models can become unprofitable if transaction costs are not properly considered. Hybrid models combining traditional econometric approaches (like GARCH) with deep learning techniques are frequently explored to leverage the strengths of both paradigms. Additionally, there is growing interest in incorporating external data sources such as sentiment analysis and multi-modal inputs to improve forecasting accuracy. Despite these advances, several methodological gaps persist, including a lack of standardized benchmarks, insufficient validation under realistic transaction cost frameworks, and limited understanding of how models generalize across different financial contexts.",
+  "methods_overview": [
+    {
+      "method": "Transformer architectures (Vanilla, PatchTST-lite, Informer)",
+      "papers_using_it": [
+        "0f786e0efd15f1f1f37add99afeee9f5c173f053",
+        "4d03f546d2d10e4ec615f668ea61ed241050fd37",
+        "12b1c2711a3b2b416641ae033b8d4cb15ef1be30",
+        "9704d64d0bf1a7747d4fdc051ea8aa7e41aec748",
+        "683d3e182a30a18fc6a81c313ffe779baad89bb7",
+        "1da2b3006dd2dcea79f091453948def3161d523f",
+        "e4e0ea0e3fab803f7c0d147bdeb41f9e3742e95b",
+        "d0c3aa85673a9ce7dea953a65f3a7a49b02e9c8a",
+        "822f05e80f053ad328ad3c8eff5db099de82589e",
+        "49d2e73dc0c9ac048539f216dc74fdf057489afc",
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c",
+        "7f527775d033a82a28d761978bbc6e152a177a02",
+        "3781615fde32c2490eb19c80d53f0cd78fe68a88",
+        "a91e8566c043f582c593396a88ea492d35174444",
+        "f4db983fdbb00027201989b8080d6344b940b1fa",
+        "75e924bd79d27a23f3f93d9b1ab62a779505c8d2"
+      ],
+      "notes": "Commonly used across multiple studies for financial forecasting, often compared with ARIMA and hybrid models."
+    },
+    {
+      "method": "ARIMA models",
+      "papers_using_it": [
+        "e92870463e3dd1c9ade7f24de02fc3e8c73bc46f",
+        "d0c3aa85673a9ce7dea953a65f3a7a49b02e9c8a",
+        "822f05e80f053ad328ad3c8eff5db099de82589e",
+        "49d2e73dc0c9ac048539f216dc74fdf057489afc",
+        "1d22bdc749ec3856faec91e5f73a77707b5466f4",
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c",
+        "3781615fde32c2490eb19c80d53f0cd78fe68a88",
+        "7f527775d033a82a28d761978bbc6e152a177a02",
+        "5c882802a1dacc61190300432193953bec22054e"
+      ],
+      "notes": "Common baseline model used for comparison in most forecasting studies."
+    },
+    {
+      "method": "Random Forest Regressor (RFR)",
+      "papers_using_it": [
+        "6505df53986c2373ecb322c31b80a646ec430eb7"
+      ],
+      "notes": "Rarely used, primarily in specific applications like delta-neutral hedging strategies."
+    },
+    {
+      "method": "BERT and sentiment analysis",
+      "papers_using_it": [
+        "21ef2000c6ddf511f07fe3a67c04dcc4b054af55"
+      ],
+      "notes": "Rarely used, integrated with transformers for incorporating textual sentiment."
+    },
+    {
+      "method": "Deep Reinforcement Learning (DRL) with DQN",
+      "papers_using_it": [
+        "4d03f546d2d10e4ec615f668ea61ed241050fd37"
+      ],
+      "notes": "Rarely used, applied for adaptive fusion of prediction models."
+    },
+    {
+      "method": "Hierarchical temporal models (Chronos)",
+      "papers_using_it": [
+        "a89d80d2159a2eb814d4223db4d0d180d8c7ef27"
+      ],
+      "notes": "Rarely used, evaluated for gold price forecasting."
+    },
+    {
+      "method": "Large Language Models (LLMs)",
+      "papers_using_it": [
+        "f3f6baef5ca75d085f3a922f11595917fbb9f5cf"
+      ],
+      "notes": "Rarely used, integrated with numerical and price-volume factors."
+    },
+    {
+      "method": "Wavelet-ARIMA",
+      "papers_using_it": [
+        "7470825"
+      ],
+      "notes": "Rarely used, combines wavelet multiresolution analysis with ARIMA."
+    },
+    {
+      "method": "Functional Data Analysis",
+      "papers_using_it": [
+        "333761777"
+      ],
+      "notes": "Rarely used, applied to model intra-daily volatility."
+    },
+    {
+      "method": "GARCH and Stochastic Volatility Models",
+      "papers_using_it": [
+        "2916867"
+      ],
+      "notes": "Rarely used, surveyed for volatility forecasting."
+    },
+    {
+      "method": "Transaction Cost Analysis",
+      "papers_using_it": [
+        "2604401",
+        "278749",
+        "6b878dca93812fd4207d246ad924522186b458c2",
+        "c75ea1a8f86ec08b01c74c709ca55e9c5f36762c",
+        "c651f0899250076c597c973e19770538a4382f94",
+        "74f35206913774271ac426df6372d3acc67e63ad",
+        "5162147965fdd47bbbd60ca7a5d38b7f74f7a8e5",
+        "0aaa77bf65035fb794db3d5d3b1ae0bf6aa6d0ea",
+        "d536903c1aad0edfd75d6e1dda8193eecd69a7a5"
+      ],
+      "notes": "Commonly used in portfolio optimization and trading strategy evaluations."
+    },
+    {
+      "method": "Ensemble learning",
+      "papers_using_it": [
+        "822f05e80f053ad328ad3c8eff5db099de82589e"
+      ],
+      "notes": "Rarely used, combines multiple models for improved forecasting."
+    },
+    {
+      "method": "Adaptive risk metrics",
+      "papers_using_it": [
+        "e4e0ea0e3fab803f7c0d147bdeb41f9e3742e95b"
+      ],
+      "notes": "Rarely used, integrated into Transformer models for robustness."
+    },
+    {
+      "method": "LSTM",
+      "papers_using_it": [
+        "863f0820b3402a1d12b23c3b9ceb85190b191866",
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c",
+        "3781615fde32c2490eb19c80d53f0cd78fe68a88",
+        "6d68593cf6946274906246fe5f04c58e7287e6db"
+      ],
+      "notes": "Commonly used alongside ARIMA and Transformers in hybrid models."
+    },
+    {
+      "method": "Galformer",
+      "papers_using_it": [
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c"
+      ],
+      "notes": "Rarely used, a novel Transformer variant with generative decoding."
+    },
+    {
+      "method": "Hybrid Loss Function",
+      "papers_using_it": [
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c"
+      ],
+      "notes": "Rarely used, applied with Transformers to improve accuracy."
+    },
+    {
+      "method": "Swarm Optimization",
+      "papers_using_it": [
+        "158b6018c421411ca8c2f3d587e5a241f078cc92"
+      ],
+      "notes": "Rarely used, applied to enhance deep learning models."
+    },
+    {
+      "method": "Implementation Shortfall (IS) as a measure for transaction costs",
+      "papers_using_it": [
+        "6b878dca93812fd4207d246ad924522186b458c2"
+      ],
+      "notes": "Rarely used, quantifies transaction costs and estimates variance/covariance."
+    },
+    {
+      "method": "AR(1)-DCC(1,1)-GARCH(1,1) model for estimating transaction cost variance-covariance",
+      "papers_using_it": [
+        "6b878dca93812fd4207d246ad924522186b458c2"
+      ],
+      "notes": "Rarely used, applied to return data for modeling dynamic correlations."
+    },
+    {
+      "method": "Multivariate simulation study with proprietary trading data",
+      "papers_using_it": [
+        "6b878dca93812fd4207d246ad924522186b458c2"
+      ],
+      "notes": "Rarely used, evaluates portfolio performance under different cost modeling approaches."
+    },
+    {
+      "method": "Machine learning models for Bitcoin transaction fee forecasting",
+      "papers_using_it": [
+        "c75ea1a8f86ec08b01c74c709ca55e9c5f36762c"
+      ],
+      "notes": "Rarely used, includes TFT, LSTM, etc., for Bitcoin fee prediction."
+    },
+    {
+      "method": "Rolling-window estimation for transaction cost modeling",
+      "papers_using_it": [
+        "6b878dca93812fd4207d246ad924522186b458c2"
+      ],
+      "notes": "Rarely used, estimates transaction cost parameters with rolling windows."
+    },
+    {
+      "method": "Sharpe ratio adjustment for transaction costs",
+      "papers_using_it": [
+        "c651f0899250076c597c973e19770538a4382f94"
+      ],
+      "notes": "Rarely used, quantifies performance degradation due to transaction costs."
+    },
+    {
+      "method": "turnover analysis",
+      "papers_using_it": [
+        "c651f0899250076c597c973e19770538a4382f94"
+      ],
+      "notes": "Rarely used, analyzes daily position changes and turnover."
+    },
+    {
+      "method": "numerical pricing under transaction costs",
+      "papers_using_it": [
+        "0aaa77bf65035fb794db3d5d3b1ae0bf6aa6d0ea"
+      ],
+      "notes": "Rarely used, solves nonlinear Barles-Soner model for option pricing."
+    },
+    {
+      "method": "walk-forward optimization and out-of-sample testing",
+      "papers_using_it": [
+        "d536903c1aad0edfd75d6e1dda8193eecd69a7a5"
+      ],
+      "notes": "Rarely used, evaluates strategy robustness under varying cost scenarios."
+    },
+    {
+      "method": "attention mechanisms in neural networks",
+      "papers_using_it": [
+        "204e3073870fae3d05bcbc2f6a8e263d9b72e776"
+      ],
+      "notes": "Rarely used, introduced the Transformer architecture based on self-attention."
+    },
+    {
+      "method": "Dynamic Price Prediction Model with Transaction Costs",
+      "papers_using_it": [
+        "796688eec5ee8e31391178bc87b8a75ea0d11449"
+      ],
+      "notes": "Rarely used, applies Elastic Net regularization for portfolio optimization."
+    },
+    {
+      "method": "2-Step Covariance Matrix Method",
+      "papers_using_it": [
+        "fb0c870be97c3e937793623af9716b1c92745bd5"
+      ],
+      "notes": "Rarely used, improves risk-return indicators in fund portfolio optimization."
+    },
+    {
+      "method": "Reinforcement Learning Framework",
+      "papers_using_it": [
+        "b15eafaed105f1d4831fd89831eda48ef029cc1c"
+      ],
+      "notes": "Rarely used, for continuous-time mean-variance portfolio selection."
+    },
+    {
+      "method": "Min-Max Portfolio Optimization with Robust Entropic Value-at-Risk",
+      "papers_using_it": [
+        "fa3e1e6d8d3e08b255b939792ee58e2027086d64"
+      ],
+      "notes": "Rarely used, incorporates transaction costs and discrete distributions."
+    },
+    {
+      "method": "Stochastic LQ Framework",
+      "papers_using_it": [
+        "bec3d9335aa81eac0fb660e5f00254cfc21c0ded"
+      ],
+      "notes": "Rarely used, for continuous-time mean-variance portfolio selection."
+    },
+    {
+      "method": "Quadratic Transaction Costs",
+      "papers_using_it": [
+        "2001.01612v1"
+      ],
+      "notes": "Rarely used, introduces complexity in mean-variance optimization."
+    },
+    {
+      "method": "Growth-Optimal Portfolios under Transaction Costs",
+      "papers_using_it": [
+        "0707.3198v1"
+      ],
+      "notes": "Rarely used, studies discrete-time Markovian models with transaction costs."
+    },
+    {
+      "method": "Continuous-Time Reinforcement Learning",
+      "papers_using_it": [
+        "48798b696074d4c2b58a9f6b83720884ec934041"
+      ],
+      "notes": "Rarely used, learns pre-committed investment strategies."
+    },
+    {
+      "method": "Decision-Focused Learning",
+      "papers_using_it": [
+        "3a785110aa64e5236c18461be0b592c785ed0760"
+      ],
+      "notes": "Rarely used, integrates prediction and optimization for portfolio decisions."
+    },
+    {
+      "method": "Distributionally Robust Optimization with Wasserstein Distance",
+      "papers_using_it": [
+        "883bff914fc6d3152a48a93a76199f62f12f6d9d"
+      ],
+      "notes": "Rarely used, addresses uncertainty in asset return distributions."
+    },
+    {
+      "method": "Multivariate Utility Maximization with Transaction Costs",
+      "papers_using_it": [
+        "2472008"
+      ],
+      "notes": "Rarely used, optimizes portfolios under random transaction costs."
+    },
+    {
+      "method": "Endogenous Transaction Costs",
+      "papers_using_it": [
+        "2560156"
+      ],
+      "notes": "Rarely used, models transaction costs as emerging from agent behavior."
+    },
+    {
+      "method": "Linear Modeling of Transaction Costs",
+      "papers_using_it": [
+        "127676253"
+      ],
+      "notes": "Rarely used, expresses transaction costs in linear forms."
+    },
+    {
+      "method": "Polynomial Optimization Approach",
+      "papers_using_it": [
+        "2542648"
+      ],
+      "notes": "Rarely used, formulates portfolio selection as polynomial optimization."
+    },
+    {
+      "method": "Monotone Mean-Variance Preferences",
+      "papers_using_it": [
+        "2601268"
+      ],
+      "notes": "Rarely used, proposes modified preference structure avoiding non-monotonicity."
+    },
+    {
+      "method": "Target-Based Optimization in DC Pension Schemes",
+      "papers_using_it": [
+        "2601391"
+      ],
+      "notes": "Rarely used, transforms mean-variance optimization into target-based loss minimization."
+    },
+    {
+      "method": "mean-variance efficiency",
+      "papers_using_it": [
+        "2600866"
+      ],
+      "notes": "Rarely used, evaluates inefficiency of utility functions in portfolio selection."
+    },
+    {
+      "method": "shortage function",
+      "papers_using_it": [
+        "2454464",
+        "2455122"
+      ],
+      "notes": "Rarely used, characterizes mean-variance-skewness optimal portfolios."
+    },
+    {
+      "method": "deep learning model comparison",
+      "papers_using_it": [
+        "78cfcaad2f55dd5b413b546d0b55ba778aae7996",
+        "76bf21764e39c9bc6e0b847d3611eadd121b33be"
+      ],
+      "notes": "Rarely used, assesses performance of CNN and transformers on image/classification tasks."
+    },
+    {
+      "method": "clustering technique",
+      "papers_using_it": [
+        "2522724"
+      ],
+      "notes": "Rarely used, groups similar time series for forecasting efficiency."
+    },
+    {
+      "method": "temporal aggregation",
+      "papers_using_it": [
+        "6832768"
+      ],
+      "notes": "Rarely used, improves forecasting accuracy by combining components across frequencies."
+    },
+    {
+      "method": "exponential smoothing",
+      "papers_using_it": [
+        "2522806",
+        "2522244"
+      ],
+      "notes": "Rarely used, forecasts complex seasonal patterns and automatic time series forecasting."
+    },
+    {
+      "method": "Temporal Graph Deep Generative Model (TG-DGM)",
+      "papers_using_it": [
+        "377403799"
+      ],
+      "notes": "Rarely used, clusters brain activity using spatiotemporal fMRI data."
+    },
+    {
+      "method": "Quantum Reservoir Computing",
+      "papers_using_it": [
+        "44302b98b29745b2282688718929106d5e83e78d"
+      ],
+      "notes": "Rarely used, applied to realized volatility forecasting."
+    },
+    {
+      "method": "Kolmogorov–Arnold Network (KAN) combined with GARCH-MIDAS",
+      "papers_using_it": [
+        "e979d7b96fe4d3782caef43de0f8286380afbd8b"
+      ],
+      "notes": "Rarely used, extracts nonlinear macroeconomic features in volatility forecasting."
+    },
+    {
+      "method": "Gated Recurrent Unit (GRU)",
+      "papers_using_it": [
+        "6d68593cf6946274906246fe5f04c58e7287e6db"
+      ],
+      "notes": "Rarely used, applied for volatility forecasting and compared with GARCH."
+    },
+    {
+      "method": "News Sentiment Analysis",
+      "papers_using_it": [
+        "a91e8566c043f582c593396a88ea492d35174444"
+      ],
+      "notes": "Rarely used, incorporates macroeconomic and firm-specific news sentiment."
+    },
+    {
+      "method": "Hybrid GARCH-BiLSTM",
+      "papers_using_it": [
+        "f4db983fdbb00027201989b8080d6344b940b1fa"
+      ],
+      "notes": "Rarely used, combines econometric GARCH with deep learning BiLSTM."
+    },
+    {
+      "method": "TFB Benchmarking Framework",
+      "papers_using_it": [
+        "e3142ff658b29bb6120d0dc6588d86aa1d326273"
+      ],
+      "notes": "Rarely used, automated benchmarking tool for forecasting methods."
+    },
+    {
+      "method": "ARIMA and Fourier Expansion Models",
+      "papers_using_it": [
+        "5c882802a1dacc61190300432193953bec22054e"
+      ],
+      "notes": "Rarely used, traditional statistical models applied to stationary stock quote data."
+    },
+    {
+      "method": "Graph Neural Networks (GNNs)",
+      "papers_using_it": [
+        "75e924bd79d27a23f3f93d9b1ab62a779505c8d2"
+      ],
+      "notes": "Rarely used, for multivariate time series forecasting with automatic relation extraction."
+    },
+    {
+      "method": "Neural Networks",
+      "papers_using_it": [
+        "2858904"
+      ],
+      "notes": "Rarely used, applied for forecasting realized volatility."
+    },
+    {
+      "method": "State Space Models",
+      "papers_using_it": [
+        "2521650"
+      ],
+      "notes": "Rarely used, for forecasting time series with multiple seasonal patterns."
+    },
+    {
+      "method": "Bagging",
+      "papers_using_it": [
+        "2858904"
+      ],
+      "notes": "Rarely used, model specification technique with neural networks."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of direct comparative studies between transformer-based models and traditional econometric models in certain domains like seismic forecasting",
+      "supporting_evidence": [
+        "e92870463e3dd1c9ade7f24de02fc3e8c73bc46f"
+      ],
+      "notes": "Indicates a gap in cross-domain validation of model performance."
+    },
+    {
+      "gap": "Limited empirical validation of LLM-based models in high-frequency or real-time financial forecasting settings",
+      "supporting_evidence": [
+        "f3f6baef5ca75d085f3a922f11595917fbb9f5cf"
+      ],
+      "notes": "Points to a gap in applying LLMs to fast-moving financial environments."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing transformer-based models in financial forecasting",
+      "supporting_evidence": [
+        "147664191"
+      ],
+      "notes": "Highlights inconsistency in evaluation criteria across studies."
+    },
+    {
+      "gap": "Insufficient exploration of how transaction costs affect long-term portfolio performance in emerging markets",
+      "supporting_evidence": [
+        "278749"
+      ],
+      "notes": "Suggests a need for more localized studies on transaction cost impacts."
+    },
+    {
+      "gap": "Contradictory findings regarding the effectiveness of commodity transaction taxes on market volatility and liquidity",
+      "supporting_evidence": [
+        "2604401"
+      ],
+      "notes": "Shows inconsistency in policy outcomes across different market types."
+    },
+    {
+      "gap": "Limited discussion on the applicability of Transformers in highly volatile or non-stationary financial environments",
+      "supporting_evidence": [
+        "1da2b3006dd2dcea79f091453948def3161d523f"
+      ],
+      "notes": "Points to a gap in understanding model robustness under extreme conditions."
+    },
+    {
+      "gap": "There is limited discussion on how well these models generalize beyond specific financial domains or datasets",
+      "supporting_evidence": [
+        "158b6018c421411ca8c2f3d587e5a241f078cc92",
+        "3781615fde32c2490eb19c80d53f0cd78fe68a88"
+      ],
+      "notes": "Indicates a lack of broad validation of model capabilities."
+    },
+    {
+      "gap": "Some studies suggest that hybrid loss functions or attention mechanisms may improve Transformer performance but lack broader validation",
+      "supporting_evidence": [
+        "1b5caed8c242de0670a0021f4e1aa33dec26ad0c"
+      ],
+      "notes": "Highlights a need for more comprehensive testing of enhancements."
+    },
+    {
+      "gap": "Limited empirical work on modeling the covariance matrix of transaction costs in portfolio optimization literature",
+      "supporting_evidence": [
+        "6b878dca93812fd4207d246ad924522186b458c2"
+      ],
+      "notes": "Points to a gap in sophisticated transaction cost modeling."
+    },
+    {
+      "gap": "Transaction costs and price impact are often modeled separately, but their interaction in dynamic portfolio optimization remains underexplored",
+      "supporting_evidence": [
+        "5162147965fdd47bbbd60ca7a5d38b7f74f7a8e5"
+      ],
+      "notes": "Identifies a conceptual gap in integrated modeling approaches."
+    },
+    {
+      "gap": "The sensitivity of option pricing to transaction costs and volatility highlights the need for precise calibration of these parameters in financial models",
+      "supporting_evidence": [
+        "0aaa77bf65035fb794db3d5d3b1ae0bf6aa6d0ea"
+      ],
+      "notes": "Emphasizes the need for careful parameter tuning in complex models."
+    },
+    {
+      "gap": "The impact of transaction costs on portfolio optimization is often underestimated in classical models",
+      "supporting_evidence": [
+        "fb0c870be97c3e937793623af9716b1c92745bd5"
+      ],
+      "notes": "Points to a recurring oversight in traditional financial modeling."
+    },
+    {
+      "gap": "Most existing literature does not adequately address the interaction between transaction costs and robust optimization under uncertainty",
+      "supporting_evidence": [
+        "fa3e1e6d8d3e08b255b939792ee58e2027086d64"
+      ],
+      "notes": "Highlights a gap in robust optimization frameworks."
+    },
+    {
+      "gap": "The use of autoregressive conditional heteroscedasticity models in portfolio optimization remains underexplored despite early work",
+      "supporting_evidence": [
+        "2ee6cb87fc81ecd78d161c4a92c9dfce00c8961c",
+        "f6333c57973e98972c03d8a1f9d99c9c3ae0aa64"
+      ],
+      "notes": "Indicates a missed opportunity for further development in GARCH applications."
+    },
+    {
+      "gap": "The effectiveness of decision-focused learning in improving portfolio performance despite higher prediction errors remains underexplored in terms of underlying mechanisms",
+      "supporting_evidence": [
+        "3a785110aa64e5236c18461be0b592c785ed0760"
+      ],
+      "notes": "Points to a gap in understanding why certain learning methods work."
+    },
+    {
+      "gap": "There is limited discussion on how endogenously determined transaction costs interact with portfolio optimization in dynamic settings",
+      "supporting_evidence": [
+        "2560156"
+      ],
+      "notes": "Identifies a gap in modeling dynamic cost behaviors."
+    },
+    {
+      "gap": "The relationship between mean-variance inefficiency and utility maximization in long-term pension contexts has been studied, but empirical validation across diverse utility families is needed",
+      "supporting_evidence": [
+        "2601391"
+      ],
+      "notes": "Highlights a need for broader empirical testing of utility models."
+    },
+    {
+      "gap": "No clear consensus on whether deep learning or econometric models are superior for volatility forecasting",
+      "supporting_evidence": [
+        "6d68593cf6946274906246fe5f04c58e7287e6db",
+        "e979d7b96fe4d3782caef43de0f8286380afbd8b"
+      ],
+      "notes": "Reflects ongoing debate in the field about model superiority."
+    },
+    {
+      "gap": "Most studies focus on specific markets or datasets, limiting generalizability of findings",
+      "supporting_evidence": [
+        "e979d7b96fe4d3782caef43de0f8286380afbd8b",
+        "6d68593cf6946274906246fe5f04c58e7287e6db",
+        "a91e8566c043f582c593396a88ea492d35174444"
+      ],
+      "notes": "Points to a lack of cross-market validation."
+    },
+    {
+      "gap": "Lack of unified benchmarks that fairly evaluate both traditional and modern forecasting methods",
+      "supporting_evidence": [
+        "e3142ff658b29bb6120d0dc6588d86aa1d326273",
+        "f83e2727ede8363db45db9f7ce62b73c229f2b88"
+      ],
+      "notes": "Indicates a need for fairer and more consistent evaluation standards."
+    },
+    {
+      "gap": "Insufficient attention to the integration of heterogeneous data types in forecasting models",
+      "supporting_evidence": [
+        "f83e2727ede8363db45db9f7ce62b73c229f2b88"
+      ],
+      "notes": "Highlights a gap in multimodal forecasting approaches."
+    },
+    {
+      "gap": "Existing methods for multivariate time series forecasting fail to fully exploit latent spatial dependencies between variables",
+      "supporting_evidence": [
+        "75e924bd79d27a23f3f93d9b1ab62a779505c8d2"
+      ],
+      "notes": "Points to a limitation in current GNN-based approaches."
+    },
+    {
+      "gap": "The effectiveness of GNNs in multivariate time series forecasting depends on the availability of prior knowledge about variable dependencies",
+      "supporting_evidence": [
+        "75e924bd79d27a23f3f93d9b1ab62a779505c8d2"
+      ],
+      "notes": "Indicates a dependency on domain expertise for GNN success."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Transformer-based sequence models (specifically PatchTST-lite and Informer) will outperform ARIMA models in forecasting daily volatility of equity index returns when transaction costs are explicitly incorporated into the performance metric using a Sharpe ratio adjusted for turnover and proportional transaction costs.",
+      "rationale": "This hypothesis directly addresses the core research question by comparing transformer models against ARIMA baselines while accounting for transaction costs—a gap identified in the literature. The inclusion of transaction costs through a Sharpe ratio adjustment aligns with existing work on transaction cost modeling in portfolio optimization (e.g., [c651f0899250076c597c973e19770538a4382f94]). It leverages the widespread use of these models in financial forecasting and aims to test their practical utility in a cost-aware context.",
+      "related_gaps": [
+        "Limited empirical validation of LLM-based models in high-frequency or real-time financial forecasting settings",
+        "Lack of standardized benchmarks for comparing transformer-based models in financial forecasting"
+      ],
+      "related_methods": [
+        "Transformer architectures (Vanilla, PatchTST-lite, Informer)",
+        "ARIMA models",
+        "Sharpe ratio adjustment for transaction costs"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model_type",
+          "transaction_cost_model"
+        ],
+        "dependent": [
+          "volatility_forecast_accuracy",
+          "adjusted_sharpe_ratio"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Incorporating external data sources such as macroeconomic indicators and firm-specific news sentiment into transformer models will improve their profitability in daily volatility forecasting compared to pure price-based models, even after adjusting for transaction costs.",
+      "rationale": "This hypothesis builds on the gap regarding insufficient attention to heterogeneous data types in forecasting models ([f83e2727ede8363db45db9f7ce62b73c229f2b88]) and explores how hybrid approaches might enhance performance. It also connects to the bridge insight that integrating additional signals can improve model robustness and relevance in financial contexts ([a91e8566c043f582c593396a88ea492d35174444]). Using real-world datasets like Fama-French factors or news sentiment data would allow testing this claim empirically.",
+      "related_gaps": [
+        "Insufficient attention to the integration of heterogeneous data types in forecasting models",
+        "Lack of unified benchmarks that fairly evaluate both traditional and modern forecasting methods"
+      ],
+      "related_methods": [
+        "Transformer architectures",
+        "News Sentiment Analysis",
+        "Fama-French three-factor model"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "data_source_type",
+          "model_architecture"
+        ],
+        "dependent": [
+          "forecast_accuracy",
+          "transaction_cost_adjusted_profitability"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Hybrid models combining transformer architectures with GARCH processes will demonstrate superior long-term portfolio performance relative to standalone transformers or ARIMA models when evaluated under a dynamic rebalancing framework that accounts for transaction costs.",
+      "rationale": "This hypothesis draws upon the bridge insight that reinforcement learning and dynamic optimization frameworks can inspire transformer models to learn optimal trading policies ([b15eafaed105f1d4831fd89831eda48ef029cc1c]), and it addresses the gap in hybrid model exploration ([1b5caed8c242de0670a0021f4e1aa33dec26ad0c]). It tests whether combining the strengths of deep learning and econometrics leads to better outcomes in cost-sensitive environments, using real financial data such as the Fama-French factors or historical stock prices.",
+      "related_gaps": [
+        "Some studies suggest that hybrid loss functions or attention mechanisms may improve Transformer performance but lack broader validation",
+        "The effectiveness of GNNs in multivariate time series forecasting depends on the availability of prior knowledge about variable dependencies"
+      ],
+      "related_methods": [
+        "Transformer architectures",
+        "Hybrid GARCH-BiLSTM",
+        "Dynamic Price Prediction Model with Transaction Costs"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model_combination_type",
+          "rebalancing_frequency"
+        ],
+        "dependent": [
+          "portfolio_return",
+          "cumulative_transaction_costs"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it directly compares transformer models (PatchTST-lite and Informer) against ARIMA baselines using real financial data like Fama-French factors and historical stock market data, which are available in the provided datasets. It is highly testable because it makes a specific claim about performance differences under transaction cost adjustments, with outcomes that could go either way. The hypothesis is coherent, focusing on the system (forecasting models) rather than analysis methods, and is well-grounded in the literature's emphasis on transaction cost modeling and the bridge insight from operations research. The data directly informs the outcome through Sharpe ratio adjustments for turnover and proportional costs."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 introduces external data sources like macroeconomic indicators and news sentiment, which would require additional datasets not present in the provided list. While theoretically sound and building on the gap of heterogeneous data integration, it lacks concrete data feasibility. It is somewhat testable but less clearly defined in terms of what constitutes 'improved profitability', and its grounding relies more on general trends than specific methodologies. The hypothesis is internally consistent but faces challenges in execution due to data availability."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 proposes hybrid models combining transformers with GARCH processes, which is conceptually strong but requires complex model design and potentially specialized financial datasets beyond those listed. Its feasibility is low because it involves creating and training hybrid architectures that are not straightforward to implement with the available data. Although testable in principle, the claim is less specific and more dependent on model architecture choices. It is grounded in bridge insights but suffers from lower data alignment and higher implementation complexity compared to H1."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "0f786e0efd15f1f1f37add99afeee9f5c173f053",
+    "4d03f546d2d10e4ec615f668ea61ed241050fd37",
+    "21ef2000c6ddf511f07fe3a67c04dcc4b054af55",
+    "12b1c2711a3b2b416641ae033b8d4cb15ef1be30",
+    "9704d64d0bf1a7747d4fdc051ea8aa7e41aec748",
+    "6ec1755619cde67fc70e08218ed65401bc6765c1",
+    "e92870463e3dd1c9ade7f24de02fc3e8c73bc46f",
+    "3c8a05dacaa37d4bd05921b5cca24a259ae3fb88",
+    "a89d80d2159a2eb814d4223db4d0d180d8c7ef27",
+    "e4a1115c402e6095691c3cb7f3f44b8033a8724f",
+    "6505df53986c2373ecb322c31b80a646ec430eb7",
+    "02b8d9d8b4f361263063702bb5e083cbcd3b5785",
+    "f3f6baef5ca75d085f3a922f11595917fbb9f5cf",
+    "2916867",
+    "147664191",
+    "7470825",
+    "167178254",
+    "2546009",
+    "2633029",
+    "2604401",
+    "278749",
+    "333761777",
+    "2685806",
+    "0e03de8578fb49e3152b386c986237c10add53c5",
+    "4b04e77f0d4b15e028913af8a04119448849a083",
+    "2f1d454b1b1221533c831280f0634e270bf23532",
+    "7b4ee28b93904f9ea6c8c1538512828f6df78606",
+    "6577da962ebc2c14c0b3b6c6ed66660605e399bb",
+    "23c5e11f9a708c07d9ec63c7cd81d846d1e1a64b",
+    "683d3e182a30a18fc6a81c313ffe779baad89bb7",
+    "7bf20c53bce890fc51e385ce31e1d565c2e999cc",
+    "1da2b3006dd2dcea79f091453948def3161d523f",
+    "e4e0ea0e3fab803f7c0d147bdeb41f9e3742e95b",
+    "d0c3aa85673a9ce7dea953a65f3a7a49b02e9c8a",
+    "04d47ef3aa03a2ccdb98da47ae5d090d0f363860",
+    "863f0820b3402a1d12b23c3b9ceb85190b191866",
+    "822f05e80f053ad328ad3c8eff5db099de82589e",
+    "49d2e73dc0c9ac048539f216dc74fdf057489afc",
+    "1b5caed8c242de0670a0021f4e1aa33dec26ad0c",
+    "158b6018c421411ca8c2f3d587e5a241f078cc92",
+    "3781615fde32c2490eb19c80d53f0cd78fe68a88",
+    "7f527775d033a82a28d761978bbc6e152a177a02",
+    "1d22bdc749ec3856faec91e5f73a77707b5466f4",
+    "6b878dca93812fd4207d246ad924522186b458c2",
+    "c75ea1a8f86ec08b01c74c709ca55e9c5f36762c",
+    "c651f0899250076c597c973e19770538a4382f94",
+    "74f35206913774271ac426df6372d3acc67e63ad",
+    "0aaa77bf65035fb794db3d5d3b1ae0bf6aa6d0ea",
+    "d536903c1aad0edfd75d6e1dda8193eecd69a7a5",
+    "5162147965fdd47bbbd60ca7a5d38b7f74f7a8e5",
+    "204e3073870fae3d05bcbc2f6a8e263d9b72e776",
+    "584c7954ebb89d6155fa50e5bcf44098fb881faa",
+    "df2b0e26d0599ce3e70df8a9da02e51594e0e992",
+    "2ee6cb87fc81ecd78d161c4a92c9dfce00c8961c",
+    "f6333c57973e98972c03d8a1f9d99c9c3ae0aa64",
+    "2301.02754v1",
+    "2001.01612v1",
+    "0707.3198v1",
+    "1505.05491v2",
+    "e0722459de77409fc16ece0681089508fb6ec70d",
+    "aed7629e322b181377ee644166e8a53ca7eb29ef",
+    "fb0c870be97c3e937793623af9716b1c92745bd5",
+    "796688eec5ee8e31391178bc87b8a75ea0d11449",
+    "fa3e1e6d8d3e08b255b939792ee58e2027086d64",
+    "bec3d9335aa81eac0fb660e5f00254cfc21c0ded",
+    "b15eafaed105f1d4831fd89831eda48ef029cc1c",
+    "48798b696074d4c2b58a9f6b83720884ec934041",
+    "3a785110aa64e5236c18461be0b592c785ed0760",
+    "883bff914fc6d3152a48a93a76199f62f12f6d9d",
+    "2472008",
+    "2560156",
+    "127676253",
+    "2542648",
+    "2601268",
+    "2601391",
+    "2600866",
+    "2454464",
+    "2455122",
+    "78cfcaad2f55dd5b413b546d0b55ba778aae7996",
+    "be98748425a83e77fccae6478efe983c294bcccc",
+    "76bf21764e39c9bc6e0b847d3611eadd121b33be",
+    "2522724",
+    "6832768",
+    "2522806",
+    "2522244",
+    "377403799",
+    "44302b98b29745b2282688718929106d5e83e78d",
+    "e979d7b96fe4d3782caef43de0f8286380afbd8b",
+    "6d68593cf6946274906246fe5f04c58e7287e6db",
+    "a91e8566c043f582c593396a88ea492d35174444",
+    "f4db983fdbb00027201989b8080d6344b940b1fa",
+    "e3142ff658b29bb6120d0dc6588d86aa1d326273",
+    "f83e2727ede8363db45db9f7ce62b73c229f2b88",
+    "5c882802a1dacc61190300432193953bec22054e",
+    "75e924bd79d27a23f3f93d9b1ab62a779505c8d2",
+    "55b571bda34727d5793c878bae39f910a15e393a",
+    "2858904",
+    "2521650"
+  ],
+  "generated_at": "2026-09-15T04:17:11.604553+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

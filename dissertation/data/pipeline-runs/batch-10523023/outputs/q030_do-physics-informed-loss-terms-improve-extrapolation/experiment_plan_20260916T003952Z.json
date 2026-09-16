@@ -1,0 +1,96 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The molecular solubility dataset (moleculenet_esol_delaney_solubility.csv) is available and suitable for evaluating PINNs' extrapolation performance. The experiment will use a standard regression setup with a held-out test set to measure out-of-distribution performance. The PINN implementation will be constrained to single GPU training with a reasonable network size and training duration, fitting within typical SLURM allocations.",
+      "objective": "To empirically demonstrate that Physics-Informed Neural Networks (PINNs) with physical loss terms achieve better extrapolation performance on molecular solubility data compared to standard neural networks trained without physical constraints, as measured by lower mean squared error on out-of-distribution test points.",
+      "variables": {
+        "independent": [
+          "use of physics-informed loss terms",
+          "type of neural network architecture"
+        ],
+        "dependent": [
+          "mean squared error on out-of-distribution test points",
+          "extrapolation accuracy"
+        ]
+      },
+      "design": "A comparative benchmark experiment where we train two types of models: (1) Standard neural networks without physical constraints, and (2) Physics-Informed Neural Networks with embedded physical loss terms. Both models are trained on the same molecular solubility dataset, with the PINN incorporating a loss term derived from the underlying physical principles governing solubility. We then evaluate both models on out-of-distribution test points to measure extrapolation performance.",
+      "data_requirements": {
+        "source": "moleculenet_esol_delaney_solubility.csv",
+        "description": "This dataset contains real experimental measurements of molecular solubility along with computed molecular descriptors. It is ideal for testing extrapolation because it allows us to define in-distribution and out-of-distribution subsets based on the range of molecular features. The target variable is 'measured log solubility in mols per litre'.",
+        "preprocessing_steps": [
+          "Load the dataset from moleculenet_esol_delaney_solubility.csv",
+          "Remove the 'Compound ID', 'ESOL predicted log solubility in mols per litre', and 'smiles' columns as they are not suitable for regression input",
+          "Normalize all descriptor columns to zero mean and unit variance",
+          "Split the data into training (70%), validation (15%), and test (15%) sets ensuring that the test set contains molecules with features outside the training distribution range",
+          "Define out-of-distribution test points by selecting molecules with molecular weights or polar surface areas beyond the training range"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Physics-Informed Neural Networks (PINNs)",
+          "description": "A neural network architecture modified to incorporate physical laws directly into the loss function. In this experiment, we implement a PINN that includes a loss term representing the physical constraints of solubility behavior, such as thermodynamic consistency or molecular interaction principles. This is done by adding a penalty term to the standard mean squared error that enforces adherence to known physical relationships.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Standard Neural Network",
+          "description": "A conventional feedforward neural network trained using standard mean squared error loss without any physical constraints. This serves as our baseline model for comparison with the PINN approach.",
+          "reused_from_literature": false
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Mean Squared Error (MSE) on out-of-distribution test points"
+        ],
+        "baseline": "Performance of a standard neural network trained without physical constraints",
+        "success_criteria": "If the PINN achieves a lower MSE on out-of-distribution test points than the standard neural network, this supports the hypothesis that physics-informed loss terms improve extrapolation performance. Conversely, if the standard network performs better or similarly, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess the moleculenet_esol_delaney_solubility.csv dataset, removing non-feature columns and normalizing descriptors. Split into train/validation/test sets with careful consideration of out-of-distribution test points."
+        },
+        {
+          "step": 2,
+          "description": "Implement a standard feedforward neural network architecture with appropriate hidden layers and activation functions, configured for regression."
+        },
+        {
+          "step": 3,
+          "description": "Implement a Physics-Informed Neural Network with a custom loss function that includes physical constraints related to molecular solubility principles."
+        },
+        {
+          "step": 4,
+          "description": "Train both models on the training set using the same optimization procedure (e.g., Adam optimizer with same learning rate) and monitor validation loss to prevent overfitting."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate both trained models on the out-of-distribution test set and compute the mean squared error for each."
+        },
+        {
+          "step": 6,
+          "description": "Compare the MSE values between the standard neural network and the PINN to determine if the physics-informed approach yields better extrapolation performance."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "The physical constraints incorporated into the PINN loss function might be inaccurate or overly simplistic, leading to misleading results",
+        "Insufficient variation in the molecular descriptors to create meaningful out-of-distribution test cases",
+        "Training instability or poor convergence of the PINN due to ill-conditioning of the loss landscape"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T00:39:52.566158+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

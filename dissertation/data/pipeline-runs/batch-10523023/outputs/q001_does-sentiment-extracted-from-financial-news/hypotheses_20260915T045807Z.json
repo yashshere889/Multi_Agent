@@ -1,0 +1,447 @@
+{
+  "literature_summary": "The literature demonstrates a growing interest in applying natural language processing (NLP) and machine learning techniques to analyze financial sentiment from news headlines and other textual sources, with the goal of improving stock return prediction and understanding market behavior. Studies vary widely in their methodologies, from traditional lexicon-based approaches like VADER and Loughran-McDonald to advanced deep learning models such as BERT, FinBERT, and transformers. Many papers integrate sentiment analysis with structured financial data to enhance predictive models, while others explore the use of large language models (LLMs), contrastive learning, and hybrid architectures. Despite these advances, there are recurring issues including inconsistent evaluation metrics, lack of standardized datasets, limited cross-market validation, and insufficient attention to domain-specific language nuances. There is also ongoing debate about the relative effectiveness of different models and the extent to which sentiment improves prediction beyond traditional price-derived features.",
+  "methods_overview": [
+    {
+      "method": "VADER sentiment analysis model",
+      "papers_using_it": [
+        "bfc5be0e30185eea4c2d71dfbb19e4b19c8751e0",
+        "4f058713c3f00cf1e6970aef63e4593fdaf97569"
+      ],
+      "notes": "Commonly used for analyzing financial news sentiment, particularly in studies focusing on stock market prediction and textual data."
+    },
+    {
+      "method": "Loughran-McDonald sentiment lexicon",
+      "papers_using_it": [
+        "bcc576b7957c96faaf8bfefaed4279ee7d39b8cd",
+        "6ed5d31497d8050b822924b09647a918226f437b"
+      ],
+      "notes": "Frequently employed for measuring financial sentiment in news articles, often as a baseline or complementary tool."
+    },
+    {
+      "method": "BERT-based models",
+      "papers_using_it": [
+        "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+        "8f025f166dee4db5c42c9f30d4decae29a09ab0c",
+        "01a7ce4d04ededa0123f142b932746aaf3e86bc7",
+        "7102bb3fe73bd057ff161d9db5214a267c1ef312"
+      ],
+      "notes": "Commonly used for financial sentiment analysis, especially in studies leveraging pre-trained models for domain-specific adaptation."
+    },
+    {
+      "method": "FinBERT",
+      "papers_using_it": [
+        "089e76b551fddb1731cafe72c4235c0d2ccd66e0"
+      ],
+      "notes": "Rare but increasingly popular for calculating standardized sentiment scores from financial texts."
+    },
+    {
+      "method": "Transformer-based models",
+      "papers_using_it": [
+        "2605.23962v1",
+        "8f025f166dee4db5c42c9f30d4decae29a09ab0c"
+      ],
+      "notes": "Used in several studies for financial sentiment analysis, often in combination with other architectures."
+    },
+    {
+      "method": "LSTM and GRU networks",
+      "papers_using_it": [
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+        "8390b9ea558ac905c2a3231d239a9cf81bc49450"
+      ],
+      "notes": "Commonly applied in deep learning frameworks for incorporating sentiment into stock price prediction."
+    },
+    {
+      "method": "Aspect-Based Sentiment Analysis (ABSA)",
+      "papers_using_it": [
+        "2e430e6e57c19733989ae5e16bd545ae86650334",
+        "f221b354b60ab20135cd247be91da4da22254a80"
+      ],
+      "notes": "Used in some studies to extract sentiment associated with specific entities or aspects within financial texts."
+    },
+    {
+      "method": "TextBlob",
+      "papers_using_it": [
+        "7984047",
+        "ca11081e83b56a9dfe148dadd80099e04fd10cd4"
+      ],
+      "notes": "Used occasionally for sentiment analysis, particularly in simpler or exploratory studies."
+    },
+    {
+      "method": "Granger causality analysis",
+      "papers_using_it": [
+        "2305.16632v1",
+        "2510.15915v1",
+        "e498784edf2c02fe0b228479f88120f08b381cb6"
+      ],
+      "notes": "Used in a few studies to examine causal relationships between sentiment and stock returns."
+    },
+    {
+      "method": "Integration of structured financial data with unstructured news text",
+      "papers_using_it": [
+        "d3bccf7b80748cf1d3239d44f544e070d85ade14"
+      ],
+      "notes": "Rare but important technique for enhancing sentiment classification by embedding financial data into text templates."
+    },
+    {
+      "method": "Large Language Models (LLMs)",
+      "papers_using_it": [
+        "2512.19484v1",
+        "f01fcaabc1410983920fe84a8a9ff24230fea946"
+      ],
+      "notes": "Used in some recent studies for event feature extraction and sentiment interpretation, particularly with tools like ChatGPT."
+    },
+    {
+      "method": "Sentiment analysis using social media data",
+      "papers_using_it": [
+        "1705.00294v1",
+        "f712b0a3affbdfc2e2d0c5e2e2d14941783761f2"
+      ],
+      "notes": "Used in a few studies to analyze emotional content in online posts for market prediction."
+    },
+    {
+      "method": "Hybrid models combining deep learning and lexicons",
+      "papers_using_it": [
+        "ac9a8a8d08fa7b9ed70ab6b47af04a2f01e529fd"
+      ],
+      "notes": "Used in one study to combine deep learning with sentiment dictionaries for improved financial analysis."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited discussion on the robustness of sentiment analysis models across different financial markets and time periods",
+      "supporting_evidence": [
+        "1705.00294v1",
+        "2512.19484v1",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71"
+      ],
+      "notes": "Repeated across multiple studies indicating a persistent lack of cross-market validation."
+    },
+    {
+      "gap": "Inconsistent evaluation metrics and benchmarks across studies",
+      "supporting_evidence": [
+        "2605.23962v1",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71"
+      ],
+      "notes": "A major limitation that hinders direct comparison of results."
+    },
+    {
+      "gap": "Lack of standardized datasets for financial sentiment analysis, particularly in non-English markets",
+      "supporting_evidence": [
+        "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+        "3da9dbffff9bd0273f4de3d5560970b13c688177"
+      ],
+      "notes": "A significant barrier to reproducibility and generalization of models."
+    },
+    {
+      "gap": "Contradictory findings regarding the superiority of deep learning models versus traditional ML models in stock prediction",
+      "supporting_evidence": [
+        "2605.23962v1",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71"
+      ],
+      "notes": "Indicates a lack of consensus on model effectiveness."
+    },
+    {
+      "gap": "Limited availability of datasets combining multiple text sources for financial sentiment analysis",
+      "supporting_evidence": [
+        "50052383ec0b8f2deb199064b6dfe45364af97e1"
+      ],
+      "notes": "Hampers development of more comprehensive sentiment models."
+    },
+    {
+      "gap": "The relationship between sentiment across different data sources such as news and microblogs remains underexplored",
+      "supporting_evidence": [
+        "e452391a5ae07e0713a4a6afc3dc86425e1870eb"
+      ],
+      "notes": "Suggests missed opportunities for synergy between data streams."
+    },
+    {
+      "gap": "Lack of consensus on the precise definition of sentiment in the financial domain",
+      "supporting_evidence": [
+        "3b740025953475a1cb23780961bdead5c71fd3fe"
+      ],
+      "notes": "Leads to variability in interpretation and measurement."
+    },
+    {
+      "gap": "Limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets",
+      "supporting_evidence": [
+        "cc067eef6c350876a6d4fe3aa614eccf3186619d"
+      ],
+      "notes": "Highlights the need for culturally sensitive models."
+    },
+    {
+      "gap": "Need for more robust preprocessing methodologies that can handle the variability in entity counts in financial news articles",
+      "supporting_evidence": [
+        "2e430e6e57c19733989ae5e16bd545ae86650334"
+      ],
+      "notes": "Points to technical limitations in handling complex financial texts."
+    },
+    {
+      "gap": "Gap in modeling the time-sensitive nature of sentiment's influence on stock prices",
+      "supporting_evidence": [
+        "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539"
+      ],
+      "notes": "Indicates a lack of temporal modeling in sentiment analysis."
+    },
+    {
+      "gap": "Limited exploration of multi-dimensional sentiment signals beyond polarity in predicting financial outcomes",
+      "supporting_evidence": [
+        "8f025f166dee4db5c42c9f30d4decae29a09ab0c"
+      ],
+      "notes": "Suggests a narrow focus on binary sentiment classifications."
+    },
+    {
+      "gap": "Lack of direct evidence on whether investor sentiment predicts stock returns or vice versa in emerging markets",
+      "supporting_evidence": [
+        "2305.16632v1"
+      ],
+      "notes": "Points to a gap in cross-market empirical validation."
+    },
+    {
+      "gap": "Limited cross-cultural validation of sentiment analysis models for non-English languages like Macedonian",
+      "supporting_evidence": [
+        "2109.13725v1"
+      ],
+      "notes": "Highlights the need for multilingual and multicultural models."
+    },
+    {
+      "gap": "Lack of longitudinal studies examining how investor sentiment evolves over extended periods",
+      "supporting_evidence": [
+        "2510.15915v1",
+        "3fde48753b4975ac8f4d7ce77e3e89531ecf4477",
+        "995d24ce53571a24bbfe7f80c9d668e81b8a2971"
+      ],
+      "notes": "Indicates a gap in understanding long-term sentiment dynamics."
+    },
+    {
+      "gap": "Limited discussion on how cultural differences interact with investor sentiment in shaping market outcomes beyond general tendencies",
+      "supporting_evidence": [
+        "2769371"
+      ],
+      "notes": "Points to a lack of nuanced cultural analysis."
+    },
+    {
+      "gap": "Limited focus on characterizing specific emotional states like 'euphoria' in stock market sentiment analysis",
+      "supporting_evidence": [
+        "fb6857b494a0a7393bf4aabd66fa8c90742b0861"
+      ],
+      "notes": "Suggests a need for more granular emotional modeling."
+    },
+    {
+      "gap": "Lack of application of language-specific models in emerging markets such as Indonesia",
+      "supporting_evidence": [
+        "fb6857b494a0a7393bf4aabd66fa8c90742b0861"
+      ],
+      "notes": "Points to a gap in localization efforts."
+    },
+    {
+      "gap": "Insufficient attention to cultural and linguistic tailoring in hybrid sentiment models",
+      "supporting_evidence": [
+        "fb6857b494a0a7393bf4aabd66fa8c90742b0861"
+      ],
+      "notes": "Highlights the need for culturally adapted models."
+    },
+    {
+      "gap": "Temporal alignment and look-ahead bias in news sentiment analysis may affect model validity",
+      "supporting_evidence": [
+        "8390b9ea558ac905c2a3231d239a9cf81bc49450"
+      ],
+      "notes": "Points to methodological concerns in time-series modeling."
+    },
+    {
+      "gap": "Lack of standardized evaluation protocols for Japanese financial text embeddings prior to JFinTEB",
+      "supporting_evidence": [
+        "c0e355e9be000848c10f9d265f2a433d3e6b2773"
+      ],
+      "notes": "Indicates a need for better benchmarking in financial NLP."
+    },
+    {
+      "gap": "Scalability and interpretability of vector-based similarity measures in financial filings remain underexplored",
+      "supporting_evidence": [
+        "e08aafc26390bf3fa05370a4116f697f1e7ead7c"
+      ],
+      "notes": "Points to a gap in practical implementation of similarity analysis."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Using a BERT-based financial sentiment model trained on news headlines improves next-day directional prediction of S&P 500 returns compared to a model using only Fama-French three-factor risk premiums, when both models are evaluated using Granger causality tests.",
+      "rationale": "This hypothesis builds on the gap of inconsistent evaluation metrics and the need for causal validation of sentiment signals. It leverages the bridge insight from behavioral economics that Granger causality can be used to test whether sentiment precedes and predicts stock return direction. The hypothesis is grounded in the literature showing that BERT-based models are effective for financial sentiment analysis and that integrating sentiment with structured financial data enhances prediction. Using the Fama-French factors as a baseline allows for a direct comparison of price-derived features against sentiment-derived features.",
+      "related_gaps": [
+        "Inconsistent evaluation metrics and benchmarks across studies",
+        "Limited discussion on the robustness of sentiment analysis models across different financial markets and time periods"
+      ],
+      "related_methods": [
+        "BERT-based models",
+        "Granger causality analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "BERT-based sentiment scores from news headlines",
+          "Fama-French three-factor risk premiums"
+        ],
+        "dependent": [
+          "Next-day directional prediction of S&P 500 returns"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Sentiment extracted from financial news headlines using the Loughran-McDonald lexicon, when combined with structured financial data such as the Fama-French factors, produces higher accuracy in predicting next-day stock return direction than models using only price-derived features.",
+      "rationale": "This hypothesis addresses the gap in the lack of standardized datasets and the need for integration of structured financial data with unstructured news text. It uses a well-established lexicon-based approach (Loughran-McDonald) that has been shown to be effective in financial sentiment analysis. By combining it with structured financial data, we aim to validate the bridge insight that integrating structured financial data with sentiment analysis improves prediction accuracy. This hypothesis is testable using the real-world financial datasets provided.",
+      "related_gaps": [
+        "Lack of standardized datasets for financial sentiment analysis",
+        "Integration of structured financial data with unstructured news text"
+      ],
+      "related_methods": [
+        "Loughran-McDonald sentiment lexicon",
+        "Integration of structured financial data with unstructured news text"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Loughran-McDonald sentiment scores from news headlines",
+          "Fama-French three-factor risk premiums"
+        ],
+        "dependent": [
+          "Next-day directional prediction of stock return direction"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Models incorporating multi-dimensional sentiment signals (e.g., positive, negative, neutral, and intensity) derived from financial news headlines perform better in predicting next-day stock return direction than models using only binary sentiment polarity.",
+      "rationale": "This hypothesis targets the gap in limited exploration of multi-dimensional sentiment signals beyond polarity in predicting financial outcomes. It is based on the idea that richer sentiment representations might capture more nuanced market behaviors. The hypothesis is grounded in the literature that shows the importance of capturing more granular emotional states and sentiment variations. It can be tested using real financial news datasets and stock return data, where the dependent variable is the directional prediction of returns.",
+      "related_gaps": [
+        "Limited exploration of multi-dimensional sentiment signals beyond polarity in predicting financial outcomes"
+      ],
+      "related_methods": [],
+      "suggested_variables": {
+        "independent": [
+          "Multi-dimensional sentiment signals from news headlines"
+        ],
+        "dependent": [
+          "Next-day directional prediction of stock return direction"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses real datasets: BERT-based sentiment can be extracted from the AG News dataset (which contains business headlines), and Fama-French factors are available in fama_french_three_factor_daily_returns.csv. It is highly testable because Granger causality tests provide a clear, falsifiable method to evaluate whether sentiment predicts returns beyond price-derived features. The claim is coherent, focusing on a specific system (S&P 500 return prediction) rather than methodology, and is well-grounded in the bridge insight from behavioral economics that Granger causality can validate causal relationships between sentiment and returns. The data is sufficient to make a decision on the hypothesis."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible since it uses the Loughran-McDonald lexicon and combines it with Fama-French factors, both of which can be applied to the available datasets. However, it lacks a strong causal validation method like Granger causality, making it less testable. While the hypothesis is internally consistent and grounded in established lexicon-based sentiment analysis, it is less compelling due to its reliance on a simpler method without a rigorous causal framework. The data supports the hypothesis but does not decisively validate it without additional statistical rigor."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because it requires multi-dimensional sentiment signals (positive, negative, neutral, intensity) which are not directly supported by the listed datasets. Although the AG News dataset could theoretically support such analysis, the current data structure and lack of explicit labeling for these dimensions makes it difficult to implement. It is also less testable because the hypothesis is vague about how these dimensions will be defined and measured. While the idea is coherent and grounded in the literature on multi-dimensional sentiment, it lacks concrete operationalization and sufficient data to make a meaningful test."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2512.19484v1",
+    "1705.00294v1",
+    "2605.23962v1",
+    "1507.00784v3",
+    "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+    "3da9dbffff9bd0273f4de3d5560970b13c688177",
+    "d3bccf7b80748cf1d3239d44f544e070d85ade14",
+    "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+    "f01fcaabc1410983920fe84a8a9ff24230fea946",
+    "99a9b65a2ff421213e924b2b8f974b87b4918832",
+    "f712b0a3affbdfc2e2d0c5e2e2d14941783761f2",
+    "4760856",
+    "5552754",
+    "7984047",
+    "4f058713c3f00cf1e6970aef63e4593fdaf97569",
+    "50052383ec0b8f2deb199064b6dfe45364af97e1",
+    "bfc5be0e30185eea4c2d71dfbb19e4b19c8751e0",
+    "8ddc366406f2d5c43c6b261b852132681df0ef02",
+    "e452391a5ae07e0713a4a6afc3dc86425e1870eb",
+    "4b78ce1af7cad36a105d3e80a73925cbb28b22de",
+    "72fedc413687e03b36710b4125f4293fc707c05e",
+    "bcc576b7957c96faaf8bfefaed4279ee7d39b8cd",
+    "3b740025953475a1cb23780961bdead5c71fd3fe",
+    "ca927cec577f60583247bd696d293fc0c5ff84f5",
+    "7ed50ff3bc4dccc4a5b1963c481a1abe17548b67",
+    "c05c5b5a45ba6c93b29614eff1385ba1f253e63c",
+    "6ed5d31497d8050b822924b09647a918226f437b",
+    "089e76b551fddb1731cafe72c4235c0d2ccd66e0",
+    "8ccf60f844e0baa450a55a68584e429ab34eaf4a",
+    "8d02573da4c3d197804d8829bdc83c292562ed37",
+    "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+    "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+    "109e50d9c7830706616d20e2cadc7606e601275b",
+    "304afa85d36057a1d5fb0cf872645efc7733b61e",
+    "4566d113008951eba701affe2b6d47d1eb2eb687",
+    "a1774ed8c5b47aad4808f7505b84c929201fb11c",
+    "2e430e6e57c19733989ae5e16bd545ae86650334",
+    "ff24cf22a21ac3921c71edfaeb461a29a28b1c57",
+    "3c4f1244301577cffff9affc73690669725e7e08",
+    "ca11081e83b56a9dfe148dadd80099e04fd10cd4",
+    "8f025f166dee4db5c42c9f30d4decae29a09ab0c",
+    "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+    "ac9a8a8d08fa7b9ed70ab6b47af04a2f01e529fd",
+    "01a7ce4d04ededa0123f142b932746aaf3e86bc7",
+    "ae074faa8712719d5dce6b98b02750abc118c823",
+    "7102bb3fe73bd057ff161d9db5214a267c1ef312",
+    "bcdc102c04fb0e7d4652e8bcc7edd2983bb9576d",
+    "e498784edf2c02fe0b228479f88120f08b381cb6",
+    "58e00cde75cf11589ca53e7d2e62179a80cad19a",
+    "2305.16632v1",
+    "1912.02387v1",
+    "2109.13725v1",
+    "2510.15915v1",
+    "3fde48753b4975ac8f4d7ce77e3e89531ecf4477",
+    "ec53715208038ae691f6e2d47ce70af97a8377ed",
+    "0daa0550125789b5487fbf313f17f703498cdbdc",
+    "edb423db2b943544e30b76c3af22ca733b0bc94d",
+    "995d24ce53571a24bbfe7f80c9d668e81b8a2971",
+    "bd72bda592efeedbfc6ef9bb6c46ca61af430a92",
+    "bb206995861bc1dec4f7915e00f1f4edf32017f6",
+    "410142",
+    "2769371",
+    "2831745",
+    "2581821",
+    "2690173",
+    "3087679",
+    "3147301",
+    "bc7569cac388cfd37ccaf1c4b7763663d114e9d7",
+    "7b988a0f4ab652a2ebc0878fba15f4ba35e5d344",
+    "f475c63639f22f132255c7218b979853d11d34e5",
+    "1af98abe4a4499a28f581353d7b65dec0ab0eeca",
+    "4d5bc56cdffa3bdaade27a0b2357afd77666a97a",
+    "37e4baa39fcaf11ee0695da5d7e9c8ccb3b0f782",
+    "fb6857b494a0a7393bf4aabd66fa8c90742b0861",
+    "720d9a8c5558ef66966ac426131d3ecc19325fef",
+    "7fd7499646baf82e9dca1284d5c95ebf7bbace94",
+    "6836485",
+    "2597613",
+    "18007872",
+    "384128668",
+    "efaf2baf46a549002aeeb4104cb2c3a11b9567f7",
+    "642974cabba2d50e9910bc8d1345f815c0f1f06d",
+    "c525811375eab8d812b47625e2a45c24da61824a",
+    "f221b354b60ab20135cd247be91da4da22254a80",
+    "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+    "c0e355e9be000848c10f9d265f2a433d3e6b2773",
+    "22fd3f670591791cb675634ae8fe31501ac71c06",
+    "a42d65d63e9200ce863f9c3531d202ce6ab98c78",
+    "9af8bccf3e42996cbb198a6ceccafa2a084689f6",
+    "e08aafc26390bf3fa05370a4116f697f1e7ead7c",
+    "333002627",
+    "4761661",
+    "17393569",
+    "4763397"
+  ],
+  "generated_at": "2026-09-15T04:58:07.382157+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

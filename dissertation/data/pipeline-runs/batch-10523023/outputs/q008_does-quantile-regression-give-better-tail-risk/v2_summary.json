@@ -1,0 +1,42 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v2.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "2731600",
+    "386043177",
+    "3f10434156433abfc2ff6783fc1cfdeccb765231",
+    "1612.06850v2",
+    "2009.00436v1",
+    "4228abc01aed8bdca23a823a6e732ecc59581c97",
+    "2012.05187v2",
+    "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+    "2657633",
+    "2730884",
+    "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+    "2469861",
+    "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+    "992e2f5557ccf4a1dbda2db0db173553160c5890",
+    "2859241",
+    "d15562d07d9591a39a21c052ff93a812a0c18ccc"
+  ],
+  "notes_for_review": [],
+  "generated_at": "2026-09-15T08:30:36.868728+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

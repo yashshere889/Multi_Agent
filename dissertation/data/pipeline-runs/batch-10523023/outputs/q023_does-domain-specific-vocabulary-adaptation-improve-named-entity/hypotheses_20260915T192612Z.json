@@ -1,0 +1,416 @@
+{
+  "literature_summary": "The literature demonstrates that domain-specific vocabulary adaptation significantly improves named-entity recognition (NER) and other NLP tasks in legal and regulatory texts compared to merely increasing model size. Studies consistently show that general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences. Various approaches to vocabulary adaptation have emerged, including domain-adapted transformers, BPE-based tokenization improvements, and explicit vocabulary expansion techniques. These methods aim to address issues like out-of-vocabulary words, semantic shifts, and lexical mismatches between pre-trained models and domain-specific data. While some works explore increasing model size through fine-tuning or ensemble methods, the consensus is that targeted vocabulary adaptation offers superior performance gains for legal NER tasks. However, challenges remain in balancing domain specialization with generalization, handling morphological variations, and ensuring robustness across diverse legal domains and languages.",
+  "methods_overview": [
+    {
+      "method": "Domain-adapted transformers for NER",
+      "papers_using_it": [
+        "6e7830b0a04e483901bdaaf321c4f13f45977618",
+        "e622b45897abc5f2d78722023892d709742c81de",
+        "fe7fcd86b844062246ed7f2fd1979a2cda1140bc",
+        "0b8f69790ae95df63ca79a4683f5c57abe1767ec"
+      ],
+      "notes": "Common method used across multiple legal NER studies, typically involving fine-tuning BERT or similar models with domain-specific data and supervision."
+    },
+    {
+      "method": "Vocabulary expansion and adaptation",
+      "papers_using_it": [
+        "d7acf190030b1cdf001a456277698a9cf76a31e9",
+        "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+        "cf5e670a79847d9be0eb185fb372d99d30d4d98f",
+        "6815a8927d9b6f7ff188d65a35b049b025210f55",
+        "7712135ccd8108c4b23dcb858e1050ed574ba5da"
+      ],
+      "notes": "Common approach for handling domain-specific vocabulary, involving modifications to BPE tokenization or explicit vocabulary addition."
+    },
+    {
+      "method": "Fine-tuning with domain-specific data",
+      "papers_using_it": [
+        "2112.01836v2",
+        "5fcd5bb3a227f3faaaebd43c2685bc80b57a36cc",
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+        "22bd4bd6cfba1f37a43d7273c371e3ea22afedb9"
+      ],
+      "notes": "Common practice in legal NLP, where models are adapted using domain-specific datasets and annotations."
+    },
+    {
+      "method": "Ensemble methods",
+      "papers_using_it": [
+        "fe7fcd86b844062246ed7f2fd1979a2cda1140bc",
+        "841ef68839ee5a29f06c4f539a7c7824bea22e60"
+      ],
+      "notes": "Moderately common approach combining multiple models to improve legal NER performance."
+    },
+    {
+      "method": "Data augmentation",
+      "papers_using_it": [
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2"
+      ],
+      "notes": "Rare but growing practice in legal NER, particularly for Chinese legal texts."
+    },
+    {
+      "method": "Adversarial training",
+      "papers_using_it": [
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2"
+      ],
+      "notes": "Rare application in legal NER, primarily for robustness enhancement."
+    },
+    {
+      "method": "Domain-specific tokenization",
+      "papers_using_it": [
+        "2504.10335v2",
+        "631ec9857089e7c7fbf1c2e69a6bb50858700cb8",
+        "15158ea19aa765ed8c19357e26b82e7dfbab6164",
+        "7712135ccd8108c4b23dcb858e1050ed574ba5da"
+      ],
+      "notes": "Moderately common in domain adaptation literature, especially for morphologically rich languages."
+    },
+    {
+      "method": "Conditional Random Fields with rich features",
+      "papers_using_it": [
+        "2109.15121v1"
+      ],
+      "notes": "Rare approach, mainly used in morphologically rich language NER."
+    },
+    {
+      "method": "LSTM-CRF with morphological and POS information",
+      "papers_using_it": [
+        "1908.10261v1"
+      ],
+      "notes": "Rare approach, primarily for Bulgarian NER."
+    },
+    {
+      "method": "Sentence Position Embeddings for Legal Texts",
+      "papers_using_it": [
+        "2310.05276v1"
+      ],
+      "notes": "Rare method focusing on positional context in legal texts."
+    },
+    {
+      "method": "Multi-source and Semi-supervised Domain Adaptation",
+      "papers_using_it": [
+        "1910.03548v2"
+      ],
+      "notes": "Rare in legal NLP but common in visual domain adaptation."
+    },
+    {
+      "method": "Reciprocal Normalization (RN)",
+      "papers_using_it": [
+        "2112.10474v1"
+      ],
+      "notes": "Rare method for unsupervised domain adaptation."
+    },
+    {
+      "method": "Robust Core-Periphery Constrained Transformer (RCCT)",
+      "papers_using_it": [
+        "2308.13515v5"
+      ],
+      "notes": "Rare method inspired by brain network structure."
+    },
+    {
+      "method": "Domain Discrepancy Generator (DDG)",
+      "papers_using_it": [
+        "2104.10376v1"
+      ],
+      "notes": "Rare method for robust domain adaptation."
+    },
+    {
+      "method": "Multi-layer Domain Adaptation with Gradient Reversal and Squeeze-and-Excite",
+      "papers_using_it": [
+        "1909.02620v1"
+      ],
+      "notes": "Rare method for clinical imaging domain adaptation."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited direct comparison between different domain adaptation strategies in legal NER",
+      "supporting_evidence": [
+        "2311.08890v1",
+        "2423905453ea1bbae03727fd81890007cccedd43"
+      ],
+      "notes": "Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods."
+    },
+    {
+      "gap": "Lack of standardized benchmarks and datasets specifically tailored for legal NER",
+      "supporting_evidence": [
+        "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+        "841ef68839ee5a29f06c4f539a7c7824bea22e60"
+      ],
+      "notes": "Multiple studies note the absence of standardized legal NER benchmarks, hindering comparative research."
+    },
+    {
+      "gap": "Limited availability of annotated corpora for legal NER in non-English languages",
+      "supporting_evidence": [
+        "976f537d1b84de682351fba6f2600272acf825ae",
+        "59c0c6b62e33850cda08663d4c9ecabcf5d21596"
+      ],
+      "notes": "Most legal NER research focuses on English and German, with sparse resources for other languages."
+    },
+    {
+      "gap": "Need for more powerful legal-domain LLMs despite progress in general LLMs",
+      "supporting_evidence": [
+        "2311.08890v1"
+      ],
+      "notes": "General-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification."
+    },
+    {
+      "gap": "Insufficient investigation into how sentence position affects legal rhetorical role prediction",
+      "supporting_evidence": [
+        "2310.05276v1"
+      ],
+      "notes": "While positional embeddings are proposed, their impact on legal text understanding remains underexplored."
+    },
+    {
+      "gap": "Lack of comprehensive datasets covering diverse legal domains",
+      "supporting_evidence": [
+        "875612e795d76e37ddc6c2cb45680f80197a41e7"
+      ],
+      "notes": "Training data limitations affect performance in legal information retrieval and question answering."
+    },
+    {
+      "gap": "Limited research on specialized tokenizers for legal and financial texts",
+      "supporting_evidence": [
+        "82bf6de32ec47745ac6866246de6798808d91c80"
+      ],
+      "notes": "General-purpose tokenizers often fail to capture domain-specific vocabulary in professional domains."
+    },
+    {
+      "gap": "Inconsistent entity types and classification schemes across legal NER systems",
+      "supporting_evidence": [
+        "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+        "4c7804f4bd1abc018a077495ac7192e226d51d6f"
+      ],
+      "notes": "Different systems use varying entity classifications, complicating cross-system comparisons."
+    },
+    {
+      "gap": "Limited understanding of how domain similarity affects adaptation performance",
+      "supporting_evidence": [
+        "10133f50939dac23fbb1f5f6f289f4aec9c85f3f"
+      ],
+      "notes": "While some correlation with KL divergence exists, the relationship between domain similarity and adaptation effectiveness is unclear."
+    },
+    {
+      "gap": "Need for more robust methods that handle both domain shifts and corruptions simultaneously",
+      "supporting_evidence": [
+        "2104.10376v1"
+      ],
+      "notes": "Current domain adaptation methods often fail to address simultaneous domain shifts and corruptions."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve named-entity recognition F1-score on legal documents by at least 3% compared to a general-purpose tokenizer, even when model size remains constant.",
+      "rationale": "This hypothesis builds on the gap regarding limited research on specialized tokenizers for legal texts and the cross-disciplinary insight that adaptive tokenizer frameworks like AdaptBPE and KL3M Tokenizers can enhance domain-specific term representation. It also connects to the method of vocabulary expansion and adaptation, which aims to address out-of-vocabulary issues in legal NER. The hypothesis is testable using real legal document datasets if available, or by simulating domain-specific tokenization effects on existing legal NER benchmarks.",
+      "related_gaps": [
+        "Limited research on specialized tokenizers for legal and financial texts"
+      ],
+      "related_methods": [
+        "Domain-specific tokenization",
+        "Vocabulary expansion and adaptation"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "tokenizer type (general vs. domain-specific)"
+        ],
+        "dependent": [
+          "NER F1-score"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.",
+      "rationale": "This hypothesis directly addresses the core research question comparing domain-specific vocabulary adaptation versus model size increase. It leverages the literature showing consistent superiority of targeted vocabulary adaptation over general scaling. The hypothesis is grounded in the methods of domain-adapted transformers and vocabulary expansion techniques, and targets the gap around limited direct comparison between adaptation strategies. It can be tested using real-world legal NER datasets where both approaches can be implemented and evaluated.",
+      "related_gaps": [
+        "Limited direct comparison between different domain adaptation strategies in legal NER"
+      ],
+      "related_methods": [
+        "Domain-adapted transformers for NER",
+        "Vocabulary expansion and adaptation"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "approach (vocabulary adaptation vs. model scaling)"
+        ],
+        "dependent": [
+          "NER F1-score"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology (e.g., synonyms, abbreviations) compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.",
+      "rationale": "This hypothesis stems from the gap concerning the need for more robust methods that handle domain shifts and corruptions simultaneously, and the cross-disciplinary insight that refining tokenization during training prevents under-trained tokens and improves compression. It connects to the methods of domain-adapted transformers and vocabulary customization techniques. The hypothesis is testable using real legal texts with controlled lexical variations, allowing measurement of performance degradation under perturbations.",
+      "related_gaps": [
+        "Need for more robust methods that handle both domain shifts and corruptions simultaneously"
+      ],
+      "related_methods": [
+        "Domain-adapted transformers for NER",
+        "Vocabulary customization techniques"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "training approach (domain adaptation vs. model scaling)"
+        ],
+        "dependent": [
+          "F1-score under lexical perturbations"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it can be tested using existing legal NER datasets if they exist, or simulated domain-specific tokenization effects on current benchmarks. It's highly testable since it makes a precise claim about F1-score improvement with a specific tokenizer type, and the result could go either way. It's coherent as it contrasts general vs. domain-specific tokenizers directly, focusing on the system (tokenizer) rather than analysis methods. The hypothesis is well-grounded in cross-disciplinary insights from computational linguistics about adaptive tokenizers and domain-specific BPE methods, which directly inform how to implement such a tokenizer. Data availability supports testing this hypothesis, especially if legal NER datasets are used, though none are explicitly listed among the provided datasets."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible but less so than H1 because it requires implementing two distinct approaches—vocabulary expansion vs. model scaling—which may demand more complex experimental setup and potentially more computational resources. It is testable in principle, but the distinction between 'vocabulary adaptation' and 'model scaling' is less clear-cut and might depend heavily on implementation details. Coherence is acceptable, but the hypothesis compares two broad categories of methods that could overlap in practice. Grounding is solid, drawing from literature on domain-adapted transformers and vocabulary expansion, but lacks the specificity of H1 for direct implementation."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because it involves measuring robustness under controlled perturbations, which requires creating or identifying datasets with known lexical variations—a task that goes beyond what the listed datasets provide. It is somewhat testable but depends on constructing or finding appropriate perturbed versions of legal texts, making it harder to validate reliably. It is internally coherent but introduces complexity in defining and measuring 'robustness' that isn't clearly supported by the listed datasets. While grounded in cross-disciplinary insights about tokenization refinement and domain adaptation, it lacks concrete data support for testing the specific claim about performance degradation under perturbations."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1908.10261v1",
+    "2109.15121v1",
+    "2112.10474v1",
+    "2308.13515v5",
+    "2104.10376v1",
+    "1909.02620v1",
+    "1910.03548v2",
+    "2310.05276v1",
+    "2311.08890v1",
+    "2112.01836v2",
+    "6e7830b0a04e483901bdaaf321c4f13f45977618",
+    "5fcd5bb3a227f3faaaebd43c2685bc80b57a36cc",
+    "2423905453ea1bbae03727fd81890007cccedd43",
+    "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+    "976f537d1b84de682351fba6f2600272acf825ae",
+    "59c0c6b62e33850cda08663d4c9ecabcf5d21596",
+    "4e530cc6f9f74369e9122b1bdc3030967f765faf",
+    "d7acf190030b1cdf001a456277698a9cf76a31e9",
+    "7e0abaa3120ea717c8b29530827cf8764394bd44",
+    "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+    "4760823",
+    "327c84ba20f01bd118f019b3e4aa71d03d1824bc",
+    "e622b45897abc5f2d78722023892d709742c81de",
+    "fe7fcd86b844062246ed7f2fd1979a2cda1140bc",
+    "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+    "4c7804f4bd1abc018a077495ac7192e226d51d6f",
+    "0b8f69790ae95df63ca79a4683f5c57abe1767ec",
+    "22bd4bd6cfba1f37a43d7273c371e3ea22afedb9",
+    "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+    "ae143759cd3e7a395e5f849b0ebcce25c46dc58f",
+    "77f1fd9d5d0deaaba2ae9b2b7d0f8df5b5762268",
+    "841ef68839ee5a29f06c4f539a7c7824bea22e60",
+    "01c0a4e70eb2cde494f30b568424d1aa7e391f66",
+    "623f6d9184e470def8fcf13806cf9c40c1f5f0e3",
+    "03aa38229a6c853d96430edfc8f1542598f2116e",
+    "9248c0feed0cf4caac561a11291551eb2747bf3f",
+    "8741a0768d643c1593f8fea75dfdd0e5e90e1147",
+    "cf5e670a79847d9be0eb185fb372d99d30d4d98f",
+    "93a2773c029a48a3ad226b03dbb2cfbefa081671",
+    "fc5d79301a0876201c95954a764ec374b8eb236e",
+    "10133f50939dac23fbb1f5f6f289f4aec9c85f3f",
+    "93454ac437ed2133b9fbb993a88f493ed3bcbf05",
+    "0d4ed593d29ff1edd6b85f59d442f88169074390",
+    "2bb92e8c07958f2f936456f8103d70dedc2a8175",
+    "50825767c31d4a069cb8bc550e262d5efad9dd6a",
+    "74f6823b44ff0072f0170fe6cbfb0ee560220c7f",
+    "8f0302dfee86701739172c2255cebe228389659e",
+    "02eb3ff713ac33eb0fb43d32ca5bce2663c95943",
+    "ba1aa518fd69d34da6a0eb23251a275681bba9c6",
+    "7b35f1bdc16c392f9de81bcab45ac53251e2c603",
+    "9c62f9973ef26e47c9b11c7b4034eced467696ea",
+    "0e7f005b44609491ff56d997395026f8f230456f",
+    "a8d9b6d7d6618e10bfba9e5a3ffe96d1bc7e08e4",
+    "3423273c8603f1f22e5c5e41fbc0283122705507",
+    "875612e795d76e37ddc6c2cb45680f80197a41e7",
+    "55eae4c6c57c20da7efcdd523a1d492c8a55ab5e",
+    "7f7b93ff837dcb1bba79de29365a9d338c9c119a",
+    "2b74b6f194d3aeb06fc482bc60a8b3f35947a2ee",
+    "e816f788767eec6a8ef0ea9eddd0e902435d4271",
+    "3c477f0e43660ce1ba39c111df312929da37f81f",
+    "1518039b5001f1836565215eb047526b3ac7f462",
+    "efbd381493bb9636f489b965a2034d529cd56bcd",
+    "2609.06898v1",
+    "2409.04599v1",
+    "2306.15880v4",
+    "2503.00209v1",
+    "2402.03758v1",
+    "2305.15425v2",
+    "1903.01594v2",
+    "2507.07824v1",
+    "2504.10335v2",
+    "631ec9857089e7c7fbf1c2e69a6bb50858700cb8",
+    "6815a8927d9b6f7ff188d65a35b049b025210f55",
+    "15158ea19aa765ed8c19357e26b82e7dfbab6164",
+    "7712135ccd8108c4b23dcb858e1050ed574ba5da",
+    "1a2117d3234cff12228369b263298d5df6855e06",
+    "482509f7c90588606de19f5c06f49780e5dfd50b",
+    "bea2f81a4bf0ac1f37cfa8a9d13f86b29e7c00a3",
+    "82bf6de32ec47745ac6866246de6798808d91c80",
+    "d29fa684b5d3f0cbb553812ceaabf697714b2e0b",
+    "310618622",
+    "333001999",
+    "2105.04026v2",
+    "2306.11113v2",
+    "2301.00942v1",
+    "2603.29261v1",
+    "2207.02337v1",
+    "2506.09781v2",
+    "2204.12833v3",
+    "1810.12836v4",
+    "1911.08967v1",
+    "6239f93d8b04417550798d3c1e8279772748a990",
+    "33064d9e1284139d87dd9c92bf7552abcdcabfd8",
+    "edd3bfcd94cef5fba0bbea8e406ad34282283be0",
+    "5e7d61d8a49ffe4ad2962c0f0c5a539309d6733a",
+    "a467a7a365baffa6884ccc8139aeab3fcee6e115",
+    "add2f205338d70e10ce5e686df4a690e2851bdfc",
+    "6fec3e579c7cd4f13bdabbee2b6ac2e8ff5941c6",
+    "38939fea4b872ec36767efa0e40e44c393ff39f8",
+    "541266753f17f6ce469e2b3a157fc7419017b919",
+    "5338158d5b37d46f0052d871c28c090b89dd2afb",
+    "168491012",
+    "8985369",
+    "142783161",
+    "275436821",
+    "2504.05181v2",
+    "2507.03479v1",
+    "2403.13468v1",
+    "1811.08772v1",
+    "1906.07897v1",
+    "1606.03963v1",
+    "2303.08131v3",
+    "1707.07700v1",
+    "9ee9ded08f4c6020bc9710f9374e00f10f4d6e28",
+    "dfb71781effe0cc099fccde171c5413a6c98bc09",
+    "84a326563c8679e6173c13adcf21bbd0bdc2aa04",
+    "f060a8e5433bd45f14396b5352b5b26339cfccb6",
+    "a7a2d91b98362ef4fdf0c2bb67ea1712a2a8c255",
+    "264e38ebc1bfa24c0eefb17c9d8e7cfb11b1569f",
+    "dc7d18acc495727584d4a106f0a0e43adb9e71fa",
+    "a3b203f783dd166e51ac74f3553ae2a6540d7662",
+    "3a120c884e223e70c9b4334425dad210bc2d71c8",
+    "85471cbe6848d2c210f596252fab21a1761f9443",
+    "333002332",
+    "4761767",
+    "4761766",
+    "4761896",
+    "333002290",
+    "340521819"
+  ],
+  "generated_at": "2026-09-15T19:26:12.166930+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

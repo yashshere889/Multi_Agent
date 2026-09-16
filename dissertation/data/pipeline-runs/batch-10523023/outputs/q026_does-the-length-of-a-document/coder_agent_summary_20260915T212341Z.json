@@ -1,0 +1,184 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: e/.venv/lib/python3.14/site-packages/pandas/core/sample.py\", line 161, in sample\n        return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(\n               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      File \"numpy/random/mtrand.pyx\", line 1025, in numpy.random.mtrand.RandomState.choice\n    ValueError: Cannot take a larger sample than population when 'replace=False'\n========================================================================\n\n\nrs/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run.py\", line 245, in load_data\n    long_low_voc[long_low_voc['category'] == cat].sample(n=n_samples_per_cat, random_state=RANDOM_SEED)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 5988, in sample\n    sampled_indices = sample.sample(obj_len, size, replace, weights, rs)\n  File \"/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/pandas/core/sample.py\", line 161, in sample\n    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(\n           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"numpy/random/mtrand.pyx\", line 1025, in numpy.random.mtrand.RandomState.choice\nValueError: Cannot take a larger sample than population when 'replace=False' after 6 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1",
+      "assumptions_made": [
+        "The TTR calculation using regex word extraction is sufficient for this experiment",
+        "The BERT model can be fine-tuned with the specified parameters on the available dataset",
+        "The statistical significance test using a 5% threshold is appropriate for this analysis",
+        "The dataset provides enough samples to create balanced groups for all three conditions",
+        "The model training and evaluation process will complete within the allocated time"
+      ],
+      "results": null,
+      "fix_attempts": 6,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nfrom collections import Counter\\nimport re\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score\\nimport torch\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import (\\n    BertTokenizer,\\n    BertForSequenceClassification,\\n    AdamW,\\n    get_linear_schedule_with_warmup\\n)\\nfrom tqdm import tqdm\\nimport json\\nimport os\\nfrom pathlib import Path\\n===END imports===\\n\\n===BEGIN configuration='",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run_smoke.py\", line 45, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedMo",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset provides sufficient variation in document lengths and categories for meaningful comparisons",
+            "BERT model can be effectively fine-tuned on the provided dataset within the computational constraints",
+            "The TTR calculation accurately reflects vocabulary richness",
+            "Statistical significance testing is appropriate for comparing classification accuracies",
+            "The dataset contains enough documents in each category to form balanced groups",
+            "The model training process will converge within the specified number of epochs",
+            "GPU acceleration is available for efficient training",
+            "The experiment will be run on a system with sufficient memory to handle BERT model operations",
+            "The experiment uses a fixed random seed for reproducibility",
+            "The model architecture and hyperparameters are suitable for the task",
+            "The evaluation protocol correctly measures classification accuracy",
+            "The implementation handles edge cases like empty documents gracefully",
+            "The experiment is designed to fit within the compute budget of a single GPU node",
+            "The dataset preprocessing steps are correctly implemented",
+            "The model training and evaluation processes are correctly implemented",
+            "The statistical analysis appropriately compares the two main groups of interest",
+            "The experiment's success criteria are correctly interpreted and applied"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nfrom collections import Counter\\nimport re\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.metrics import accuracy_score\\nimport torch\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom transformers import (\\n    BertTokenizer,\\n    BertForSequenceClassification,\\n    AdamW,\\n    get_linear_schedule_with_warmup\\n)\\nfrom tqdm import tqdm\\nimport json\\nimport os\\nfrom pathlib import Path\\nimport logging\\n===END imports===\\n\\n===BEGIN'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_3/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run_smoke.py\", line 45, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedMo",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset provides sufficient variation in document lengths and categories for meaningful analysis",
+            "BERT model can be effectively fine-tuned on the provided dataset within the computational constraints",
+            "The Type-Token Ratio (TTR) calculation accurately reflects vocabulary richness",
+            "Statistical significance testing is appropriately applied to compare classification accuracies",
+            "The experiment will run successfully on a single GPU node with the specified resource allocation",
+            "The dataset is properly formatted and accessible at the expected path"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 5,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run_smoke.py\", line 45, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedMo",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The transformers library's AdamW optimizer is accessed via the correct import path",
+            "The 20 Newsgroups dataset is properly formatted and accessible at the specified path",
+            "The dataset contains sufficient documents in each category to create balanced groups",
+            "The BERT model can be fine-tuned effectively on the provided dataset",
+            "The TTR calculation method is consistent and reliable across all documents",
+            "The experiment will be run on a system with adequate computational resources (CPU/GPU)",
+            "The statistical significance testing approach is appropriate for the experimental design"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 6,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/run_smoke.py\", line 45, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532660/023e3ed427d9bf0e/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedMo",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The 20 Newsgroups dataset provides sufficient variation in document length and vocabulary richness to test the hypothesis",
+            "BERT model can be effectively fine-tuned on the provided dataset within the compute budget",
+            "Statistical significance testing will properly distinguish between the groups",
+            "The TTR calculation method is consistent across all documents",
+            "The transformers library version supports the AdamW optimizer directly from the main module"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2310.01329",
+          "title": "BTR: Binary Token Representations for Efficient Retrieval Augmented Language Models",
+          "year": "2023",
+          "citation_count": 7,
+          "tldr": "Binary token representations (BTR) enhance the speed and storage efficiency of retrieval-augmented language models with minimal impact on performance.",
+          "url_abs": "https://arxiv.org/abs/2310.01329v2",
+          "repositories": [
+            {
+              "url": "https://github.com/csarron/btr",
+              "is_official": true,
+              "stars": 16
+            }
+          ],
+          "methods": [
+            "Hallucination",
+            "Large language model (LLM)",
+            "QLoRA"
+          ]
+        },
+        {
+          "paper_id": "1904.08398",
+          "title": "DocBERT: BERT for Document Classification",
+          "year": "2019",
+          "citation_count": 332,
+          "tldr": "BERT is applied to document classification, achieving state-of-the-art results, and knowledge is distilled from BERT-large to smaller LSTMs for efficiency.",
+          "url_abs": "https://arxiv.org/abs/1904.08398v3",
+          "repositories": [
+            {
+              "url": "https://github.com/castorini/hedwig",
+              "is_official": true,
+              "stars": 597
+            },
+            {
+              "url": "https://github.com/dki-lab/covid19-classification",
+              "is_official": false,
+              "stars": 16
+            }
+          ],
+          "methods": [
+            "Adam",
+            "BERT",
+            "BiLSTM",
+            "Dropout",
+            "ElMo",
+            "Knowledge Distillation",
+            "Layer Normalization",
+            "Multi-head attention",
+            "Softmax"
+          ]
+        }
+      ],
+      "reported_attempt": 7
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_26/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T21:23:41.578805+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

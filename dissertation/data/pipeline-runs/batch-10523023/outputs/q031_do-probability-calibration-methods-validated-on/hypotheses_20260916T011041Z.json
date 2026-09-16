@@ -1,0 +1,438 @@
+{
+  "literature_summary": "The literature demonstrates that probability calibration methods are widely studied and applied across diverse domains such as credit scoring, healthcare, and financial risk prediction. While numerous techniques exist—ranging from traditional methods like Platt Scaling and Isotonic Regression to newer approaches like Beta calibration and spline-based calibration—their effectiveness varies significantly depending on data characteristics, particularly class imbalance. Most studies acknowledge that calibration is crucial for model reliability, fairness, and interpretability, yet there is a notable gap in understanding how these methods perform when transferred from balanced benchmarks to heavily imbalanced real-world tabular data. Many papers highlight the limitations of standard metrics like AUROC in imbalanced settings and advocate for domain-specific calibration strategies. Furthermore, while some works propose hybrid approaches combining sampling techniques with calibration, few directly evaluate the transferability of calibration methods in extreme imbalance scenarios. There is also growing interest in integrating calibration with explainability tools and conformal prediction to enhance trustworthiness in high-stakes applications.",
+  "methods_overview": [
+    {
+      "method": "Platt Scaling",
+      "papers_using_it": [
+        "1710.08901v1",
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9",
+        "0af4043b5c5a732863a003fca18a456fb39c79ab",
+        "42e5ed832d4310ce4378c44d05570439df28a393"
+      ],
+      "notes": "Commonly used for probability calibration in binary classification models, especially in credit scoring and healthcare applications."
+    },
+    {
+      "method": "Isotonic Regression",
+      "papers_using_it": [
+        "1710.08901v1",
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9",
+        "03a0640792a9b60d02832554f4ae6d53c841a307",
+        "21b044433d3ff8bd5d7de281dd6e3511e248307e"
+      ],
+      "notes": "Frequently applied for improving calibration in credit scoring, healthcare monitoring, and bias mitigation tasks."
+    },
+    {
+      "method": "SMOTE",
+      "papers_using_it": [
+        "2605.14067v1",
+        "2102.04721v1",
+        "363400",
+        "340528588",
+        "340528488",
+        "8cb44f06586f609a29d9b496cc752ec01475dffe",
+        "b25cd13f2a70a4a13542843884b4aba6eda45bc6"
+      ],
+      "notes": "Commonly employed for handling class imbalance in financial distress prediction, credit scoring, and general classification tasks."
+    },
+    {
+      "method": "Conformal Prediction",
+      "papers_using_it": [
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9"
+      ],
+      "notes": "Used in healthcare settings to ensure valid prediction regions alongside calibrated probabilities."
+    },
+    {
+      "method": "SHAP-based Explainability",
+      "papers_using_it": [
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9",
+        "03a0640792a9b60d02832554f4ae6d53c841a307",
+        "38c937c9276db7bf2a956ed667dc565e40a9eafe",
+        "1d10c2b2e45006a1a1d80b9c9a9eefdbc2cfbb68"
+      ],
+      "notes": "Frequently utilized to understand how calibration affects feature importance and model decisions."
+    },
+    {
+      "method": "Expected Calibration Error (ECE)",
+      "papers_using_it": [
+        "0af4043b5c5a732863a003fca18a456fb39c79ab",
+        "6d6e545ce1fd637fbce7549e668dbded40ac8581",
+        "c4205b2fc71b07571e38c862c1e01e1fe83cbe21"
+      ],
+      "notes": "Used to quantify calibration quality; relatively common in recent literature."
+    },
+    {
+      "method": "Transfer Learning",
+      "papers_using_it": [
+        "2308.06821v1",
+        "4a94074232ea2e0d694957cf6305189970fb9877",
+        "674af61b1c4c72418bfb7819b846f277a99d306e",
+        "e0d4944635bf62a0e2bb614fde5d3c092ae8f110"
+      ],
+      "notes": "Used in brain tumor classification, cross-domain fault diagnosis, and medical image classification to leverage pre-trained models for improved performance on imbalanced data."
+    },
+    {
+      "method": "Probability Calibration Trees",
+      "papers_using_it": [
+        "1808.00111v2"
+      ],
+      "notes": "A novel method that learns localized calibration models using logistic model trees to improve calibration."
+    },
+    {
+      "method": "Beta Calibration",
+      "papers_using_it": [
+        "222e0a16d8580c06c9c3dd7de1fee41af6eeec1e"
+      ],
+      "notes": "A novel calibration technique shown effective for imbalanced health data classification."
+    },
+    {
+      "method": "Class-wise and Reduced Calibration",
+      "papers_using_it": [
+        "c8ac9c44b25cbfcb4a4c361b4563887a1db7021c"
+      ],
+      "notes": "Techniques that improve calibration by focusing on individual classes or reducing dimensionality."
+    },
+    {
+      "method": "Ensemble Methods",
+      "papers_using_it": [
+        "395052199",
+        "4709269",
+        "2b46bb046ca2cce63c11ea5226d8be764124b978",
+        "2fe304b990db7d3d71c329e558d11813a310552e"
+      ],
+      "notes": "Used in various contexts including imbalanced learning, transfer learning, and calibration."
+    },
+    {
+      "method": "Non-parametric Calibration Approach",
+      "papers_using_it": [
+        "7b0d7f5b71e8a9ce23d03a9cc527b70a11b0ce6f"
+      ],
+      "notes": "Rarely used but offers a way to achieve well-calibrated predictions without parametric assumptions."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The effectiveness of calibration techniques varies significantly depending on the domain and type of data, suggesting a need for domain-specific calibration strategies.",
+      "supporting_evidence": [
+        "1710.08901v1",
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9",
+        "03a0640792a9b60d02832554f4ae6d53c841a307"
+      ],
+      "notes": "This variation implies that general-purpose calibration methods may not be universally applicable."
+    },
+    {
+      "gap": "There is limited exploration of how calibration impacts model performance in very severe class imbalance scenarios beyond standard benchmarks.",
+      "supporting_evidence": [
+        "2605.14067v1",
+        "2102.04721v1",
+        "21b044433d3ff8bd5d7de281dd6e3511e248307e"
+      ],
+      "notes": "Most studies focus on moderate imbalance, leaving extreme cases largely unexplored."
+    },
+    {
+      "gap": "Most studies focus on post-hoc calibration methods, with little attention to intrinsic calibration mechanisms within model architectures.",
+      "supporting_evidence": [
+        "1808.00111v2",
+        "ed1be8a658d746fe508b524885914fd957bf2929"
+      ],
+      "notes": "This limits the development of inherently calibrated models."
+    },
+    {
+      "gap": "Few studies directly quantify the trade-offs between calibration and model accuracy in high-stakes applications.",
+      "supporting_evidence": [
+        "03a0640792a9b60d02832554f4ae6d53c841a307",
+        "415090c107f6f3c9ddba887d0529eed02b8cb8e9"
+      ],
+      "notes": "Understanding these trade-offs is essential for practical deployment."
+    },
+    {
+      "gap": "There is insufficient discussion on how to handle class imbalance in the context of explainable AI models in educational and healthcare domains.",
+      "supporting_evidence": [
+        "2b7e246a640c7bc0a40b5bd7f25c27e4da90f86e",
+        "37016eaa08524b0e9a804c539bcaf46673ee83c6"
+      ],
+      "notes": "This represents an important gap in applying explainability to sensitive domains."
+    },
+    {
+      "gap": "Limited research on the application of ensemble diversity specifically tailored for multi-class imbalance problems beyond two-class scenarios.",
+      "supporting_evidence": [
+        "395052199"
+      ],
+      "notes": "Multi-class imbalance remains underexplored in ensemble methods."
+    },
+    {
+      "gap": "Lack of direct comparison between different calibration techniques in medical prediction models.",
+      "supporting_evidence": [
+        "2fde52fe7923bfa44c32f11e3811f0d5b2a863ba",
+        "cd6bed60df984120dd4f3940b419e4e02390fa64",
+        "3b84bbbe95a3db68befe240f6bddc536c9a4bac9"
+      ],
+      "notes": "Comparative studies are needed to guide practitioners."
+    },
+    {
+      "gap": "Most studies focus on binary class imbalance; fewer approaches are designed specifically for multi-class imbalanced data without decomposition schemes.",
+      "supporting_evidence": [
+        "4709269",
+        "395052199"
+      ],
+      "notes": "This leaves a significant portion of real-world problems underserved."
+    },
+    {
+      "gap": "There is a lack of comprehensive experimental validation of calibration techniques specifically tailored for extreme class imbalance conditions.",
+      "supporting_evidence": [
+        "21b044433d3ff8bd5d7de281dd6e3511e248307e"
+      ],
+      "notes": "Validation in extreme imbalance settings is lacking."
+    },
+    {
+      "gap": "The poor sample efficiency of calibration metric estimators, particularly for class-wise ECE, leads to high variance and unreliable results in imbalanced datasets.",
+      "supporting_evidence": [
+        "c8ac9c44b25cbfcb4a4c361b4563887a1db7021c"
+      ],
+      "notes": "This undermines the reliability of calibration assessments."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively combine calibration and sampling techniques for imbalanced classification in real-world applications.",
+      "supporting_evidence": [
+        "5397687967c9f87409dc31db0b84c6cd7c4ac5cd",
+        "8cb44f06586f609a29d9b496cc752ec01475dffe"
+      ],
+      "notes": "Integration of these methods needs more empirical study."
+    },
+    {
+      "gap": "Most existing calibration methods do not fully address the issue of class imbalance in high-dimensional spaces, limiting their practical utility.",
+      "supporting_evidence": [
+        "c8ac9c44b25cbfcb4a4c361b4563887a1db7021c"
+      ],
+      "notes": "High-dimensional data presents unique challenges for calibration."
+    },
+    {
+      "gap": "There is limited discussion on how to apply calibration techniques specifically to non-cognitive domains such as personality judgments beyond basic confidence and bias scores.",
+      "supporting_evidence": [
+        "297170561"
+      ],
+      "notes": "Application beyond cognitive domains is under-researched."
+    },
+    {
+      "gap": "While several papers propose new calibration methods, few directly compare them against each other in terms of robustness across different types of data or tasks.",
+      "supporting_evidence": [
+        "fb935ab93886b0e910730d9eae799586fd0c369c",
+        "338425985"
+      ],
+      "notes": "Direct comparisons are rare, hindering method selection."
+    },
+    {
+      "gap": "The applicability of machine learning models trained on historical data from one region (e.g., Taiwan) to other regions (e.g., Kazakhstan) requires further validation and contextual adaptation.",
+      "supporting_evidence": [
+        "2165e76d9f65d5e7a02913971c153db8148967aa",
+        "e708c7bd7168c9b4595c6248423e435cead3c5c4"
+      ],
+      "notes": "Cross-regional transferability is an open question."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Probability calibration methods validated on balanced benchmarks such as AG News or 20 Newsgroups will exhibit significantly higher Expected Calibration Error (ECE) when applied to heavily imbalanced real-world tabular data like UCI Credit Approval or UCI German Credit, compared to their performance on the original benchmark datasets.",
+      "rationale": "This hypothesis builds on the identified gap regarding the limited exploration of how calibration impacts model performance in very severe class imbalance scenarios beyond standard benchmarks [2605.14067v1, 2102.04721v1, 21b044433d3ff8bd5d7de281dd6e3511e248307e]. It also draws from the observation that most studies focus on post-hoc calibration methods without sufficient validation in extreme imbalance settings [21b044433d3ff8bd5d7de281dd6e3511e248307e]. The hypothesis is testable using real datasets with known class imbalance ratios and ECE measurements.",
+      "related_gaps": [
+        "There is limited exploration of how calibration impacts model performance in very severe class imbalance scenarios beyond standard benchmarks."
+      ],
+      "related_methods": [
+        "Expected Calibration Error (ECE)",
+        "Platt Scaling",
+        "Isotonic Regression"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Dataset type (balanced vs. imbalanced)",
+          "Calibration method used"
+        ],
+        "dependent": [
+          "Expected Calibration Error (ECE)"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Ensemble-based calibration techniques that incorporate sampling strategies (e.g., SMOTE combined with Isotonic Regression) will demonstrate superior calibration quality in highly imbalanced tabular data such as UCI Statlog German Credit compared to standalone calibration methods, as measured by lower ECE and improved reliability diagrams.",
+      "rationale": "This hypothesis stems from the gap concerning the lack of direct comparison between different calibration techniques in medical prediction models and the limited discussion on how to effectively combine calibration and sampling techniques for imbalanced classification [5397687967c9f87409dc31db0b84c6cd7c4ac5cd, 8cb44f06586f609a29d9b496cc752ec01475dffe]. It leverages the bridge insight that ensemble calibration techniques adapted for forecasting emphasize the importance of diversity in model predictions [764ecc46b1f7eee860932ffe2b056b344e9bb314], which is particularly relevant for minority classes in imbalanced data.",
+      "related_gaps": [
+        "There is limited discussion on how to effectively combine calibration and sampling techniques for imbalanced classification in real-world applications.",
+        "Lack of direct comparison between different calibration techniques in medical prediction models."
+      ],
+      "related_methods": [
+        "Ensemble Methods",
+        "SMOTE",
+        "Isotonic Regression",
+        "Expected Calibration Error (ECE)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Calibration method (standalone vs. ensemble + sampling)"
+        ],
+        "dependent": [
+          "Expected Calibration Error (ECE)",
+          "Reliability Diagram Accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Applying quantile regression-based calibration frameworks, inspired by methods used in statistical forecasting for probabilistic forecasting, will yield more robust and stable calibrated probabilities in imbalanced tabular data such as UCI Adult Census Income compared to traditional Platt Scaling or Isotonic Regression, especially when evaluating minority class outcomes.",
+      "rationale": "This hypothesis is grounded in the cross-disciplinary bridge insight that quantile regression methods for probabilistic forecasting can inform calibration of imbalanced tabular data by modeling heterogeneous prediction distributions [1809.03561v1]. It addresses the gap in the poor sample efficiency of calibration metric estimators for class-wise ECE, which leads to unreliable results in imbalanced datasets [c8ac9c44b25cbfcb4a4c361b4563887a1db7021c]. This approach is particularly suitable for datasets like UCI Adult Census Income, which contains both categorical and numerical features and exhibits class imbalance.",
+      "related_gaps": [
+        "The poor sample efficiency of calibration metric estimators, particularly for class-wise ECE, leads to high variance and unreliable results in imbalanced datasets."
+      ],
+      "related_methods": [
+        "Quantile Regression",
+        "Platt Scaling",
+        "Isotonic Regression",
+        "Expected Calibration Error (ECE)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Calibration method (quantile regression vs. Platt Scaling/Isotonic Regression)"
+        ],
+        "dependent": [
+          "Expected Calibration Error (ECE)",
+          "Minority Class Coverage",
+          "Prediction Uncertainty Stability"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is the most feasible as it directly tests calibration methods on real-world imbalanced datasets (UCI Credit Approval and UCI German Credit) using established metrics like ECE. These datasets are publicly available, have clear class imbalance ratios, and allow for concrete measurement of calibration error. It is highly testable because it makes a specific claim about performance degradation in imbalanced settings versus balanced benchmarks, with a clear outcome that could either support or refute the hypothesis. The claim is coherent, focusing on the system behavior (calibration quality) rather than analysis methods, and is well-grounded in the literature gaps around extreme imbalance validation. The data itself decides the outcome through measurable ECE values."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 7.0,
+      "justification": "H2 proposes ensemble-based calibration with sampling strategies, which is testable using UCI Statlog German Credit. However, it introduces more complexity by combining methods (SMOTE + Isotonic Regression) that require careful implementation and tuning. While it's grounded in bridge insights about ensemble diversity and sampling integration, the hypothesis is less focused on a single system behavior and more on a composite technique. Its feasibility is moderate due to the need for additional preprocessing steps like SMOTE, and it's somewhat less specific in its expected outcome compared to H1, making it harder to definitively support or refute."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 5.5,
+      "justification": "H3 uses quantile regression-based calibration inspired by forecasting methods, which is theoretically compelling but less directly testable with the available datasets. While UCI Adult Census Income is suitable for testing, the hypothesis relies heavily on advanced calibration frameworks that may not be straightforward to implement or interpret in the context of tabular classification. It also introduces more abstract concepts (quantile regression, probabilistic forecasting) that make the outcome less predictable and harder to validate. Although grounded in a cross-disciplinary insight, the hypothesis lacks the clarity and concreteness of H1 and H2 for experimental validation."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1710.08901v1",
+    "1808.00111v2",
+    "2308.06821v1",
+    "2605.14067v1",
+    "2102.04721v1",
+    "415090c107f6f3c9ddba887d0529eed02b8cb8e9",
+    "03a0640792a9b60d02832554f4ae6d53c841a307",
+    "ed1be8a658d746fe508b524885914fd957bf2929",
+    "a91651cb8e97e753aca9e3862779da51e168fa45",
+    "20db716a51874908712e8dd8508f6e6ce0299a71",
+    "4a94074232ea2e0d694957cf6305189970fb9877",
+    "37016eaa08524b0e9a804c539bcaf46673ee83c6",
+    "22101bf06d9f3c9a975c1ea474ad549b15e4ba65",
+    "e0d4944635bf62a0e2bb614fde5d3c092ae8f110",
+    "674af61b1c4c72418bfb7819b846f277a99d306e",
+    "2b7e246a640c7bc0a40b5bd7f25c27e4da90f86e",
+    "95cb007844eeecca492872c9bc1681c698a33185",
+    "5803755333aabd9d6198effd4d0a9b3508c080ad",
+    "cd3603ba6a15a5fedea598621f8ba8e7a2f99574",
+    "2575552",
+    "5140839",
+    "2717843",
+    "2603928",
+    "25513118",
+    "29162667",
+    "395052199",
+    "4709269",
+    "363400",
+    "340528588",
+    "340528488",
+    "2fde52fe7923bfa44c32f11e3811f0d5b2a863ba",
+    "cd6bed60df984120dd4f3940b419e4e02390fa64",
+    "3b84bbbe95a3db68befe240f6bddc536c9a4bac9",
+    "92f0488214c3e54e0c7dafbb2b5e4dcde122f2ff",
+    "97d0365bf60b0669ec80c0219ea2d8fed0f06dcf",
+    "0af4043b5c5a732863a003fca18a456fb39c79ab",
+    "a7e8a0089ad3d86fd6b1da28dbcca0e9f06cd7ce",
+    "cfd1680a714bd6d65f915c435dcc3ddc36f243ce",
+    "6d6e545ce1fd637fbce7549e668dbded40ac8581",
+    "f167f73010c5b3590e27be90d9c25579a5845292",
+    "c4205b2fc71b07571e38c862c1e01e1fe83cbe21",
+    "7b0d7f5b71e8a9ce23d03a9cc527b70a11b0ce6f",
+    "c71fcc5e92d3f3a7263b61b22611762b23fc9a8f",
+    "e7196791c8050a7304ca31cd9a5053ba050a3e35",
+    "2b46bb046ca2cce63c11ea5226d8be764124b978",
+    "36ccd6254419a4ae437716f4a15ea6bb17609dad",
+    "a82127d464dd8411e2bb691ab4523925de054d61",
+    "1c9b186efe4529493bad1b89cac8d837c5f121ee",
+    "9bb58347d4a09449734dbfb0522de4391f5c1625",
+    "b8cc0ae95dfb573654b3bd9c7d1d694941706a09",
+    "21b044433d3ff8bd5d7de281dd6e3511e248307e",
+    "2fe304b990db7d3d71c329e558d11813a310552e",
+    "8c64ee67de16ca04800e424e95628a2636985a0a",
+    "2ca3628968b6a0e1f625ff905c1d278cabe0357b",
+    "da57cbcf1d15b4f42bcb2bb058d93700f4eb3d03",
+    "222e0a16d8580c06c9c3dd7de1fee41af6eeec1e",
+    "61d1ae955d87c9290fbc1a16e979c3e88b7a5e0f",
+    "b25cd13f2a70a4a13542843884b4aba6eda45bc6",
+    "5397687967c9f87409dc31db0b84c6cd7c4ac5cd",
+    "c8ac9c44b25cbfcb4a4c361b4563887a1db7021c",
+    "bde9b2b8781c979cb2993e9509f20d15aee27d7c",
+    "b50bfb7a8e1cd3928e9a9665c97bdb107c1da32a",
+    "8cb44f06586f609a29d9b496cc752ec01475dffe",
+    "7e640729cca5a82c205bf95f346867097446838c",
+    "42e5ed832d4310ce4378c44d05570439df28a393",
+    "6d03a38c5ddb7c7cd1ceb59b28907dc918c5d83a",
+    "2502.19086v5",
+    "1809.03561v1",
+    "1603.01376v1",
+    "2207.04794v1",
+    "2110.13179v8",
+    "2301.06650v3",
+    "0fc5c7d1d5bbabc254656a91099f004544d8054b",
+    "b1f727929a29dde1af39d35d7e54b01ce1286f5e",
+    "764ecc46b1f7eee860932ffe2b056b344e9bb314",
+    "82203b6bb3cf5253ce5a5380f536bf9c48f1890b",
+    "4190b086e7ff4a650bd8870b036fa4b8b74f476b",
+    "17163422",
+    "2566317",
+    "4386863",
+    "405906351",
+    "2006.16189v4",
+    "2201.12150v2",
+    "2302.08893v4",
+    "2404.12511v1",
+    "2411.02988v2",
+    "45470c315446f7c3beb4bf55cf5fff733e23cd9d",
+    "92524abddd2aec947cbf6985e22ee3eda0746196",
+    "f22db66b66ef9934ab4c17a76dab28079651c5a8",
+    "9563e9578073447b68261eda55e7a6c4fb2af7c8",
+    "fb935ab93886b0e910730d9eae799586fd0c369c",
+    "60f016adc29f6f2e9b29031c9c2e8cbea00774d6",
+    "5e5848aa7f0d37e7ead301fbb17c7531107db4e4",
+    "338425985",
+    "370332381",
+    "333761696",
+    "297170561",
+    "2502.12174v2",
+    "1710.05204v2",
+    "2308.00065v1",
+    "1907.07908v4",
+    "1902.04489v3",
+    "cb99c48084864f5a89b8b463d24a814ae9e180e5",
+    "e708c7bd7168c9b4595c6248423e435cead3c5c4",
+    "2688f1bcd18e5ed783b9e52427620cde56f5469a",
+    "2165e76d9f65d5e7a02913971c153db8148967aa",
+    "38c937c9276db7bf2a956ed667dc565e40a9eafe",
+    "1d10c2b2e45006a1a1d80b9c9a9eefdbc2cfbb68",
+    "2471043"
+  ],
+  "generated_at": "2026-09-16T01:10:41.529958+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

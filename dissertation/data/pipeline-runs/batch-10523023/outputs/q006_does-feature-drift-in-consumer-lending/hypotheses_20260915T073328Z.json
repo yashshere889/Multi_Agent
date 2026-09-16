@@ -1,0 +1,325 @@
+{
+  "literature_summary": "The literature consistently highlights the pervasive challenge of concept drift in machine learning systems, particularly within consumer lending and financial applications. Multiple studies demonstrate that drift—whether in feature distributions, model performance, or data stationarity—significantly affects both model calibration and ranking discrimination. While numerous methods have been proposed to detect and adapt to drift, including ensemble models, conformal prediction, gradient boosting adaptations, and explainable AI frameworks, there remains a notable gap in understanding how these techniques specifically impact calibration versus discrimination. Most approaches focus on maintaining accuracy or stability but often lack rigorous evaluation of how drift affects the two distinct aspects of model performance. Furthermore, many solutions are evaluated on synthetic or limited real-world datasets, and few address the practical scalability, interpretability, or regulatory compliance required for deployment in real-time financial systems.",
+  "methods_overview": [
+    {
+      "method": "SHAP explainability analysis",
+      "papers_using_it": [
+        "b874a09be1d5f5154befa502d669cbc1159cf13b"
+      ],
+      "notes": "Rare; used primarily for analyzing feature importance and drift in credit scoring models."
+    },
+    {
+      "method": "Conformal prediction",
+      "papers_using_it": [
+        "24e5e7caad9025373c146c491ff94d863133b1f8",
+        "8d2b1200da3628218964c9083768fc5fbe0475b3",
+        "e0ef3864c7d7dbc0a1947336c360de3023aac7ad"
+      ],
+      "notes": "Common; widely applied for uncertainty quantification and calibration under non-stationarity."
+    },
+    {
+      "method": "Drift detection using statistical tests",
+      "papers_using_it": [
+        "b874a09be1d5f5154befa502d669cbc1159cf13b",
+        "d889d7d34645a527fc03eba0fe3bfce46ad41602"
+      ],
+      "notes": "Moderately common; includes KS, JS divergence, Chi-square, and PSI for detecting feature drift."
+    },
+    {
+      "method": "Ensemble and hybrid models",
+      "papers_using_it": [
+        "f42d225a7cdaf03f0f73cb4a24d65f1b82164fa1",
+        "8452b9e4f9c627747ecb4350b809b0e98a9449b5",
+        "28d8a36a1abdf9e4db8cf7fda2042bfabf68cc2a",
+        "a35b1979cf194a64fc2b5f3e39a10548ba3410af"
+      ],
+      "notes": "Common; used across fraud detection, credit risk, and real-time systems for robustness."
+    },
+    {
+      "method": "Gradient boosting adaptations",
+      "papers_using_it": [
+        "2ce072c68afc183e22f1eb50b979248d0aafbbab",
+        "339cae82a2403edd6794a8899723294f000316b8",
+        "8fce70985edd6d095b6533b7a5558fba7d87dfc4"
+      ],
+      "notes": "Moderately common; adapted for credit risk and temporal data handling."
+    },
+    {
+      "method": "Interpretable machine learning",
+      "papers_using_it": [
+        "32da343dca221334c184a4b7ad01260351d5db76",
+        "a35b1979cf194a64fc2b5f3e39a10548ba3410af"
+      ],
+      "notes": "Moderately common; used for building trust and understanding in financial models."
+    },
+    {
+      "method": "Probabilistic rule models (PRMs)",
+      "papers_using_it": [
+        "d889d7d34645a527fc03eba0fe3bfce46ad41602"
+      ],
+      "notes": "Rare; applied for diagnosing and correcting structural drift in financial regimes."
+    },
+    {
+      "method": "Temporal and cost-sensitive evaluation",
+      "papers_using_it": [
+        "0f28776a2fc80c1be61103e9f3697ddc6657625d"
+      ],
+      "notes": "Rare; used for evaluating credit risk models under evolving economic conditions."
+    },
+    {
+      "method": "Ranking instability analysis",
+      "papers_using_it": [
+        "a2a8c013d9fa41653b69338a3ecc3fbf3668f613"
+      ],
+      "notes": "Rare; focused on how ranking changes under restricted candidate sets."
+    },
+    {
+      "method": "Controlled perturbation framework",
+      "papers_using_it": [
+        "abc7d4e33a1f8d4a5772618d3ad5b59faf3f7614"
+      ],
+      "notes": "Rare; used to assess stability of feature rankings in ML models."
+    },
+    {
+      "method": "Dynamic calibration curve analysis",
+      "papers_using_it": [
+        "1284b4793a52ba522f63a19d8b6db6e170a2e88b"
+      ],
+      "notes": "Rare; applied for detecting calibration drift in predictive models."
+    },
+    {
+      "method": "Adaptive drift compensation",
+      "papers_using_it": [
+        "4830784",
+        "5d3f813357ec509af24aceb85d9cfc3dde0f7ae2",
+        "6cbce06cdeca3950fc3146902ae708e87fc3dd0c",
+        "75fb682aade91af1f780edbb4e262e02ebbdb913"
+      ],
+      "notes": "Moderately common; used in sensor and malware classification systems."
+    },
+    {
+      "method": "Concept drift complexity scoring",
+      "papers_using_it": [
+        "369042129"
+      ],
+      "notes": "Rare; used to estimate model lifespan under drift conditions."
+    },
+    {
+      "method": "Explainable AI for fraud detection",
+      "papers_using_it": [
+        "3e6c170ad2eb7d8e13386bb1d4c6f5127a95c69c"
+      ],
+      "notes": "Rare; integrated into adaptive fraud detection frameworks."
+    },
+    {
+      "method": "Lightweight neural networks",
+      "papers_using_it": [
+        "6e655251d8560121e6060d4e7695aac3806613d7"
+      ],
+      "notes": "Rare; designed for real-time adaptation without retraining."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of direct comparison between how drift affects model calibration versus ranking discrimination in consumer lending",
+      "supporting_evidence": [
+        "b874a09be1d5f5154befa502d669cbc1159cf13b",
+        "271ddc4cb5ef40d77d10a37a930f5a6ee54f1f49",
+        "a2a8c013d9fa41653b69338a3ecc3fbf3668f613",
+        "abc7d4e33a1f8d4a5772618d3ad5b59faf3f7614"
+      ],
+      "notes": "Multiple studies observe instability in either ranking or calibration but rarely directly compare their degradation rates."
+    },
+    {
+      "gap": "Limited evaluation of drift-handling methods on real-world financial datasets beyond synthetic benchmarks",
+      "supporting_evidence": [
+        "28d8a36a1abdf9e4db8cf7fda2042bfabf68cc2a",
+        "c069a006ef6316395578ab337bb56063ed74dbde",
+        "a35b1979cf194a64fc2b5f3e39a10548ba3410af",
+        "ff70f2359462c09857945b9a0aef5f228a251246",
+        "5d3f813357ec509af24aceb85d9cfc3dde0f7ae2",
+        "75fb682aade91af1f780edbb4e262e02ebbdb913"
+      ],
+      "notes": "Many models are validated on simulated or domain-specific data, lacking broad financial applicability."
+    },
+    {
+      "gap": "Insufficient discussion on how to dynamically adapt models in response to detected drift without sacrificing interpretability",
+      "supporting_evidence": [
+        "b874a09be1d5f5154befa502d669cbc1159cf13b",
+        "d889d7d34645a527fc03eba0fe3bfce46ad41602"
+      ],
+      "notes": "While drift detection is common, integrating adaptive correction while preserving transparency remains underexplored."
+    },
+    {
+      "gap": "Need for standardized benchmarks for evaluating regime-aware uncertainty quantification in financial forecasting",
+      "supporting_evidence": [
+        "e0ef3864c7d7dbc0a1947336c360de3023aac7ad"
+      ],
+      "notes": "No consensus on how to measure and validate uncertainty quantification under regime shifts."
+    },
+    {
+      "gap": "Lack of integration between drift estimation and adaptive model updating in intelligent sensor architectures",
+      "supporting_evidence": [
+        "451499"
+      ],
+      "notes": "Detection methods exist but are not seamlessly linked to model update mechanisms."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "In consumer credit approval models trained on the UCI Statlog German Credit dataset, feature drift detected via Kolmogorov-Smirnov tests will lead to a faster decline in model calibration compared to the decline in ranking discrimination over time.",
+      "rationale": "This hypothesis directly addresses the identified gap regarding the lack of direct comparison between how drift affects model calibration versus ranking discrimination. The UCI Statlog German Credit dataset provides a real-world financial dataset with categorical and numerical features suitable for drift detection using statistical tests like KS. Calibration and ranking discrimination can be measured using established metrics such as calibration plots and AUC, respectively.",
+      "related_gaps": [
+        "Lack of direct comparison between how drift affects model calibration versus ranking discrimination in consumer lending"
+      ],
+      "related_methods": [
+        "Drift detection using statistical tests",
+        "Dynamic calibration curve analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "time",
+          "feature distribution shift"
+        ],
+        "dependent": [
+          "calibration error",
+          "ranking discrimination (AUC)"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Models using ensemble methods adapted for concept drift, such as those described in [f42d225a7cdaf03f0f73cb4a24d65f1b82164fa1], will maintain better calibration stability than traditional models when deployed on the UCI Adult Census Income dataset under simulated feature drift conditions.",
+      "rationale": "This hypothesis builds upon the gap concerning limited evaluation of drift-handling methods on real-world financial datasets beyond synthetic benchmarks. Ensemble models are known to improve robustness in real-time systems, and the UCI Adult Census Income dataset offers a realistic environment for testing such models. The hypothesis focuses on the practical scalability and interpretability of ensemble methods in maintaining model performance under drift.",
+      "related_gaps": [
+        "Limited evaluation of drift-handling methods on real-world financial datasets beyond synthetic benchmarks"
+      ],
+      "related_methods": [
+        "Ensemble and hybrid models",
+        "Adaptive drift compensation"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "type of model",
+          "level of drift"
+        ],
+        "dependent": [
+          "calibration error",
+          "ranking discrimination (AUC)"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "The application of SHAP explainability analysis, as used in [b874a09be1d5f5154befa502d669cbc1159cf13b], will allow practitioners to distinguish between feature shifts that primarily impact model calibration versus those that mainly affect ranking discrimination in a real-time credit scoring system.",
+      "rationale": "This hypothesis leverages the cross-disciplinary insight from reliability engineering that explainability-based drift detection can isolate which aspects of model performance are affected by data drift. It connects to the gap around insufficient discussion on how to dynamically adapt models while preserving interpretability. Using SHAP on a real dataset like UCI Credit Approval enables testing whether feature importance changes correlate with calibration vs. ranking degradation.",
+      "related_gaps": [
+        "Insufficient discussion on how to dynamically adapt models in response to detected drift without sacrificing interpretability"
+      ],
+      "related_methods": [
+        "SHAP explainability analysis",
+        "Concept drift complexity scoring"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "feature shift type",
+          "drift magnitude"
+        ],
+        "dependent": [
+          "calibration shift",
+          "ranking shift"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is highly feasible as it uses the UCI Statlog German Credit dataset, which is real, publicly available, and contains both categorical and numerical features suitable for Kolmogorov-Smirnov drift detection. It directly addresses the core research question by comparing calibration and ranking discrimination degradation under drift, making it testable with clear metrics (calibration plots and AUC). The hypothesis is coherent, focusing on the system (consumer credit approval models) rather than methods, and is well-grounded in the literature gap regarding direct comparison of drift effects on calibration vs. discrimination. The data itself can decisively support or refute the claim."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 is moderately feasible, using the UCI Adult Census Income dataset, but introduces ensemble methods that require more complex implementation and tuning. Its testability is somewhat weakened because it compares model types rather than directly measuring drift effects on calibration vs. discrimination. While it aligns with the literature gap on real-world evaluation, it is less directly tied to the core research question and relies more on model architecture assumptions. The grounding is solid but less specific to the stated problem."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 5.0,
+      "justification": "H3 is least feasible because it proposes using SHAP explainability analysis to distinguish between calibration and ranking shifts, which is more of a diagnostic tool than a direct test of the research question. Although it connects to the cross-disciplinary insight from reliability engineering, it lacks a concrete experimental setup that can definitively support or refute the claim. The hypothesis is somewhat speculative and less grounded in the specific data-driven approach needed for empirical validation."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "c069a006ef6316395578ab337bb56063ed74dbde",
+    "f42d225a7cdaf03f0f73cb4a24d65f1b82164fa1",
+    "8452b9e4f9c627747ecb4350b809b0e98a9449b5",
+    "28d8a36a1abdf9e4db8cf7fda2042bfabf68cc2a",
+    "a35b1979cf194a64fc2b5f3e39a10548ba3410af",
+    "24e5e7caad9025373c146c491ff94d863133b1f8",
+    "4825731",
+    "4830784",
+    "339cae82a2403edd6794a8899723294f000316b8",
+    "32da343dca221334c184a4b7ad01260351d5db76",
+    "8fce70985edd6d095b6533b7a5558fba7d87dfc4",
+    "0f28776a2fc80c1be61103e9f3697ddc6657625d",
+    "b874a09be1d5f5154befa502d669cbc1159cf13b",
+    "d889d7d34645a527fc03eba0fe3bfce46ad41602",
+    "c92acf07323d280fe4f037fcf3746701a5462c2e",
+    "8d2b1200da3628218964c9083768fc5fbe0475b3",
+    "e0ef3864c7d7dbc0a1947336c360de3023aac7ad",
+    "1284b4793a52ba522f63a19d8b6db6e170a2e88b",
+    "d95d47d82beb7f40757c8511df586c7d205152f7",
+    "271ddc4cb5ef40d77d10a37a930f5a6ee54f1f49",
+    "a2a8c013d9fa41653b69338a3ecc3fbf3668f613",
+    "39cad52996200fc67f96a831dfb57d01deba338d",
+    "abc7d4e33a1f8d4a5772618d3ad5b59faf3f7614",
+    "96c8e14129d60d99703a8ebaae1d87fa847452de",
+    "c69a07a39e869c1b88666dd9fb558185f9de2ca1",
+    "26bc9195c6343e4d7f434dd65b4ad67efe2be27a",
+    "497e4b08279d69513e4d2313a7fd9a55dfb73273",
+    "48ddd9101a90fe65e3061de69626741b843ff5e4",
+    "ee0a0f04d45f86bf50b24d7258e884725fcaa621",
+    "ff70f2359462c09857945b9a0aef5f228a251246",
+    "5d3f813357ec509af24aceb85d9cfc3dde0f7ae2",
+    "6cbce06cdeca3950fc3146902ae708e87fc3dd0c",
+    "75fb682aade91af1f780edbb4e262e02ebbdb913",
+    "24a1db76a18e1cc722eff4b56c3622b272d41338",
+    "12c7863ab168de053971c9377262f2c738b2101d",
+    "7b8880e5f5b6110f0045cd0b03e30c0c5d493bff",
+    "9ded63c694e1e25a297bb6e54a76dc243e4a5b5f",
+    "767d32048d35b9bbda8d8649d0e09149e2436bf4",
+    "451499",
+    "2265973",
+    "2d63e29120bc5085a3fd97b8a39d1da477ff8a68",
+    "7a6d1c6d63bd7d3430d2ff3c71bfa10184219442",
+    "a9d8ba2cdde8d38623349eeeaabfdda795bef590",
+    "2605185a995072af6cd14c274a61197706599a35",
+    "6e655251d8560121e6060d4e7695aac3806613d7",
+    "2b0624815fe7ae5e00a2b886669f9381fb0e9c1e",
+    "3c2e939ff8ddd8220dee57d37626f5c6f668a80d",
+    "2ce072c68afc183e22f1eb50b979248d0aafbbab",
+    "3e6c170ad2eb7d8e13386bb1d4c6f5127a95c69c",
+    "126995025",
+    "369042129",
+    "369291848",
+    "e7beeb2db44d57737a986875dc5af4ddf15959de",
+    "2ba2f4471b7de952ac252873bd0aed462f8863d7",
+    "f5574fa009b712c48835141d6cf960724de3c34f",
+    "33036b28ab1064a58b6dbc64e63ee2f087f3e2f8",
+    "4c588e26b76cb4aef2edd9b08883e493bfd2f508",
+    "13b7e8ebef4c3db5cf6c5b8a8e3cc6f1da6e27d0",
+    "261944",
+    "340511934",
+    "261960",
+    "2699669",
+    "3161097",
+    "26264309"
+  ],
+  "generated_at": "2026-09-15T07:33:28.626548+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

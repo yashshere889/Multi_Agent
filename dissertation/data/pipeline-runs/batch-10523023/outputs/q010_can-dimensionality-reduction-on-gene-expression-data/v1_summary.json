@@ -1,0 +1,60 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q010_can-dimensionality-reduction-on-gene-expression-data/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "08ad01586ceb5ecbcbe18c9b0c459e08b9d10f0f",
+    "4858de0d3c75fc098e13611073d81e97e2d50af0",
+    "9634bc4eb0dc97b1d3d7941720d28aab8aed2405",
+    "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+    "124587",
+    "340428709",
+    "6092518",
+    "3af045503abf81705fc1833aadf5db93a9be854c",
+    "219485e0c3b950fb31ede2d7c23c5bc4beacb964",
+    "89398ecb2e4e566e2dbaf84e8d603dbc1e2b0e85",
+    "3ba5aeb67347cb151d558b2660c894f4e3b92050",
+    "34a6a6d96fc891793afbe7577352939816dc3154",
+    "2d99e2aa27a02a6cb5591071a9d9dfc8dc52b5a7",
+    "4463728",
+    "42730331",
+    "2f7bebea5541c290bf6a4cb643bb13a0b6383ba6",
+    "ba969a4f3bc5f5a84f6025478e566c40661d85f3",
+    "2502.13080v2",
+    "688f393b69ba398fccf9f497308e261a40b1756c",
+    "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2",
+    "1607.01327v8",
+    "f0a3e1752e1146da927adc24ae07144ab2e744ec",
+    "09181eb32feb76dd8e85b1815b440f4c26596a04",
+    "2209.02746v1",
+    "fff700b24dd1d816c07feb22e222e0a7b8ba686b",
+    "171050456",
+    "a7c1642509397ccebaa98bf5ec67b8b6ba219cc8",
+    "5d21619629e6f63763d4a6b26ec959593effa9ee",
+    "3f956d97bbf8be066e9609acccf868be2f648a0a",
+    "2302.13221v4",
+    "77f6085fa5db79dcadb1b81875d0103420b282c7"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T10:11:01.566581+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

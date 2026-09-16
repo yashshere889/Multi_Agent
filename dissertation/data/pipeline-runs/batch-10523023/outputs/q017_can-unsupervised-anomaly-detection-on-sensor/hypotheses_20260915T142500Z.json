@@ -1,0 +1,368 @@
+{
+  "literature_summary": "The literature demonstrates a wide variety of unsupervised and semi-supervised anomaly detection methods applied to sensor time series across industrial, IoT, and cyber-physical systems. Approaches include deep learning models such as autoencoders, transformers, and LSTM variants, alongside traditional statistical methods like Isolation Forest and Gaussian Mixture Models. Many studies emphasize handling noisy or contaminated data, improving robustness, and reducing false positives. However, there is a notable lack of standardized benchmarks, consistent evaluation protocols, and direct comparisons between unsupervised and supervised methods in real-world settings. Most approaches struggle with generalizability across domains, interpretability, and adaptation to dynamic or non-stationary environments. While some works explore early detection of equipment degradation, few directly compare unsupervised methods to fixed-threshold alarms in terms of lead time or reliability.",
+  "methods_overview": [
+    {
+      "method": "Isolation Forest",
+      "papers_using_it": [
+        "544ce7f42ced9c8d6827a3803bf4f644de78bf00",
+        "c3d002ce8613de1aa587f9295d7ef63080b94e2c",
+        "972f76299d0df1433018d777ca61033154f5fd14",
+        "988f3c0965a3e9f05b0b778432715ae89d35c08d"
+      ],
+      "notes": "Commonly used for unsupervised anomaly detection, especially in real-world sensor data, due to its efficiency and temporal coherence."
+    },
+    {
+      "method": "Autoencoders",
+      "papers_using_it": [
+        "2111.11108v1",
+        "2510.18998v1",
+        "2112.14436v1",
+        "30a684a54a172954bf4e639279b2cadfa00a0b1d",
+        "e247899e80b1db8adcc1e033be8f86de3e8262ec",
+        "e8e4ad54b72bc41d25f98412e7fba6a122e6ab34",
+        "55b3588e6b6965199bab3659a0064a84c348d9a7",
+        "c08d936b8433ae8bccd84c103225a48fb213c415",
+        "89c9f994a0efb1e4ae843a553f840c323b7ca573",
+        "30286a5db6eddc9cb889c7eed350330d53a4e323"
+      ],
+      "notes": "Very common in unsupervised anomaly detection, particularly for reconstruction-based methods in industrial and IoT settings."
+    },
+    {
+      "method": "Transformer-based models",
+      "papers_using_it": [
+        "5901e9ca2b84212738362019e57de08f971bfd8c",
+        "ef63563e8a22c290c123fc09cc6454975020dd43",
+        "96f1da832b190d530962974108721e6a9e640ad3",
+        "a46b06a4b8b4deecf96a4e42cd19b4696f999e66",
+        "d64150a8641553fe45ebdd72637feb41622003fc",
+        "5760e1ea941cf955a3f26a204ba00c0d7299e389",
+        "6d1b7c27748ed1bbafe61ba3fe60465b28af5e0f"
+      ],
+      "notes": "Commonly used for multivariate time series anomaly detection, especially when capturing long-range dependencies."
+    },
+    {
+      "method": "Statistical Process Control (SPC)",
+      "papers_using_it": [
+        "9489f92cf533885359a8efc3a0f030a95abf9f1b",
+        "9ab1f4f0fcc37f2b9990da356fe1177da65adc68",
+        "0f2a146354e35b1f01cefdf6f23554ed942fc05d",
+        "bde4e56fdb3cd5dedc0e8a14f3bd14781b8e19b2",
+        "1724f4bf9325b26a7142463ae6fb17e5b4813d2b",
+        "c4d766462f19deb815c362d67bddc904b448b8e4",
+        "4a5f3aae5b2a863f9e229ceb5c9773d8057d70d0",
+        "2790626"
+      ],
+      "notes": "Used in multivariate control charts and SPC frameworks, though less common in unsupervised anomaly detection compared to other methods."
+    },
+    {
+      "method": "Ensemble Methods",
+      "papers_using_it": [
+        "2111.11108v1",
+        "77d4d9ac2abd16c3040906e08cd87900902637b8",
+        "5ca33ba820c06da464dfd59996b2267311d275d0",
+        "b201fc7464a336485b3530a5ed9332c16b986bb5",
+        "13489a8ff0d387d6759087f8ebcc62cdef15d4e7"
+      ],
+      "notes": "Moderately common, especially in combination with other models for improved robustness and classification accuracy."
+    },
+    {
+      "method": "Thresholding",
+      "papers_using_it": [
+        "131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683",
+        "30a684a54a172954bf4e639279b2cadfa00a0b1d",
+        "aa8a1ee5324e1e87e6203523915b3d66356cb324",
+        "989c8035a5c57dc9850b991ba28086ccc1713298",
+        "a09f5ddeca4c3fed5c93b53cebd14992e4be5fc8"
+      ],
+      "notes": "Very common but often criticized for being insufficient for contextual anomalies and leading to fragmented alarms."
+    },
+    {
+      "method": "Graph Neural Networks",
+      "papers_using_it": [
+        "21d2742e38f7167354dafcf7f565d3894b31d008"
+      ],
+      "notes": "Rare but emerging, particularly for capturing inter-sensor relationships in anomaly detection."
+    },
+    {
+      "method": "One-Class SVM",
+      "papers_using_it": [
+        "d264a416e75993fc2f4138e1f9da39791aaf0368"
+      ],
+      "notes": "Moderately common in vibration and industrial data anomaly detection."
+    },
+    {
+      "method": "Monte Carlo EM",
+      "papers_using_it": [
+        "2112.14436v1"
+      ],
+      "notes": "Rare, used to explicitly account for anomalies in training data."
+    },
+    {
+      "method": "SOUE Detector",
+      "papers_using_it": [
+        "1411.2188v1"
+      ],
+      "notes": "Rare, combining DTW and semantic inference for wireless sensor networks."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of standardized benchmarks and datasets for comparing anomaly detection models in industrial IoT and real-world settings",
+      "supporting_evidence": [
+        "544ce7f42ced9c8d6827a3803bf4f644de78bf00",
+        "972f76299d0df1433018d777ca61033154f5fd14",
+        "c3d002ce8613de1aa587f9295d7ef63080b94e2c",
+        "d264a416e75993fc2f4138e1f9da39791aaf0368",
+        "29db6896a2e6cbe7a131d0526cf52764f81c2826",
+        "30cb8f7658073a12f5c6c5e0c76d5ccc0d848250",
+        "83b554f3af9f44e75226ee2adcc827d17391d45b",
+        "a759ea23835f8cdbb66ec6848e426f3331d1a793"
+      ],
+      "notes": "Multiple studies point to the absence of consistent evaluation criteria and shared datasets."
+    },
+    {
+      "gap": "Limited evaluation of model generalizability across different industrial domains and sensor types",
+      "supporting_evidence": [
+        "29db6896a2e6cbe7a131d0526cf52764f81c2826",
+        "d264a416e75993fc2f4138e1f9da39791aaf0368",
+        "30cb8f7658073a12f5c6c5e0c76d5ccc0d848250"
+      ],
+      "notes": "Most models are domain-specific and lack cross-domain validation."
+    },
+    {
+      "gap": "Lack of systematic comparison between unsupervised and supervised methods in real-world contexts",
+      "supporting_evidence": [
+        "e247899e80b1db8adcc1e033be8f86de3e8262ec"
+      ],
+      "notes": "Few studies directly compare performance and applicability of unsupervised vs. supervised approaches."
+    },
+    {
+      "gap": "Absence of RUL labels limiting full prognostic tasks in degradation trend prediction",
+      "supporting_evidence": [
+        "3450d86188bd45498f43f5fd2eb0c34973361d40"
+      ],
+      "notes": "Degradation trend prediction modules cannot be fully evaluated without remaining useful life (RUL) data."
+    },
+    {
+      "gap": "Inconsistent reporting of preprocessing steps and experimental validation in vibration signal analysis",
+      "supporting_evidence": [
+        "c1a6a4a29c35647e3db813f6124efeccb4a637f7"
+      ],
+      "notes": "Studies often lack transparency in data preparation and validation procedures."
+    },
+    {
+      "gap": "Need for real-time adaptability and scalability of AI-driven cybersecurity frameworks in heterogeneous environments",
+      "supporting_evidence": [
+        "e65c12407586e2d5391a3719a8d63e2835dcca81"
+      ],
+      "notes": "Current models struggle with deployment in dynamic and large-scale network environments."
+    },
+    {
+      "gap": "Lack of standardized evaluation methods for asynchronous multivariate time series",
+      "supporting_evidence": [
+        "5760e1ea941cf955a3f26a204ba00c0d7299e389"
+      ],
+      "notes": "Evaluation protocols are not well-established for complex, asynchronous data."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "An unsupervised anomaly detection method based on multivariate control charts will detect equipment degradation up to 14 days earlier on average than fixed-threshold alarms in industrial sensor data.",
+      "rationale": "This hypothesis leverages the bridge insight that multivariate control charts, rooted in Statistical Process Control (SPC), are specifically designed to detect gradual shifts in process behavior—such as early signs of equipment degradation—compared to static threshold-based alarms. The approach is grounded in the gap regarding limited real-world comparisons between unsupervised and supervised methods, and the need for adaptive frameworks that respond to evolving baselines. Using real-world sensor data with known degradation timelines would allow testing of this lead-time advantage.",
+      "related_gaps": [
+        "Lack of systematic comparison between unsupervised and supervised methods in real-world contexts",
+        "Need for real-time adaptability and scalability of AI-driven cybersecurity frameworks in heterogeneous environments"
+      ],
+      "related_methods": [
+        "Statistical Process Control (SPC)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "sensor readings over time",
+          "threshold alarm triggers"
+        ],
+        "dependent": [
+          "time-to-detection of degradation"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Autoencoder-based unsupervised anomaly detection models trained on multivariate sensor time series will reduce false positive rates by 25% compared to Isolation Forest models when deployed in industrial settings with noisy data.",
+      "rationale": "This hypothesis builds upon the observation that both Autoencoders and Isolation Forests are commonly used for unsupervised anomaly detection in industrial contexts. It addresses the gap in lack of standardized benchmarks and consistent evaluation protocols. By focusing on noise resilience and false positive reduction, it tests whether one class of model performs better under realistic conditions where data quality is compromised—a key concern in real-world deployments.",
+      "related_gaps": [
+        "Lack of standardized benchmarks and datasets for comparing anomaly detection models in industrial IoT and real-world settings",
+        "Inconsistent reporting of preprocessing steps and experimental validation in vibration signal analysis"
+      ],
+      "related_methods": [
+        "Autoencoders",
+        "Isolation Forest"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "type of model (autoencoder vs isolation forest)"
+        ],
+        "dependent": [
+          "false positive rate"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Transformer-based models for multivariate time series anomaly detection will show higher sensitivity to early degradation signals than ensemble methods using Isolation Forests and One-Class SVMs when applied to UCI Air Quality dataset.",
+      "rationale": "This hypothesis explores the comparative effectiveness of modern deep learning architectures like Transformers against traditional ensemble techniques in capturing long-range dependencies in sensor data. It aligns with the identified gap around limited generalizability of models across domains and the lack of standardized evaluation methods for asynchronous multivariate time series. The UCI Air Quality dataset provides a suitable real-world setting with multivariate, time-series measurements that can be used to evaluate sensitivity to subtle degradation indicators.",
+      "related_gaps": [
+        "Limited evaluation of model generalizability across different industrial domains and sensor types",
+        "Lack of standardized evaluation methods for asynchronous multivariate time series"
+      ],
+      "related_methods": [
+        "Transformer-based models",
+        "Ensemble Methods",
+        "Isolation Forest",
+        "One-Class SVM"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model type (transformer vs ensemble)"
+        ],
+        "dependent": [
+          "anomaly detection sensitivity"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it can be tested using real-world sensor data with known degradation timelines, such as the UCI Air Quality dataset (uci_air_quality_hourly.csv), which contains multivariate time series data with temporal structure. It is highly testable because it makes a specific, measurable claim about lead-time advantage (up to 14 days) in detecting degradation using multivariate control charts versus fixed-threshold alarms. The hypothesis is coherent since it directly contrasts two systems—unsupervised anomaly detection vs. fixed-threshold alarms—in the context of equipment degradation, and aligns with the bridge insight from Statistical Process Control (SPC) that multivariate control charts are designed for detecting gradual shifts. The data supports the claim directly through time-series analysis of actual sensor readings and degradation events. Its grounding is strong, drawing from established SPC methods and addressing a clear gap in real-world comparisons between unsupervised and supervised approaches."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 focuses on comparing false positive rates between autoencoders and Isolation Forests in noisy industrial settings. While it uses real data (e.g., UCI datasets), it lacks a direct temporal degradation signal or ground truth for evaluating false positives in a meaningful way. The hypothesis is somewhat testable but less specific in its outcome, as false positive reduction depends heavily on model tuning and data preprocessing, which may not yield a definitive binary result. It also introduces a methodological comparison (autoencoders vs. Isolation Forests) that is not clearly grounded in the core problem of early detection or the bridge insights. Although it addresses a relevant gap in benchmarking, it does not directly engage with the core research question of lead-time advantage or system-level behavior."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 compares transformer-based models with ensemble methods using the UCI Air Quality dataset for sensitivity to early degradation signals. However, this dataset lacks explicit degradation labels or RUL information, making it difficult to evaluate sensitivity to early degradation signals meaningfully. The hypothesis is less testable due to the absence of ground-truth degradation timelines, and its claim is more speculative than actionable. While it touches on modern deep learning architectures and generalizability, it does not directly address the core research question of early detection relative to fixed-threshold alarms. It also fails to leverage the bridge insight from SPC effectively, instead focusing on a comparison between model families without a clear operational context."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2510.18998v1",
+    "1411.2188v1",
+    "2111.11108v1",
+    "2112.14436v1",
+    "5901e9ca2b84212738362019e57de08f971bfd8c",
+    "544ce7f42ced9c8d6827a3803bf4f644de78bf00",
+    "ef63563e8a22c290c123fc09cc6454975020dd43",
+    "29db6896a2e6cbe7a131d0526cf52764f81c2826",
+    "dfb830dd70038750627cc10688f7fb8fe2cb9f03",
+    "77d4d9ac2abd16c3040906e08cd87900902637b8",
+    "c3d002ce8613de1aa587f9295d7ef63080b94e2c",
+    "972f76299d0df1433018d777ca61033154f5fd14",
+    "d264a416e75993fc2f4138e1f9da39791aaf0368",
+    "30cb8f7658073a12f5c6c5e0c76d5ccc0d848250",
+    "895496aa0d8457b919ccf31d1cbe7621aa8d3cb0",
+    "30a684a54a172954bf4e639279b2cadfa00a0b1d",
+    "131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683",
+    "995626ebde48eb0dbbcd135c599f3cf00fce9461",
+    "169879288",
+    "16673054",
+    "106af66574df3a795c71ff2d1710a7a16b6fb545",
+    "0deb9c1d428002cc0b5f55f236ffcae88ecd1062",
+    "d1cfba5aa2d8d02de58afc0813082d51856fbeed",
+    "920e0e85ca67d487731a33a74dba1f13204cc102",
+    "83b554f3af9f44e75226ee2adcc827d17391d45b",
+    "a759ea23835f8cdbb66ec6848e426f3331d1a793",
+    "30286a5db6eddc9cb889c7eed350330d53a4e323",
+    "d64150a8641553fe45ebdd72637feb41622003fc",
+    "aa8a1ee5324e1e87e6203523915b3d66356cb324",
+    "0b9693da356aeb86b1d74fd066026a95617caa9d",
+    "5069f041f48883f34bfcaeaf2d58d13b2838e122",
+    "96f1da832b190d530962974108721e6a9e640ad3",
+    "4b19af73214e215a2d7f4a3f43c437b3562bf9d1",
+    "3450d86188bd45498f43f5fd2eb0c34973361d40",
+    "55b3588e6b6965199bab3659a0064a84c348d9a7",
+    "b30d0a72c13b98651106247867d5398e7e37e63e",
+    "18e44abeec2f2ce3d53fd5738333df907aef2869",
+    "c08d936b8433ae8bccd84c103225a48fb213c415",
+    "89c9f994a0efb1e4ae843a553f840c323b7ca573",
+    "79bfa3a8e065ba6fa9501b3e9d9999b4fb895168",
+    "0bba52b46e398e8a138eeaf3b8a7317195508359",
+    "041fb62f0e3528f2b872b47852054c9e4d883f86",
+    "392a8b367f4cc8c90468d604d138d24b728b0002",
+    "07663da86e0cc254c79133cadda7dc794a7a49af",
+    "5166bfd309a84e6158fda2405c48e1dae1d9b343",
+    "10e2fe9e8b3e6f5109ee30eeac40ad9cf95a2fca",
+    "b49cd38a72bc310120b07fe0883c9eecbeab2a83",
+    "938f72c92f67b209945e5851d2e827ee7b8c534d",
+    "6f49579dc1ba117e840e78c4ab54095530cd34c3",
+    "b201fc7464a336485b3530a5ed9332c16b986bb5",
+    "e40486ebcaf5647f6d985c5801dea8d69d55d448",
+    "13489a8ff0d387d6759087f8ebcc62cdef15d4e7",
+    "5ca33ba820c06da464dfd59996b2267311d275d0",
+    "988f3c0965a3e9f05b0b778432715ae89d35c08d",
+    "4c039fe2029f1d297b1278e4b6455d88178c5f70",
+    "7f6576e2f0527051b82c25e226e60fe2cc957fb3",
+    "de9ee4a1ea198be836d1451db9a487215b943943",
+    "e247899e80b1db8adcc1e033be8f86de3e8262ec",
+    "e8e4ad54b72bc41d25f98412e7fba6a122e6ab34",
+    "989c8035a5c57dc9850b991ba28086ccc1713298",
+    "a09f5ddeca4c3fed5c93b53cebd14992e4be5fc8",
+    "67628543f7ae51979acadfbb8860568b25f263da",
+    "440d248d148f7e36dad232e48f1c5c1cbc556d86",
+    "21d2742e38f7167354dafcf7f565d3894b31d008",
+    "a46b06a4b8b4deecf96a4e42cd19b4696f999e66",
+    "5760e1ea941cf955a3f26a204ba00c0d7299e389",
+    "6d1b7c27748ed1bbafe61ba3fe60465b28af5e0f",
+    "686c610bd39c3eb711801cb257cdcf472482c107",
+    "9489f92cf533885359a8efc3a0f030a95abf9f1b",
+    "9ab1f4f0fcc37f2b9990da356fe1177da65adc68",
+    "0f2a146354e35b1f01cefdf6f23554ed942fc05d",
+    "bde4e56fdb3cd5dedc0e8a14f3bd14781b8e19b2",
+    "1724f4bf9325b26a7142463ae6fb17e5b4813d2b",
+    "4a5f3aae5b2a863f9e229ceb5c9773d8057d70d0",
+    "c4d766462f19deb815c362d67bddc904b448b8e4",
+    "3104372",
+    "3100027",
+    "2500865",
+    "2790626",
+    "2647734",
+    "279261",
+    "a206b789765b40a10584d7701cf883ffea010ca2",
+    "66c29fa4820f9922a8aac2528faea5cbf6a1cb44",
+    "fbcd943f7afe30b6a7e87d16f111e479acb5548c",
+    "c1a6a4a29c35647e3db813f6124efeccb4a637f7",
+    "47b148b13b6a4d7b357241ab71a142632c7dbf4a",
+    "eb29c73a79b914dc85faf69891105a775ab22bdc",
+    "f4370dd71146f2b94888ffd473843f1b8d1a2e22",
+    "1dd7ddb29ef061624c8d77f8a89d35f495dd3815",
+    "296074182",
+    "4580912",
+    "8984556",
+    "2790972",
+    "2731352",
+    "5703973",
+    "5704124",
+    "e65c12407586e2d5391a3719a8d63e2835dcca81",
+    "3b5d692801c70490caa1da76fece5433fe6db8f3",
+    "75e3cf4cc3f945db11e47da154422f7f738a8159",
+    "7216a98a46b4830f967d2883c6adf57a7d972131",
+    "8ebd76125296bc3837f0fb73f2df0b6ad7c3b457",
+    "b2b3eea2eabf09afdadbbc795dbe056d68eea42e",
+    "4074556",
+    "298312549",
+    "159435312",
+    "58337163",
+    "332699709",
+    "18615223"
+  ],
+  "generated_at": "2026-09-15T14:25:00.540046+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,92 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "failed to provision an isolated environment for ['scikit-learn', 'gensim', 'torch', 'pandas', 'numpy', 'gensim', 'numpy', 'pandas', 'sklearn', 'torch'] via uv: tmpHck3od/include',\n      '-I/users/sgyshere/.local/share/uv/python/cpython-3.14.7-linux-x86_64-gnu/include/python3.14',\n      '-I/tmp/users/sgyshere/uv-cache-10535138/builds-v0/.tmpHck3od/lib/python3.14/site-packages/numpy/_core/include',\n      '-c', 'gensim/models/word2vec_inner.c', '-o',\n      'build/temp.linux-x86_64-cpython-314/gensim/models/word2vec_inner.o']'\n      returned non-zero exit status 1.\n\n\nhint: Build failures usually indicate a problem with the package or the build environment\n",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_27/H1",
+      "assumptions_made": [
+        "The 20 Newsgroups dataset contains sufficient scientific content to detect interdisciplinary trends",
+        "Simulated citation peaks accurately represent the temporal dynamics of topic shifts",
+        "The variance-invariance-covariance regularization in NTMs improves topic detection capabilities",
+        "Topic prevalence changes correlate with citation patterns in scientific literature",
+        "The implemented NTM model with regularization is a valid approximation of the theoretical concept",
+        "The citation peak simulation method provides meaningful temporal context for topic shift detection",
+        "The evaluation metrics (MAE, P@k, R@k) appropriately measure temporal proximity of topic shifts to citation peaks"
+      ],
+      "results": null,
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['readme', 'requirements_txt', 'assumptions_made', 'needs_network', 'needs_gpu']. Raw response: '===BEGIN imports===\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.feature_extraction.text import CountVectorizer\\nfrom sklearn.decomposition import LatentDirichletAllocation\\nimport torch\\nimport torch.nn as nn\\nimport torch.optim as optim\\nfrom torch.utils.data import Dataset, DataLoader\\nfrom collections import defaultdict, Counter\\nimport re\\nimport os\\nfrom datetime import datetime\\nfrom typing import List, Tuple, Dict, Any, Optional\\nimport json\\nfrom itertools import combinations\\nimport warnings'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_27/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2306.04217",
+          "title": "Effective Neural Topic Modeling with Embedding Clustering Regularization",
+          "year": "2023",
+          "citation_count": 98,
+          "tldr": "A novel neural topic model, ECRTM, addresses topic collapsing by introducing embedding clustering regularization, which ensures distinct word semantics in each topic, leading to high-quality topic distributions and better performance in classification tasks.",
+          "url_abs": "https://arxiv.org/abs/2306.04217",
+          "repositories": [
+            {
+              "url": "https://github.com/bobxwu/ecrtm",
+              "is_official": true,
+              "stars": 44
+            },
+            {
+              "url": "https://github.com/bobxwu/topmost",
+              "is_official": false,
+              "stars": 291
+            }
+          ],
+          "methods": [
+            "Embedding"
+          ]
+        },
+        {
+          "paper_id": "2204.09874",
+          "title": "Is Neural Topic Modelling Better than Clustering? An Empirical Study on Clustering with Contextual Embeddings for Topics",
+          "year": "2022",
+          "citation_count": 97,
+          "tldr": "Direct clustering of high-quality sentence embeddings with a word selecting method generates more coherent and diverse topics than neural topic models, with higher efficiency and simplicity.",
+          "url_abs": "https://arxiv.org/abs/2204.09874",
+          "repositories": [
+            {
+              "url": "https://github.com/hyintell/topicx",
+              "is_official": true,
+              "stars": 45
+            }
+          ],
+          "methods": [
+            "Adam",
+            "BERT",
+            "Dropout",
+            "Embedding",
+            "Layer Normalization",
+            "Multi-head attention",
+            "Softmax"
+          ]
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_27/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T22:58:37.054778+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

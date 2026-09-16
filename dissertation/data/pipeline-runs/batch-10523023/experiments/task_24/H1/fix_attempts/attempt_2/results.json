@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether increasing the compression rate (ratio of summary length to source document length) in news articles from the AG News corpus leads to a significant decrease in readability scores (Flesch-Kincaid Grade Level) and a moderate negative correlation with factual accuracy (zero-shot faithfulness evaluation).",
+  "author": "coder-agent",
+  "baseline": "Baseline readability and faithfulness scores for the full-length articles (compression rate = 1.0). These serve as reference points for comparing changes in readability and accuracy as compression increases.",
+  "success_criteria": "Supporting the hypothesis would show a statistically significant negative trend in Flesch-Kincaid Grade Level with increasing compression rate, and a moderate negative correlation with zero-shot faithfulness scores. Refuting the hypothesis would mean observing no clear trend or even positive trends in either metric.",
+  "timestamp_utc": "2026-09-15T19:42:42.281199+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.0279,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_24/H1/run.py\", line 543, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_24/H1/run.py\", line 243, in run_experiment\n    faithfulness_pipe = model[\"faithfulness_pipeline\"]\n                        ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\nKeyError: 'faithfulness_pipeline'\n"
+}

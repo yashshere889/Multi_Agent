@@ -1,0 +1,75 @@
+{
+  "inputs": [
+    {
+      "name": "ag_news_document_text_category_classification_test.csv",
+      "kind": "real_local",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/ag_news_document_text_category_classification_test.csv",
+      "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/ag_news_document_text_category_classification_test.csv",
+      "credentials": [],
+      "preview": {
+        "data_format": "csv",
+        "read_hint": "comma-separated, with a header row (pandas.read_csv)",
+        "columns": [
+          "text",
+          "category",
+          "word_count",
+          "label",
+          "target"
+        ],
+        "sample_rows": [
+          {
+            "text": "Fears for T N pension after talks Unions representing workers at Turner Newall say they are 'disappointed' after talks with stricken parent firm Federal Mogul.",
+            "category": "Business",
+            "word_count": "25",
+            "label": "Business",
+            "target": "Business"
+          },
+          {
+            "text": "The Race is On: Second Private Team Sets Launch Date for Human Spaceflight (SPACE.com) SPACE.com - TORONTO, Canada -- A second\\team of rocketeers competing for the #36;10 million Ansari X Prize, a con\u2026",
+            "category": "Sci/Tech",
+            "word_count": "48",
+            "label": "Sci/Tech",
+            "target": "Sci/Tech"
+          },
+          {
+            "text": "Ky. Company Wins Grant to Study Peptides (AP) AP - A company founded by a chemistry researcher at the University of Louisville won a grant to develop a method of producing better peptides, which are s\u2026",
+            "category": "Sci/Tech",
+            "word_count": "45",
+            "label": "Sci/Tech",
+            "target": "Sci/Tech"
+          }
+        ],
+        "notes": "ag_news_document_text_category_classification_test.csv   (  7600 rows)\n\n  Source: the AG News topic corpus, via Hugging Face fancyzhx/ag_news.\n  Columns: text, category, word_count\n  4 balanced categories (World, Sports, Business, Sci/Tech). Real news\n  headline+description pairs, NOT synthetic. These documents are SHORT --\n  median 37 words, max 177 -- so a truncation sweep saturates early here.\n  Integer labels 0..3 have been mapped to their names; text is\n  whitespace-normalized. Official split; do not re-split across it.\n\n  Both corpora are plain CSV: read with pandas.read_csv(path). They are\n  already on local disk -- no download, no network, no `datasets` library.",
+        "row_count": 7600,
+        "last_rows": [
+          {
+            "text": "Martinez leaves bitter Like Roger Clemens did almost exactly eight years earlier, Pedro Martinez has left the Red Sox apparently bitter about the way he was treated by management.",
+            "category": "Sports",
+            "word_count": "29",
+            "label": "Sports",
+            "target": "Sports"
+          },
+          {
+            "text": "5 of arthritis patients in Singapore take Bextra or Celebrex &lt;b&gt;...&lt;/b&gt; SINGAPORE : Doctors in the United States have warned that painkillers Bextra and Celebrex may be linked to major car\u2026",
+            "category": "Business",
+            "word_count": "37",
+            "label": "Business",
+            "target": "Business"
+          },
+          {
+            "text": "EBay gets into rentals EBay plans to buy the apartment and home rental service Rent.com for \\$415 million, adding to its already exhaustive breadth of offerings.",
+            "category": "Business",
+            "word_count": "26",
+            "label": "Business",
+            "target": "Business"
+          }
+        ]
+      }
+    }
+  ],
+  "methodological_validity": "real data \u2014 findings are interpretable as evidence for the hypothesis",
+  "all_inputs_real": true,
+  "surrogate_count": 0,
+  "unconfirmed_discovered_inputs": []
+}

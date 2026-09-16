@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    {
+      "name": "uci_statlog_german_credit.csv",
+      "kind": "synthetic_surrogate",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/uci_statlog_german_credit.csv",
+      "reason": "the generated code reports substituting for the data this plan requires: The UCI Statlog German Credit dataset was not found at the expected path, so a synthetic dataset was created to match the structure and approximate distribution of the real data.; The synthetic dataset preserves the categorical nature of the original features and maintains the class imbalance (70% good credit, 30% bad credit) to ensure realistic experimental conditions.",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1,
+  "unconfirmed_discovered_inputs": []
+}

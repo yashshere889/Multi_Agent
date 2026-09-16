@@ -1,0 +1,31 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether applying demographic parity versus equal opportunity fairness constraints to a credit approval model results in significantly different rejection patterns for male applicants when overall accuracy is held constant.",
+  "author": "coder-agent",
+  "baseline": "Baseline model without fairness constraints trained on the same dataset",
+  "success_criteria": "Supporting the hypothesis: Demographic parity leads to higher rejection rate among male applicants compared to equal opportunity when overall accuracy is controlled. Refuting the hypothesis: No significant difference in male rejection rates between the two fairness constraints.",
+  "timestamp_utc": "2026-09-15T18:56:00.371581+00:00",
+  "status": "success",
+  "elapsed_seconds": 0.0839,
+  "resumed": false,
+  "metrics": {
+    "baseline_accuracy": 0.785,
+    "dp_accuracy": 0.785,
+    "eo_accuracy": 0.795,
+    "baseline_rejection_rate_male": 0.6422764227642277,
+    "dp_rejection_rate_male": 0.7804878048780488,
+    "eo_rejection_rate_male": 0.7235772357723578,
+    "tpr_diff_baseline": 0.1151586368977674,
+    "tpr_diff_dp": 0.062279670975323165,
+    "tpr_diff_eo": 0.03055229142185667,
+    "acceptance_diff_baseline": 0.04487382536163026,
+    "acceptance_diff_dp": 0.01425403864428254,
+    "acceptance_diff_eo": 0.02227853447365641,
+    "rejection_difference": 0.05691056910569103,
+    "is_significant": "True"
+  },
+  "meets_success_criteria": true,
+  "notes": "Hypothesis supported: Demographic parity resulted in higher rejection rate (0.780) for male applicants compared to equal opportunity (0.724), with a difference of 0.057.",
+  "error": null
+}

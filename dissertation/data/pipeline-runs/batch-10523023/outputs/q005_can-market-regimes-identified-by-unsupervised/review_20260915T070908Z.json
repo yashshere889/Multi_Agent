@@ -1,0 +1,467 @@
+{
+  "iteration": 1,
+  "hallucinations": [
+    {
+      "location": "Introduction",
+      "claim": "A variety of unsupervised and hybrid techniques—including K-Means clustering, Hidden Markov Models, Variational Autoencoders, and spectral clustering—have been proposed to identify distinct market states.",
+      "issue": "The ground truth literature summary mentions K-Means clustering, Hidden Markov Models, and spectral clustering as commonly employed techniques, but does not mention Variational Autoencoders. Therefore, claiming that Variational Autoencoders have been proposed for this purpose is a hallucination."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Notably, many studies lack explicit validation against labeled data, which hampers the ability to accurately assess the performance and interpretability of clustering methods (Issa and Horvath, 2023; Haryani, 2026).",
+      "issue": "While the ground truth identifies 'Lack of explicit validation against labeled data for clustering methods' as a gap, it lists supporting evidence papers including '9bee2b7f875663036b3ce8ca1cac6c4986ee4df5' (Issa and Horvath, 2023) and '1f5aa2567938b5e95d8c9cca485e9a3d855c40bb' (Haryani, 2026), which are consistent with the citation. However, the claim implies that this is a widespread problem among 'many studies', which is not explicitly stated in the ground truth. The ground truth only lists this as one of the gaps without quantifying its prevalence."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Furthermore, there is limited discussion regarding how macroeconomic features influence the quality of clustering outcomes, affecting the reliability of regime detection in macroeconomic contexts (Oliveira et al., 2025).",
+      "issue": "The ground truth lists 'Limited discussion on how macroeconomic features affect clustering quality' as a gap, and cites '7205855e1dd1e3af8dd81eb928a3f2d56e768dcc' (Oliveira et al., 2025) as supporting evidence. However, the claim attributes a specific consequence ('affecting the reliability of regime detection in macroeconomic contexts') that is not explicitly mentioned in the ground truth notes for that gap."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Another prominent issue lies in the inconsistent treatment of survivorship bias within momentum strategy evaluations, which undermines the comparability and robustness of results across different markets (Do and Luong, 2023).",
+      "issue": "The ground truth identifies 'Inconsistency in treatment of survivorship bias in momentum strategy evaluations' as a gap and cites '475934fe6cf0a2a5ca6a14d5d0eabcac93c81825' (Do and Luong, 2023) as supporting evidence. However, the claim adds the interpretation that this 'undermines the comparability and robustness of results across different markets', which is not stated in the ground truth notes for that gap."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Additionally, the absence of standardized metrics for comparing momentum strategy performance impedes cross-market analysis and generalizability (Mai, 2024; Jaiswal and Uchil, 2020; Kurniawan, 2019; Jiang, 2023; Sharma et al., 2025; Do and Luong, 2023).",
+      "issue": "The ground truth lists 'Lack of standardized metrics for comparing momentum strategy performance' as a gap and provides a list of supporting papers including those cited. However, the claim adds the interpretation that this 'impedes cross-market analysis and generalizability', which is not explicitly stated in the ground truth notes for that gap."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Recent work has begun to explore the integration of volatility regime detection with momentum strategy optimization, yet this area remains underdeveloped (Prakash et al., 2020; Jaiswal and Uchil, 2020; Kurniawan, 2019; Jiang, 2023; Sharma et al., 2025; Do and Luong, 2023).",
+      "issue": "The ground truth lists 'Insufficient exploration of integration between volatility regime detection and momentum strategy optimization' as a gap and includes the same set of papers as cited. However, the claim adds the interpretation that 'this area remains underdeveloped', which is not explicitly stated in the ground truth notes for that gap."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Similarly, while some studies touch upon the application of unsupervised clustering methods in financial markets, particularly in relation to momentum strategies, they often fall short in providing sufficient empirical validation or addressing issues such as noise contamination and data integrity (Mamais et al., 2024; Begušic and Kostanjcar, 2020; Ulmer et al., 2024; Ke et al., 2023; Hammond, 2026).",
+      "issue": "The ground truth lists 'Applicability of unsupervised clustering methods in financial markets remains underexplored' and 'Limited discussion on how unsupervised clustering methods perform with noisy or contaminated financial datasets' as gaps. It supports these with '1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f' (Mamais et al., 2024), '733edc7568374cb028bba3780b5ab99344c06654' (Ulmer et al., 2024), 'af86d81b35121f822c15ce004682a40b18ee9217' (Ke et al., 2023), and '67a97bd72ef1ee582b2d1fe07c1554b0de8d4f93' (Hammond, 2026). However, it does not cite 'Begušic and Kostanjcar, 2020'. Thus, citing this paper is a hallucination."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Our work contributes to closing the gap in empirical validation and provides insights into the practical applicability of various clustering methodologies in complex financial environments.",
+      "issue": "While the introduction discusses gaps related to empirical validation and applicability, the specific statement that 'our work contributes to closing the gap in empirical validation' is not grounded in the ground truth. The ground truth does not provide any information about the contributions of the current paper beyond stating the hypotheses being tested."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Haryani (2026) propose a hybrid framework combining K-Means clustering and Hidden Markov Models to detect Bitcoin market regimes, demonstrating that their approach outperforms standalone models in terms of log likelihood and Bayesian Information Criterion",
+      "issue": "While Haryani (2026) is correctly cited and the hybrid framework involving K-Means and Hidden Markov Models is described, the specific claims about outperformance in terms of log likelihood and Bayesian Information Criterion are not supported by the ground truth abstract. The abstract mentions that the approach achieves superior performance compared to a standalone model as indicated by a higher log likelihood and a lower Bayesian Information Criterion value, but does not explicitly state that Haryani (2026) demonstrated this directly in their work."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Mudarisov et al. (2024) introduce a deterministic clusterization method for financial time series, utilizing monthly and quarterly horizons to distinguish between different market regimes",
+      "issue": "The ground truth confirms that Mudarisov et al. (2024) consider clusterization as fundamental for addressing market regimes and use monthly and quarterly time horizons, but it does not explicitly state that they introduce a 'deterministic clusterization method'. The term 'deterministic' is not mentioned in the abstract."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wei et al. (2023) present a hierarchical and regime-switch VAE-based model that identifies market regimes through an online learning clustering algorithm, projecting high-dimensional market latent variables into a one-dimensional space to determine regime membership via maximum likelihood estimation",
+      "issue": "The ground truth supports that Wei et al. (2023) develop an online learning clustering algorithm with linear stabilization and project market latent variables onto a 1D measure space, but it does not mention anything about a 'hierarchical and regime-switch VAE-based model' or that they use 'maximum likelihood estimation' for regime membership determination."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Bilokon et al. (2021) utilize path signatures to encode time series data into structured objects, enabling a metric-based clustering approach for regime classification",
+      "issue": "The ground truth confirms that Bilokon et al. (2021) utilize path signatures to encode time series into easy-to-describe objects and provide a metric structure for clustering, but it does not explicitly state that this enables a 'metric-based clustering approach for regime classification'. The abstract does not specify the type of clustering approach used."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Oliveira et al. (2025) employ clustering techniques on macroeconomic features to uncover market dynamics and construct regime transition graphs aligned with economic intuition",
+      "issue": "The ground truth supports that Oliveira et al. (2025) leverage clustering techniques from machine learning to develop a data-driven approach to regime detection using macroeconomic data and show how it uncovers insights related to market dynamics, but it does not mention constructing 'regime transition graphs' or that these graphs are 'aligned with economic intuition'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Issa and Horvath (2023) frame the market regime clustering problem as an unsupervised learning task, emphasizing the ambiguity inherent in defining suitability for clustering functions without labeled data, a challenge also faced by other works in the field",
+      "issue": "The ground truth confirms that Issa and Horvath (2023) conclude with a formulation of the market regime clustering problem as an unsupervised learning problem and note the ambiguity in defining suitability in regards to the choice of the function F, but it does not mention that this is a challenge 'also faced by other works in the field'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Palma et al. (2024) discuss the combination of both learning types to forecast financial market movements",
+      "issue": "The ground truth confirms that Palma et al. (2024) combine supervised and unsupervised learning methods to predict financial market movements, but it does not discuss the 'combination of both learning types to forecast financial market movements' as a specific focus or contribution."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Prakash et al. (2020) present a self-tuning unsupervised learning approach that dynamically determines the number of volatility clusters",
+      "issue": "The ground truth supports that Prakash et al. (2020) demonstrate an original means of clustering volatility regimes and apply self-tuning unsupervised learning to determine the number of clusters, but it does not explicitly state that this approach 'dynamically determines the number of volatility clusters'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Promsuwan et al. (2025) introduce a novel perspective by leveraging the underlying diffusion processes to uncover structural relationships among stocks",
+      "issue": "The ground truth confirms that Promsuwan et al. (2025) apply clustering techniques to stock groups and use diffusion processes underlying stock price dynamics, but it does not explicitly state that this introduces a 'novel perspective by leveraging the underlying diffusion processes to uncover structural relationships among stocks'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Mai (2024) discusses momentum strategies across various markets and time horizons",
+      "issue": "The ground truth confirms that Mai (2024) discusses the application and performance of momentum strategies in A-shares and U.S. stocks, but it does not state that Mai (2024) discusses momentum strategies 'across various markets and time horizons' in general."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kurniawan (2019) evaluates the performance of momentum strategy using 52-week high data in the Indonesia Stock Exchange",
+      "issue": "The ground truth confirms that Kurniawan (2019) evaluates the performance of momentum strategy using 52-week high data in the Indonesia Stock Exchange, but it does not state that he evaluates the performance 'using 52-week high data'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Do and Luong (2023) emphasize the importance of addressing survivorship bias in performance evaluations",
+      "issue": "The ground truth confirms that Do and Luong (2023) utilize the quantstats library and discuss survivorship bias, but it does not state that they 'emphasize the importance of addressing survivorship bias in performance evaluations'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Jaiswal and Uchil (2020) examine the effectiveness of momentum strategies in commodity futures markets",
+      "issue": "The ground truth confirms that Jaiswal and Uchil (2020) evaluate the performance of momentum strategies in commodity futures markets, but it does not state that they 'examine the effectiveness of momentum strategies in commodity futures markets'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Sharma et al. (2025) focus on optimizing sector rotation and rebalancing frequency",
+      "issue": "The ground truth confirms that Sharma et al. (2025) implement strategies across different timeframes to assess adaptability to varying market cycles, but it does not state that they 'focus on optimizing sector rotation and rebalancing frequency'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Horvath et al. (2021) propose the Wasserstein $k$-means algorithm, which operates in the space of probability measures using the $p$-Wasserstein distance between empirical distributions",
+      "issue": "The ground truth confirms that Horvath et al. (2021) outline an unsupervised learning algorithm for clustering financial time-series using the Wasserstein distance, but it does not explicitly state that they propose a 'Wasserstein $k$-means algorithm'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Morychev et al. (2025) employ a clustering framework that considers both hidden market regimes and the similarity of price trajectories",
+      "issue": "The ground truth confirms that Morychev et al. (2025) apply clustering methods based on hidden market regimes and price trajectory similarity, but it does not explicitly state that they 'employ a clustering framework that considers both hidden market regimes and the similarity of price trajectories'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Akioyamen et al. (2020) introduce a hybrid learning approach combining cluster analysis with classification to automate regime switch detection",
+      "issue": "The ground truth confirms that Akioyamen et al. (2020) present a novel approach combining unsupervised and supervised learning techniques for regime detection, but it does not explicitly state that they 'introduce a hybrid learning approach combining cluster analysis with classification to automate regime switch detection'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kondo and Banno (2026) examine how structural clusters relate to cross-sectional alpha variations across different market regimes",
+      "issue": "The ground truth confirms that Kondo and Banno (2026) examine whether structural clusters provide a useful descriptive organization of alpha heterogeneity, but it does not explicitly state that they 'examine how structural clusters relate to cross-sectional alpha variations across different market regimes'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Horvath et al. (2021) note that real-world market data lacks a known underlying probabilistic structure",
+      "issue": "The ground truth confirms that Horvath et al. (2021) state that evaluating clustering algorithms on real market data is difficult because it is not possible to infer the underlying probabilistic structure, but it does not explicitly state that they 'note that real-world market data lacks a known underlying probabilistic structure'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Af86d81b35121f822c15ce004682a40b18ee9217 presents an unsupervised approach leveraging adversarial learning to identify groups of stocks with similar trends",
+      "issue": "The ground truth confirms that af86d81b35121f822c15ce004682a40b18ee9217 presents an unsupervised approach leveraging adversarial learning to identify groups of stocks with similar trends, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "3196e0040e813375f5ebc3b143892e1105ce3965 applies shape-based clustering to portfolio management",
+      "issue": "The ground truth confirms that 3196e0040e813375f5ebc3b143892e1105ce3965 applies shape-based clustering to portfolio management, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "439b5295d051e9c0d0a677f298aa69d816351f5f introduces a novel unsupervised learning method rooted in intersection-based pattern recognition",
+      "issue": "The ground truth confirms that 439b5295d051e9c0d0a677f298aa69d816351f5f introduces a novel unsupervised learning method rooted in intersection-based pattern recognition, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "f5880a1d2b0dce4125765a974bbe49a72f418b8c proposes a method for estimating both pervasive and cluster-specific latent factors",
+      "issue": "The ground truth confirms that f5880a1d2b0dce4125765a974bbe49a72f418b8c proposes a method for estimating both pervasive and cluster-specific latent factors, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f investigates momentum performance shifts across time and sectors",
+      "issue": "The ground truth confirms that 1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f investigates momentum performance shifts across time and sectors, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "63470c638affa7da9ed64b0e4355ad65f9673564 examines how industry classification influences momentum returns",
+      "issue": "The ground truth confirms that 63470c638affa7da9ed64b0e4355ad65f9673564 examines how industry classification influences momentum returns, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "be388fb9059c223c97be2bea43d467d598ef4bf0 examines international market differences in momentum returns",
+      "issue": "The ground truth confirms that be388fb9059c223c97be2bea43d467d598ef4bf0 examines international market differences in momentum returns, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "5c8fe9a0412a078e30eb7e5eeb0068655b673e86 contributes to density-based clustering",
+      "issue": "The ground truth confirms that 5c8fe9a0412a078e30eb7e5eeb0068655b673e86 contributes to density-based clustering, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "f16841e022038e94a59f7e0a82002102b78d79a4 contributes to silhouette analysis",
+      "issue": "The ground truth confirms that f16841e022038e94a59f7e0a82002102b78d79a4 contributes to silhouette analysis, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683 develops an anomaly detection model using signature matrices and LSTM-based reconstruction",
+      "issue": "The ground truth confirms that 131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683 develops an anomaly detection model using signature matrices and LSTM-based reconstruction, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "af2edd2109491d13fccfbf4878dc38b0f8f4c89b introduces State-Conditioned Association Learning (SCAL)",
+      "issue": "The ground truth confirms that af2edd2109491d13fccfbf4878dc38b0f8f4c89b introduces State-Conditioned Association Learning (SCAL), but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "733edc7568374cb028bba3780b5ab99344c06654 presents a fully unsupervised refinement approach for handling contaminated training data",
+      "issue": "The ground truth confirms that 733edc7568374cb028bba3780b5ab99344c06654 presents a fully unsupervised refinement approach for handling contaminated training data, but it does not explicitly state that this is the title or identity of the paper."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Castilli et al. (n.d.) reviews and compares several optimization strategies for two-mode clustering",
+      "issue": "The ground truth confirms that Castilli et al. review and compare several optimization methods for two-mode clustering, but it does not explicitly state that they 'review and compare several optimization strategies for two-mode clustering'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Otero et al. (2014b) proposes SACOC, a spectral-based ACO clustering algorithm",
+      "issue": "The ground truth confirms that Otero et al. (2014b) propose SACOC, a spectral-based ACO clustering algorithm, but it does not explicitly state that they 'propose SACOC, a spectral-based ACO clustering algorithm'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Otero et al. (2014a) introduces MACOC, a medoid-based variant of ACO clustering",
+      "issue": "The ground truth confirms that Otero et al. (2014a) introduce MACOC, a medoid-based variant of ACO clustering, but it does not explicitly state that they 'introduce MACOC, a medoid-based variant of ACO clustering'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Shuklaa et al. (2022) addresses finite-time synchronization of hyper-chaotic finance systems using adaptive control",
+      "issue": "The ground truth confirms that Shuklaa et al. (2022) examine finite-time synchronization of hyper-chaotic finance systems with hyperbolic nonlinearity using adaptive control, but it does not explicitly state that they 'address finite-time synchronization of hyper-chaotic finance systems using adaptive control'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Onma et al. (2021) presents a scheme for projective synchronization of a newly introduced hyperchaotic system",
+      "issue": "The ground truth confirms that Onma et al. (2021) introduce a new hyperchaotic finance system and show that it is a self-excited hyperchaotic attractor, but it does not explicitly state that they 'present a scheme for projective synchronization of a newly introduced hyperchaotic system'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Ma et al. (2022) explores fixed-time synchronization with adaptive control",
+      "issue": "The ground truth confirms that Ma et al. (2022) concern the problem of fixed-time synchronization of master-slave Lorenz systems using adaptive control, but it does not explicitly state that they 'explore fixed-time synchronization with adaptive control'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hiremath et al. (2026) present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with four hidden regimes",
+      "issue": "The ground truth confirms that Hiremath et al. (2026) present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with K = 4 hidden regimes, but it does not explicitly state that they 'present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with four hidden regimes'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Nooijen and Broda (2016) employ Markov-switching models to analyze the predictive power of online investor sentiment for equity market returns and volatility",
+      "issue": "The ground truth confirms that Nooijen and Broda (2016) examine the predictive capabilities of online investor sentiment for the returns and volatility of MSCI U.S. Equity Sector Indices using Markov-switching models, but it does not explicitly state that they 'employ Markov-switching models to analyze the predictive power of online investor sentiment for equity market returns and volatility'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Weron and Janczura (n.d.c) introduce heteroskedastic base regime dynamics and shifted spike distributions into regime-switching models",
+      "issue": "The ground truth confirms that Weron and Janczura (n.d.c) calibrate Markov regime-switching models to spot prices and introduce heteroskedasticity in the base regime, but it does not explicitly state that they 'introduce heteroskedastic base regime dynamics and shifted spike distributions into regime-switching models'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Luc et al. (n.d.) develop Bayesian estimation techniques for regime-switching GARCH models",
+      "issue": "The ground truth confirms that Luc et al. (n.d.) develop univariate regime-switching GARCH models and use Bayesian estimation using a Gibbs sampling algorithm, but it does not explicitly state that they 'develop Bayesian estimation techniques for regime-switching GARCH models'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Bond (n.d.) explore the use of adaptive control in natural resource management",
+      "issue": "The ground truth confirms that Bond (n.d.) explores the use of adaptive control methods for improving adaptive natural resource management, but it does not explicitly state that they 'explore the use of adaptive control in natural resource management'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yang (2013) focus on adaptive control for double-integrator systems",
+      "issue": "The ground truth confirms that Yang (2013) considers formulation of new classes of adaptive controllers for double-integrator type systems, but it does not explicitly state that they 'focus on adaptive control for double-integrator systems'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Biggs et al. (2014) apply adaptive fault-tolerant control to nano-spacecraft",
+      "issue": "The ground truth confirms that Biggs et al. (2014) develop an adaptive fault-tolerant control method for nano-spacecraft attitude control, but it does not explicitly state that they 'apply adaptive fault-tolerant control to nano-spacecraft'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wang (2013) propose an observer-based adaptive fuzzy-neural control scheme for unknown nonlinear dynamical systems",
+      "issue": "The ground truth confirms that Wang (2013) develop an observer-based adaptive fuzzy-neural controller for unknown nonlinear dynamical systems, but it does not explicitly state that they 'propose an observer-based adaptive fuzzy-neural control scheme for unknown nonlinear dynamical systems'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Startz et al. (n.d.) introduces endogenous switching into Markov regime-switching regressions",
+      "issue": "The ground truth confirms that Startz et al. (n.d.) incorporate endogenous switching into a Markov-switching regression and develop strategies for identification and estimation, but it does not explicitly state that they 'introduce endogenous switching into Markov regime-switching regressions'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Weron and Janczura (n.d.b) explores the use of Markov regime-switching models for electricity spot prices",
+      "issue": "The ground truth confirms that Weron and Janczura (n.d.b) calibrate Markov regime-switching models to spot prices from two major power markets, but it does not explicitly state that they 'explore the use of Markov regime-switching models for electricity spot prices'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Luxburg (2007) discusses spectral clustering",
+      "issue": "The ground truth confirms that Luxburg (2007) discusses spectral clustering, but it does not explicitly state that he 'discusses spectral clustering'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Alves and Filipe (2020) highlight the importance of survivorship bias in momentum strategies",
+      "issue": "The ground truth confirms that Alves and Filipe (2020) investigate whether survival bias exists within the momentum effect, but it does not explicitly state that they 'highlight the importance of survivorship bias in momentum strategies'."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Our hypotheses aim to bridge this gap by rigorously testing whether spectral clustering, regime-switching models informed by macroeconomic data, and network-based clustering methods can enhance the out-of-sample performance of momentum strategies compared to conventional benchmarks",
+      "issue": "This statement is a forward-looking hypothesis and not a claim that can be traced back to the ground truth. It is not grounded in the provided abstracts or method descriptions."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Specifically, we posit that spectral clustering will improve Sharpe ratios, HMM-based regime switching will enhance risk-adjusted returns in factor models, and network-based clustering will outperform traditional K-Means in momentum strategy execution",
+      "issue": "These specific hypotheses are not grounded in the provided ground truth and are speculative statements about future research outcomes."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "The rationale draws on the established utility of spectral clustering for partitioning financial time series and large spatial datasets, suggesting its potential for effective regime detection.",
+      "issue": "The ground truth states that spectral clustering is a common method for financial regime detection and has been shown to effectively partition large spatial databases and financial time series, but it does not explicitly state that this is the 'established utility' of spectral clustering for partitioning financial time series. The phrase 'established utility' implies a stronger, more definitive endorsement than what is provided in the ground truth."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "This approach directly addresses the lack of standardized performance metrics in momentum strategy comparisons (Issa and Horvath, 2023; Haryani, 2026).",
+      "issue": "The ground truth mentions that one of the related gaps is 'Lack of standardized metrics for comparing momentum strategy performance', but it does not mention any specific papers like Issa and Horvath (2023) or Haryani (2026) as addressing this issue. Therefore, citing these references as directly addressing the lack of standardized metrics is a hallucination."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "This assertion is grounded in the frequent combination of Hidden Markov Models with clustering techniques for estimating probabilistic transitions between market regimes.",
+      "issue": "While the ground truth mentions that Hidden Markov Models are frequently combined with clustering methods to estimate probabilistic transitions between market regimes, it does not state that this is the basis for the assertion in H2. The ground truth only describes the rationale behind the hypothesis without specifying that this particular combination is what grounds the assertion."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "It also responds to the limited discussion on how macroeconomic features influence clustering quality, proposing that integrating these features into regime detection may enhance accuracy.",
+      "issue": "The ground truth lists 'Limited discussion on how macroeconomic features affect clustering quality' as a related gap, but it does not state that this is what the hypothesis 'responds to'. The ground truth only states that the hypothesis builds upon this gap, not that it directly responds to it in the way described."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "By leveraging hybrid unsupervised-supervised learning approaches, this hypothesis seeks to improve momentum strategy performance through more robust regime identification in macroeconomic settings (Palma et al., 2024; Oliveira et al., 2025; Wei et al., 2023).",
+      "issue": "The ground truth does not mention any specific papers such as Palma et al. (2024), Oliveira et al. (2025), or Wei et al. (2023) as supporting the idea of leveraging hybrid unsupervised-supervised learning approaches. These citations are hallucinated in the context of this sentence."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "The underlying rationale stems from the cross-disciplinary application of network-based clustering methodologies from cybersecurity to financial asset grouping.",
+      "issue": "The ground truth refers to 'Cross-disciplinary bridge insight #4' connecting network-based clustering from cybersecurity to financial asset grouping, but it does not describe the underlying rationale as stemming from this cross-disciplinary application. The ground truth does not provide enough information to support the claim that this is the 'underlying rationale'."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "It further addresses the limited exploration of ACO-based clustering in spectral and medoid contexts, suggesting that alternative clustering paradigms may be better suited for financial data.",
+      "issue": "The ground truth mentions 'Limited exploration of ACO-based clustering in spectral and medoid contexts' as a related gap, but it does not state that this is what the hypothesis 'further addresses'. The ground truth does not indicate that the hypothesis specifically focuses on or addresses this aspect in the way described."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "This hypothesis introduces a novel clustering technique derived from another domain to classify assets and optimize momentum strategies based on coherent responses to regime changes (Bilokon et al., 2021; Mudarisov et al., 2024; Horvath et al., 2021).",
+      "issue": "The ground truth does not reference any of the cited papers (Bilokon et al., 2021; Mudarisov et al., 2024; Horvath et al., 2021) in relation to introducing a novel clustering technique or optimizing momentum strategies. These citations are hallucinated in the context of this sentence."
+    },
+    {
+      "location": "Limitations",
+      "claim": "The experimental implementation relied on several assumptions regarding data availability and synthetic dataset generation.",
+      "issue": "The ground truth lists specific assumptions about synthetic data but does not describe the experimental implementation as relying on these assumptions. The phrase 'experimental implementation' is not mentioned in the ground truth."
+    },
+    {
+      "location": "Limitations",
+      "claim": "Specifically, the code incorporates fallback mechanisms to utilize synthetic data when real-world datasets are inaccessible",
+      "issue": "While the ground truth mentions that the experiment falls back to a synthetic dataset if the real data file is not found, it does not specify that this is implemented via 'code' or that there are 'fallback mechanisms' in the code itself."
+    },
+    {
+      "location": "Limitations",
+      "claim": "with the assumption that such synthetic data maintains structural similarity and statistical properties to the original S&P 500 dataset",
+      "issue": "The ground truth states that the synthetic dataset has the same structure and approximate statistical properties as the real S&P 500 dataset, but does not mention any explicit assumption about 'structural similarity' or 'statistical properties' being maintained in the context of the code or implementation."
+    },
+    {
+      "location": "Limitations",
+      "claim": "While efforts were made to ensure reproducibility through fixed random seeds and adequate temporal coverage",
+      "issue": "The ground truth confirms that the synthetic data generation uses the same random seed for reproducibility and that the synthetic data covers a reasonable time range, but does not mention 'efforts were made' or refer to 'adequate temporal coverage' as a deliberate action taken in the implementation."
+    },
+    {
+      "location": "Limitations",
+      "claim": "the reliance on synthetic data introduces uncertainty about whether the results accurately reflect real market dynamics",
+      "issue": "This statement is a qualitative interpretation or implication of the use of synthetic data, not explicitly stated in the ground truth. The ground truth only lists assumptions about synthetic data but does not discuss implications for reflecting real market dynamics."
+    },
+    {
+      "location": "Limitations",
+      "claim": "This dependence on synthetic data generation also implies that the conclusions drawn may not fully capture the complexity and nuances inherent in actual financial markets",
+      "issue": "This is an interpretive conclusion about the implications of using synthetic data, not a fact stated in the ground truth. The ground truth does not make claims about the complexity or nuances of financial markets or how synthetic data affects conclusions."
+    },
+    {
+      "location": "Limitations",
+      "claim": "certain experiments were not executed due to logistical constraints, though no specific reasons were provided for skipped experiments",
+      "issue": "The ground truth states that no specific reasons were provided for skipped experiments, but it does not mention 'logistical constraints' as a reason. The paper attributes the non-execution to 'logistical constraints', which is not part of the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "The primary finding regarding the use of spectral clustering for identifying market regimes remains inconclusive due to the reliance on synthetic data inputs, which precludes meaningful inference about real-world financial dynamics.",
+      "issue": "While the ground truth states that the experiment used synthetic surrogates and that the verdict is 'inconclusive' due to unknown success criteria, it does not explicitly state that the reliance on synthetic data 'precludes meaningful inference about real-world financial dynamics.' This specific characterization of the consequence of using synthetic data is not present in the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Therefore, future investigations should focus on replicating the experimental setup using genuine market data to evaluate whether regime identification improves out-of-sample Sharpe ratios in practice.",
+      "issue": "The ground truth supports the idea that replication with real data is needed but does not specify that the purpose is to 'evaluate whether regime identification improves out-of-sample Sharpe ratios in practice.' This particular outcome or goal is not mentioned in the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Additionally, the limited examination of survival bias’s impact on momentum strategies underscores the need for studies that explicitly account for such biases in empirical analyses.",
+      "issue": "Although the ground truth identifies 'Limited literature examining the impact of survival bias specifically on the momentum effect' as a gap, it does not mention that this leads to the need for 'studies that explicitly account for such biases in empirical analyses.' The latter part is not supported by the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Comparative evaluations of different adaptive control strategies also remain underexplored, limiting informed decision-making in system design.",
+      "issue": "The ground truth lists 'Lack of comparative studies evaluating the relative performance of different adaptive control strategies' as a gap, but it does not state that this leads to 'limiting informed decision-making in system design.' This interpretation or consequence is not found in the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Investigating the robustness of adaptive controls within hyperchaotic systems is another critical direction, especially given the increasing complexity of modern financial markets.",
+      "issue": "The ground truth mentions 'Need for further investigation into robustness of adaptive control in hyperchaotic systems' as a gap, but it does not include the phrase 'especially given the increasing complexity of modern financial markets.' This added context is not grounded in the provided information."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Moreover, exploring how unsupervised clustering performs under noisy or contaminated financial datasets, and validating unsupervised methods against ground truth for detecting financial regime shifts, would improve reliability and trustworthiness in practical deployments.",
+      "issue": "While the ground truth includes 'Limited discussion on how unsupervised clustering methods perform with noisy or contaminated financial datasets' and 'Effectiveness of unsupervised methods in detecting financial regime shifts lacks ground truth validation' as gaps, it does not state that doing so would 'improve reliability and trustworthiness in practical deployments.' This conclusion or implication is not present in the ground truth."
+    }
+  ],
+  "citation_issues": [
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Sharma et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Prakash et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Mudarisov et\nal., 2024)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Horvath et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Luc et\nal., n.d.)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    }
+  ],
+  "results_accuracy_issues": [
+    {
+      "location": "Results > H1",
+      "claimed": "figure(s) actually present in the text: 0.8486, 1",
+      "actual": "Coder Agent reports static_return=0.40762652908988617"
+    },
+    {
+      "location": "Results > H1",
+      "claimed": "figure(s) actually present in the text: 0.8486, 1",
+      "actual": "Coder Agent reports regime_aware_return=0.40762652908988617"
+    },
+    {
+      "location": "Results > H1",
+      "claimed": "figure(s) actually present in the text: 0.8486, 1",
+      "actual": "Coder Agent reports static_drawdown=-0.7785679198179248"
+    },
+    {
+      "location": "Results > H1",
+      "claimed": "figure(s) actually present in the text: 0.8486, 1",
+      "actual": "Coder Agent reports regime_aware_drawdown=-0.7785679198179248"
+    }
+  ],
+  "hypothesis_coverage_issues": [
+    {
+      "hypothesis_id": "H1",
+      "location": "Discussion > H1",
+      "issue": "The text overstated the outcome by implying that the experiment's completion status indicates any form of validation or refutation of the hypothesis. The ground truth explicitly states that the experiment 'ran to completion' but 'no verdict is drawn from them' and that the metrics 'say nothing about the real-world hypothesis.' However, the discussion says, 'The experiment's completion status does not imply validation of the hypothesis,' which is accurate, yet it also states, 'This limitation directly reflects the broader challenge...as the synthetic nature of the inputs renders the findings irrelevant to real-world application,' suggesting a stronger conclusion than warranted by an 'inconclusive' verdict. The phrase 'renders the findings irrelevant to real-world application' overstates the case because the ground truth only says the findings are irrelevant to the real-world hypothesis due to synthetic data, not that they are irrelevant in a general sense."
+    }
+  ],
+  "quality_scores": {
+    "clarity": 3,
+    "flow": 2,
+    "tone": 4,
+    "structure": 3,
+    "limitations_honesty": 2
+  },
+  "overall_pass": false,
+  "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"A variety of unsupervised and hybrid techniques—including K-Means clustering, Hidden Markov Models, Variational Autoencoders, and spectral clustering—have been proposed to identify distinct market states.\" — The ground truth literature summary mentions K-Means clustering, Hidden Markov Models, and spectral clustering as commonly employed techniques, but does not mention Variational Autoencoders. Therefore, claiming that Variational Autoencoders have been proposed for this purpose is a hallucination.\n- Introduction: \"Notably, many studies lack explicit validation against labeled data, which hampers the ability to accurately assess the performance and interpretability of clustering methods (Issa and Horvath, 2023; Haryani, 2026).\" — While the ground truth identifies 'Lack of explicit validation against labeled data for clustering methods' as a gap, it lists supporting evidence papers including '9bee2b7f875663036b3ce8ca1cac6c4986ee4df5' (Issa and Horvath, 2023) and '1f5aa2567938b5e95d8c9cca485e9a3d855c40bb' (Haryani, 2026), which are consistent with the citation. However, the claim implies that this is a widespread problem among 'many studies', which is not explicitly stated in the ground truth. The ground truth only lists this as one of the gaps without quantifying its prevalence.\n- Introduction: \"Furthermore, there is limited discussion regarding how macroeconomic features influence the quality of clustering outcomes, affecting the reliability of regime detection in macroeconomic contexts (Oliveira et al., 2025).\" — The ground truth lists 'Limited discussion on how macroeconomic features affect clustering quality' as a gap, and cites '7205855e1dd1e3af8dd81eb928a3f2d56e768dcc' (Oliveira et al., 2025) as supporting evidence. However, the claim attributes a specific consequence ('affecting the reliability of regime detection in macroeconomic contexts') that is not explicitly mentioned in the ground truth notes for that gap.\n- Introduction: \"Another prominent issue lies in the inconsistent treatment of survivorship bias within momentum strategy evaluations, which undermines the comparability and robustness of results across different markets (Do and Luong, 2023).\" — The ground truth identifies 'Inconsistency in treatment of survivorship bias in momentum strategy evaluations' as a gap and cites '475934fe6cf0a2a5ca6a14d5d0eabcac93c81825' (Do and Luong, 2023) as supporting evidence. However, the claim adds the interpretation that this 'undermines the comparability and robustness of results across different markets', which is not stated in the ground truth notes for that gap.\n- Introduction: \"Additionally, the absence of standardized metrics for comparing momentum strategy performance impedes cross-market analysis and generalizability (Mai, 2024; Jaiswal and Uchil, 2020; Kurniawan, 2019; Jiang, 2023; Sharma et al., 2025; Do and Luong, 2023).\" — The ground truth lists 'Lack of standardized metrics for comparing momentum strategy performance' as a gap and provides a list of supporting papers including those cited. However, the claim adds the interpretation that this 'impedes cross-market analysis and generalizability', which is not explicitly stated in the ground truth notes for that gap.\n- Introduction: \"Recent work has begun to explore the integration of volatility regime detection with momentum strategy optimization, yet this area remains underdeveloped (Prakash et al., 2020; Jaiswal and Uchil, 2020; Kurniawan, 2019; Jiang, 2023; Sharma et al., 2025; Do and Luong, 2023).\" — The ground truth lists 'Insufficient exploration of integration between volatility regime detection and momentum strategy optimization' as a gap and includes the same set of papers as cited. However, the claim adds the interpretation that 'this area remains underdeveloped', which is not explicitly stated in the ground truth notes for that gap.\n- Introduction: \"Similarly, while some studies touch upon the application of unsupervised clustering methods in financial markets, particularly in relation to momentum strategies, they often fall short in providing sufficient empirical validation or addressing issues such as noise contamination and data integrity (Mamais et al., 2024; Begušic and Kostanjcar, 2020; Ulmer et al., 2024; Ke et al., 2023; Hammond, 2026).\" — The ground truth lists 'Applicability of unsupervised clustering methods in financial markets remains underexplored' and 'Limited discussion on how unsupervised clustering methods perform with noisy or contaminated financial datasets' as gaps. It supports these with '1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f' (Mamais et al., 2024), '733edc7568374cb028bba3780b5ab99344c06654' (Ulmer et al., 2024), 'af86d81b35121f822c15ce004682a40b18ee9217' (Ke et al., 2023), and '67a97bd72ef1ee582b2d1fe07c1554b0de8d4f93' (Hammond, 2026). However, it does not cite 'Begušic and Kostanjcar, 2020'. Thus, citing this paper is a hallucination.\n- Introduction: \"Our work contributes to closing the gap in empirical validation and provides insights into the practical applicability of various clustering methodologies in complex financial environments.\" — While the introduction discusses gaps related to empirical validation and applicability, the specific statement that 'our work contributes to closing the gap in empirical validation' is not grounded in the ground truth. The ground truth does not provide any information about the contributions of the current paper beyond stating the hypotheses being tested.\n- Related Work: \"Haryani (2026) propose a hybrid framework combining K-Means clustering and Hidden Markov Models to detect Bitcoin market regimes, demonstrating that their approach outperforms standalone models in terms of log likelihood and Bayesian Information Criterion\" — While Haryani (2026) is correctly cited and the hybrid framework involving K-Means and Hidden Markov Models is described, the specific claims about outperformance in terms of log likelihood and Bayesian Information Criterion are not supported by the ground truth abstract. The abstract mentions that the approach achieves superior performance compared to a standalone model as indicated by a higher log likelihood and a lower Bayesian Information Criterion value, but does not explicitly state that Haryani (2026) demonstrated this directly in their work.\n- Related Work: \"Mudarisov et al. (2024) introduce a deterministic clusterization method for financial time series, utilizing monthly and quarterly horizons to distinguish between different market regimes\" — The ground truth confirms that Mudarisov et al. (2024) consider clusterization as fundamental for addressing market regimes and use monthly and quarterly time horizons, but it does not explicitly state that they introduce a 'deterministic clusterization method'. The term 'deterministic' is not mentioned in the abstract.\n- Related Work: \"Wei et al. (2023) present a hierarchical and regime-switch VAE-based model that identifies market regimes through an online learning clustering algorithm, projecting high-dimensional market latent variables into a one-dimensional space to determine regime membership via maximum likelihood estimation\" — The ground truth supports that Wei et al. (2023) develop an online learning clustering algorithm with linear stabilization and project market latent variables onto a 1D measure space, but it does not mention anything about a 'hierarchical and regime-switch VAE-based model' or that they use 'maximum likelihood estimation' for regime membership determination.\n- Related Work: \"Bilokon et al. (2021) utilize path signatures to encode time series data into structured objects, enabling a metric-based clustering approach for regime classification\" — The ground truth confirms that Bilokon et al. (2021) utilize path signatures to encode time series into easy-to-describe objects and provide a metric structure for clustering, but it does not explicitly state that this enables a 'metric-based clustering approach for regime classification'. The abstract does not specify the type of clustering approach used.\n- Related Work: \"Oliveira et al. (2025) employ clustering techniques on macroeconomic features to uncover market dynamics and construct regime transition graphs aligned with economic intuition\" — The ground truth supports that Oliveira et al. (2025) leverage clustering techniques from machine learning to develop a data-driven approach to regime detection using macroeconomic data and show how it uncovers insights related to market dynamics, but it does not mention constructing 'regime transition graphs' or that these graphs are 'aligned with economic intuition'.\n- Related Work: \"Issa and Horvath (2023) frame the market regime clustering problem as an unsupervised learning task, emphasizing the ambiguity inherent in defining suitability for clustering functions without labeled data, a challenge also faced by other works in the field\" — The ground truth confirms that Issa and Horvath (2023) conclude with a formulation of the market regime clustering problem as an unsupervised learning problem and note the ambiguity in defining suitability in regards to the choice of the function F, but it does not mention that this is a challenge 'also faced by other works in the field'.\n- Related Work: \"Palma et al. (2024) discuss the combination of both learning types to forecast financial market movements\" — The ground truth confirms that Palma et al. (2024) combine supervised and unsupervised learning methods to predict financial market movements, but it does not discuss the 'combination of both learning types to forecast financial market movements' as a specific focus or contribution.\n- Related Work: \"Prakash et al. (2020) present a self-tuning unsupervised learning approach that dynamically determines the number of volatility clusters\" — The ground truth supports that Prakash et al. (2020) demonstrate an original means of clustering volatility regimes and apply self-tuning unsupervised learning to determine the number of clusters, but it does not explicitly state that this approach 'dynamically determines the number of volatility clusters'.\n- Related Work: \"Promsuwan et al. (2025) introduce a novel perspective by leveraging the underlying diffusion processes to uncover structural relationships among stocks\" — The ground truth confirms that Promsuwan et al. (2025) apply clustering techniques to stock groups and use diffusion processes underlying stock price dynamics, but it does not explicitly state that this introduces a 'novel perspective by leveraging the underlying diffusion processes to uncover structural relationships among stocks'.\n- Related Work: \"Mai (2024) discusses momentum strategies across various markets and time horizons\" — The ground truth confirms that Mai (2024) discusses the application and performance of momentum strategies in A-shares and U.S. stocks, but it does not state that Mai (2024) discusses momentum strategies 'across various markets and time horizons' in general.\n- Related Work: \"Kurniawan (2019) evaluates the performance of momentum strategy using 52-week high data in the Indonesia Stock Exchange\" — The ground truth confirms that Kurniawan (2019) evaluates the performance of momentum strategy using 52-week high data in the Indonesia Stock Exchange, but it does not state that he evaluates the performance 'using 52-week high data'.\n- Related Work: \"Do and Luong (2023) emphasize the importance of addressing survivorship bias in performance evaluations\" — The ground truth confirms that Do and Luong (2023) utilize the quantstats library and discuss survivorship bias, but it does not state that they 'emphasize the importance of addressing survivorship bias in performance evaluations'.\n- Related Work: \"Jaiswal and Uchil (2020) examine the effectiveness of momentum strategies in commodity futures markets\" — The ground truth confirms that Jaiswal and Uchil (2020) evaluate the performance of momentum strategies in commodity futures markets, but it does not state that they 'examine the effectiveness of momentum strategies in commodity futures markets'.\n- Related Work: \"Sharma et al. (2025) focus on optimizing sector rotation and rebalancing frequency\" — The ground truth confirms that Sharma et al. (2025) implement strategies across different timeframes to assess adaptability to varying market cycles, but it does not state that they 'focus on optimizing sector rotation and rebalancing frequency'.\n- Related Work: \"Horvath et al. (2021) propose the Wasserstein $k$-means algorithm, which operates in the space of probability measures using the $p$-Wasserstein distance between empirical distributions\" — The ground truth confirms that Horvath et al. (2021) outline an unsupervised learning algorithm for clustering financial time-series using the Wasserstein distance, but it does not explicitly state that they propose a 'Wasserstein $k$-means algorithm'.\n- Related Work: \"Morychev et al. (2025) employ a clustering framework that considers both hidden market regimes and the similarity of price trajectories\" — The ground truth confirms that Morychev et al. (2025) apply clustering methods based on hidden market regimes and price trajectory similarity, but it does not explicitly state that they 'employ a clustering framework that considers both hidden market regimes and the similarity of price trajectories'.\n- Related Work: \"Akioyamen et al. (2020) introduce a hybrid learning approach combining cluster analysis with classification to automate regime switch detection\" — The ground truth confirms that Akioyamen et al. (2020) present a novel approach combining unsupervised and supervised learning techniques for regime detection, but it does not explicitly state that they 'introduce a hybrid learning approach combining cluster analysis with classification to automate regime switch detection'.\n- Related Work: \"Kondo and Banno (2026) examine how structural clusters relate to cross-sectional alpha variations across different market regimes\" — The ground truth confirms that Kondo and Banno (2026) examine whether structural clusters provide a useful descriptive organization of alpha heterogeneity, but it does not explicitly state that they 'examine how structural clusters relate to cross-sectional alpha variations across different market regimes'.\n- Related Work: \"Horvath et al. (2021) note that real-world market data lacks a known underlying probabilistic structure\" — The ground truth confirms that Horvath et al. (2021) state that evaluating clustering algorithms on real market data is difficult because it is not possible to infer the underlying probabilistic structure, but it does not explicitly state that they 'note that real-world market data lacks a known underlying probabilistic structure'.\n- Related Work: \"Af86d81b35121f822c15ce004682a40b18ee9217 presents an unsupervised approach leveraging adversarial learning to identify groups of stocks with similar trends\" — The ground truth confirms that af86d81b35121f822c15ce004682a40b18ee9217 presents an unsupervised approach leveraging adversarial learning to identify groups of stocks with similar trends, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"3196e0040e813375f5ebc3b143892e1105ce3965 applies shape-based clustering to portfolio management\" — The ground truth confirms that 3196e0040e813375f5ebc3b143892e1105ce3965 applies shape-based clustering to portfolio management, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"439b5295d051e9c0d0a677f298aa69d816351f5f introduces a novel unsupervised learning method rooted in intersection-based pattern recognition\" — The ground truth confirms that 439b5295d051e9c0d0a677f298aa69d816351f5f introduces a novel unsupervised learning method rooted in intersection-based pattern recognition, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"f5880a1d2b0dce4125765a974bbe49a72f418b8c proposes a method for estimating both pervasive and cluster-specific latent factors\" — The ground truth confirms that f5880a1d2b0dce4125765a974bbe49a72f418b8c proposes a method for estimating both pervasive and cluster-specific latent factors, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f investigates momentum performance shifts across time and sectors\" — The ground truth confirms that 1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f investigates momentum performance shifts across time and sectors, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"63470c638affa7da9ed64b0e4355ad65f9673564 examines how industry classification influences momentum returns\" — The ground truth confirms that 63470c638affa7da9ed64b0e4355ad65f9673564 examines how industry classification influences momentum returns, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"be388fb9059c223c97be2bea43d467d598ef4bf0 examines international market differences in momentum returns\" — The ground truth confirms that be388fb9059c223c97be2bea43d467d598ef4bf0 examines international market differences in momentum returns, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"5c8fe9a0412a078e30eb7e5eeb0068655b673e86 contributes to density-based clustering\" — The ground truth confirms that 5c8fe9a0412a078e30eb7e5eeb0068655b673e86 contributes to density-based clustering, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"f16841e022038e94a59f7e0a82002102b78d79a4 contributes to silhouette analysis\" — The ground truth confirms that f16841e022038e94a59f7e0a82002102b78d79a4 contributes to silhouette analysis, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683 develops an anomaly detection model using signature matrices and LSTM-based reconstruction\" — The ground truth confirms that 131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683 develops an anomaly detection model using signature matrices and LSTM-based reconstruction, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"af2edd2109491d13fccfbf4878dc38b0f8f4c89b introduces State-Conditioned Association Learning (SCAL)\" — The ground truth confirms that af2edd2109491d13fccfbf4878dc38b0f8f4c89b introduces State-Conditioned Association Learning (SCAL), but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"733edc7568374cb028bba3780b5ab99344c06654 presents a fully unsupervised refinement approach for handling contaminated training data\" — The ground truth confirms that 733edc7568374cb028bba3780b5ab99344c06654 presents a fully unsupervised refinement approach for handling contaminated training data, but it does not explicitly state that this is the title or identity of the paper.\n- Related Work: \"Castilli et al. (n.d.) reviews and compares several optimization strategies for two-mode clustering\" — The ground truth confirms that Castilli et al. review and compare several optimization methods for two-mode clustering, but it does not explicitly state that they 'review and compare several optimization strategies for two-mode clustering'.\n- Related Work: \"Otero et al. (2014b) proposes SACOC, a spectral-based ACO clustering algorithm\" — The ground truth confirms that Otero et al. (2014b) propose SACOC, a spectral-based ACO clustering algorithm, but it does not explicitly state that they 'propose SACOC, a spectral-based ACO clustering algorithm'.\n- Related Work: \"Otero et al. (2014a) introduces MACOC, a medoid-based variant of ACO clustering\" — The ground truth confirms that Otero et al. (2014a) introduce MACOC, a medoid-based variant of ACO clustering, but it does not explicitly state that they 'introduce MACOC, a medoid-based variant of ACO clustering'.\n- Related Work: \"Shuklaa et al. (2022) addresses finite-time synchronization of hyper-chaotic finance systems using adaptive control\" — The ground truth confirms that Shuklaa et al. (2022) examine finite-time synchronization of hyper-chaotic finance systems with hyperbolic nonlinearity using adaptive control, but it does not explicitly state that they 'address finite-time synchronization of hyper-chaotic finance systems using adaptive control'.\n- Related Work: \"Onma et al. (2021) presents a scheme for projective synchronization of a newly introduced hyperchaotic system\" — The ground truth confirms that Onma et al. (2021) introduce a new hyperchaotic finance system and show that it is a self-excited hyperchaotic attractor, but it does not explicitly state that they 'present a scheme for projective synchronization of a newly introduced hyperchaotic system'.\n- Related Work: \"Ma et al. (2022) explores fixed-time synchronization with adaptive control\" — The ground truth confirms that Ma et al. (2022) concern the problem of fixed-time synchronization of master-slave Lorenz systems using adaptive control, but it does not explicitly state that they 'explore fixed-time synchronization with adaptive control'.\n- Related Work: \"Hiremath et al. (2026) present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with four hidden regimes\" — The ground truth confirms that Hiremath et al. (2026) present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with K = 4 hidden regimes, but it does not explicitly state that they 'present PARD-SSM, a probabilistic framework that models network telemetry as a Regime-Dependent Switching Linear Dynamical System with four hidden regimes'.\n- Related Work: \"Nooijen and Broda (2016) employ Markov-switching models to analyze the predictive power of online investor sentiment for equity market returns and volatility\" — The ground truth confirms that Nooijen and Broda (2016) examine the predictive capabilities of online investor sentiment for the returns and volatility of MSCI U.S. Equity Sector Indices using Markov-switching models, but it does not explicitly state that they 'employ Markov-switching models to analyze the predictive power of online investor sentiment for equity market returns and volatility'.\n- Related Work: \"Weron and Janczura (n.d.c) introduce heteroskedastic base regime dynamics and shifted spike distributions into regime-switching models\" — The ground truth confirms that Weron and Janczura (n.d.c) calibrate Markov regime-switching models to spot prices and introduce heteroskedasticity in the base regime, but it does not explicitly state that they 'introduce heteroskedastic base regime dynamics and shifted spike distributions into regime-switching models'.\n- Related Work: \"Luc et al. (n.d.) develop Bayesian estimation techniques for regime-switching GARCH models\" — The ground truth confirms that Luc et al. (n.d.) develop univariate regime-switching GARCH models and use Bayesian estimation using a Gibbs sampling algorithm, but it does not explicitly state that they 'develop Bayesian estimation techniques for regime-switching GARCH models'.\n- Related Work: \"Bond (n.d.) explore the use of adaptive control in natural resource management\" — The ground truth confirms that Bond (n.d.) explores the use of adaptive control methods for improving adaptive natural resource management, but it does not explicitly state that they 'explore the use of adaptive control in natural resource management'.\n- Related Work: \"Yang (2013) focus on adaptive control for double-integrator systems\" — The ground truth confirms that Yang (2013) considers formulation of new classes of adaptive controllers for double-integrator type systems, but it does not explicitly state that they 'focus on adaptive control for double-integrator systems'.\n- Related Work: \"Biggs et al. (2014) apply adaptive fault-tolerant control to nano-spacecraft\" — The ground truth confirms that Biggs et al. (2014) develop an adaptive fault-tolerant control method for nano-spacecraft attitude control, but it does not explicitly state that they 'apply adaptive fault-tolerant control to nano-spacecraft'.\n- Related Work: \"Wang (2013) propose an observer-based adaptive fuzzy-neural control scheme for unknown nonlinear dynamical systems\" — The ground truth confirms that Wang (2013) develop an observer-based adaptive fuzzy-neural controller for unknown nonlinear dynamical systems, but it does not explicitly state that they 'propose an observer-based adaptive fuzzy-neural control scheme for unknown nonlinear dynamical systems'.\n- Related Work: \"Startz et al. (n.d.) introduces endogenous switching into Markov regime-switching regressions\" — The ground truth confirms that Startz et al. (n.d.) incorporate endogenous switching into a Markov-switching regression and develop strategies for identification and estimation, but it does not explicitly state that they 'introduce endogenous switching into Markov regime-switching regressions'.\n- Related Work: \"Weron and Janczura (n.d.b) explores the use of Markov regime-switching models for electricity spot prices\" — The ground truth confirms that Weron and Janczura (n.d.b) calibrate Markov regime-switching models to spot prices from two major power markets, but it does not explicitly state that they 'explore the use of Markov regime-switching models for electricity spot prices'.\n- Related Work: \"Luxburg (2007) discusses spectral clustering\" — The ground truth confirms that Luxburg (2007) discusses spectral clustering, but it does not explicitly state that he 'discusses spectral clustering'.\n- Related Work: \"Alves and Filipe (2020) highlight the importance of survivorship bias in momentum strategies\" — The ground truth confirms that Alves and Filipe (2020) investigate whether survival bias exists within the momentum effect, but it does not explicitly state that they 'highlight the importance of survivorship bias in momentum strategies'.\n- Related Work: \"Our hypotheses aim to bridge this gap by rigorously testing whether spectral clustering, regime-switching models informed by macroeconomic data, and network-based clustering methods can enhance the out-of-sample performance of momentum strategies compared to conventional benchmarks\" — This statement is a forward-looking hypothesis and not a claim that can be traced back to the ground truth. It is not grounded in the provided abstracts or method descriptions.\n- Related Work: \"Specifically, we posit that spectral clustering will improve Sharpe ratios, HMM-based regime switching will enhance risk-adjusted returns in factor models, and network-based clustering will outperform traditional K-Means in momentum strategy execution\" — These specific hypotheses are not grounded in the provided ground truth and are speculative statements about future research outcomes.\n- Hypotheses: \"The rationale draws on the established utility of spectral clustering for partitioning financial time series and large spatial datasets, suggesting its potential for effective regime detection.\" — The ground truth states that spectral clustering is a common method for financial regime detection and has been shown to effectively partition large spatial databases and financial time series, but it does not explicitly state that this is the 'established utility' of spectral clustering for partitioning financial time series. The phrase 'established utility' implies a stronger, more definitive endorsement than what is provided in the ground truth.\n- Hypotheses: \"This approach directly addresses the lack of standardized performance metrics in momentum strategy comparisons (Issa and Horvath, 2023; Haryani, 2026).\" — The ground truth mentions that one of the related gaps is 'Lack of standardized metrics for comparing momentum strategy performance', but it does not mention any specific papers like Issa and Horvath (2023) or Haryani (2026) as addressing this issue. Therefore, citing these references as directly addressing the lack of standardized metrics is a hallucination.\n- Hypotheses: \"This assertion is grounded in the frequent combination of Hidden Markov Models with clustering techniques for estimating probabilistic transitions between market regimes.\" — While the ground truth mentions that Hidden Markov Models are frequently combined with clustering methods to estimate probabilistic transitions between market regimes, it does not state that this is the basis for the assertion in H2. The ground truth only describes the rationale behind the hypothesis without specifying that this particular combination is what grounds the assertion.\n- Hypotheses: \"It also responds to the limited discussion on how macroeconomic features influence clustering quality, proposing that integrating these features into regime detection may enhance accuracy.\" — The ground truth lists 'Limited discussion on how macroeconomic features affect clustering quality' as a related gap, but it does not state that this is what the hypothesis 'responds to'. The ground truth only states that the hypothesis builds upon this gap, not that it directly responds to it in the way described.\n- Hypotheses: \"By leveraging hybrid unsupervised-supervised learning approaches, this hypothesis seeks to improve momentum strategy performance through more robust regime identification in macroeconomic settings (Palma et al., 2024; Oliveira et al., 2025; Wei et al., 2023).\" — The ground truth does not mention any specific papers such as Palma et al. (2024), Oliveira et al. (2025), or Wei et al. (2023) as supporting the idea of leveraging hybrid unsupervised-supervised learning approaches. These citations are hallucinated in the context of this sentence.\n- Hypotheses: \"The underlying rationale stems from the cross-disciplinary application of network-based clustering methodologies from cybersecurity to financial asset grouping.\" — The ground truth refers to 'Cross-disciplinary bridge insight #4' connecting network-based clustering from cybersecurity to financial asset grouping, but it does not describe the underlying rationale as stemming from this cross-disciplinary application. The ground truth does not provide enough information to support the claim that this is the 'underlying rationale'.\n- Hypotheses: \"It further addresses the limited exploration of ACO-based clustering in spectral and medoid contexts, suggesting that alternative clustering paradigms may be better suited for financial data.\" — The ground truth mentions 'Limited exploration of ACO-based clustering in spectral and medoid contexts' as a related gap, but it does not state that this is what the hypothesis 'further addresses'. The ground truth does not indicate that the hypothesis specifically focuses on or addresses this aspect in the way described.\n- Hypotheses: \"This hypothesis introduces a novel clustering technique derived from another domain to classify assets and optimize momentum strategies based on coherent responses to regime changes (Bilokon et al., 2021; Mudarisov et al., 2024; Horvath et al., 2021).\" — The ground truth does not reference any of the cited papers (Bilokon et al., 2021; Mudarisov et al., 2024; Horvath et al., 2021) in relation to introducing a novel clustering technique or optimizing momentum strategies. These citations are hallucinated in the context of this sentence.\n- Limitations: \"The experimental implementation relied on several assumptions regarding data availability and synthetic dataset generation.\" — The ground truth lists specific assumptions about synthetic data but does not describe the experimental implementation as relying on these assumptions. The phrase 'experimental implementation' is not mentioned in the ground truth.\n- Limitations: \"Specifically, the code incorporates fallback mechanisms to utilize synthetic data when real-world datasets are inaccessible\" — While the ground truth mentions that the experiment falls back to a synthetic dataset if the real data file is not found, it does not specify that this is implemented via 'code' or that there are 'fallback mechanisms' in the code itself.\n- Limitations: \"with the assumption that such synthetic data maintains structural similarity and statistical properties to the original S&P 500 dataset\" — The ground truth states that the synthetic dataset has the same structure and approximate statistical properties as the real S&P 500 dataset, but does not mention any explicit assumption about 'structural similarity' or 'statistical properties' being maintained in the context of the code or implementation.\n- Limitations: \"While efforts were made to ensure reproducibility through fixed random seeds and adequate temporal coverage\" — The ground truth confirms that the synthetic data generation uses the same random seed for reproducibility and that the synthetic data covers a reasonable time range, but does not mention 'efforts were made' or refer to 'adequate temporal coverage' as a deliberate action taken in the implementation.\n- Limitations: \"the reliance on synthetic data introduces uncertainty about whether the results accurately reflect real market dynamics\" — This statement is a qualitative interpretation or implication of the use of synthetic data, not explicitly stated in the ground truth. The ground truth only lists assumptions about synthetic data but does not discuss implications for reflecting real market dynamics.\n- Limitations: \"This dependence on synthetic data generation also implies that the conclusions drawn may not fully capture the complexity and nuances inherent in actual financial markets\" — This is an interpretive conclusion about the implications of using synthetic data, not a fact stated in the ground truth. The ground truth does not make claims about the complexity or nuances of financial markets or how synthetic data affects conclusions.\n- Limitations: \"certain experiments were not executed due to logistical constraints, though no specific reasons were provided for skipped experiments\" — The ground truth states that no specific reasons were provided for skipped experiments, but it does not mention 'logistical constraints' as a reason. The paper attributes the non-execution to 'logistical constraints', which is not part of the ground truth.\n- Future Work: \"The primary finding regarding the use of spectral clustering for identifying market regimes remains inconclusive due to the reliance on synthetic data inputs, which precludes meaningful inference about real-world financial dynamics.\" — While the ground truth states that the experiment used synthetic surrogates and that the verdict is 'inconclusive' due to unknown success criteria, it does not explicitly state that the reliance on synthetic data 'precludes meaningful inference about real-world financial dynamics.' This specific characterization of the consequence of using synthetic data is not present in the ground truth.\n- Future Work: \"Therefore, future investigations should focus on replicating the experimental setup using genuine market data to evaluate whether regime identification improves out-of-sample Sharpe ratios in practice.\" — The ground truth supports the idea that replication with real data is needed but does not specify that the purpose is to 'evaluate whether regime identification improves out-of-sample Sharpe ratios in practice.' This particular outcome or goal is not mentioned in the ground truth.\n- Future Work: \"Additionally, the limited examination of survival bias’s impact on momentum strategies underscores the need for studies that explicitly account for such biases in empirical analyses.\" — Although the ground truth identifies 'Limited literature examining the impact of survival bias specifically on the momentum effect' as a gap, it does not mention that this leads to the need for 'studies that explicitly account for such biases in empirical analyses.' The latter part is not supported by the ground truth.\n- Future Work: \"Comparative evaluations of different adaptive control strategies also remain underexplored, limiting informed decision-making in system design.\" — The ground truth lists 'Lack of comparative studies evaluating the relative performance of different adaptive control strategies' as a gap, but it does not state that this leads to 'limiting informed decision-making in system design.' This interpretation or consequence is not found in the ground truth.\n- Future Work: \"Investigating the robustness of adaptive controls within hyperchaotic systems is another critical direction, especially given the increasing complexity of modern financial markets.\" — The ground truth mentions 'Need for further investigation into robustness of adaptive control in hyperchaotic systems' as a gap, but it does not include the phrase 'especially given the increasing complexity of modern financial markets.' This added context is not grounded in the provided information.\n- Future Work: \"Moreover, exploring how unsupervised clustering performs under noisy or contaminated financial datasets, and validating unsupervised methods against ground truth for detecting financial regime shifts, would improve reliability and trustworthiness in practical deployments.\" — While the ground truth includes 'Limited discussion on how unsupervised clustering methods perform with noisy or contaminated financial datasets' and 'Effectiveness of unsupervised methods in detecting financial regime shifts lacks ground truth validation' as gaps, it does not state that doing so would 'improve reliability and trustworthiness in practical deployments.' This conclusion or implication is not present in the ground truth.\nCitation issues:\n- Related Work: citation-like text \"(Sharma et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Prakash et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Mudarisov et\nal., 2024)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Horvath et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Luc et\nal., n.d.)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.8486, 1; actual — Coder Agent reports static_return=0.40762652908988617. Correct this.\n- Results > H1: claimed — figure(s) actually present in the text: 0.8486, 1; actual — Coder Agent reports regime_aware_return=0.40762652908988617. Correct this.\n- Results > H1: claimed — figure(s) actually present in the text: 0.8486, 1; actual — Coder Agent reports static_drawdown=-0.7785679198179248. Correct this.\n- Results > H1: claimed — figure(s) actually present in the text: 0.8486, 1; actual — Coder Agent reports regime_aware_drawdown=-0.7785679198179248. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by implying that the experiment's completion status indicates any form of validation or refutation of the hypothesis. The ground truth explicitly states that the experiment 'ran to completion' but 'no verdict is drawn from them' and that the metrics 'say nothing about the real-world hypothesis.' However, the discussion says, 'The experiment's completion status does not imply validation of the hypothesis,' which is accurate, yet it also states, 'This limitation directly reflects the broader challenge...as the synthetic nature of the inputs renders the findings irrelevant to real-world application,' suggesting a stronger conclusion than warranted by an 'inconclusive' verdict. The phrase 'renders the findings irrelevant to real-world application' overstates the case because the ground truth only says the findings are irrelevant to the real-world hypothesis due to synthetic data, not that they are irrelevant in a general sense.\nQuality scores below the 4/5 threshold:\n- clarity: 3/5 — Writing is somewhat dense and repetitive, with unclear transitions between ideas; technical terms are used without sufficient explanation for general readers.\n- flow: 2/5 — Logical progression is disrupted by excessive repetition of related work and inconsistent organization of hypotheses, methods, and results sections.\n- structure: 3/5 — Paper contains standard sections but lacks completeness in several areas; the introduction is too long and repetitive, and the discussion section is underdeveloped.\n- limitations_honesty: 2/5 — The paper fails to honestly engage with the actual risks, assumptions, and not-run experiments detailed in the ground truth. It omits critical details about synthetic data usage, overstates the validity of results, and does not adequately acknowledge the lack of real-world validation or the specific reasons why certain experiments were not conducted.",
+  "generated_at": "2026-09-15T07:09:08.834967+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To test whether increasing the temporal resolution of input measurements from hourly to 15-minute intervals improves forecasting accuracy by at least 5% as measured by MAE when using a Temporal Fusion Transformer (TFT) model for short-horizon electricity demand forecasting (1-hour to 6-hour ahead).",
+  "author": "coder-agent",
+  "baseline": "The MAE achieved by the TFT model using hourly resolution input data",
+  "success_criteria": "If the MAE of the model using 15-minute resolution data is at least 5% lower than the MAE of the model using hourly resolution data, the hypothesis is supported. If the improvement is less than 5% or negative, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T04:40:29.158198+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.0361,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6238, in pandas._libs.tslibs.offsets._get_offset\nKeyError: 'T'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6369, in pandas._libs.tslibs.offsets.to_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6244, in pandas._libs.tslibs.offsets._get_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6162, in pandas._libs.tslibs.offsets.raise_invalid_freq\nValueError: Invalid frequency: T. Failed to parse with error message: KeyError('T'). Did you mean min?\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_16/H1/run.py\", line 733, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_16/H1/run.py\", line 221, in load_data\n    df_15min = df.resample('15T').ffill()\n               ~~~~~~~~~~~^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10530376/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/generic.py\", line 9411, in resample\n    return get_resampler(\n        cast(\"Series | DataFrame\", self),\n    ...<8 lines>...\n        group_keys=group_keys,\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10530376/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/resample.py\", line 2334, in get_resampler\n    tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]\n  File \"/tmp/users/sgyshere/coder-venvs-10530376/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/resample.py\", line 2420, in __init__\n    freq = to_offset(freq)\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6254, in pandas._libs.tslibs.offsets.to_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6377, in pandas._libs.tslibs.offsets.to_offset\n  File \"pandas/_libs/tslibs/offsets.pyx\", line 6162, in pandas._libs.tslibs.offsets.raise_invalid_freq\nValueError: Invalid frequency: 15T. Failed to parse with error message: ValueError(\"Invalid frequency: T. Failed to parse with error message: KeyError('T'). Did you mean min?\")\n"
+}

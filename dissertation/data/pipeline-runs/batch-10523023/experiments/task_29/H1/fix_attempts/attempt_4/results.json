@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether using active learning with uncertainty sampling based on Gaussian Process Regression reduces the number of required simulations by at least 30% compared to random sampling when mapping materials property landscapes on the MoleculeNet ESOL dataset.",
+  "author": "coder-agent",
+  "baseline": "Random sampling strategy where molecules are selected uniformly at random for each iteration",
+  "success_criteria": "If the active learning approach requires at least 30% fewer simulations than random sampling to achieve equivalent prediction accuracy, the hypothesis is supported. If the reduction is less than 30%, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T00:05:10.794114+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.9176,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 621, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 327, in run_experiment\n    active_results = run_sampling_protocol(\n        X_train_full, y_train_full, X_val, y_val, X_test, y_test,\n        \"active\", model, data[\"scaler\"]\n    )\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_29/H1/run.py\", line 467, in run_sampling_protocol\n    var = y_var[val_indices.index(idx)]\n          ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\nIndexError: index 113 is out of bounds for axis 0 with size 113\n"
+}

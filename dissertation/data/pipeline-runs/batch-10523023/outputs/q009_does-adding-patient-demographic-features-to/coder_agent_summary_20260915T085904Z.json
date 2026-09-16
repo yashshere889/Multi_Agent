@@ -1,0 +1,154 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: kages/sklearn/utils/validation.py\", line 1038, in check_array\n        array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n      File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n        array = numpy.asarray(array, order=order, dtype=dtype)\n    ValueError: could not convert string to float: 'Male'\n========================================================================\n\n\n  )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 3058, in validate_data\n    X, y = check_X_y(X, y, **check_params)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1330, in check_X_y\n    X = check_array(\n        X,\n    ...<12 lines>...\n        input_name=\"X\",\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1038, in check_array\n    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n    array = numpy.asarray(array, order=order, dtype=dtype)\nValueError: could not convert string to float: 'Male' after 4 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/H1",
+      "assumptions_made": [
+        "The UCI Adult Census Income dataset is representative enough of healthcare data for this experiment",
+        "The preprocessing steps correctly handle the data characteristics without introducing bias",
+        "The logistic regression models are appropriate for this classification task",
+        "The cross-validation approach provides reliable estimates of model performance",
+        "The difference threshold of 0.05 is appropriate for detecting meaningful improvements",
+        "The synthetic dataset generation produces realistic enough data for testing purposes"
+      ],
+      "results": null,
+      "fix_attempts": 4,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 7: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The UCI Adult Census Income dataset is suitable for testing whether demographic features provide additional predictive power beyond clinical features in a healthcare-like setting",
+            "The preprocessing steps correctly handle the data characteristics and maintain the integrity of the dataset",
+            "A difference of 0.05 in accuracy or AUC is considered statistically significant for this experiment",
+            "The logistic regression models are appropriate for this binary classification task",
+            "The dataset provides sufficient samples for reliable model training and evaluation",
+            "The experiment will be run on a system with network access to load the dataset",
+            "The experiment will be run on a system without GPU requirements"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: kages/sklearn/utils/validation.py\", line 1038, in check_array\n        array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n      File \"/tmp/users/sgyshere/coder-venvs-10523536/64aac26a0d83e525/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n        array = numpy.asarray(array, order=order, dtype=dtype)\n    ValueError: could not convert string to float: 'Male'\n========================================================================\n\n\n  )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/64aac26a0d83e525/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 3058, in validate_data\n    X, y = check_X_y(X, y, **check_params)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/64aac26a0d83e525/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1330, in check_X_y\n    X = check_array(\n        X,\n    ...<12 lines>...\n        input_name=\"X\",\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/64aac26a0d83e525/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1038, in check_array\n    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/64aac26a0d83e525/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n    array = numpy.asarray(array, order=order, dtype=dtype)\nValueError: could not convert string to float: 'Male'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment falls back to a synthetic dataset if the real dataset is not found at the expected path",
+            "The synthetic dataset maintains the essential structure and statistical properties of the real UCI Adult Census Income dataset for the purposes of this experiment",
+            "The synthetic dataset has approximately the same distribution of features and target variable as the real dataset",
+            "The synthetic dataset includes the required features: age, education_num, hours_per_week, sex, race, and income",
+            "The synthetic dataset has approximately 30% of samples with income >50K, similar to the real dataset",
+            "The synthetic dataset preserves the relationship between demographic features (sex, race) and income, with males and whites having higher probability of >50K income"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: kages/sklearn/utils/validation.py\", line 1038, in check_array\n        array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n      File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n        array = numpy.asarray(array, order=order, dtype=dtype)\n    ValueError: could not convert string to float: 'Male'\n========================================================================\n\n\n  )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 3058, in validate_data\n    X, y = check_X_y(X, y, **check_params)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1330, in check_X_y\n    X = check_array(\n        X,\n    ...<12 lines>...\n        input_name=\"X\",\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1038, in check_array\n    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n    array = numpy.asarray(array, order=order, dtype=dtype)\nValueError: could not convert string to float: 'Male'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Adult Census Income dataset is representative enough of healthcare data for this experiment",
+            "The preprocessing steps (removing fnlwgt, handling missing values, encoding categorical variables, normalizing numerical features) are appropriate for this task",
+            "The synthetic dataset generation produces realistic feature distributions when the real dataset is unavailable",
+            "The logistic regression models are appropriate for this classification task",
+            "The experimental design allows for valid comparison between models",
+            "The dataset has sufficient samples to support reliable model training and evaluation",
+            "No significant multicollinearity issues exist among features",
+            "The cross-validation approach provides stable estimates of model performance",
+            "The evaluation metrics (accuracy, AUC-ROC) are appropriate for this binary classification task",
+            "The success criteria (difference of 0.05) appropriately captures meaningful improvements"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: kages/sklearn/utils/validation.py\", line 1038, in check_array\n        array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n      File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n        array = numpy.asarray(array, order=order, dtype=dtype)\n    ValueError: could not convert string to float: 'Male'\n========================================================================\n\n\n  )\n    ^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 3058, in validate_data\n    X, y = check_X_y(X, y, **check_params)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1330, in check_X_y\n    X = check_array(\n        X,\n    ...<12 lines>...\n        input_name=\"X\",\n    )\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py\", line 1038, in check_array\n    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)\n  File \"/tmp/users/sgyshere/coder-venvs-10523536/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_array_api.py\", line 983, in _asarray_with_order\n    array = numpy.asarray(array, order=order, dtype=dtype)\nValueError: could not convert string to float: 'Male'",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The UCI Adult Census Income dataset is representative enough of healthcare data for this experiment",
+            "The preprocessing steps (removing fnlwgt, handling missing values, one-hot encoding, normalization) are appropriate for this dataset",
+            "The logistic regression models will converge properly with the given parameters",
+            "The synthetic dataset generation matches the expected structure and distribution characteristics",
+            "The evaluation metrics (accuracy, AUC-ROC) are appropriate for this binary classification task",
+            "The cross-validation approach provides stable estimates of model performance"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "1909.06677",
+          "title": "Predictive Multiplicity in Classification",
+          "year": "2019",
+          "citation_count": 223,
+          "tldr": "Real-world datasets can contain competing models that provide conflicting predictions, highlighting the need to measure predictive multiplicity in model development.",
+          "url_abs": "https://arxiv.org/abs/1909.06677v4",
+          "repositories": [
+            {
+              "url": "https://github.com/charliemarx/pmtools",
+              "is_official": true,
+              "stars": 9
+            },
+            {
+              "url": "https://github.com/SirRob1997/collaborative_filtering",
+              "is_official": false,
+              "stars": 1
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2312.05933",
+          "title": "Temporal Supervised Contrastive Learning for Modeling Patient Risk Progression",
+          "year": "2023",
+          "citation_count": 13,
+          "tldr": "A supervised contrastive learning framework learns time series embeddings with properties ensuring similar outcomes cluster together, adjacent time steps remain close, and dissimilar features are separated, outperforming baselines in clinical prediction tasks.",
+          "url_abs": "https://arxiv.org/abs/2312.05933",
+          "repositories": [
+            {
+              "url": "https://github.com/Shahriarnz14/Temporal-Supervised-Contrastive-Learning",
+              "is_official": true,
+              "stars": 6
+            }
+          ],
+          "methods": [
+            "Contrastive learning",
+            "Embedding",
+            "Masked Autoencoder (MAE)"
+          ]
+        }
+      ],
+      "reported_attempt": 5
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_9/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T08:59:04.708396+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

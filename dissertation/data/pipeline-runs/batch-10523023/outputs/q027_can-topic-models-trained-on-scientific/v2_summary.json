@@ -1,0 +1,49 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q027_can-topic-models-trained-on-scientific/v2.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "1709.09373v1",
+    "ab8f54a22f1940264a0e92f6cb8731a84f2c9678",
+    "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024",
+    "cf10e543cc8e998e900d577beb72a1090c52e233",
+    "36ef06dc727e79738c4ecdf7537bf3f88bc1f4af",
+    "9f154961c26a8d54eecae18984a28c293ff08587",
+    "44166da8b7c6c8fdf1f5b89860f902927a22673d",
+    "1906.10015v2",
+    "2204.10189v2",
+    "bec40b60411004de2ad1de59cfa0d9720d039c0d",
+    "2a0e132c40a485f60622f587ea062683cb5a101d",
+    "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce",
+    "2006.03354v2",
+    "f1fd96310234a769c53a047dadf5e7d0ac844951",
+    "2cfec242417f916c270030250b63d72e45314470",
+    "fc7f20931644eb82d34d0ce2f2cf4eaa6391a8fe",
+    "665fd3f78b5ac74dd9c337473cb6eeac6123f7fc",
+    "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1",
+    "2203.10922v1",
+    "ea107ed4a7fa40fcb8eb95bffba8bb4d5464d5bc",
+    "2207.04244v1",
+    "2406.10833v3",
+    "2103.00498v1"
+  ],
+  "notes_for_review": [],
+  "generated_at": "2026-09-15T23:04:24.314609+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

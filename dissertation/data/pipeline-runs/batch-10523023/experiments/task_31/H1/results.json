@@ -1,0 +1,20 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether probability calibration methods (Platt Scaling, Isotonic Regression) exhibit significantly higher Expected Calibration Error (ECE) when applied to heavily imbalanced real-world tabular data (UCI Credit Approval, UCI German Credit) compared to their performance on balanced benchmarks (AG News, 20 Newsgroups).",
+  "author": "coder-agent",
+  "baseline": "ECE values obtained from applying the same calibration methods to the balanced benchmark datasets (AG News, 20 Newsgroups) using identical models and preprocessing steps.",
+  "success_criteria": "If ECE values are significantly higher for the imbalanced datasets compared to the balanced ones when using the same calibration methods, the hypothesis is supported. If ECE values are similar or lower for imbalanced datasets, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T01:11:41.353913+00:00",
+  "status": "success",
+  "elapsed_seconds": 0.119,
+  "resumed": false,
+  "metrics": {
+    "uncalibrated_ece": 0.009022776874424945,
+    "platt_scaling_ece": 0.01960117500972004,
+    "isotonic_regression_ece": 0.007547347717000509
+  },
+  "meets_success_criteria": "unknown",
+  "notes": "Uncalibrated ECE: 0.0090, Platt Scaling ECE: 0.0196, Isotonic Regression ECE: 0.0075. Interpretation depends on comparison with balanced benchmarks.",
+  "error": null
+}

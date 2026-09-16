@@ -1,0 +1,562 @@
+{
+  "iteration": 2,
+  "hallucinations": [
+    {
+      "location": "Introduction",
+      "claim": "AL techniques, including uncertainty sampling, Bayesian optimization, and leverage score-based querying, consistently show advantages over random sampling in terms of data efficiency and model accuracy (Ciravegna et al., 2021)",
+      "issue": "The ground truth states that AL techniques show advantages over random sampling, but it does not specify that this applies to 'uncertainty sampling, Bayesian optimization, and leverage score-based querying' specifically, nor does it attribute this particular statement to Ciravegna et al., 2021. The citation is incorrect in linking this specific list of methods and their consistent advantages directly to that paper."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Hypothesis H1 posits that using active learning with uncertainty sampling based on Gaussian Process Regression to select simulations will reduce the number of required simulations by at least 30% compared to random sampling, when evaluated on the MoleculeNet ESOL dataset",
+      "issue": "The ground truth lists H1 as a hypothesis but does not include the specific claim about a 30% reduction in simulations or the reference to the MoleculeNet ESOL dataset. This detail is fabricated and not present in the provided ground truth."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Hypothesis H2 investigates whether implementing Bayesian Optimization within an active learning framework will lead to a statistically significant improvement in model accuracy (measured by R²) after 50 iterations compared to uncertainty sampling alone, using the UCI Adult Census Income dataset",
+      "issue": "The ground truth includes H2 but does not mention the specific measure of R², the number of iterations (50), or the use of the UCI Adult Census Income dataset. These elements are not grounded in the provided information."
+    },
+    {
+      "location": "Introduction",
+      "claim": "Hypothesis H3 examines whether active learning strategies incorporating statistical leverage scores will require fewer simulations to achieve a target level of predictive accuracy compared to standard uncertainty sampling, when validated on the UCI Air Quality dataset",
+      "issue": "The ground truth includes H3 but does not specify that the comparison is about 'fewer simulations to achieve a target level of predictive accuracy', nor does it mention the UCI Air Quality dataset as the validation set. These specifics are not supported by the ground truth."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Active learning has emerged as a powerful paradigm for reducing the cost of data labeling and simulation in materials science, particularly in scenarios where experimental or computational resources are limited.",
+      "issue": "The ground truth does not explicitly state that active learning is specifically 'particularly valuable in scenarios where experimental or computational resources are limited' - while this may be implied from the context of materials science, it is not directly stated in the abstracts or method descriptions provided."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Tian et al. (2020) employ Kriging-based models and directed exploration strategies to estimate material property curves and surfaces, demonstrating that maximum variance sampling can lead to faster convergence across various materials problems.",
+      "issue": "While Tian et al. (2020) is mentioned in the ground truth and discusses Kriging-based models and directed exploration, the ground truth does not specifically mention 'maximum variance sampling' as a strategy that leads to faster convergence across various materials problems. The ground truth mentions 'maximum variance' as a strategy but doesn't confirm its effectiveness in leading to faster convergence."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonen et al. (2012) present an aggressive approach for active learning of half-spaces, showing that it can be both efficient and theoretically sound under separability assumptions.",
+      "issue": "The ground truth confirms Gonen et al. (2012) discusses aggressive active learning for half-spaces and mentions theoretical guarantees under reasonable assumptions, but does not specifically mention 'efficiency' or 'theoretically sound under separability assumptions' as stated in the claim."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Ciravegna et al. (2021) introduce Knowledge-driven Active Learning (KAL), which incorporates domain knowledge into sample selection via logic constraints, offering a framework that is suitable for both regression and object recognition tasks.",
+      "issue": "The ground truth confirms Ciravegna et al. (2021) introduces KAL and mentions it's suitable for regression and object recognition tasks, but does not specifically mention 'logic constraints' as the mechanism for incorporating domain knowledge."
+    },
+    {
+      "location": "Related Work",
+      "claim": "Orhan and Tastan (2015) propose a novel querying criterion based on statistical leverage scores, indicating that sampling data instances with high leverage scores can be an effective strategy in active learning.",
+      "issue": "The ground truth confirms Orhan and Tastan (2015) explore statistical leverage scores as a querying criterion, but does not specifically state that 'sampling data instances with high leverage scores can be an effective strategy in active learning.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Vatsavai et al. (2025) present a curiosity-driven algorithm that efficiently samples regions with unexplored structure-property relations using a lightweight surrogate model, highlighting the potential of such methods in microscopy-based materials science.",
+      "issue": "The ground truth confirms Vatsavai et al. (2025) presents a curiosity algorithm, but does not specifically mention 'efficiently samples regions with unexplored structure-property relations' or 'lightweight surrogate model' or 'microscopy-based materials science.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hashemi et al. (2021) extend the Materials Knowledge Systems (MKS) framework by applying digital image processing and distance-based metrics for feature engineering in organic photovoltaics, enabling the construction of surrogate models that link microstructures to charge transport properties.",
+      "issue": "The ground truth confirms Hashemi et al. (2021) extends MKS framework and applies digital image processing and distance-based metrics, but does not specifically mention 'feature engineering in organic photovoltaics' or 'surrogate models that link microstructures to charge transport properties.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Sanyal et al. (2018) propose MT-CGCNN, a model that integrates Crystal Graph Convolutional Neural Networks (CGCNN) with multitask learning to simultaneously predict multiple material properties such as formation energy, band gap, and Fermi energy.",
+      "issue": "The ground truth confirms Sanyal et al. (2018) propose MT-CGCNN and integrate CGCNN with multitask learning, but does not specifically mention 'formation energy, band gap, and Fermi energy' as the properties predicted."
+    },
+    {
+      "location": "Related Work",
+      "claim": "These developments illustrate how machine learning can be tailored to the unique challenges of materials science, such as limited data availability and the need for universal descriptors.",
+      "issue": "While the ground truth discusses limited data availability and universal descriptors in Sanyal et al. (2018), it does not explicitly state that 'machine learning can be tailored to the unique challenges of materials science' or list these specific challenges as 'limited data availability and the need for universal descriptors.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Tian et al. (2020) observe that uncertainty sampling—selecting samples based on model confidence—is a standard approach in active learning, and they compare several strategies including maximum variance, which they find to be effective in many cases.",
+      "issue": "The ground truth confirms Tian et al. (2020) observes uncertainty sampling as a standard approach and compares strategies including maximum variance, but does not specifically state that they 'find maximum variance to be effective in many cases.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yue et al. (2020) and Wafula et al. (2025) both utilize Gaussian Process Regression as a predictive model within active learning frameworks for regression tasks.",
+      "issue": "The ground truth confirms Yue et al. (2020) and Wafula et al. (2025) use Gaussian Process Regression in active learning frameworks, but does not specifically state that both 'utilize Gaussian Process Regression as a predictive model within active learning frameworks for regression tasks.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Han et al. (2022) present a machine learning-based sub-pixel processing technique that enhances the accuracy of atomic structure analysis by segmenting atomic signals and applying denoising methods.",
+      "issue": "The ground truth confirms Han et al. (2022) presents a sub-pixel processing technique, but does not specifically mention 'machine learning-based' or 'enhances the accuracy of atomic structure analysis by segmenting atomic signals and applying denoising methods.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Zhang et al. (2025) introduce a knowledge-based sampling method (KBSM) for deep learning-assisted antenna array design, showing how active learning principles can be adapted to reduce training data requirements while maintaining high prediction accuracy.",
+      "issue": "The ground truth confirms Zhang et al. (2025) introduces KBSM for deep learning-assisted antenna array design, but does not specifically mention 'knowledge-based sampling method (KBSM)' or 'reduce training data requirements while maintaining high prediction accuracy.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "P. et al. (2021) propose a hierarchical correlation learning framework for multi-property prediction that combines composition-based prediction, property correlation learning, and generative transfer learning.",
+      "issue": "The ground truth confirms a hierarchical correlation learning framework for multi-property prediction, but does not specifically mention 'composition-based prediction, property correlation learning, and generative transfer learning' or name the authors as 'P. et al.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Khan et al. (2026) state that AL enables researchers to iteratively select the most informative samples for labeling, thereby reducing the number of expensive computations required to achieve accurate predictive models.",
+      "issue": "The ground truth confirms Khan et al. (2026) discusses AL enabling iterative selection of informative samples and reducing expensive computations, but does not specifically state 'thereby reducing the number of expensive computations required to achieve accurate predictive models.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Chen et al. (2026) state that AL strategies aim to maximize the utility of each labeled example by focusing on regions of high uncertainty or low representation in the training data.",
+      "issue": "The ground truth confirms Chen et al. (2026) discusses AL strategies aiming to maximize utility of labeled examples and focusing on high uncertainty or low representation, but does not specifically state 'by focusing on regions of high uncertainty or low representation in the training data.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Xin et al. (2021) state that uncertainty sampling selects instances where the model's confidence in its prediction is lowest, aiming to reduce prediction variance and improve model accuracy.",
+      "issue": "The ground truth confirms Xin et al. (2021) discusses uncertainty sampling and its aim to reduce prediction variance and improve accuracy, but does not specifically state 'selects instances where the model's confidence in its prediction is lowest.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kusne et al. (2020) state that Bayesian optimization is used for efficient exploration of property spaces.",
+      "issue": "The ground truth confirms Kusne et al. (2020) discusses Bayesian optimization for efficient exploration of property spaces, but does not specifically state 'used for efficient exploration of property spaces.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kusne et al. (2020) state that these methods are designed to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space.",
+      "issue": "The ground truth confirms Kusne et al. (2020) discusses methods guiding sample selection for surrogate model generalization, but does not specifically state 'designed to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yang and Xia (2026) state that AL methods such as those based on Gaussian processes or Bayesian optimization are often computationally intensive, particularly when dealing with high-dimensional or complex material spaces.",
+      "issue": "The ground truth confirms Yang and Xia (2026) discusses AL methods being computationally intensive, but does not specifically state 'particularly when dealing with high-dimensional or complex material spaces.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Caron et al. (2019) state that active learning leverages the speed of machine learning approximators to guide the selection of points that are likely to yield the most information.",
+      "issue": "The ground truth confirms Caron et al. (2019) discusses active learning leveraging machine learning approximators, but does not specifically state 'to guide the selection of points that are likely to yield the most information.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Marple et al. (2020) state that active learning reduced the number of required simulations by nearly a factor of three compared to random sampling.",
+      "issue": "The ground truth confirms Marple et al. (2020) shows active learning reduced simulations by nearly a factor of three compared to random sampling, but does not specifically state 'nearly a factor of three.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "McCracken et al. (2014) state that in clinical and content analysis settings, active learning strategies have been adapted to balance efficiency and performance, with studies showing that while no single strategy universally outperforms others, certain approaches such as random sampling can sometimes yield strong results quickly.",
+      "issue": "The ground truth confirms McCracken et al. (2014) discusses active learning strategies in clinical and content analysis, but does not specifically state 'balance efficiency and performance' or 'random sampling can sometimes yield strong results quickly.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Jain et al. (2024) state that in materials science, active learning has been applied to efficiently explore high-dimensional property spaces, with studies employing techniques such as query-by-committee and uncertainty-based sampling to reduce labeling costs.",
+      "issue": "The ground truth confirms Jain et al. (2024) discusses active learning in materials science and high-dimensional property spaces, but does not specifically state 'efficiently explore high-dimensional property spaces' or 'employing techniques such as query-by-committee and uncertainty-based sampling to reduce labeling costs.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Jain et al. (2024) state that these methods aim to build accurate models with fewer labeled examples, particularly in low-data regimes where careful data selection is crucial.",
+      "issue": "The ground truth confirms Jain et al. (2024) discusses building accurate models with fewer labeled examples, but does not specifically state 'particularly in low-data regimes where careful data selection is crucial.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Marple et al. (2020) state that uncertainty sampling can significantly reduce the number of simulations required to achieve a desired level of accuracy compared to random sampling.",
+      "issue": "The ground truth confirms Marple et al. (2020) discusses uncertainty sampling reducing simulations compared to random sampling, but does not specifically state 'significantly reduce the number of simulations required to achieve a desired level of accuracy.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Riis et al. (2023) state that active learning strategies aim to sequentially query the most informative samples, guided by criteria such as uncertainty or variance reduction.",
+      "issue": "The ground truth confirms Riis et al. (2023) discusses active learning strategies aiming to query most informative samples, but does not specifically state 'guided by criteria such as uncertainty or variance reduction.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonçalves et al. (2020) state that empirical evaluations across various domains have demonstrated that active learning can significantly improve model performance with fewer labeled samples compared to random selection.",
+      "issue": "The ground truth confirms Gonçalves et al. (2020) discusses empirical evaluations showing active learning improving performance with fewer samples, but does not specifically state 'significantly improve model performance with fewer labeled samples compared to random selection.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Babjac and Hoarfrost (2026) state that in enzyme function prediction, active learning approaches reached performance levels comparable to standard training while processing substantially less data.",
+      "issue": "The ground truth confirms Babjac and Hoarfrost (2026) discusses active learning reaching performance comparable to standard training, but does not specifically state 'while processing substantially less data.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Naik et al. (2016) state that in materials science, active learning strategies have been shown to outperform random sampling in terms of predictive accuracy and data efficiency.",
+      "issue": "The ground truth confirms Naik et al. (2016) discusses active learning strategies outperforming random sampling, but does not specifically state 'in terms of predictive accuracy and data efficiency.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonçalves et al. (2020) state that the effectiveness of active learning is not uniform across all settings, and no single strategy consistently outperforms others in every scenario.",
+      "issue": "The ground truth confirms Gonçalves et al. (2020) discusses effectiveness not being uniform and no single strategy outperforming others, but does not specifically state 'no single strategy consistently outperforms others in every scenario.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonçalves et al. (2020) state that the choice of sampling strategy depends heavily on the specific application and evaluation metrics used.",
+      "issue": "The ground truth confirms Gonçalves et al. (2020) discusses choice of sampling strategy depending on application and metrics, but does not specifically state 'depends heavily on the specific application and evaluation metrics used.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wafula et al. (2025) state that active learning iteratively selects the most informative data points for labeling or simulation, aiming to maximize the utility of each sample.",
+      "issue": "The ground truth confirms Wafula et al. (2025) discusses active learning selecting most informative data points, but does not specifically state 'aiming to maximize the utility of each sample.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wafula et al. (2025) state that AL is particularly valuable when labeling or simulation is expensive, time-consuming, or requires expert knowledge.",
+      "issue": "The ground truth confirms Wafula et al. (2025) discusses AL being valuable when labeling/simulation is expensive/time-consuming/expert knowledge required, but does not specifically state 'particularly valuable when labeling or simulation is expensive, time-consuming, or requires expert knowledge.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wafula et al. (2025) state that several studies have demonstrated AL's ability to significantly reduce data requirements while maintaining predictive accuracy.",
+      "issue": "The ground truth confirms Wafula et al. (2025) discusses AL reducing data requirements while maintaining accuracy, but does not specifically state 'significantly reduce data requirements while maintaining predictive accuracy.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wafula et al. (2025) state that common AL strategies include uncertainty sampling, query by committee, and expected model change.",
+      "issue": "The ground truth confirms Wafula et al. (2025) discusses common AL strategies including uncertainty sampling, query by committee, and expected model change, but does not specifically state 'common AL strategies include uncertainty sampling, query by committee, and expected model change.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wafula et al. (2025) state that uncertainty sampling selects data points where the model is least confident, assuming that such points will yield the highest information gain.",
+      "issue": "The ground truth confirms Wafula et al. (2025) discusses uncertainty sampling selecting least confident points, but does not specifically state 'assuming that such points will yield the highest information gain.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yue et al. (2020) state that in the context of shape control, the Mean Absolute Deviation (MAD) is used as a performance metric, and results suggest that AL can improve model accuracy with relatively few samples.",
+      "issue": "The ground truth confirms Yue et al. (2020) discusses MAD as performance metric and AL improving accuracy with few samples, but does not specifically state 'Mean Absolute Deviation (MAD) is used as a performance metric' or 'results suggest that AL can improve model accuracy with relatively few samples.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Li et al. (2024c) state that GPR has also been applied in active learning for identifying regioselective residues in biochemical systems.",
+      "issue": "The ground truth confirms Li et al. (2024c) discusses GPR in active learning for regioselective residues, but does not specifically state 'applied in active learning for identifying regioselective residues in biochemical systems.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Li et al. (2024a) state that amortized active learning methods replace costly model training and acquisition function optimization with neural network evaluations.",
+      "issue": "The ground truth confirms Li et al. (2024a) discusses amortized active learning replacing costly model training and acquisition function optimization, but does not specifically state 'with neural network evaluations.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Nikova et al. (2023) state that cost-aware active learning strategies consider that simulation costs can vary across the design space.",
+      "issue": "The ground truth confirms Nikova et al. (2023) discusses cost-aware active learning and varying simulation costs, but does not specifically state 'consider that simulation costs can vary across the design space.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Xue and Lyu (2025) state that active learning improves metamodel accuracy by iteratively selecting samples that contribute most to model improvement.",
+      "issue": "The ground truth confirms Xue and Lyu (2025) discusses active learning improving metamodel accuracy by selecting samples that contribute most to model improvement, but does not specifically state 'iteratively selecting samples that contribute most to model improvement.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Lookman et al. (2019) state that uncertainty quantification and utility functions are central to guiding the selection of samples in materials discovery.",
+      "issue": "The ground truth confirms Lookman et al. (2019) discusses uncertainty quantification and utility functions in materials discovery, but does not specifically state 'central to guiding the selection of samples in materials discovery.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Bassman et al. (2018) state that GPR within a Bayesian optimization framework predicts material properties and identifies optimal heterostructures with minimal ab initio calculations.",
+      "issue": "The ground truth confirms Bassman et al. (2018) discusses GPR in Bayesian optimization framework for predicting material properties and identifying optimal heterostructures, but does not specifically state 'with minimal ab initio calculations.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Zaman et al. (2023) state that active learning is used to minimize labeling effort or computational cost.",
+      "issue": "The ground truth confirms Zaman et al. (2023) discusses active learning minimizing labeling effort or computational cost, but does not specifically state 'used to minimize labeling effort or computational cost.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gal and Ghahramani (2015) state that dropout training in neural networks connects with Bayesian approximation, showing how uncertainty can be captured in deep learning without significant computational overhead.",
+      "issue": "The ground truth confirms Gal and Ghahramani (2015) discusses dropout training and Bayesian approximation, but does not specifically state 'showing how uncertainty can be captured in deep learning without significant computational overhead.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Xue and Lyu (2025) state that AK-IS combines adaptive Kriging with importance sampling to shift the sampling focus toward critical regions.",
+      "issue": "The ground truth confirms Xue and Lyu (2025) discusses AK-IS combining adaptive Kriging with importance sampling, but does not specifically state 'shift the sampling focus toward critical regions.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hüllermeier et al. (2022) state that uncertainty sampling selects instances with high prediction variance for labeling.",
+      "issue": "The ground truth confirms Hüllermeier et al. (2022) discusses uncertainty sampling selecting instances with high prediction variance, but does not specifically state 'for labeling.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonçalves et al. (2020) state that query-by-committee methods identify samples that expose disagreements among learners.",
+      "issue": "The ground truth confirms Gonçalves et al. (2020) discusses query-by-committee methods identifying samples exposing disagreements, but does not specifically state 'identify samples that expose disagreements among learners.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Lämmle et al. (2023) state that GUESS combines predictive uncertainty and gradient information to guide sampling for global surrogate modeling.",
+      "issue": "The ground truth confirms Lämmle et al. (2023) discusses GUESS combining predictive uncertainty and gradient information, but does not specifically state 'to guide sampling for global surrogate modeling.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hu et al. (2023) state that hybrid metrics balance global exploration and local exploitation in surrogate modeling.",
+      "issue": "The ground truth confirms Hu et al. (2023) discusses hybrid metrics balancing exploration and exploitation, but does not specifically state 'in surrogate modeling.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Batzner et al. (2021) state that E(3)-equivariant graph neural networks leverage geometric symmetries to construct representations that are faithful to atomic environments.",
+      "issue": "The ground truth confirms Batzner et al. (2021) discusses E(3)-equivariant graph neural networks leveraging geometric symmetries, but does not specifically state 'construct representations that are faithful to atomic environments.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Foster et al. (2019) state that variational Bayesian optimal experimental design allows for principled handling of uncertainty in design choices.",
+      "issue": "The ground truth confirms Foster et al. (2019) discusses variational Bayesian optimal experimental design, but does not specifically state 'allows for principled handling of uncertainty in design choices.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Si et al. (2013) state that Bayesian nonparametric weighted sampling inference induces regularization for small cells.",
+      "issue": "The ground truth confirms Si et al. (2013) discusses Bayesian nonparametric weighted sampling inference, but does not specifically state 'induces regularization for small cells.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Dette et al. (2015) state that Bayesian optimal discriminating designs are used for competing regression models.",
+      "issue": "The ground truth confirms Dette et al. (2015) discusses Bayesian optimal discriminating designs, but does not specifically state 'used for competing regression models.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Xu and Ghosh (2015) state that Bayesian group lasso with spike and slab priors contributes to variable selection and estimation.",
+      "issue": "The ground truth confirms Xu and Ghosh (2015) discusses Bayesian group lasso with spike and slab priors, but does not specifically state 'contributes to variable selection and estimation.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yang et al. (2014) state that hierarchical Bayesian models offer a framework for handling complex data structures.",
+      "issue": "The ground truth confirms Yang et al. (2014) discusses hierarchical Bayesian models, but does not specifically state 'offer a framework for handling complex data structures.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Doucet et al. (2000) state that sequential Monte Carlo methods involve iterative refinement of models or designs based on newly acquired data.",
+      "issue": "The ground truth confirms Doucet et al. (2000) discusses sequential Monte Carlo methods, but does not specifically state 'involve iterative refinement of models or designs based on newly acquired data.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Shao et al. (2022) state that their method decomposes user preferences into independent components.",
+      "issue": "The ground truth confirms Shao et al. (2022) discusses decomposing user preferences, but does not specifically state 'into independent components.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Choudhury et al. (2025) state that BED-LLM integrates large language models with sequential Bayesian experimental design.",
+      "issue": "The ground truth confirms Choudhury et al. (2025) discusses BED-LLM integrating LLMs with BED, but does not specifically state 'sequential Bayesian experimental design.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hedman et al. (2025) state that Step-DAD is a semi-amortized policy-based approach.",
+      "issue": "The ground truth confirms Hedman et al. (2025) discusses Step-DAD as semi-amortized policy-based approach, but does not specifically state 'semi-amortized policy-based approach.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Ryan (2014) state that novel approaches for Bayesian design include methods for nonlinear mixed effects models.",
+      "issue": "The ground truth confirms Ryan (2014) discusses novel approaches for Bayesian design including methods for nonlinear mixed effects models, but does not specifically state 'include methods for nonlinear mixed effects models.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kapoor (2011) state that Bayesian decision-theoretic approaches to experimental design incorporate prior knowledge.",
+      "issue": "The ground truth confirms Kapoor (2011) discusses Bayesian decision-theoretic approaches incorporating prior knowledge, but does not specifically state 'incorporate prior knowledge.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Ruggoo and Vandebroek (n.d.) state that Bayesian design accommodates model uncertainty by proposing a two-stage procedure.",
+      "issue": "The ground truth confirms Ruggoo and Vandebroek (n.d.) discusses Bayesian design accommodating model uncertainty with two-stage procedure, but does not specifically state 'by proposing a two-stage procedure.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Johansen and Johansen (2009) state that SMC methods provide a foundation for practical applications such as rare event estimation and particle filtering.",
+      "issue": "The ground truth confirms Johansen and Johansen (2009) discusses SMC methods providing foundation for rare event estimation and particle filtering, but does not specifically state 'provide a foundation for practical applications such as rare event estimation and particle filtering.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Ijju (2023) state that a Markovian formalism organizes the field of active learning.",
+      "issue": "The ground truth confirms Ijju (2023) discusses Markovian formalism organizing active learning, but does not specifically state 'organizes the field of active learning.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Cacciarelli and Kulahci (2023) state that online active learning for data streams distinguishes between static pool-based and dynamic stream-based paradigms.",
+      "issue": "The ground truth confirms Cacciarelli and Kulahci (2023) discusses online active learning distinguishing between static and dynamic paradigms, but does not specifically state 'distinguishes between static pool-based and dynamic stream-based paradigms.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Yousef (2010) and Yousef et al. (2013) state that normal-based triple sampling procedures examine sensitivity to departures from normality.",
+      "issue": "The ground truth confirms Yousef (2010) and Yousef et al. (2013) discuss sensitivity of triple sampling procedures to departures from normality, but does not specifically state 'examine sensitivity to departures from normality.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Nguyen and Raich (2021) state that their method adapts active learning criteria to a new selection strategy.",
+      "issue": "The ground truth confirms Nguyen and Raich (2021) discusses adapting active learning criteria to new selection strategy, but does not specifically state 'adapts active learning criteria to a new selection strategy.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Liu and Li (2023) state that their framework provides a unified framework for probabilistic, margin-based, and threshold-based uncertainty rules.",
+      "issue": "The ground truth confirms Liu and Li (2023) discusses equivalent loss framework, but does not specifically state 'provides a unified framework for probabilistic, margin-based, and threshold-based uncertainty rules.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Shultz (2013) state that certainty factor technique combines evidence from production rules.",
+      "issue": "The ground truth confirms Shultz (2013) discusses certainty factor technique combining evidence from production rules, but does not specifically state 'combines evidence from production rules.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Bui et al. (2025) state that their acquisition function estimates calibration errors before leveraging model uncertainty.",
+      "issue": "The ground truth confirms Bui et al. (2025) discusses acquisition function estimating calibration errors, but does not specifically state 'before leveraging model uncertainty.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hoarau et al. (2024) state that evidential uncertainty sampling utilizes evidential reasoning.",
+      "issue": "The ground truth confirms Hoarau et al. (2024) discusses evidential uncertainty sampling, but does not specifically state 'utilizes evidential reasoning.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kapusuzoglu et al. (2026) state that their methodology enables robust optimization of process parameters under uncertainty.",
+      "issue": "The ground truth confirms Kapusuzoglu et al. (2026) discusses methodology enabling robust optimization under uncertainty, but does not specifically state 'enables robust optimization of process parameters under uncertainty.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Camporeale et al. (2016) state that their method constructs an interpolant using radial functions.",
+      "issue": "The ground truth confirms Camporeale et al. (2016) discusses method constructing interpolant using radial functions, but does not specifically state 'constructs an interpolant using radial functions.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Schröder et al. (2021) state that several uncertainty-based approaches surpass prediction entropy in performance.",
+      "issue": "The ground truth confirms Schröder et al. (2021) discusses uncertainty-based approaches surpassing prediction entropy, but does not specifically state 'surpass prediction entropy in performance.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Li et al. (2024b) state that EAGLE achieves significant speedups in decoding while maintaining output quality.",
+      "issue": "The ground truth confirms Li et al. (2024b) discusses EAGLE achieving speedups while maintaining quality, but does not specifically state 'significant speedups in decoding while maintaining output quality.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Kingma and Ba (2014) state that Adam is a widely adopted first-order method that adapts estimates of gradient moments.",
+      "issue": "The ground truth confirms Kingma and Ba (2014) discusses Adam as widely adopted first-order method adapting gradient moments, but does not specifically state 'widely adopted first-order method that adapts estimates of gradient moments.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Li et al. (2020) state that SMA introduces a bio-inspired approach to stochastic optimization.",
+      "issue": "The ground truth confirms Li et al. (2020) discusses SMA as bio-inspired approach to stochastic optimization, but does not specifically state 'introduces a bio-inspired approach to stochastic optimization.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Koloskova et al. (2019) state that CHOCO-SGD and CHOCO-GOSSIP introduce gossip-based protocols that support compressed communication.",
+      "issue": "The ground truth confirms Koloskova et al. (2019) discusses CHOCO-SGD and CHOCO-GOSSIP introducing gossip-based protocols, but does not specifically state 'support compressed communication.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Sadiev et al. (2023) state that high-probability convergence bounds are derived under less restrictive assumptions.",
+      "issue": "The ground truth confirms Sadiev et al. (2023) discusses high-probability convergence bounds under less restrictive assumptions, but does not specifically state 'derived under less restrictive assumptions.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Hüllermeier et al. (2022) state that uncertainty sampling is used to select the least confident predictions for labeling.",
+      "issue": "The ground truth confirms Hüllermeier et al. (2022) discusses uncertainty sampling selecting least confident predictions, but does not specifically state 'for labeling.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Gonçalves et al. (2020) state that query-by-committee strategies identify disagreements among learners.",
+      "issue": "The ground truth confirms Gonçalves et al. (2020) discusses query-by-committee identifying disagreements, but does not specifically state 'among learners.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Wadu et al. (2021) state that Lyapunov optimization addresses stochastic optimization problems in settings with imperfect information.",
+      "issue": "The ground truth confirms Wadu et al. (2021) discusses Lyapunov optimization addressing stochastic optimization problems, but does not specifically state 'in settings with imperfect information.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Espath et al. (2024) state that Bayesian Hessian approximation offers new ways to incorporate curvature information.",
+      "issue": "The ground truth confirms Espath et al. (2024) discusses Bayesian Hessian approximation, but does not specifically state 'offers new ways to incorporate curvature information.'"
+    },
+    {
+      "location": "Related Work",
+      "claim": "Foster et al. (2019) state that Bayesian optimal experimental design and variational inference enhance decision-making under uncertainty.",
+      "issue": "The ground truth confirms Foster et al. (2019) discusses Bayesian optimal experimental design and variational inference, but does not specifically state 'enhance decision-making under uncertainty.'"
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "using active learning with uncertainty sampling based on Gaussian Process Regression will reduce the number of required simulations by at least 30% compared to uncertainty sampling alone",
+      "issue": "The ground truth states that the hypothesis claims a reduction of 'at least 30%' but does not specify this exact percentage. The ground truth only mentions that the comparison is made 'when evaluated on the MoleculeNet ESOL dataset' without specifying the magnitude of reduction."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "Sanyal et al., 2018; Tian et al., 2020",
+      "issue": "The ground truth does not cite these specific references. While it mentions that the hypothesis builds on the widespread adoption of uncertainty sampling and Gaussian Process Regression, it does not attribute this to these particular authors or years."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "Gonen et al., 2012; Ciravegna et al., 2021",
+      "issue": "The ground truth does not cite these specific references. Although it mentions that the hypothesis is based on the connection between Bayesian Optimization and active learning, it does not reference these particular studies."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "Orhan and Tastan, 2015",
+      "issue": "The ground truth does not cite this specific reference. While it mentions that the hypothesis draws upon statistical leverage sampling and active learning, it does not attribute this to Orhan and Tastan (2015)."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "after a certain number of iterations",
+      "issue": "The ground truth specifies that the comparison is made 'after 50 iterations', not 'after a certain number of iterations'. The phrase 'certain number' introduces ambiguity not present in the ground truth."
+    },
+    {
+      "location": "Hypotheses",
+      "claim": "statistically significant improvement in model accuracy",
+      "issue": "The ground truth does not specify that the improvement must be 'statistically significant'. It only states that the hypothesis evaluates model accuracy (measured by R²), without mentioning statistical significance."
+    },
+    {
+      "location": "Future Work",
+      "claim": "The refutation of Hypothesis H1 indicates that the specific approach tested—likely involving uncertainty sampling with Gaussian Process Regression—did not achieve the targeted performance improvement on the MoleculeNet ESOL dataset.",
+      "issue": "The ground truth states that the verdict for Hypothesis H1 is 'refuted' but does not specify the exact approach tested, nor does it confirm that the approach involved 'uncertainty sampling with Gaussian Process Regression'. Furthermore, the ground truth does not mention any 'targeted performance improvement' or 'MoleculeNet ESOL dataset' in the context of the refutation."
+    },
+    {
+      "location": "Future Work",
+      "claim": "This outcome highlights the importance of exploring a broader range of acquisition functions and uncertainty quantification methods tailored to materials property prediction tasks.",
+      "issue": "While the ground truth identifies gaps related to active learning in materials science, it does not explicitly state that the refuted hypothesis was specifically about 'acquisition functions' or 'uncertainty quantification methods tailored to materials property prediction tasks'. This claim introduces new specificity not found in the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Given the lack of a universally effective strategy, future investigations should consider comparative analyses across multiple AL frameworks and evaluate their robustness under varying conditions.",
+      "issue": "Although the ground truth mentions that 'there is no universal active learning strategy that outperforms all others for every class of problems due to 'no free lunch' theorems', it does not support the specific suggestion that 'future investigations should consider comparative analyses across multiple AL frameworks'. This is an interpretive addition not grounded in the provided evidence."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Several key areas remain underexplored in the current work. A major gap lies in understanding how active learning strategies generalize across diverse materials systems, which necessitates cross-domain evaluations to assess transferability.",
+      "issue": "The ground truth includes a gap titled 'Limited understanding of which AL strategies generalize across diverse materials systems', but it does not state that this is a 'major gap' in the current work or that 'cross-domain evaluations to assess transferability' are necessary. These are additions not supported by the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Additionally, while early training dynamics were examined, further research is needed to evaluate long-term performance and stability of AL methods beyond initial phases.",
+      "issue": "The ground truth includes a gap titled 'Need for more extensive evaluation of AL's effectiveness beyond early training phases where differences are most pronounced', but it does not state that 'early training dynamics were examined' in the current work. This implies a conclusion not present in the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Other unaddressed concerns include the impact of hyperparameters such as pool size and batch size, the influence of variable simulation costs, and the handling of mislabeled data in simulation-based environments.",
+      "issue": "While the ground truth lists these as gaps, it does not state that these are 'unaddressed concerns in the current work'. This is a speculative claim about the scope of the current study that is not grounded in the provided information."
+    },
+    {
+      "location": "Future Work",
+      "claim": "The lack of standardized evaluation methods for uncertainty measures and the absence of clear guidelines for strategy selection underscore the need for more systematic approaches to assessing AL effectiveness.",
+      "issue": "The ground truth includes a gap titled 'Lack of standardized benchmarks for comparing active learning strategies across diverse materials domains' but does not mention 'standardized evaluation methods for uncertainty measures' or 'clear guidelines for strategy selection'. These are additional claims not supported by the ground truth."
+    },
+    {
+      "location": "Future Work",
+      "claim": "Moreover, the variability in AL performance across different domains suggests that adaptive or context-aware frameworks may be necessary to optimize sampling decisions dynamically.",
+      "issue": "The ground truth supports the idea that 'the effectiveness of active learning varies depending on the domain and sampling strategy' and that 'no single strategy consistently outperforms others across all scenarios', but it does not suggest that 'adaptive or context-aware frameworks may be necessary'. This is an interpretive leap not grounded in the evidence."
+    }
+  ],
+  "citation_issues": [
+    {
+      "location": "Introduction",
+      "issue": "citation-like text \"(Marple et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Kusne et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Hashemi et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    },
+    {
+      "location": "Related Work",
+      "issue": "citation-like text \"(Wafula et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+    }
+  ],
+  "results_accuracy_issues": [],
+  "hypothesis_coverage_issues": [
+    {
+      "hypothesis_id": "H1",
+      "location": "Discussion > H1",
+      "issue": "The text states that 'the Coder Agent reported that the success criteria were not met, indicating that the specified threshold for simulation reduction was not achieved in this case,' which aligns with the verdict of 'refuted.' However, it then goes on to say, 'This outcome does not necessarily imply a general failure of the active learning strategy, but rather suggests that under the conditions and parameters tested, the expected efficiency gain did not materialize.' This framing downplays the clear refutation by introducing uncertainty about whether the strategy itself failed, when the ground truth explicitly states the hypothesis was refuted due to meeting_success_criteria=false. A more honest framing would acknowledge that the specific claim of a 30% reduction was not supported by the data."
+    }
+  ],
+  "quality_scores": {
+    "clarity": 4,
+    "flow": 3,
+    "tone": 5,
+    "structure": 4,
+    "limitations_honesty": 5
+  },
+  "overall_pass": false,
+  "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"AL techniques, including uncertainty sampling, Bayesian optimization, and leverage score-based querying, consistently show advantages over random sampling in terms of data efficiency and model accuracy (Ciravegna et al., 2021)\" — The ground truth states that AL techniques show advantages over random sampling, but it does not specify that this applies to 'uncertainty sampling, Bayesian optimization, and leverage score-based querying' specifically, nor does it attribute this particular statement to Ciravegna et al., 2021. The citation is incorrect in linking this specific list of methods and their consistent advantages directly to that paper.\n- Introduction: \"Hypothesis H1 posits that using active learning with uncertainty sampling based on Gaussian Process Regression to select simulations will reduce the number of required simulations by at least 30% compared to random sampling, when evaluated on the MoleculeNet ESOL dataset\" — The ground truth lists H1 as a hypothesis but does not include the specific claim about a 30% reduction in simulations or the reference to the MoleculeNet ESOL dataset. This detail is fabricated and not present in the provided ground truth.\n- Introduction: \"Hypothesis H2 investigates whether implementing Bayesian Optimization within an active learning framework will lead to a statistically significant improvement in model accuracy (measured by R²) after 50 iterations compared to uncertainty sampling alone, using the UCI Adult Census Income dataset\" — The ground truth includes H2 but does not mention the specific measure of R², the number of iterations (50), or the use of the UCI Adult Census Income dataset. These elements are not grounded in the provided information.\n- Introduction: \"Hypothesis H3 examines whether active learning strategies incorporating statistical leverage scores will require fewer simulations to achieve a target level of predictive accuracy compared to standard uncertainty sampling, when validated on the UCI Air Quality dataset\" — The ground truth includes H3 but does not specify that the comparison is about 'fewer simulations to achieve a target level of predictive accuracy', nor does it mention the UCI Air Quality dataset as the validation set. These specifics are not supported by the ground truth.\n- Related Work: \"Active learning has emerged as a powerful paradigm for reducing the cost of data labeling and simulation in materials science, particularly in scenarios where experimental or computational resources are limited.\" — The ground truth does not explicitly state that active learning is specifically 'particularly valuable in scenarios where experimental or computational resources are limited' - while this may be implied from the context of materials science, it is not directly stated in the abstracts or method descriptions provided.\n- Related Work: \"Tian et al. (2020) employ Kriging-based models and directed exploration strategies to estimate material property curves and surfaces, demonstrating that maximum variance sampling can lead to faster convergence across various materials problems.\" — While Tian et al. (2020) is mentioned in the ground truth and discusses Kriging-based models and directed exploration, the ground truth does not specifically mention 'maximum variance sampling' as a strategy that leads to faster convergence across various materials problems. The ground truth mentions 'maximum variance' as a strategy but doesn't confirm its effectiveness in leading to faster convergence.\n- Related Work: \"Gonen et al. (2012) present an aggressive approach for active learning of half-spaces, showing that it can be both efficient and theoretically sound under separability assumptions.\" — The ground truth confirms Gonen et al. (2012) discusses aggressive active learning for half-spaces and mentions theoretical guarantees under reasonable assumptions, but does not specifically mention 'efficiency' or 'theoretically sound under separability assumptions' as stated in the claim.\n- Related Work: \"Ciravegna et al. (2021) introduce Knowledge-driven Active Learning (KAL), which incorporates domain knowledge into sample selection via logic constraints, offering a framework that is suitable for both regression and object recognition tasks.\" — The ground truth confirms Ciravegna et al. (2021) introduces KAL and mentions it's suitable for regression and object recognition tasks, but does not specifically mention 'logic constraints' as the mechanism for incorporating domain knowledge.\n- Related Work: \"Orhan and Tastan (2015) propose a novel querying criterion based on statistical leverage scores, indicating that sampling data instances with high leverage scores can be an effective strategy in active learning.\" — The ground truth confirms Orhan and Tastan (2015) explore statistical leverage scores as a querying criterion, but does not specifically state that 'sampling data instances with high leverage scores can be an effective strategy in active learning.'\n- Related Work: \"Vatsavai et al. (2025) present a curiosity-driven algorithm that efficiently samples regions with unexplored structure-property relations using a lightweight surrogate model, highlighting the potential of such methods in microscopy-based materials science.\" — The ground truth confirms Vatsavai et al. (2025) presents a curiosity algorithm, but does not specifically mention 'efficiently samples regions with unexplored structure-property relations' or 'lightweight surrogate model' or 'microscopy-based materials science.'\n- Related Work: \"Hashemi et al. (2021) extend the Materials Knowledge Systems (MKS) framework by applying digital image processing and distance-based metrics for feature engineering in organic photovoltaics, enabling the construction of surrogate models that link microstructures to charge transport properties.\" — The ground truth confirms Hashemi et al. (2021) extends MKS framework and applies digital image processing and distance-based metrics, but does not specifically mention 'feature engineering in organic photovoltaics' or 'surrogate models that link microstructures to charge transport properties.'\n- Related Work: \"Sanyal et al. (2018) propose MT-CGCNN, a model that integrates Crystal Graph Convolutional Neural Networks (CGCNN) with multitask learning to simultaneously predict multiple material properties such as formation energy, band gap, and Fermi energy.\" — The ground truth confirms Sanyal et al. (2018) propose MT-CGCNN and integrate CGCNN with multitask learning, but does not specifically mention 'formation energy, band gap, and Fermi energy' as the properties predicted.\n- Related Work: \"These developments illustrate how machine learning can be tailored to the unique challenges of materials science, such as limited data availability and the need for universal descriptors.\" — While the ground truth discusses limited data availability and universal descriptors in Sanyal et al. (2018), it does not explicitly state that 'machine learning can be tailored to the unique challenges of materials science' or list these specific challenges as 'limited data availability and the need for universal descriptors.'\n- Related Work: \"Tian et al. (2020) observe that uncertainty sampling—selecting samples based on model confidence—is a standard approach in active learning, and they compare several strategies including maximum variance, which they find to be effective in many cases.\" — The ground truth confirms Tian et al. (2020) observes uncertainty sampling as a standard approach and compares strategies including maximum variance, but does not specifically state that they 'find maximum variance to be effective in many cases.'\n- Related Work: \"Yue et al. (2020) and Wafula et al. (2025) both utilize Gaussian Process Regression as a predictive model within active learning frameworks for regression tasks.\" — The ground truth confirms Yue et al. (2020) and Wafula et al. (2025) use Gaussian Process Regression in active learning frameworks, but does not specifically state that both 'utilize Gaussian Process Regression as a predictive model within active learning frameworks for regression tasks.'\n- Related Work: \"Han et al. (2022) present a machine learning-based sub-pixel processing technique that enhances the accuracy of atomic structure analysis by segmenting atomic signals and applying denoising methods.\" — The ground truth confirms Han et al. (2022) presents a sub-pixel processing technique, but does not specifically mention 'machine learning-based' or 'enhances the accuracy of atomic structure analysis by segmenting atomic signals and applying denoising methods.'\n- Related Work: \"Zhang et al. (2025) introduce a knowledge-based sampling method (KBSM) for deep learning-assisted antenna array design, showing how active learning principles can be adapted to reduce training data requirements while maintaining high prediction accuracy.\" — The ground truth confirms Zhang et al. (2025) introduces KBSM for deep learning-assisted antenna array design, but does not specifically mention 'knowledge-based sampling method (KBSM)' or 'reduce training data requirements while maintaining high prediction accuracy.'\n- Related Work: \"P. et al. (2021) propose a hierarchical correlation learning framework for multi-property prediction that combines composition-based prediction, property correlation learning, and generative transfer learning.\" — The ground truth confirms a hierarchical correlation learning framework for multi-property prediction, but does not specifically mention 'composition-based prediction, property correlation learning, and generative transfer learning' or name the authors as 'P. et al.'\n- Related Work: \"Khan et al. (2026) state that AL enables researchers to iteratively select the most informative samples for labeling, thereby reducing the number of expensive computations required to achieve accurate predictive models.\" — The ground truth confirms Khan et al. (2026) discusses AL enabling iterative selection of informative samples and reducing expensive computations, but does not specifically state 'thereby reducing the number of expensive computations required to achieve accurate predictive models.'\n- Related Work: \"Chen et al. (2026) state that AL strategies aim to maximize the utility of each labeled example by focusing on regions of high uncertainty or low representation in the training data.\" — The ground truth confirms Chen et al. (2026) discusses AL strategies aiming to maximize utility of labeled examples and focusing on high uncertainty or low representation, but does not specifically state 'by focusing on regions of high uncertainty or low representation in the training data.'\n- Related Work: \"Xin et al. (2021) state that uncertainty sampling selects instances where the model's confidence in its prediction is lowest, aiming to reduce prediction variance and improve model accuracy.\" — The ground truth confirms Xin et al. (2021) discusses uncertainty sampling and its aim to reduce prediction variance and improve accuracy, but does not specifically state 'selects instances where the model's confidence in its prediction is lowest.'\n- Related Work: \"Kusne et al. (2020) state that Bayesian optimization is used for efficient exploration of property spaces.\" — The ground truth confirms Kusne et al. (2020) discusses Bayesian optimization for efficient exploration of property spaces, but does not specifically state 'used for efficient exploration of property spaces.'\n- Related Work: \"Kusne et al. (2020) state that these methods are designed to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space.\" — The ground truth confirms Kusne et al. (2020) discusses methods guiding sample selection for surrogate model generalization, but does not specifically state 'designed to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space.'\n- Related Work: \"Yang and Xia (2026) state that AL methods such as those based on Gaussian processes or Bayesian optimization are often computationally intensive, particularly when dealing with high-dimensional or complex material spaces.\" — The ground truth confirms Yang and Xia (2026) discusses AL methods being computationally intensive, but does not specifically state 'particularly when dealing with high-dimensional or complex material spaces.'\n- Related Work: \"Caron et al. (2019) state that active learning leverages the speed of machine learning approximators to guide the selection of points that are likely to yield the most information.\" — The ground truth confirms Caron et al. (2019) discusses active learning leveraging machine learning approximators, but does not specifically state 'to guide the selection of points that are likely to yield the most information.'\n- Related Work: \"Marple et al. (2020) state that active learning reduced the number of required simulations by nearly a factor of three compared to random sampling.\" — The ground truth confirms Marple et al. (2020) shows active learning reduced simulations by nearly a factor of three compared to random sampling, but does not specifically state 'nearly a factor of three.'\n- Related Work: \"McCracken et al. (2014) state that in clinical and content analysis settings, active learning strategies have been adapted to balance efficiency and performance, with studies showing that while no single strategy universally outperforms others, certain approaches such as random sampling can sometimes yield strong results quickly.\" — The ground truth confirms McCracken et al. (2014) discusses active learning strategies in clinical and content analysis, but does not specifically state 'balance efficiency and performance' or 'random sampling can sometimes yield strong results quickly.'\n- Related Work: \"Jain et al. (2024) state that in materials science, active learning has been applied to efficiently explore high-dimensional property spaces, with studies employing techniques such as query-by-committee and uncertainty-based sampling to reduce labeling costs.\" — The ground truth confirms Jain et al. (2024) discusses active learning in materials science and high-dimensional property spaces, but does not specifically state 'efficiently explore high-dimensional property spaces' or 'employing techniques such as query-by-committee and uncertainty-based sampling to reduce labeling costs.'\n- Related Work: \"Jain et al. (2024) state that these methods aim to build accurate models with fewer labeled examples, particularly in low-data regimes where careful data selection is crucial.\" — The ground truth confirms Jain et al. (2024) discusses building accurate models with fewer labeled examples, but does not specifically state 'particularly in low-data regimes where careful data selection is crucial.'\n- Related Work: \"Marple et al. (2020) state that uncertainty sampling can significantly reduce the number of simulations required to achieve a desired level of accuracy compared to random sampling.\" — The ground truth confirms Marple et al. (2020) discusses uncertainty sampling reducing simulations compared to random sampling, but does not specifically state 'significantly reduce the number of simulations required to achieve a desired level of accuracy.'\n- Related Work: \"Riis et al. (2023) state that active learning strategies aim to sequentially query the most informative samples, guided by criteria such as uncertainty or variance reduction.\" — The ground truth confirms Riis et al. (2023) discusses active learning strategies aiming to query most informative samples, but does not specifically state 'guided by criteria such as uncertainty or variance reduction.'\n- Related Work: \"Gonçalves et al. (2020) state that empirical evaluations across various domains have demonstrated that active learning can significantly improve model performance with fewer labeled samples compared to random selection.\" — The ground truth confirms Gonçalves et al. (2020) discusses empirical evaluations showing active learning improving performance with fewer samples, but does not specifically state 'significantly improve model performance with fewer labeled samples compared to random selection.'\n- Related Work: \"Babjac and Hoarfrost (2026) state that in enzyme function prediction, active learning approaches reached performance levels comparable to standard training while processing substantially less data.\" — The ground truth confirms Babjac and Hoarfrost (2026) discusses active learning reaching performance comparable to standard training, but does not specifically state 'while processing substantially less data.'\n- Related Work: \"Naik et al. (2016) state that in materials science, active learning strategies have been shown to outperform random sampling in terms of predictive accuracy and data efficiency.\" — The ground truth confirms Naik et al. (2016) discusses active learning strategies outperforming random sampling, but does not specifically state 'in terms of predictive accuracy and data efficiency.'\n- Related Work: \"Gonçalves et al. (2020) state that the effectiveness of active learning is not uniform across all settings, and no single strategy consistently outperforms others in every scenario.\" — The ground truth confirms Gonçalves et al. (2020) discusses effectiveness not being uniform and no single strategy outperforming others, but does not specifically state 'no single strategy consistently outperforms others in every scenario.'\n- Related Work: \"Gonçalves et al. (2020) state that the choice of sampling strategy depends heavily on the specific application and evaluation metrics used.\" — The ground truth confirms Gonçalves et al. (2020) discusses choice of sampling strategy depending on application and metrics, but does not specifically state 'depends heavily on the specific application and evaluation metrics used.'\n- Related Work: \"Wafula et al. (2025) state that active learning iteratively selects the most informative data points for labeling or simulation, aiming to maximize the utility of each sample.\" — The ground truth confirms Wafula et al. (2025) discusses active learning selecting most informative data points, but does not specifically state 'aiming to maximize the utility of each sample.'\n- Related Work: \"Wafula et al. (2025) state that AL is particularly valuable when labeling or simulation is expensive, time-consuming, or requires expert knowledge.\" — The ground truth confirms Wafula et al. (2025) discusses AL being valuable when labeling/simulation is expensive/time-consuming/expert knowledge required, but does not specifically state 'particularly valuable when labeling or simulation is expensive, time-consuming, or requires expert knowledge.'\n- Related Work: \"Wafula et al. (2025) state that several studies have demonstrated AL's ability to significantly reduce data requirements while maintaining predictive accuracy.\" — The ground truth confirms Wafula et al. (2025) discusses AL reducing data requirements while maintaining accuracy, but does not specifically state 'significantly reduce data requirements while maintaining predictive accuracy.'\n- Related Work: \"Wafula et al. (2025) state that common AL strategies include uncertainty sampling, query by committee, and expected model change.\" — The ground truth confirms Wafula et al. (2025) discusses common AL strategies including uncertainty sampling, query by committee, and expected model change, but does not specifically state 'common AL strategies include uncertainty sampling, query by committee, and expected model change.'\n- Related Work: \"Wafula et al. (2025) state that uncertainty sampling selects data points where the model is least confident, assuming that such points will yield the highest information gain.\" — The ground truth confirms Wafula et al. (2025) discusses uncertainty sampling selecting least confident points, but does not specifically state 'assuming that such points will yield the highest information gain.'\n- Related Work: \"Yue et al. (2020) state that in the context of shape control, the Mean Absolute Deviation (MAD) is used as a performance metric, and results suggest that AL can improve model accuracy with relatively few samples.\" — The ground truth confirms Yue et al. (2020) discusses MAD as performance metric and AL improving accuracy with few samples, but does not specifically state 'Mean Absolute Deviation (MAD) is used as a performance metric' or 'results suggest that AL can improve model accuracy with relatively few samples.'\n- Related Work: \"Li et al. (2024c) state that GPR has also been applied in active learning for identifying regioselective residues in biochemical systems.\" — The ground truth confirms Li et al. (2024c) discusses GPR in active learning for regioselective residues, but does not specifically state 'applied in active learning for identifying regioselective residues in biochemical systems.'\n- Related Work: \"Li et al. (2024a) state that amortized active learning methods replace costly model training and acquisition function optimization with neural network evaluations.\" — The ground truth confirms Li et al. (2024a) discusses amortized active learning replacing costly model training and acquisition function optimization, but does not specifically state 'with neural network evaluations.'\n- Related Work: \"Nikova et al. (2023) state that cost-aware active learning strategies consider that simulation costs can vary across the design space.\" — The ground truth confirms Nikova et al. (2023) discusses cost-aware active learning and varying simulation costs, but does not specifically state 'consider that simulation costs can vary across the design space.'\n- Related Work: \"Xue and Lyu (2025) state that active learning improves metamodel accuracy by iteratively selecting samples that contribute most to model improvement.\" — The ground truth confirms Xue and Lyu (2025) discusses active learning improving metamodel accuracy by selecting samples that contribute most to model improvement, but does not specifically state 'iteratively selecting samples that contribute most to model improvement.'\n- Related Work: \"Lookman et al. (2019) state that uncertainty quantification and utility functions are central to guiding the selection of samples in materials discovery.\" — The ground truth confirms Lookman et al. (2019) discusses uncertainty quantification and utility functions in materials discovery, but does not specifically state 'central to guiding the selection of samples in materials discovery.'\n- Related Work: \"Bassman et al. (2018) state that GPR within a Bayesian optimization framework predicts material properties and identifies optimal heterostructures with minimal ab initio calculations.\" — The ground truth confirms Bassman et al. (2018) discusses GPR in Bayesian optimization framework for predicting material properties and identifying optimal heterostructures, but does not specifically state 'with minimal ab initio calculations.'\n- Related Work: \"Zaman et al. (2023) state that active learning is used to minimize labeling effort or computational cost.\" — The ground truth confirms Zaman et al. (2023) discusses active learning minimizing labeling effort or computational cost, but does not specifically state 'used to minimize labeling effort or computational cost.'\n- Related Work: \"Gal and Ghahramani (2015) state that dropout training in neural networks connects with Bayesian approximation, showing how uncertainty can be captured in deep learning without significant computational overhead.\" — The ground truth confirms Gal and Ghahramani (2015) discusses dropout training and Bayesian approximation, but does not specifically state 'showing how uncertainty can be captured in deep learning without significant computational overhead.'\n- Related Work: \"Xue and Lyu (2025) state that AK-IS combines adaptive Kriging with importance sampling to shift the sampling focus toward critical regions.\" — The ground truth confirms Xue and Lyu (2025) discusses AK-IS combining adaptive Kriging with importance sampling, but does not specifically state 'shift the sampling focus toward critical regions.'\n- Related Work: \"Hüllermeier et al. (2022) state that uncertainty sampling selects instances with high prediction variance for labeling.\" — The ground truth confirms Hüllermeier et al. (2022) discusses uncertainty sampling selecting instances with high prediction variance, but does not specifically state 'for labeling.'\n- Related Work: \"Gonçalves et al. (2020) state that query-by-committee methods identify samples that expose disagreements among learners.\" — The ground truth confirms Gonçalves et al. (2020) discusses query-by-committee methods identifying samples exposing disagreements, but does not specifically state 'identify samples that expose disagreements among learners.'\n- Related Work: \"Lämmle et al. (2023) state that GUESS combines predictive uncertainty and gradient information to guide sampling for global surrogate modeling.\" — The ground truth confirms Lämmle et al. (2023) discusses GUESS combining predictive uncertainty and gradient information, but does not specifically state 'to guide sampling for global surrogate modeling.'\n- Related Work: \"Hu et al. (2023) state that hybrid metrics balance global exploration and local exploitation in surrogate modeling.\" — The ground truth confirms Hu et al. (2023) discusses hybrid metrics balancing exploration and exploitation, but does not specifically state 'in surrogate modeling.'\n- Related Work: \"Batzner et al. (2021) state that E(3)-equivariant graph neural networks leverage geometric symmetries to construct representations that are faithful to atomic environments.\" — The ground truth confirms Batzner et al. (2021) discusses E(3)-equivariant graph neural networks leveraging geometric symmetries, but does not specifically state 'construct representations that are faithful to atomic environments.'\n- Related Work: \"Foster et al. (2019) state that variational Bayesian optimal experimental design allows for principled handling of uncertainty in design choices.\" — The ground truth confirms Foster et al. (2019) discusses variational Bayesian optimal experimental design, but does not specifically state 'allows for principled handling of uncertainty in design choices.'\n- Related Work: \"Si et al. (2013) state that Bayesian nonparametric weighted sampling inference induces regularization for small cells.\" — The ground truth confirms Si et al. (2013) discusses Bayesian nonparametric weighted sampling inference, but does not specifically state 'induces regularization for small cells.'\n- Related Work: \"Dette et al. (2015) state that Bayesian optimal discriminating designs are used for competing regression models.\" — The ground truth confirms Dette et al. (2015) discusses Bayesian optimal discriminating designs, but does not specifically state 'used for competing regression models.'\n- Related Work: \"Xu and Ghosh (2015) state that Bayesian group lasso with spike and slab priors contributes to variable selection and estimation.\" — The ground truth confirms Xu and Ghosh (2015) discusses Bayesian group lasso with spike and slab priors, but does not specifically state 'contributes to variable selection and estimation.'\n- Related Work: \"Yang et al. (2014) state that hierarchical Bayesian models offer a framework for handling complex data structures.\" — The ground truth confirms Yang et al. (2014) discusses hierarchical Bayesian models, but does not specifically state 'offer a framework for handling complex data structures.'\n- Related Work: \"Doucet et al. (2000) state that sequential Monte Carlo methods involve iterative refinement of models or designs based on newly acquired data.\" — The ground truth confirms Doucet et al. (2000) discusses sequential Monte Carlo methods, but does not specifically state 'involve iterative refinement of models or designs based on newly acquired data.'\n- Related Work: \"Shao et al. (2022) state that their method decomposes user preferences into independent components.\" — The ground truth confirms Shao et al. (2022) discusses decomposing user preferences, but does not specifically state 'into independent components.'\n- Related Work: \"Choudhury et al. (2025) state that BED-LLM integrates large language models with sequential Bayesian experimental design.\" — The ground truth confirms Choudhury et al. (2025) discusses BED-LLM integrating LLMs with BED, but does not specifically state 'sequential Bayesian experimental design.'\n- Related Work: \"Hedman et al. (2025) state that Step-DAD is a semi-amortized policy-based approach.\" — The ground truth confirms Hedman et al. (2025) discusses Step-DAD as semi-amortized policy-based approach, but does not specifically state 'semi-amortized policy-based approach.'\n- Related Work: \"Ryan (2014) state that novel approaches for Bayesian design include methods for nonlinear mixed effects models.\" — The ground truth confirms Ryan (2014) discusses novel approaches for Bayesian design including methods for nonlinear mixed effects models, but does not specifically state 'include methods for nonlinear mixed effects models.'\n- Related Work: \"Kapoor (2011) state that Bayesian decision-theoretic approaches to experimental design incorporate prior knowledge.\" — The ground truth confirms Kapoor (2011) discusses Bayesian decision-theoretic approaches incorporating prior knowledge, but does not specifically state 'incorporate prior knowledge.'\n- Related Work: \"Ruggoo and Vandebroek (n.d.) state that Bayesian design accommodates model uncertainty by proposing a two-stage procedure.\" — The ground truth confirms Ruggoo and Vandebroek (n.d.) discusses Bayesian design accommodating model uncertainty with two-stage procedure, but does not specifically state 'by proposing a two-stage procedure.'\n- Related Work: \"Johansen and Johansen (2009) state that SMC methods provide a foundation for practical applications such as rare event estimation and particle filtering.\" — The ground truth confirms Johansen and Johansen (2009) discusses SMC methods providing foundation for rare event estimation and particle filtering, but does not specifically state 'provide a foundation for practical applications such as rare event estimation and particle filtering.'\n- Related Work: \"Ijju (2023) state that a Markovian formalism organizes the field of active learning.\" — The ground truth confirms Ijju (2023) discusses Markovian formalism organizing active learning, but does not specifically state 'organizes the field of active learning.'\n- Related Work: \"Cacciarelli and Kulahci (2023) state that online active learning for data streams distinguishes between static pool-based and dynamic stream-based paradigms.\" — The ground truth confirms Cacciarelli and Kulahci (2023) discusses online active learning distinguishing between static and dynamic paradigms, but does not specifically state 'distinguishes between static pool-based and dynamic stream-based paradigms.'\n- Related Work: \"Yousef (2010) and Yousef et al. (2013) state that normal-based triple sampling procedures examine sensitivity to departures from normality.\" — The ground truth confirms Yousef (2010) and Yousef et al. (2013) discuss sensitivity of triple sampling procedures to departures from normality, but does not specifically state 'examine sensitivity to departures from normality.'\n- Related Work: \"Nguyen and Raich (2021) state that their method adapts active learning criteria to a new selection strategy.\" — The ground truth confirms Nguyen and Raich (2021) discusses adapting active learning criteria to new selection strategy, but does not specifically state 'adapts active learning criteria to a new selection strategy.'\n- Related Work: \"Liu and Li (2023) state that their framework provides a unified framework for probabilistic, margin-based, and threshold-based uncertainty rules.\" — The ground truth confirms Liu and Li (2023) discusses equivalent loss framework, but does not specifically state 'provides a unified framework for probabilistic, margin-based, and threshold-based uncertainty rules.'\n- Related Work: \"Shultz (2013) state that certainty factor technique combines evidence from production rules.\" — The ground truth confirms Shultz (2013) discusses certainty factor technique combining evidence from production rules, but does not specifically state 'combines evidence from production rules.'\n- Related Work: \"Bui et al. (2025) state that their acquisition function estimates calibration errors before leveraging model uncertainty.\" — The ground truth confirms Bui et al. (2025) discusses acquisition function estimating calibration errors, but does not specifically state 'before leveraging model uncertainty.'\n- Related Work: \"Hoarau et al. (2024) state that evidential uncertainty sampling utilizes evidential reasoning.\" — The ground truth confirms Hoarau et al. (2024) discusses evidential uncertainty sampling, but does not specifically state 'utilizes evidential reasoning.'\n- Related Work: \"Kapusuzoglu et al. (2026) state that their methodology enables robust optimization of process parameters under uncertainty.\" — The ground truth confirms Kapusuzoglu et al. (2026) discusses methodology enabling robust optimization under uncertainty, but does not specifically state 'enables robust optimization of process parameters under uncertainty.'\n- Related Work: \"Camporeale et al. (2016) state that their method constructs an interpolant using radial functions.\" — The ground truth confirms Camporeale et al. (2016) discusses method constructing interpolant using radial functions, but does not specifically state 'constructs an interpolant using radial functions.'\n- Related Work: \"Schröder et al. (2021) state that several uncertainty-based approaches surpass prediction entropy in performance.\" — The ground truth confirms Schröder et al. (2021) discusses uncertainty-based approaches surpassing prediction entropy, but does not specifically state 'surpass prediction entropy in performance.'\n- Related Work: \"Li et al. (2024b) state that EAGLE achieves significant speedups in decoding while maintaining output quality.\" — The ground truth confirms Li et al. (2024b) discusses EAGLE achieving speedups while maintaining quality, but does not specifically state 'significant speedups in decoding while maintaining output quality.'\n- Related Work: \"Kingma and Ba (2014) state that Adam is a widely adopted first-order method that adapts estimates of gradient moments.\" — The ground truth confirms Kingma and Ba (2014) discusses Adam as widely adopted first-order method adapting gradient moments, but does not specifically state 'widely adopted first-order method that adapts estimates of gradient moments.'\n- Related Work: \"Li et al. (2020) state that SMA introduces a bio-inspired approach to stochastic optimization.\" — The ground truth confirms Li et al. (2020) discusses SMA as bio-inspired approach to stochastic optimization, but does not specifically state 'introduces a bio-inspired approach to stochastic optimization.'\n- Related Work: \"Koloskova et al. (2019) state that CHOCO-SGD and CHOCO-GOSSIP introduce gossip-based protocols that support compressed communication.\" — The ground truth confirms Koloskova et al. (2019) discusses CHOCO-SGD and CHOCO-GOSSIP introducing gossip-based protocols, but does not specifically state 'support compressed communication.'\n- Related Work: \"Sadiev et al. (2023) state that high-probability convergence bounds are derived under less restrictive assumptions.\" — The ground truth confirms Sadiev et al. (2023) discusses high-probability convergence bounds under less restrictive assumptions, but does not specifically state 'derived under less restrictive assumptions.'\n- Related Work: \"Hüllermeier et al. (2022) state that uncertainty sampling is used to select the least confident predictions for labeling.\" — The ground truth confirms Hüllermeier et al. (2022) discusses uncertainty sampling selecting least confident predictions, but does not specifically state 'for labeling.'\n- Related Work: \"Gonçalves et al. (2020) state that query-by-committee strategies identify disagreements among learners.\" — The ground truth confirms Gonçalves et al. (2020) discusses query-by-committee identifying disagreements, but does not specifically state 'among learners.'\n- Related Work: \"Wadu et al. (2021) state that Lyapunov optimization addresses stochastic optimization problems in settings with imperfect information.\" — The ground truth confirms Wadu et al. (2021) discusses Lyapunov optimization addressing stochastic optimization problems, but does not specifically state 'in settings with imperfect information.'\n- Related Work: \"Espath et al. (2024) state that Bayesian Hessian approximation offers new ways to incorporate curvature information.\" — The ground truth confirms Espath et al. (2024) discusses Bayesian Hessian approximation, but does not specifically state 'offers new ways to incorporate curvature information.'\n- Related Work: \"Foster et al. (2019) state that Bayesian optimal experimental design and variational inference enhance decision-making under uncertainty.\" — The ground truth confirms Foster et al. (2019) discusses Bayesian optimal experimental design and variational inference, but does not specifically state 'enhance decision-making under uncertainty.'\n- Hypotheses: \"using active learning with uncertainty sampling based on Gaussian Process Regression will reduce the number of required simulations by at least 30% compared to uncertainty sampling alone\" — The ground truth states that the hypothesis claims a reduction of 'at least 30%' but does not specify this exact percentage. The ground truth only mentions that the comparison is made 'when evaluated on the MoleculeNet ESOL dataset' without specifying the magnitude of reduction.\n- Hypotheses: \"Sanyal et al., 2018; Tian et al., 2020\" — The ground truth does not cite these specific references. While it mentions that the hypothesis builds on the widespread adoption of uncertainty sampling and Gaussian Process Regression, it does not attribute this to these particular authors or years.\n- Hypotheses: \"Gonen et al., 2012; Ciravegna et al., 2021\" — The ground truth does not cite these specific references. Although it mentions that the hypothesis is based on the connection between Bayesian Optimization and active learning, it does not reference these particular studies.\n- Hypotheses: \"Orhan and Tastan, 2015\" — The ground truth does not cite this specific reference. While it mentions that the hypothesis draws upon statistical leverage sampling and active learning, it does not attribute this to Orhan and Tastan (2015).\n- Hypotheses: \"after a certain number of iterations\" — The ground truth specifies that the comparison is made 'after 50 iterations', not 'after a certain number of iterations'. The phrase 'certain number' introduces ambiguity not present in the ground truth.\n- Hypotheses: \"statistically significant improvement in model accuracy\" — The ground truth does not specify that the improvement must be 'statistically significant'. It only states that the hypothesis evaluates model accuracy (measured by R²), without mentioning statistical significance.\n- Future Work: \"The refutation of Hypothesis H1 indicates that the specific approach tested—likely involving uncertainty sampling with Gaussian Process Regression—did not achieve the targeted performance improvement on the MoleculeNet ESOL dataset.\" — The ground truth states that the verdict for Hypothesis H1 is 'refuted' but does not specify the exact approach tested, nor does it confirm that the approach involved 'uncertainty sampling with Gaussian Process Regression'. Furthermore, the ground truth does not mention any 'targeted performance improvement' or 'MoleculeNet ESOL dataset' in the context of the refutation.\n- Future Work: \"This outcome highlights the importance of exploring a broader range of acquisition functions and uncertainty quantification methods tailored to materials property prediction tasks.\" — While the ground truth identifies gaps related to active learning in materials science, it does not explicitly state that the refuted hypothesis was specifically about 'acquisition functions' or 'uncertainty quantification methods tailored to materials property prediction tasks'. This claim introduces new specificity not found in the ground truth.\n- Future Work: \"Given the lack of a universally effective strategy, future investigations should consider comparative analyses across multiple AL frameworks and evaluate their robustness under varying conditions.\" — Although the ground truth mentions that 'there is no universal active learning strategy that outperforms all others for every class of problems due to 'no free lunch' theorems', it does not support the specific suggestion that 'future investigations should consider comparative analyses across multiple AL frameworks'. This is an interpretive addition not grounded in the provided evidence.\n- Future Work: \"Several key areas remain underexplored in the current work. A major gap lies in understanding how active learning strategies generalize across diverse materials systems, which necessitates cross-domain evaluations to assess transferability.\" — The ground truth includes a gap titled 'Limited understanding of which AL strategies generalize across diverse materials systems', but it does not state that this is a 'major gap' in the current work or that 'cross-domain evaluations to assess transferability' are necessary. These are additions not supported by the ground truth.\n- Future Work: \"Additionally, while early training dynamics were examined, further research is needed to evaluate long-term performance and stability of AL methods beyond initial phases.\" — The ground truth includes a gap titled 'Need for more extensive evaluation of AL's effectiveness beyond early training phases where differences are most pronounced', but it does not state that 'early training dynamics were examined' in the current work. This implies a conclusion not present in the ground truth.\n- Future Work: \"Other unaddressed concerns include the impact of hyperparameters such as pool size and batch size, the influence of variable simulation costs, and the handling of mislabeled data in simulation-based environments.\" — While the ground truth lists these as gaps, it does not state that these are 'unaddressed concerns in the current work'. This is a speculative claim about the scope of the current study that is not grounded in the provided information.\n- Future Work: \"The lack of standardized evaluation methods for uncertainty measures and the absence of clear guidelines for strategy selection underscore the need for more systematic approaches to assessing AL effectiveness.\" — The ground truth includes a gap titled 'Lack of standardized benchmarks for comparing active learning strategies across diverse materials domains' but does not mention 'standardized evaluation methods for uncertainty measures' or 'clear guidelines for strategy selection'. These are additional claims not supported by the ground truth.\n- Future Work: \"Moreover, the variability in AL performance across different domains suggests that adaptive or context-aware frameworks may be necessary to optimize sampling decisions dynamically.\" — The ground truth supports the idea that 'the effectiveness of active learning varies depending on the domain and sampling strategy' and that 'no single strategy consistently outperforms others across all scenarios', but it does not suggest that 'adaptive or context-aware frameworks may be necessary'. This is an interpretive leap not grounded in the evidence.\nCitation issues:\n- Introduction: citation-like text \"(Marple et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Kusne et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Hashemi et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Wafula et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nHypothesis coverage issues:\n- Discussion > H1: The text states that 'the Coder Agent reported that the success criteria were not met, indicating that the specified threshold for simulation reduction was not achieved in this case,' which aligns with the verdict of 'refuted.' However, it then goes on to say, 'This outcome does not necessarily imply a general failure of the active learning strategy, but rather suggests that under the conditions and parameters tested, the expected efficiency gain did not materialize.' This framing downplays the clear refutation by introducing uncertainty about whether the strategy itself failed, when the ground truth explicitly states the hypothesis was refuted due to meeting_success_criteria=false. A more honest framing would acknowledge that the specific claim of a 30% reduction was not supported by the data.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections feel abrupt at times, particularly between related work and methods, and between hypotheses and results.",
+  "generated_at": "2026-09-16T00:25:40.498106+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

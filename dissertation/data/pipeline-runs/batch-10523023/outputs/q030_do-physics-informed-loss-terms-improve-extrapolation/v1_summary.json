@@ -1,0 +1,63 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q030_do-physics-informed-loss-terms-improve-extrapolation/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "310111798",
+    "2309.17345v3",
+    "2790566",
+    "e916f69e70a4321f21356f7ce360e380dd976a43",
+    "1704.04998v1",
+    "5d16063484d99341d7c3f1430ef02856f54c3783",
+    "8222336",
+    "2307.12306v6",
+    "122e9c278d0ce51a0143dc712c60d93f54d7895f",
+    "bba8eaa382df676e5b6bc68e5e634c3252cc8420",
+    "3c4372b125d0744bb68bfca9f5d6b0abb85dd182",
+    "8f0bb3fee6d257af2399575a6692fb300413967d",
+    "2408.00559v1",
+    "2009.04544v5",
+    "320477174",
+    "d3015f6cade33acf92b49d626fd0c3c156e413ca",
+    "b83290899d9e615dd0382756a945c1b73af1f9ad",
+    "2306.14753v1",
+    "2306.11113v2",
+    "2512.23753v1",
+    "8a2f36c9aa6befc9dbc295babf473d7be78605a3",
+    "d86084808994ac54ef4840ae65295f3c0ec4decd",
+    "df54abdbee15e9322520f04d54e6fd50aab7aef2",
+    "304874863",
+    "52b975170b33e19855b2970b2e978fa3ea786465",
+    "321570633",
+    "5232907",
+    "274203",
+    "e9e57bd8971dc092b52b3cf50d012d4fc258e964",
+    "d4335c474037748e89a22d62450bc9a2fe100a86"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'citet:5233021' in the Related Work section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'cite:5233021' in the Related Work section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-16T00:44:45.799184+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

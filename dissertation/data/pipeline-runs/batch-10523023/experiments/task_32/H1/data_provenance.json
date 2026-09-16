@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    {
+      "name": "ag_news_document_text_category_classification_train.csv",
+      "kind": "synthetic_surrogate",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/ag_news_document_text_category_classification_train.csv",
+      "reason": "the generated code reports substituting for the data this plan requires: The synthetic dataset maintains the essential characteristics of the real dataset for experimental purposes.; The experiment will run successfully with either the real or synthetic dataset.",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1,
+  "unconfirmed_discovered_inputs": []
+}

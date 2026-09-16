@@ -1,0 +1,1496 @@
+{
+  "literature_summary": "This body of literature highlights the pervasive issue of demographic bias and fairness in healthcare AI, particularly in clinical prediction models and datasets. While numerous methods have been proposed to detect, mitigate, and correct bias—such as adversarial training, debiased embeddings, SMOTE-based oversampling, and fairness-aware algorithms—the field still struggles with fundamental challenges. These include the dominance of dataset characteristics over algorithmic choices in determining fairness outcomes, limited generalizability of models due to single-center or homogeneous data, and the persistence of bias even after applying mitigation techniques. Studies consistently find that demographic variables alone do not fully capture physiological differences, and that bias can emerge from complex interactions between multiple demographic attributes. Furthermore, there is a lack of standardized evaluation criteria and fairness metrics, especially in clinical applications, and many models fail to account for real-world variability and temporal dynamics in patient data. The literature also reveals that bias correction methods often fall short in addressing intersectional identities and may introduce new problems like overfitting or loss of clinical relevance.",
+  "methods_overview": [
+    {
+      "method": "demographic bias metrics",
+      "papers_using_it": [
+        "2303.15889v2"
+      ],
+      "notes": "Rare; used for taxonomy and evaluation of metrics for measuring demographic imbalance in datasets."
+    },
+    {
+      "method": "knowledge distillation",
+      "papers_using_it": [
+        "2302.04725v1"
+      ],
+      "notes": "Rare; used to create compact, efficient clinical transformers with fewer parameters."
+    },
+    {
+      "method": "bottleneck adapters",
+      "papers_using_it": [
+        "2210.09440v2"
+      ],
+      "notes": "Rare; efficient fine-tuning technique for adapting pre-trained transformers to clinical tasks."
+    },
+    {
+      "method": "equalized odds post-processing",
+      "papers_using_it": [
+        "2011.09625v2"
+      ],
+      "notes": "Rare; modality-agnostic fairness algorithm applied to multimodal clinical NLP."
+    },
+    {
+      "method": "debiased clinical word embeddings",
+      "papers_using_it": [
+        "2011.09625v2"
+      ],
+      "notes": "Rare; text-specific fairness approach aimed at reducing bias in clinical NLP."
+    },
+    {
+      "method": "CheXpert Plus dataset",
+      "papers_using_it": [
+        "2dcf5bfc2995c86048ae41974a919363206a720e"
+      ],
+      "notes": "Rare; large-scale radiology dataset with text reports, demographics, and image metadata."
+    },
+    {
+      "method": "machine learning for Mohs surgery complexity prediction",
+      "papers_using_it": [
+        "c6c52a7e77476d01197b25784d5ed13f224f1dda"
+      ],
+      "notes": "Rare; predictive modeling using patient demographics and tumor characteristics."
+    },
+    {
+      "method": "Deep learning for clinical trial optimization",
+      "papers_using_it": [
+        "2be7af1178b1e5b9dcf1c457f1b3a6483e200350"
+      ],
+      "notes": "Rare; uses CNNs, transformers, and NLP for patient stratification, adverse event prediction, and treatment personalization."
+    },
+    {
+      "method": "Online patient recruitment",
+      "papers_using_it": [
+        "244abf60ecd9a8a5b2b4ef107237203e4ae47e03"
+      ],
+      "notes": "Rare; systematic review and meta-analysis comparing online vs. offline recruitment methods."
+    },
+    {
+      "method": "Multimodal deep learning for ICU deterioration prediction",
+      "papers_using_it": [
+        "645d8dab1ed926cbc3d9fcaff7b3da833d55495b"
+      ],
+      "notes": "Rare; combines structured time-series data with clinical notes using LSTM and ClinicalBERT embeddings with cross-modal attention."
+    },
+    {
+      "method": "Time Series Mixer (TSMixer) for vital sign forecasting",
+      "papers_using_it": [
+        "f5b576c4af82b34d43f0299e45672745ad649f8a"
+      ],
+      "notes": "Rare; evaluates TSMixer for real-time prediction of vital signs in ICU with dual mixing mechanisms."
+    },
+    {
+      "method": "Time-series deep learning for respiratory failure prediction",
+      "papers_using_it": [
+        "82f449cb2b0e3fca45e48a7ace14047665076828"
+      ],
+      "notes": "Rare; uses recursive and attention-based models to capture temporal evolution of patient data."
+    },
+    {
+      "method": "MultiCardioNet",
+      "papers_using_it": [
+        "825f2a973892f9d6fc5a5e9a1c300b20b189eb37"
+      ],
+      "notes": "Rare; a multimodal deep learning framework combining structured clinical variables, time series vital signs, and clinical text for predicting cardiovascular deterioration."
+    },
+    {
+      "method": "DeBias",
+      "papers_using_it": [
+        "1019184f0dcdf86b229b244144dced8a707bb5db"
+      ],
+      "notes": "Rare; a computational framework for mitigating demographic biases in high-dimensional biomedical datasets using control samples."
+    },
+    {
+      "method": "Adversarial training",
+      "papers_using_it": [
+        "50fafee882fd1461429b3fbd76c40b706dfd5f83"
+      ],
+      "notes": "Rare; learns unbiased features by explicitly incorporating demographic variables in training setups."
+    },
+    {
+      "method": "Systematic review",
+      "papers_using_it": [
+        "a6565b5c8558198c70a45e4517654c314ab9591e"
+      ],
+      "notes": "Rare; used to assess the reporting of demographic information in clinical AI/ML studies."
+    },
+    {
+      "method": "Neural Network Ensembles for Time Series Prediction",
+      "papers_using_it": [
+        "254094"
+      ],
+      "notes": "Rare; combines multiple neural network regressors applied to temporally varied feature subsets."
+    },
+    {
+      "method": "Enhanced Autoregressive Time-Series Analysis",
+      "papers_using_it": [
+        "94565519"
+      ],
+      "notes": "Rare; uses AR models and statistical tests on residuals to detect structural deterioration."
+    },
+    {
+      "method": "Bootstrap Prediction Intervals for Power-Transformed Time Series",
+      "papers_using_it": [
+        "15183457"
+      ],
+      "notes": "Rare; applies bootstrap resampling to construct prediction intervals for transformed time series."
+    },
+    {
+      "method": "DSAP (Demographic Similarity from Auxiliary Profiles)",
+      "papers_using_it": [
+        "318611163",
+        "297435818"
+      ],
+      "notes": "Rare; a two-step methodology for comparing demographic compositions of datasets using auxiliary models."
+    },
+    {
+      "method": "Machine Learning for Myocarditis Diagnosis",
+      "papers_using_it": [
+        "c23e5a4a1f12cf50d3f21f542535e0e31b8221c4"
+      ],
+      "notes": "Rare; systematic review and meta-analysis of ML models for diagnosing myocarditis using cardiovascular MRI."
+    },
+    {
+      "method": "Deep Learning for Mortality Prediction from Chest X-rays",
+      "papers_using_it": [
+        "24408bc70b657c434056fa764641c676a0edb5e7"
+      ],
+      "notes": "Rare; uses deep learning models trained on chest X-rays to predict long-term mortality."
+    },
+    {
+      "method": "MIMIC database",
+      "papers_using_it": [
+        "f97a845319a3979ac5499a9be6ae320455ff025e"
+      ],
+      "notes": "Rare; used as the primary data source for developing and validating sepsis-associated AKI mortality prediction models."
+    },
+    {
+      "method": "SHAP analysis",
+      "papers_using_it": [
+        "6645fa2f8a25ff31f560f1764319ef62a7e06141"
+      ],
+      "notes": "Rare; applied to improve interpretability of machine learning models predicting drug-induced liver injury."
+    },
+    {
+      "method": "Multivariate logistic regression models",
+      "papers_using_it": [
+        "d2be3495362f4227ab46db6462089d738b402803",
+        "239e7d511c4cf2325b66feeb1ab83d21d02df81a"
+      ],
+      "notes": "Common; used for identifying associations with clinical outcomes and selecting features for model construction."
+    },
+    {
+      "method": "5-fold cross-validation",
+      "papers_using_it": [
+        "239e7d511c4cf2325b66feeb1ab83d21d02df81a"
+      ],
+      "notes": "Rare; implemented for fair comparison of model performance."
+    },
+    {
+      "method": "Nomogram construction",
+      "papers_using_it": [
+        "239e7d511c4cf2325b66feeb1ab83d21d02df81a"
+      ],
+      "notes": "Rare; used to integrate imaging, clinical, and demographic features for predicting lung nodule malignancy."
+    },
+    {
+      "method": "Decision region analysis",
+      "papers_using_it": [
+        "e5efaee50fe987d5eeac48ddd81ba3dc52124207"
+      ],
+      "notes": "Rare; employed to estimate model generalizability under conditions of cross-reactivity and population shift."
+    },
+    {
+      "method": "Simulated patient cohorts",
+      "papers_using_it": [
+        "167d225a531cf0d627e3fe4a174e473766079a78"
+      ],
+      "notes": "Rare; used to compare demographic distributions against census benchmarks."
+    },
+    {
+      "method": "LSTM-based deep learning model (DeepEWS)",
+      "papers_using_it": [
+        "58dd77b962f5181c14be28c376c8084928cf8a80"
+      ],
+      "notes": "Rare; developed for predicting clinical deterioration in general wards using routinely collected vital signs."
+    },
+    {
+      "method": "XGBoost (XGB)",
+      "papers_using_it": [
+        "69ed9dbba07d64f41de7922997c9103004a1eb1a"
+      ],
+      "notes": "Rare; used for early prediction of deterioration in mild COVID-19 patients with varying time horizons."
+    },
+    {
+      "method": "Shapelet-based methods",
+      "papers_using_it": [
+        "8879d072f3ae813da6d76caba6547731be4008fd"
+      ],
+      "notes": "Rare; applied for early classification of multivariate time series to detect nuanced illness deterioration."
+    },
+    {
+      "method": "Early classification methods (ECTS, MCFEC, EARLIEST, RHC)",
+      "papers_using_it": [
+        "8879d072f3ae813da6d76caba6547731be4008fd"
+      ],
+      "notes": "Rare; evaluated for early detection of deterioration using prefix-based, shapelet-based, and reinforcement learning approaches."
+    },
+    {
+      "method": "Multimodal wearable data analysis",
+      "papers_using_it": [
+        "c71967a10be7d9ecc19e5569bb45544dcb29025b"
+      ],
+      "notes": "Rare; utilizes long-term monitoring data from wearables to predict outpatient deterioration."
+    },
+    {
+      "method": "Feature-based methods (Naive Bayes, Elastic Ensembles)",
+      "papers_using_it": [
+        "8879d072f3ae813da6d76caba6547731be4008fd"
+      ],
+      "notes": "Rare; use statistical features extracted from vital sign time series for comparison with advanced methods."
+    },
+    {
+      "method": "Gaussian Processes for Regression (GPR)",
+      "papers_using_it": [
+        "e8d2db8d724c69935424ee2d88dc196bee3c76c1",
+        "fefa01721467212eea51110c9f26b6b3514f4c68"
+      ],
+      "notes": "Rare; used for modeling time-series data from vital signs to detect deterioration."
+    },
+    {
+      "method": "Multitask Gaussian Process RNN Classifier",
+      "papers_using_it": [
+        "fefa01721467212eea51110c9f26b6b3514f4c68"
+      ],
+      "notes": "Rare; combines RNNs with Gaussian processes for classification of clinical deterioration."
+    },
+    {
+      "method": "Long Short-Term Memory (LSTM) Recurrent Neural Network",
+      "papers_using_it": [
+        "5f5f28ea3a39b608af784e99b40ade4b33779da2"
+      ],
+      "notes": "Rare; applied for time-series classification of patient deterioration prediction."
+    },
+    {
+      "method": "Deep Learning Models (CNN, LSTM)",
+      "papers_using_it": [
+        "5f5f28ea3a39b608af784e99b40ade4b33779da2"
+      ],
+      "notes": "Rare; used for modeling temporal patterns in patient data for deterioration prediction."
+    },
+    {
+      "method": "Random Forest (RF) Model",
+      "papers_using_it": [
+        "02b8cad6b7eb1b2c8ff556d83ddcea9fb85222ea"
+      ],
+      "notes": "Rare; employed for predicting clinical deterioration with expanded feature sets and time-series forecasting."
+    },
+    {
+      "method": "Time-Series Classification",
+      "papers_using_it": [
+        "00cbef9db484a50b9ed46b77693b4c626bd6dddb"
+      ],
+      "notes": "Rare; utilizes time-series of vital signs for deterioration prediction with minimal input features."
+    },
+    {
+      "method": "Logistic Regression Models",
+      "papers_using_it": [
+        "1cc654eaac4a5f4ee7caa6775f08b6ef97f58baa"
+      ],
+      "notes": "Rare; used to predict inpatient deterioration at multiple time points prior to adverse events."
+    },
+    {
+      "method": "SMOTE variants",
+      "papers_using_it": [
+        "e1cfefc1ab851e0041e8969dddfa072a934f33f0"
+      ],
+      "notes": "Rare; used for mitigating gender-related bias in medical ensemble learning models through synthetic data generation."
+    },
+    {
+      "method": "Ensemble learning",
+      "papers_using_it": [
+        "e1cfefc1ab851e0041e8969dddfa072a934f33f0"
+      ],
+      "notes": "Rare; applied alongside SMOTE techniques to improve fairness and generalizability in medical AI models."
+    },
+    {
+      "method": "Dataset-specific fairness auditing",
+      "papers_using_it": [
+        "8301d5407a44469cf66468c4b32f3fcb309c341e"
+      ],
+      "notes": "Rare; proposed as a necessary step for clinical deployment due to lack of fairness transferability across datasets."
+    },
+    {
+      "method": "Representation bias analysis",
+      "papers_using_it": [
+        "8b52d6dc3a89b8c67fe1e3aa296c48f87c9418fd"
+      ],
+      "notes": "Rare; examined how underrepresentation of demographic groups affects model performance."
+    },
+    {
+      "method": "Bias detection and mitigation pipeline",
+      "papers_using_it": [
+        "30312b467f11ddc836205fd170e65b8ca7ba8bfa"
+      ],
+      "notes": "Rare; systematic approach using fairness metrics and real-world clinical datasets to evaluate and reduce bias."
+    },
+    {
+      "method": "Intersectional bias analysis",
+      "papers_using_it": [
+        "42c2507cf28070785b92342804aed1eba4380400"
+      ],
+      "notes": "Rare; analysis of bias in subpopulations defined by combinations of demographic dimensions."
+    },
+    {
+      "method": "Debiasing at data preprocessing level",
+      "papers_using_it": [
+        "aaf6161f63849f320a5c9d2d3f123527a2f5a556"
+      ],
+      "notes": "Rare; correction of outcome prevalence imbalance through random undersampling."
+    },
+    {
+      "method": "Multimodal fairness evaluation",
+      "papers_using_it": [
+        "a13a38d457ee73efc0a6011370346df0bec2d1b3"
+      ],
+      "notes": "Rare; assessment of fairness across different data modalities and their respective feature extraction processes."
+    },
+    {
+      "method": "Subgroup performance analysis using AUROC, AUPRC, F1, Sensitivity, Specificity, and BER",
+      "papers_using_it": [
+        "e0c897a3b90430b157717c4d215de67cdc3a5eb7"
+      ],
+      "notes": "Rare; used to evaluate model performance across demographic subgroups in chest radiography datasets."
+    },
+    {
+      "method": "Tree-based classification model with age stratification",
+      "papers_using_it": [
+        "40b28f4f04777c1eef71f88fbd280ba35328502f"
+      ],
+      "notes": "Rare; applied to predict Long-COVID infection using EHR data from the L3C dataset."
+    },
+    {
+      "method": "Feature engineering and imputation strategies",
+      "papers_using_it": [
+        "40b28f4f04777c1eef71f88fbd280ba35328502f"
+      ],
+      "notes": "Rare; continuous variables were binned and missing values were imputed to reduce data sparsity."
+    },
+    {
+      "method": "Demographic imbalance analysis in clinical language models",
+      "papers_using_it": [
+        "13da022057487cc29efb4e92f8e11806dbf448c8"
+      ],
+      "notes": "Rare; explored how imbalances in age, insurance, and health conditions affect model fairness."
+    },
+    {
+      "method": "Bias evaluation in large language models using clinical case benchmarks",
+      "papers_using_it": [
+        "b87fb8913486bb7ef2d9c2b5b0dfcb96116d5f10"
+      ],
+      "notes": "Rare; evaluated model bias through diagnostic understanding disparities across demographic groups."
+    },
+    {
+      "method": "Underdiagnosis bias analysis in chest X-ray classification",
+      "papers_using_it": [
+        "ab5923948a3d8c15f964c1577eec2b3c379ba09e"
+      ],
+      "notes": "Rare; examined algorithmic underdiagnosis rates in under-served populations using multiple datasets."
+    },
+    {
+      "method": "Gender imbalance impact on classifier performance",
+      "papers_using_it": [
+        "85efad9b06541cf19f095efd177bf849856755b3"
+      ],
+      "notes": "Rare; assessed performance degradation in AI classifiers with varying degrees of gender representation."
+    },
+    {
+      "method": "Health algorithm bias analysis",
+      "papers_using_it": [
+        "4e40cdf1e44c820096865da63180ddaf583e1ed5"
+      ],
+      "notes": "Rare; analyzes racial bias in a health algorithm by comparing risk scores to actual health outcomes."
+    },
+    {
+      "method": "Shortcut learning in deep neural networks",
+      "papers_using_it": [
+        "1b04936c2599e59b120f743fbb30df2eed3fd782"
+      ],
+      "notes": "Rare; explores how deep learning models rely on shortcuts that perform well on benchmarks but fail in real-world settings."
+    },
+    {
+      "method": "Privacy-preserving race/ethnicity estimation",
+      "papers_using_it": [
+        "aeec061661db480141c652cd5db0f7ff15edf6ca"
+      ],
+      "notes": "Rare; uses Bayesian Improved Surname Geocoding (BISG), secure computation, and differential privacy."
+    },
+    {
+      "method": "Measurement invariance and differential item functioning (DIF)",
+      "papers_using_it": [
+        "32c4814b80599894c51df05e8e55079f4020cced"
+      ],
+      "notes": "Rare; applies factor analysis and alignment method to assess bias in caregiver-report measures."
+    },
+    {
+      "method": "Reactivity bias and measurement error in dietary reporting",
+      "papers_using_it": [
+        "a24ba83df5cda3a6aaa0266091672e7b7086d082"
+      ],
+      "notes": "Rare; examines correlates of reactivity and plausible intakes in image-based food records."
+    },
+    {
+      "method": "Survey data critique for menopause classification",
+      "papers_using_it": [
+        "37370703387ffb32c1cb323ef087e162d611f044"
+      ],
+      "notes": "Rare; critiques DHS methodology for misclassifying post-hysterectomy women."
+    },
+    {
+      "method": "NLP-driven literature mapping",
+      "papers_using_it": [
+        "cb436ebb9afb44f6538bcdff38a4ff35c6d22e9a"
+      ],
+      "notes": "Rare; used to retrieve and filter systematic literature reviews on fairness in healthcare AI."
+    },
+    {
+      "method": "Gradient reconciliation framework (FairGrad)",
+      "papers_using_it": [
+        "ef969ff8a149a10c57a33e4819174d757e89e37c"
+      ],
+      "notes": "Rare; a method to balance predictive performance and multi-attribute fairness in healthcare AI models."
+    },
+    {
+      "method": "Structural Equation Modeling (SEM) and moderation analysis",
+      "papers_using_it": [
+        "372588829"
+      ],
+      "notes": "Rare; employed to analyze the impact of AI transparency on trust in healthcare applications."
+    },
+    {
+      "method": "Scoping review protocol",
+      "papers_using_it": [
+        "372806665"
+      ],
+      "notes": "Rare; pre-registration and protocol for a scoping review on AI fairness in healthcare."
+    },
+    {
+      "method": "BigQuery ML",
+      "papers_using_it": [
+        "2502.07026v2"
+      ],
+      "notes": "Rare; enables healthcare professionals to build and deploy ML models using SQL."
+    },
+    {
+      "method": "Propensity Score Estimation",
+      "papers_using_it": [
+        "23c7ad9d2ad344804d553a16ca53c85c9cc63d20"
+      ],
+      "notes": "Rare; used for causal inference in observational healthcare studies."
+    },
+    {
+      "method": "Single-World Intervention Graphs (SWIGs)",
+      "papers_using_it": [
+        "2252beade5400a93d6d54c1a54be4bf3175b9e77"
+      ],
+      "notes": "Rare; a causal inference approach for healthcare operations management."
+    },
+    {
+      "method": "Targeted Maximum Likelihood Estimation (TMLE)",
+      "papers_using_it": [
+        "57b42eed32d1df3ab7261b7fa8f1568ab17a4526"
+      ],
+      "notes": "Rare; applied for causal inference in analyzing medical cannabis use and healthcare utilization."
+    },
+    {
+      "method": "Federated Causal Inference",
+      "papers_using_it": [
+        "6e7cbaa54cb0313832ce68efcfe648cd86f11bd0"
+      ],
+      "notes": "Rare; enables multi-site treatment effect estimation without sharing individual-level data."
+    },
+    {
+      "method": "Data-Use Auditing Framework",
+      "papers_using_it": [
+        "2407.15100v3"
+      ],
+      "notes": "Rare; uses black-box membership inference and sequential hypothesis testing to detect unauthorized data use."
+    },
+    {
+      "method": "Unsupervised NLP for feature engineering",
+      "papers_using_it": [
+        "daee583e440dbc7c43d02c9c8802df1dd4aa5cdc"
+      ],
+      "notes": "Rare; used bag-of-words to extract features from free-text notes to supplement confounding adjustment."
+    },
+    {
+      "method": "Data-knowledge codriven machine learning",
+      "papers_using_it": [
+        "a2da27472c481908cf42075c982cc9cfd6161ce4"
+      ],
+      "notes": "Rare; combined domain knowledge embedding with machine learning to understand trace organic contaminant rejection."
+    },
+    {
+      "method": "Logistic regression with confounding adjustment",
+      "papers_using_it": [
+        "304159b3ab68cff6192dee010d49cdda8c2ba4e7"
+      ],
+      "notes": "Rare; used multivariable logistic regression to identify factors associated with viral load suppression."
+    },
+    {
+      "method": "Deep learning for causal inference",
+      "papers_using_it": [
+        "169447337"
+      ],
+      "notes": "Rare; adapted deep neural networks for estimating heterogeneous treatment effects."
+    },
+    {
+      "method": "Randomized data for causal inference",
+      "papers_using_it": [
+        "124991403"
+      ],
+      "notes": "Rare; applied causal inference methods to a strategy game using randomized data."
+    },
+    {
+      "method": "Bayesian non-linear biochemical kinetics for network inference",
+      "papers_using_it": [
+        "16175463"
+      ],
+      "notes": "Rare; used Bayesian inference with non-linear kinetic models to infer causal networks."
+    },
+    {
+      "method": "Quasi-experimental methods (matching, IV, RDD)",
+      "papers_using_it": [
+        "2513449"
+      ],
+      "notes": "Rare; examined methods like instrumental variables and regression discontinuity design."
+    },
+    {
+      "method": "Probabilistic bias analysis",
+      "papers_using_it": [
+        "2617297"
+      ],
+      "notes": "Rare; a method to adjust relative risk estimates for misclassification, selection bias, and uncontrolled confounding."
+    },
+    {
+      "method": "Instrumental variable estimators",
+      "papers_using_it": [
+        "3146803"
+      ],
+      "notes": "Rare; techniques for estimating exposure effects in the presence of non-random exposure selection."
+    },
+    {
+      "method": "Perception-aware bias detection",
+      "papers_using_it": [
+        "2601.03730v1"
+      ],
+      "notes": "Rare; enhanced bias detection pipeline for query suggestions incorporating perceptual metrics."
+    },
+    {
+      "method": "MediaSpin dataset",
+      "papers_using_it": [
+        "2412.02271v5"
+      ],
+      "notes": "Rare; a large-scale dataset of edited news headlines annotated for 13 types of media bias."
+    },
+    {
+      "method": "Dual-view graph representation learning",
+      "papers_using_it": [
+        "0a7c9c704918b32aafba00c199c49231cadcfd8d"
+      ],
+      "notes": "Rare; a method to address message imbalance in fraud detection via topological reachability."
+    },
+    {
+      "method": "Meta-Reinforcement Learning (Meta-RL)",
+      "papers_using_it": [
+        "9558d5cc4bf2f0443ed1578a46c16ad85ca878ac"
+      ],
+      "notes": "Rare; used for efficient handling of data imbalance in fraud detection."
+    },
+    {
+      "method": "SMOTE",
+      "papers_using_it": [
+        "fd9e44cb0d6c55839c04a9d8541d182862f224f4"
+      ],
+      "notes": "Rare; applied to improve accuracy in logistic regression for poverty classification."
+    },
+    {
+      "method": "Multi-domain Feature Representation",
+      "papers_using_it": [
+        "3b1c1c898517e99b224ea38458bbbcc96366c32f"
+      ],
+      "notes": "Rare; combines statistical descriptors and geometric features from amplitude, phase, and frequency domains."
+    },
+    {
+      "method": "Convolutional Neural Networks (CNN)",
+      "papers_using_it": [
+        "53327c7d9f8f123ae1e40564c40557a475078228"
+      ],
+      "notes": "Rare; used to detect aerodynamic imbalance in wind turbines via transformation of time-series data into images."
+    },
+    {
+      "method": "RSD-BiasEval Framework",
+      "papers_using_it": [
+        "ebd1d04b26dcf44b37270b24dc623d80992ccb8d"
+      ],
+      "notes": "Rare; a quantifiable framework for analyzing and evaluating bias in remote sensing datasets."
+    },
+    {
+      "method": "Speaker Characteristics Deepfake Speech Dataset (SCDF)",
+      "papers_using_it": [
+        "e5359159410a0a7fdb7c0ba41b833a574d0cf1f8"
+      ],
+      "notes": "Rare; introduces a dataset for evaluating demographic biases in deepfake speech detection."
+    },
+    {
+      "method": "Hollywood Identity Bias Dataset",
+      "papers_using_it": [
+        "76b8e36dfd9bee0f67f8f923bc566e5290e6dc47"
+      ],
+      "notes": "Rare; provides annotated movie dialogues for identifying identity-related biases using context-aware labeling."
+    },
+    {
+      "method": "Machine learning for human decision-making models",
+      "papers_using_it": [
+        "ff0348840a37bf76ebfb885cf714fb09d663dab2"
+      ],
+      "notes": "Rare; used neural networks and probabilistic generative models to analyze dataset bias in decision-making."
+    },
+    {
+      "method": "Statistical features for polyp detection in CT colonography",
+      "papers_using_it": [
+        "23090360"
+      ],
+      "notes": "Rare; applied surface normal intersection, convexity test, region growing, and Hough transform for feature extraction."
+    },
+    {
+      "method": "Permutation variable importance measure based on AUC",
+      "papers_using_it": [
+        "5233954"
+      ],
+      "notes": "Rare; introduced an AUC-based permutation VIM for improved variable importance in unbalanced data settings."
+    },
+    {
+      "method": "Supervised machine learning for wheel imbalance detection",
+      "papers_using_it": [
+        "52651515"
+      ],
+      "notes": "Rare; utilized classification trees and PCA on Fourier-transformed accelerometer data."
+    },
+    {
+      "method": "Statistical-based damage detection in bridges",
+      "papers_using_it": [
+        "13028680"
+      ],
+      "notes": "Rare; used residuals from statistical models and control charts for damage identification."
+    },
+    {
+      "method": "Bias correction in irrigated area dataset",
+      "papers_using_it": [
+        "153486447"
+      ],
+      "notes": "Rare; applied linear regression correction using agricultural suitability indices."
+    },
+    {
+      "method": "Bias analysis in language models",
+      "papers_using_it": [
+        "298311509"
+      ],
+      "notes": "Rare; analyzed bias in NLP models using datasets like WinoBias and StereoSet."
+    },
+    {
+      "method": "Bias-adjusted solar radiation dataset (BaRAD)",
+      "papers_using_it": [
+        "130859419"
+      ],
+      "notes": "Rare; used random forest algorithm to adjust MERRA-2 data with GEBA observations."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Many existing demographic bias metrics are redundant and a reduced subset may suffice",
+      "supporting_evidence": [
+        "2303.15889v2"
+      ],
+      "notes": "Redundancy in bias metrics limits their practical utility."
+    },
+    {
+      "gap": "Debiased embeddings do not effectively resolve demographic bias in named entity recognition",
+      "supporting_evidence": [
+        "2008.03415v1"
+      ],
+      "notes": "Text-specific fairness approaches may not achieve broader fairness goals."
+    },
+    {
+      "gap": "Models trained on general or biomedical data perform worse than compact models trained specifically for clinical tasks",
+      "supporting_evidence": [
+        "2302.04725v1"
+      ],
+      "notes": "Clinical specificity matters for model performance."
+    },
+    {
+      "gap": "The effectiveness of text-specific fairness approaches in achieving broader fairness goals like equalized odds is unclear",
+      "supporting_evidence": [
+        "2011.09625v2"
+      ],
+      "notes": "Text-level interventions may not translate to overall model fairness."
+    },
+    {
+      "gap": "Results from Mohs surgery complexity prediction are limited to data from a single surgeon",
+      "supporting_evidence": [
+        "c6c52a7e77476d01197b25784d5ed13f224f1dda"
+      ],
+      "notes": "Single-source data limits generalizability."
+    },
+    {
+      "gap": "Limited use of unstructured clinical notes in existing ICU deterioration prediction models despite their potential to capture important contextual information",
+      "supporting_evidence": [
+        "645d8dab1ed926cbc3d9fcaff7b3da833d55495b"
+      ],
+      "notes": "Underutilization of rich textual data."
+    },
+    {
+      "gap": "Contradiction between online recruitment being more effective in terms of speed and cost but having lower conversion rates compared to offline methods",
+      "supporting_evidence": [
+        "244abf60ecd9a8a5b2b4ef107237203e4ae47e03"
+      ],
+      "notes": "Conflicting benefits of recruitment methods."
+    },
+    {
+      "gap": "Need for more robust validation of deep learning models in real-world clinical settings beyond controlled datasets like MIMIC-IV and VitalDB",
+      "supporting_evidence": [
+        "645d8dab1ed926cbc3d9fcaff7b3da833d55495b",
+        "f5b576c4af82b34d43f0299e45672745ad649f8a",
+        "82f449cb2b0e3fca45e48a7ace14047665076828"
+      ],
+      "notes": "Controlled datasets may not reflect real-world performance."
+    },
+    {
+      "gap": "Lack of demographic reporting in clinical AI/ML studies, particularly regarding race and gender, raises concerns about transparency and fairness",
+      "supporting_evidence": [
+        "a6565b5c8558198c70a45e4517654c314ab9591e"
+      ],
+      "notes": "Missing demographic data undermines fairness assessment."
+    },
+    {
+      "gap": "Existing bias-correction methods struggle with the heterogeneity of biomedical data and complexity of demographic influences",
+      "supporting_evidence": [
+        "1019184f0dcdf86b229b244144dced8a707bb5db"
+      ],
+      "notes": "Complexity of data hinders bias mitigation."
+    },
+    {
+      "gap": "Clinical datasets often lack representation across key demographics, potentially leading to biased predictions and health disparities",
+      "supporting_evidence": [
+        "50fafee882fd1461429b3fbd76c40b706dfd5f83",
+        "a6565b5c8558198c70a45e4517654c314ab9591e",
+        "bf5aadc31fdc2aaba05edd94336df80f2c88c7fc"
+      ],
+      "notes": "Underrepresentation leads to biased outcomes."
+    },
+    {
+      "gap": "There is insufficient attention to demographic diversity in publicly available fetal ultrasound datasets used for training deep learning models",
+      "supporting_evidence": [
+        "bf5aadc31fdc2aaba05edd94336df80f2c88c7fc"
+      ],
+      "notes": "Dataset diversity is often overlooked."
+    },
+    {
+      "gap": "Lack of demographic summaries in medical datasets affects model development and performance across subpopulations",
+      "supporting_evidence": [
+        "c23e5a4a1f12cf50d3f21f542535e0e31b8221c4"
+      ],
+      "notes": "Missing demographic info impacts model fairness."
+    },
+    {
+      "gap": "Limited availability of detailed demographic data in clinical studies hampers understanding of model generalizability",
+      "supporting_evidence": [
+        "24408bc70b657c434056fa764641c676a0edb5e7"
+      ],
+      "notes": "Data scarcity limits generalizability assessment."
+    },
+    {
+      "gap": "No explicit demographic labels in datasets can hinder direct application of some bias detection methods",
+      "supporting_evidence": [
+        "318611163",
+        "297435818"
+      ],
+      "notes": "Label absence complicates bias detection."
+    },
+    {
+      "gap": "Models developed using data from a single academic medical center introduce ethnic and geographic selection biases that limit generalizability to global populations",
+      "supporting_evidence": [
+        "f97a845319a3979ac5499a9be6ae320455ff025e"
+      ],
+      "notes": "Single-center data introduces selection bias."
+    },
+    {
+      "gap": "Lack of external validation and reliance on single datasets undermines the generalizability of machine learning models in clinical applications",
+      "supporting_evidence": [
+        "6645fa2f8a25ff31f560f1764319ef62a7e06141"
+      ],
+      "notes": "Validation limitations affect model trustworthiness."
+    },
+    {
+      "gap": "AI-generated synthetic patient cohorts often lack demographic diversity, potentially reinforcing biased clinical expectations",
+      "supporting_evidence": [
+        "167d225a531cf0d627e3fe4a174e473766079a78"
+      ],
+      "notes": "Synthetic data may perpetuate bias."
+    },
+    {
+      "gap": "Insufficient attention to model updating and lack of standardized practices for maintaining model integrity and safety over time",
+      "supporting_evidence": [
+        "513a774801074143fe036d42f1d1535aa0d4fc5f"
+      ],
+      "notes": "Model maintenance is underdeveloped."
+    },
+    {
+      "gap": "Absence of demographic information in many clinical AI studies raises concerns about equitable application and generalizability",
+      "supporting_evidence": [
+        "513a774801074143fe036d42f1d1535aa0d4fc5f"
+      ],
+      "notes": "Missing data affects equitable deployment."
+    },
+    {
+      "gap": "Limited dataset simulations restrict the ability to assess model performance across diverse patient subgroups",
+      "supporting_evidence": [
+        "e5efaee50fe987d5eeac48ddd81ba3dc52124207"
+      ],
+      "notes": "Simulation limitations hinder subgroup analysis."
+    },
+    {
+      "gap": "Most existing methods fail to capture shapelet dependencies and transition dynamics in time-series data, limiting their ability to model temporal progression in patient deterioration",
+      "supporting_evidence": [
+        "75ce9f83934e6c97fcac4b727e5a62cece964829"
+      ],
+      "notes": "Temporal modeling gaps in deterioration prediction."
+    },
+    {
+      "gap": "There is a lack of effective early warning scoring systems tailored for general wards where vital signs are intermittently collected",
+      "supporting_evidence": [
+        "58dd77b962f5181c14be28c376c8084928cf8a80"
+      ],
+      "notes": "Ward-specific scoring systems needed."
+    },
+    {
+      "gap": "Current models often struggle to detect nuanced illness deterioration, which is not significant enough to trigger alarms but critical for early intervention",
+      "supporting_evidence": [
+        "8879d072f3ae813da6d76caba6547731be4008fd"
+      ],
+      "notes": "Detection of subtle changes is challenging."
+    },
+    {
+      "gap": "The effectiveness of early warning scores in prehospital settings remains underexplored despite their potential utility",
+      "supporting_evidence": [
+        "20aadcb09c8b9c6919455bda28201638f8f701dd"
+      ],
+      "notes": "Prehospital applications are understudied."
+    },
+    {
+      "gap": "Limited external or prospective validation of models due to lack of access to similar datasets",
+      "supporting_evidence": [
+        "00cbef9db484a50b9ed46b77693b4c626bd6dddb"
+      ],
+      "notes": "Validation constraints limit confidence."
+    },
+    {
+      "gap": "Models often rely on fixed-length input windows, limiting flexibility in temporal modeling",
+      "supporting_evidence": [
+        "00cbef9db484a50b9ed46b77693b4c626bd6dddb"
+      ],
+      "notes": "Fixed windows constrain temporal analysis."
+    },
+    {
+      "gap": "Need for further investigation into the impact of varying input window sizes on model performance",
+      "supporting_evidence": [
+        "00cbef9db484a50b9ed46b77693b4c626bd6dddb"
+      ],
+      "notes": "Window size effects are not well understood."
+    },
+    {
+      "gap": "Contradiction in the choice of prediction horizons—some models optimize for short-term (e.g., 6h) while others consider longer windows (up to 24h)",
+      "supporting_evidence": [
+        "02b8cad6b7eb1b2c8ff556d83ddcea9fb85222ea",
+        "1cc654eaac4a5f4ee7caa6775f08b6ef97f58baa"
+      ],
+      "notes": "Inconsistent horizon choices across models."
+    },
+    {
+      "gap": "Lack of standardized evaluation criteria across studies for comparing model performance",
+      "supporting_evidence": [
+        "e8d2db8d724c69935424ee2d88dc196bee3c76c1",
+        "fefa01721467212eea51110c9f26b6b3514f4c68",
+        "5f5f28ea3a39b608af784e99b40ade4b33779da2",
+        "00cbef9db484a50b9ed46b77693b4c626bd6dddb",
+        "02b8cad6b7eb1b2c8ff556d83ddcea9fb85222ea",
+        "1cc654eaac4a5f4ee7caa6775f08b6ef97f58baa"
+      ],
+      "notes": "Evaluation inconsistency hampers comparisons."
+    },
+    {
+      "gap": "Fairness in medical AI is primarily driven by dataset properties rather than algorithmic design choices",
+      "supporting_evidence": [
+        "8301d5407a44469cf66468c4b32f3fcb309c341e"
+      ],
+      "notes": "Dataset characteristics dominate fairness outcomes."
+    },
+    {
+      "gap": "There is limited exploration of intersectionality among multiple demographic attributes in bias mitigation",
+      "supporting_evidence": [
+        "e1cfefc1ab851e0041e8969dddfa072a934f33f0"
+      ],
+      "notes": "Intersectional bias is under-addressed."
+    },
+    {
+      "gap": "Overfitting risk exists when using synthetic data generated via oversampling techniques without proper validation",
+      "supporting_evidence": [
+        "e1cfefc1ab851e0041e8969dddfa072a934f33f0"
+      ],
+      "notes": "Synthetic data risks overfitting."
+    },
+    {
+      "gap": "Lack of standardized methods for measuring and mitigating bias in healthcare AI research",
+      "supporting_evidence": [
+        "30312b467f11ddc836205fd170e65b8ca7ba8bfa"
+      ],
+      "notes": "Standardization is lacking in bias research."
+    },
+    {
+      "gap": "Limited understanding of interactions between bias mitigation strategies across different demographic dimensions",
+      "supporting_evidence": [
+        "30312b467f11ddc836205fd170e65b8ca7ba8bfa"
+      ],
+      "notes": "Cross-dimension interactions are poorly understood."
+    },
+    {
+      "gap": "Bias amplification in intersectional subpopulations not always aligned with underrepresentation in training data",
+      "supporting_evidence": [
+        "42c2507cf28070785b92342804aed1eba4380400"
+      ],
+      "notes": "Bias behavior is complex and unpredictable."
+    },
+    {
+      "gap": "Debiasing methodology only addresses data-level bias, not algorithm-level or post-hoc fairness",
+      "supporting_evidence": [
+        "aaf6161f63849f320a5c9d2d3f123527a2f5a556"
+      ],
+      "notes": "Debiasing scope is limited."
+    },
+    {
+      "gap": "Generalizability concerns due to single-clinic dataset collection",
+      "supporting_evidence": [
+        "aaf6161f63849f320a5c9d2d3f123527a2f5a556"
+      ],
+      "notes": "Single-source data limits generalizability."
+    },
+    {
+      "gap": "Potential for bias in self-rated and clinician-rated labels due to subjectivity and demographic influences",
+      "supporting_evidence": [
+        "a13a38d457ee73efc0a6011370346df0bec2d1b3"
+      ],
+      "notes": "Subjective labels introduce bias."
+    },
+    {
+      "gap": "Demographic variables may not fully capture physiological conditions, especially in race-related data",
+      "supporting_evidence": [
+        "a13a38d457ee73efc0a6011370346df0bec2d1b3"
+      ],
+      "notes": "Demographics alone are insufficient."
+    },
+    {
+      "gap": "Model performance degrades significantly for underrepresented demographic groups such as those under 40 and over 65 years old, and for minority genders and ethnicities",
+      "supporting_evidence": [
+        "e0c897a3b90430b157717c4d215de67cdc3a5eb7",
+        "ab5923948a3d8c15f964c1577eec2b3c379ba09e",
+        "85efad9b06541cf19f095efd177bf849856755b3"
+      ],
+      "notes": "Performance disparities across demographics."
+    },
+    {
+      "gap": "Data bias due to unequal access to healthcare and underrepresentation of certain populations leads to reduced generalizability of AI models",
+      "supporting_evidence": [
+        "40b28f4f04777c1eef71f88fbd280ba35328502f",
+        "ab5923948a3d8c15f964c1577eec2b3c379ba09e"
+      ],
+      "notes": "Access disparities affect model quality."
+    },
+    {
+      "gap": "Imputation and binning strategies in data preprocessing may result in loss of granular clinical information and introduce additional bias",
+      "supporting_evidence": [
+        "40b28f4f04777c1eef71f88fbd280ba35328502f"
+      ],
+      "notes": "Preprocessing steps can distort data."
+    },
+    {
+      "gap": "Bias evaluation methods are limited by the availability of demographic data and definitions used in clinical datasets",
+      "supporting_evidence": [
+        "b87fb8913486bb7ef2d9c2b5b0dfcb96116d5f10"
+      ],
+      "notes": "Evaluation constraints due to data limitations."
+    },
+    {
+      "gap": "The impact of intersectional identities (e.g., Hispanic female patients) on model bias has not been fully explored",
+      "supporting_evidence": [
+        "ab5923948a3d8c15f964c1577eec2b3c379ba09e"
+      ],
+      "notes": "Intersectional impacts remain understudied."
+    },
+    {
+      "gap": "There is insufficient attention to the ethical implications of deploying biased AI systems in clinical settings without proper bias mitigation",
+      "supporting_evidence": [
+        "e0c897a3b90430b157717c4d215de67cdc3a5eb7",
+        "ab5923948a3d8c15f964c1577eec2b3c379ba09e",
+        "85efad9b06541cf19f095efd177bf849856755b3"
+      ],
+      "notes": "Ethical deployment concerns are ignored."
+    },
+    {
+      "gap": "Health algorithms that use healthcare costs as a proxy for health needs exhibit racial bias, disadvantaging Black patients",
+      "supporting_evidence": [
+        "4e40cdf1e44c820096865da63180ddaf583e1ed5"
+      ],
+      "notes": "Cost-based proxies introduce racial bias."
+    },
+    {
+      "gap": "Deep learning models often rely on shortcut learning, leading to poor generalization and transferability",
+      "supporting_evidence": [
+        "1b04936c2599e59b120f743fbb30df2eed3fd782"
+      ],
+      "notes": "Shortcut learning undermines model robustness."
+    },
+    {
+      "gap": "Caregiver-report measures like CBCL/1.5–5 show differential item functioning across demographic groups, especially race",
+      "supporting_evidence": [
+        "32c4814b80599894c51df05e8e55079f4020cced"
+      ],
+      "notes": "Measurement tools vary by group."
+    },
+    {
+      "gap": "Reactivity bias in dietary reporting varies significantly by demographic and psychosocial factors",
+      "supporting_evidence": [
+        "a24ba83df5cda3a6aaa0266091672e7b7086d082"
+      ],
+      "notes": "Reporting bias is demographically dependent."
+    },
+    {
+      "gap": "Demographic Health Survey data misclassifies post-hysterectomy women, affecting menopause prevalence estimates",
+      "supporting_evidence": [
+        "37370703387ffb32c1cb323ef087e162d611f044"
+      ],
+      "notes": "Survey design flaws affect data accuracy."
+    },
+    {
+      "gap": "There is a lack of standardized frameworks for measuring fairness in healthcare AI across diverse populations",
+      "supporting_evidence": [
+        "6728936090104aa9c6bafe41f58b7545e57a5364"
+      ],
+      "notes": "Framework standardization is missing."
+    },
+    {
+      "gap": "Limited attention to the role of allied health professionals in AI development and deployment in healthcare settings",
+      "supporting_evidence": [
+        "303687236"
+      ],
+      "notes": "Professional roles are overlooked."
+    },
+    {
+      "gap": "Lack of detailed empirical evaluation of intersectional fairness in multi-stage AI systems in healthcare",
+      "supporting_evidence": [
+        "032c9fb7a50858ab1489e013c2faed790bf3d7ab"
+      ],
+      "notes": "Multi-stage fairness lacks empirical study."
+    },
+    {
+      "gap": "Insufficient exploration of how fairness mechanisms interact with real-world deployment challenges in IoT and ML healthcare systems",
+      "supporting_evidence": [
+        "2312.05530v2"
+      ],
+      "notes": "Deployment realities are underexplored."
+    },
+    {
+      "gap": "Inconsistent alignment between proposed fairness strategies and existing legislative frameworks like the EU AI Act and US AI Bill of Rights",
+      "supporting_evidence": [
+        "cb436ebb9afb44f6538bcdff38a4ff35c6d22e9a"
+      ],
+      "notes": "Strategies don't align with laws."
+    },
+    {
+      "gap": "Limited performance comparison of different ML models in real-world healthcare settings beyond diabetes prediction",
+      "supporting_evidence": [
+        "2502.07026v2"
+      ],
+      "notes": "Real-world comparisons are sparse."
+    },
+    {
+      "gap": "Need for more standardized and scalable ML asset management practices across healthcare institutions",
+      "supporting_evidence": [
+        "2509.23577v1"
+      ],
+      "notes": "Asset management lacks standards."
+    },
+    {
+      "gap": "Inconsistent performance of Boosting in propensity score estimation across datasets",
+      "supporting_evidence": [
+        "23c7ad9d2ad344804d553a16ca53c85c9cc63d20"
+      ],
+      "notes": "Boosting performance varies widely."
+    },
+    {
+      "gap": "Lack of consensus on whether gender and BMI significantly affect standard liver volume in Korean adults",
+      "supporting_evidence": [
+        "8115eadc49db6fc9a803f68a4896638b6a1d52cc"
+      ],
+      "notes": "Consensus is lacking on physiological factors."
+    },
+    {
+      "gap": "Limited improvement in outcome risk prediction when supplementing claims data with NLP-generated features from free text notes",
+      "supporting_evidence": [
+        "daee583e440dbc7c43d02c9c8802df1dd4aa5cdc"
+      ],
+      "notes": "NLP features add little value."
+    },
+    {
+      "gap": "Challenges in applying data-driven ML to trace organic contaminant rejection due to data scarcity and confounding variables",
+      "supporting_evidence": [
+        "a2da27472c481908cf42075c982cc9cfd6161ce4"
+      ],
+      "notes": "Data scarcity hampers ML application."
+    },
+    {
+      "gap": "Need for better strategies to improve viral load suppression among adolescents in low-resource settings like Eswatini",
+      "supporting_evidence": [
+        "304159b3ab68cff6192dee010d49cdda8c2ba4e7"
+      ],
+      "notes": "Strategies for vulnerable populations are lacking."
+    },
+    {
+      "gap": "Lack of standardization in definitions of confounding factors across disciplines",
+      "supporting_evidence": [
+        "3006169"
+      ],
+      "notes": "Confounding definitions vary."
+    },
+    {
+      "gap": "Insufficient exploration of causal inference in complex, non-linear biological systems without mechanistic models",
+      "supporting_evidence": [
+        "16175463"
+      ],
+      "notes": "Non-linear systems are underexplored."
+    },
+    {
+      "gap": "Limited discussion of how to handle time-varying or text-encoded confounding in causal inference frameworks",
+      "supporting_evidence": [
+        "169447337"
+      ],
+      "notes": "Time-varying confounding is neglected."
+    },
+    {
+      "gap": "Instrumental variable estimators may be inconsistent under realistic conditions, despite theoretical identification assumptions",
+      "supporting_evidence": [
+        "3146803"
+      ],
+      "notes": "Theoretical assumptions don't hold in practice."
+    },
+    {
+      "gap": "Confounding by indication is a specific form of confounding that requires careful distinction from general confounding variables",
+      "supporting_evidence": [
+        "156238264"
+      ],
+      "notes": "Distinction is crucial but often missed."
+    },
+    {
+      "gap": "Bias in query suggestions is underexplored despite growing awareness of bias in web search",
+      "supporting_evidence": [
+        "2601.03730v1"
+      ],
+      "notes": "Query bias is understudied."
+    },
+    {
+      "gap": "Class imbalance in fraud detection can lead to ineffective message propagation in graph neural networks",
+      "supporting_evidence": [
+        "0a7c9c704918b32aafba00c199c49231cadcfd8d"
+      ],
+      "notes": "Imbalance affects graph models."
+    },
+    {
+      "gap": "Limited exploration of causal relationships in dataset bias within medical imaging despite increasing focus on fairness and generalizability",
+      "supporting_evidence": [
+        "6008cd7983504ca1729288d62678f6a85517f4a3"
+      ],
+      "notes": "Causal links in bias are underexplored."
+    },
+    {
+      "gap": "Lack of standardized evaluation protocols for measuring fairness and bias in deepfake speech detection remains an understudied area",
+      "supporting_evidence": [
+        "e5359159410a0a7fdb7c0ba41b833a574d0cf1f8"
+      ],
+      "notes": "Evaluation protocols are missing."
+    },
+    {
+      "gap": "Most studies focus on technical solutions for imbalance or bias but do not sufficiently consider ethical implications or societal impact",
+      "supporting_evidence": [
+        "76b8e36dfd9bee0f67f8f923bc566e5290e6dc47"
+      ],
+      "notes": "Ethical considerations are often ignored."
+    },
+    {
+      "gap": "Dataset bias significantly affects the generalizability and accuracy of machine learning models in human decision-making",
+      "supporting_evidence": [
+        "ff0348840a37bf76ebfb885cf714fb09d663dab2"
+      ],
+      "notes": "Bias impacts decision-making models."
+    },
+    {
+      "gap": "Standard permutation variable importance measures lose effectiveness in unbalanced data settings",
+      "supporting_evidence": [
+        "5233954"
+      ],
+      "notes": "Measures are inadequate for imbalance."
+    },
+    {
+      "gap": "Damage detection algorithms suffer from high false-positive rates due to violated assumptions",
+      "supporting_evidence": [
+        "13028680"
+      ],
+      "notes": "Assumption violations cause errors."
+    },
+    {
+      "gap": "Bias correction in language models remains an unsolved challenge despite mitigation efforts",
+      "supporting_evidence": [
+        "298311509"
+      ],
+      "notes": "Language model bias persists."
+    },
+    {
+      "gap": "No fully effective solution exists for eliminating bias in natural language processing models",
+      "supporting_evidence": [
+        "298311509"
+      ],
+      "notes": "Complete bias elimination is elusive."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Adding demographic features (age, sex, race) to a clinical time-series model for predicting early patient deterioration does not significantly improve prediction accuracy beyond what can be achieved with clinical features alone, suggesting that these demographic variables primarily encode dataset-specific bias rather than meaningful physiological signal.",
+      "rationale": "This hypothesis directly addresses the core research question by testing whether demographic features contribute genuine predictive value or merely reflect dataset bias. The gap regarding demographic variables not fully capturing physiological differences supports this claim [2011.09625v2]. Additionally, the literature shows that bias correction methods often fall short in addressing intersectional identities and may introduce new problems like overfitting or loss of clinical relevance [2011.09625v2].",
+      "related_gaps": [
+        "Clinical datasets often lack representation across key demographics, potentially leading to biased predictions and health disparities",
+        "Demographic variables may not fully capture physiological conditions, especially in race-related data"
+      ],
+      "related_methods": [
+        "Multimodal deep learning for ICU deterioration prediction",
+        "DeBias",
+        "Adversarial training"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "age",
+          "sex",
+          "race",
+          "clinical_features"
+        ],
+        "dependent": [
+          "prediction_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Models trained on single-center clinical datasets show significantly worse performance on underrepresented demographic groups compared to majority groups, indicating that dataset-specific bias dominates model fairness outcomes regardless of algorithmic design choices.",
+      "rationale": "This hypothesis builds on the gap that fairness in medical AI is primarily driven by dataset properties rather than algorithmic design choices [8301d5407a44469cf66468c4b32f3fcb309c341e]. It also connects to the observation that models developed using data from a single academic medical center introduce ethnic and geographic selection biases that limit generalizability to global populations [f97a845319a3979ac5499a9be6ae320455ff025e]. Testing this would involve comparing subgroup performance metrics across different demographic groups within a single dataset.",
+      "related_gaps": [
+        "Fairness in medical AI is primarily driven by dataset properties rather than algorithmic design choices",
+        "Models developed using data from a single academic medical center introduce ethnic and geographic selection biases that limit generalizability to global populations"
+      ],
+      "related_methods": [
+        "Dataset-specific fairness auditing",
+        "Representation bias analysis",
+        "Bias detection and mitigation pipeline"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "dataset_source",
+          "demographic_group"
+        ],
+        "dependent": [
+          "model_performance"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Including demographic features in a time-series deterioration prediction model increases the likelihood of shortcut learning, where the model relies on demographic cues rather than clinically relevant temporal patterns, leading to poor generalization in real-world settings.",
+      "rationale": "This hypothesis stems from the gap that deep learning models often rely on shortcut learning, leading to poor generalization and transferability [1b04936c2599e59b120f743fbb30df2eed3fd782]. It also connects to the finding that bias correction methods struggle with the heterogeneity of biomedical data and complexity of demographic influences [1019184f0dcdf86b229b244144dced8a707bb5db]. This can be tested by examining whether models with demographic features exhibit higher correlation with demographic variables than with clinical features during training and validation.",
+      "related_gaps": [
+        "Deep learning models often rely on shortcut learning, leading to poor generalization and transferability",
+        "Existing bias-correction methods struggle with the heterogeneity of biomedical data and complexity of demographic influences"
+      ],
+      "related_methods": [
+        "Shortcut learning in deep neural networks",
+        "Debiasing at data preprocessing level",
+        "Multimodal fairness evaluation"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "use_of_demographic_features",
+          "training_dataset_composition"
+        ],
+        "dependent": [
+          "shortcut_learning_indicators",
+          "generalization_performance"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the strongest candidate because it directly addresses the core research question using feasible, real-world data. It tests whether demographic features improve prediction accuracy beyond clinical features alone, which can be evaluated using datasets like UCI Adult Census Income (which contains age, sex, race, and clinical-like features) or even synthetic ICU data if needed. The hypothesis is specific enough that results could clearly support or refute it, and it's grounded in literature showing that demographic variables may not fully capture physiological differences [2011.09625v2]. It avoids methodological contradictions and focuses on the system (clinical time-series model) rather than analysis methods. The claim is coherent and testable with existing public datasets that contain both demographic and clinical features."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 explores shortcut learning and demographic cues, which is an interesting angle but less directly tied to the core research question. While it references literature on shortcut learning [1b04936c2599e59b120f743fbb30df2eed3fd782], it's harder to operationalize without specific metrics for shortcut learning in clinical time-series models. It also leans heavily on complex behavioral assumptions about model internals that are difficult to validate with current datasets. Although testable in principle, it lacks clear operationalization and is more speculative than H1."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 focuses on performance differences across demographic groups in single-center datasets, which is a valid concern but not directly aligned with the main research question about whether demographics improve prediction. It's more about fairness in deployment than the added value of demographics in prediction models. While it uses relevant literature [8301d5407a44469cf66468c4b32f3fcb309c341e], it's harder to test with the provided datasets since most don't have sufficient demographic breakdowns or multi-center data to assess generalizability. Its testability is weaker due to the difficulty in isolating dataset-specific bias from other confounding factors."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2303.15889v2",
+    "2302.04725v1",
+    "2008.03415v1",
+    "2011.09625v2",
+    "2210.09440v2",
+    "2dcf5bfc2995c86048ae41974a919363206a720e",
+    "c6c52a7e77476d01197b25784d5ed13f224f1dda",
+    "2be7af1178b1e5b9dcf1c457f1b3a6483e200350",
+    "0d4804ea3b258754bf66de35b926eda46f90cd44",
+    "244abf60ecd9a8a5b2b4ef107237203e4ae47e03",
+    "645d8dab1ed926cbc3d9fcaff7b3da833d55495b",
+    "f5b576c4af82b34d43f0299e45672745ad649f8a",
+    "82f449cb2b0e3fca45e48a7ace14047665076828",
+    "43e457f5348ca344f1e9bf71fb4190c61ac4a7df",
+    "825f2a973892f9d6fc5a5e9a1c300b20b189eb37",
+    "1019184f0dcdf86b229b244144dced8a707bb5db",
+    "50fafee882fd1461429b3fbd76c40b706dfd5f83",
+    "a6565b5c8558198c70a45e4517654c314ab9591e",
+    "64b6471b08662fe228298d9aaec3d911449794a2",
+    "bf5aadc31fdc2aaba05edd94336df80f2c88c7fc",
+    "284103328",
+    "291473358",
+    "284913618",
+    "287064789",
+    "286519947",
+    "254094",
+    "94565519",
+    "15183457",
+    "318611163",
+    "297435818",
+    "15110457",
+    "15109516",
+    "15110449",
+    "c23e5a4a1f12cf50d3f21f542535e0e31b8221c4",
+    "24408bc70b657c434056fa764641c676a0edb5e7",
+    "f97a845319a3979ac5499a9be6ae320455ff025e",
+    "e5efaee50fe987d5eeac48ddd81ba3dc52124207",
+    "167d225a531cf0d627e3fe4a174e473766079a78",
+    "6645fa2f8a25ff31f560f1764319ef62a7e06141",
+    "d2be3495362f4227ab46db6462089d738b402803",
+    "239e7d511c4cf2325b66feeb1ab83d21d02df81a",
+    "513a774801074143fe036d42f1d1535aa0d4fc5f",
+    "d5e4735db89c8de9a510703c2664b95cd921f3da",
+    "75ce9f83934e6c97fcac4b727e5a62cece964829",
+    "c71967a10be7d9ecc19e5569bb45544dcb29025b",
+    "58dd77b962f5181c14be28c376c8084928cf8a80",
+    "69ed9dbba07d64f41de7922997c9103004a1eb1a",
+    "8879d072f3ae813da6d76caba6547731be4008fd",
+    "20aadcb09c8b9c6919455bda28201638f8f701dd",
+    "e8d2db8d724c69935424ee2d88dc196bee3c76c1",
+    "fefa01721467212eea51110c9f26b6b3514f4c68",
+    "5f5f28ea3a39b608af784e99b40ade4b33779da2",
+    "00cbef9db484a50b9ed46b77693b4c626bd6dddb",
+    "02b8cad6b7eb1b2c8ff556d83ddcea9fb85222ea",
+    "1cc654eaac4a5f4ee7caa6775f08b6ef97f58baa",
+    "8b52d6dc3a89b8c67fe1e3aa296c48f87c9418fd",
+    "e1cfefc1ab851e0041e8969dddfa072a934f33f0",
+    "8301d5407a44469cf66468c4b32f3fcb309c341e",
+    "30312b467f11ddc836205fd170e65b8ca7ba8bfa",
+    "42c2507cf28070785b92342804aed1eba4380400",
+    "aaf6161f63849f320a5c9d2d3f123527a2f5a556",
+    "a13a38d457ee73efc0a6011370346df0bec2d1b3",
+    "e0c897a3b90430b157717c4d215de67cdc3a5eb7",
+    "40b28f4f04777c1eef71f88fbd280ba35328502f",
+    "13da022057487cc29efb4e92f8e11806dbf448c8",
+    "b87fb8913486bb7ef2d9c2b5b0dfcb96116d5f10",
+    "ab5923948a3d8c15f964c1577eec2b3c379ba09e",
+    "85efad9b06541cf19f095efd177bf849856755b3",
+    "4e40cdf1e44c820096865da63180ddaf583e1ed5",
+    "1b04936c2599e59b120f743fbb30df2eed3fd782",
+    "aeec061661db480141c652cd5db0f7ff15edf6ca",
+    "32c4814b80599894c51df05e8e55079f4020cced",
+    "a24ba83df5cda3a6aaa0266091672e7b7086d082",
+    "37370703387ffb32c1cb323ef087e162d611f044",
+    "6728936090104aa9c6bafe41f58b7545e57a5364",
+    "cb436ebb9afb44f6538bcdff38a4ff35c6d22e9a",
+    "032c9fb7a50858ab1489e013c2faed790bf3d7ab",
+    "aac464c6c25c03af34324f131c31fe8fadd4640b",
+    "ef969ff8a149a10c57a33e4819174d757e89e37c",
+    "15109609",
+    "372588829",
+    "303687236",
+    "309680716",
+    "372806665",
+    "2312.05530v2",
+    "2502.07026v2",
+    "2509.23577v1",
+    "2407.15100v3",
+    "6e7cbaa54cb0313832ce68efcfe648cd86f11bd0",
+    "23c7ad9d2ad344804d553a16ca53c85c9cc63d20",
+    "2252beade5400a93d6d54c1a54be4bf3175b9e77",
+    "57b42eed32d1df3ab7261b7fa8f1568ab17a4526",
+    "8115eadc49db6fc9a803f68a4896638b6a1d52cc",
+    "daee583e440dbc7c43d02c9c8802df1dd4aa5cdc",
+    "a2da27472c481908cf42075c982cc9cfd6161ce4",
+    "304159b3ab68cff6192dee010d49cdda8c2ba4e7",
+    "169447337",
+    "124991403",
+    "16175463",
+    "2484639",
+    "2513449",
+    "3006169",
+    "3406360",
+    "2617297",
+    "3146803",
+    "156238264",
+    "2601.03730v1",
+    "2412.02271v5",
+    "0a7c9c704918b32aafba00c199c49231cadcfd8d",
+    "9558d5cc4bf2f0443ed1578a46c16ad85ca878ac",
+    "fd9e44cb0d6c55839c04a9d8541d182862f224f4",
+    "3b1c1c898517e99b224ea38458bbbcc96366c32f",
+    "53327c7d9f8f123ae1e40564c40557a475078228",
+    "ebd1d04b26dcf44b37270b24dc623d80992ccb8d",
+    "e5359159410a0a7fdb7c0ba41b833a574d0cf1f8",
+    "6008cd7983504ca1729288d62678f6a85517f4a3",
+    "76b8e36dfd9bee0f67f8f923bc566e5290e6dc47",
+    "ff0348840a37bf76ebfb885cf714fb09d663dab2",
+    "23090360",
+    "5233954",
+    "52651515",
+    "13028680",
+    "153486447",
+    "298311509",
+    "130859419"
+  ],
+  "generated_at": "2026-09-15T08:56:27.288678+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,104 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis concerns comparing nonlinear dimensionality reduction techniques (t-SNE, LLE) against linear methods (PCA) on gene expression data for tissue-type classification. While no direct gene expression dataset is listed among the provided real datasets, we can construct a synthetic gene expression dataset mimicking the structure and scale of typical gene expression data (e.g., ~10,000 genes, 100–1000 samples, 5–10 tissue types) that allows testing the hypothesis. This synthetic generation is acceptable because the hypothesis is about the comparative effectiveness of dimensionality reduction methods, not about real biological phenomena per se. The synthetic data will be generated to reflect realistic distributions of gene expression values and class separability. The experiment uses a controlled synthetic setup that enables reproducible and comparable results within the constraints of available compute resources.",
+      "objective": "To determine whether nonlinear dimensionality reduction techniques (t-SNE, LLE) can preserve sufficient signal for accurate tissue-type classification when reducing the feature space to less than 10% of the original dimensions, compared to linear methods like PCA.",
+      "variables": {
+        "independent": [
+          "dimensionality_reduction_method",
+          "reduction_ratio"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      },
+      "design": "A comparative benchmark experiment where multiple dimensionality reduction methods (PCA, t-SNE, LLE) are applied to a synthetic gene expression dataset at various reduction ratios (from 100% down to <10%), followed by k-NN classification on the reduced representations. Classification accuracy is measured for each method and ratio combination to assess signal preservation.",
+      "data_requirements": {
+        "source": "synthetic generation",
+        "description": "Synthetic gene expression data with 10,000 features (genes), 500 samples, and 5 tissue types. Each sample is labeled with a tissue type. Expression values are normally distributed with class-specific means and variances to simulate biological variability and class separability.",
+        "preprocessing_steps": [
+          "Generate synthetic gene expression matrix with 10,000 features and 500 samples",
+          "Assign each sample to one of 5 tissue types",
+          "Add class-specific mean shifts and noise to simulate biological variation",
+          "Normalize expression values to zero mean and unit variance per gene"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Principal Component Analysis (PCA)",
+          "description": "Linear dimensionality reduction technique used to project gene expression data onto the directions of maximal variance. Used as a baseline for comparison.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "t-distributed Stochastic Neighbor Embedding (t-SNE)",
+          "description": "Nonlinear dimensionality reduction technique used to visualize and preserve local neighborhood relationships in gene expression data. Applied to reduce feature space to <10% of original dimensions.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Locally Linear Embedding (LLE)",
+          "description": "Nonlinear dimensionality reduction technique that preserves local geometric relationships in gene expression data. Applied to reduce feature space to <10% of original dimensions.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "k-Nearest Neighbors (k-NN) Classifier",
+          "description": "A simple, non-parametric classifier used to evaluate classification accuracy on the reduced feature representations. Used as the downstream task to assess signal preservation.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Classification Accuracy"
+        ],
+        "baseline": "Performance of PCA at full dimensionality (100%) and at <10% reduction ratio",
+        "success_criteria": "If t-SNE or LLE achieves classification accuracy within 5% of PCA at <10% reduction ratio, the hypothesis is supported. If both nonlinear methods fall below 5% accuracy compared to PCA, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Generate synthetic gene expression dataset with 10,000 features, 500 samples, and 5 tissue types using normal distributions with class-specific means and noise. Save as a CSV file."
+        },
+        {
+          "step": 2,
+          "description": "Load the synthetic dataset and apply PCA to reduce dimensions to 10%, 20%, ..., 100% of original (full) dimensions. Store the transformed matrices."
+        },
+        {
+          "step": 3,
+          "description": "Apply t-SNE and LLE to reduce dimensions to <10% of original. Store the resulting embeddings."
+        },
+        {
+          "step": 4,
+          "description": "Train k-NN classifiers on each reduced dataset (PCA, t-SNE, LLE) using 80% of the data for training and 20% for testing."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate and record classification accuracy for each method and reduction ratio. Compare accuracies across methods at <10% reduction."
+        },
+        {
+          "step": 6,
+          "description": "Aggregate results and plot classification accuracy vs. reduction ratio for each method to visualize signal preservation."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Synthetic data may not fully capture real-world gene expression complexity, potentially affecting generalizability of results.",
+        "t-SNE and LLE may require significant memory or time for large datasets, though synthetic size is kept manageable.",
+        "Classifier performance might be influenced by class imbalance or noise in synthetic data, skewing results."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T10:05:59.924648+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

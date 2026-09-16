@@ -68,7 +68,8 @@ experiment counts only if it ran \emph{and} carries a real boolean verdict.
 Completion alone is not enough, because an experiment that finishes on
 synthesised data has produced numbers without evidence.
 
-Nine runs were collected on identical inputs.
+Fourteen runs were collected on identical inputs, in two series two weeks
+apart.
 
 \subsection{The benchmark does not support single-run comparison}
 \label{sec:variance}
@@ -114,6 +115,38 @@ rather than relaxing the downstream comparison whose strictness is the safety
 property. It parses rather than casts, since \texttt{bool("False")} is
 \texttt{True} and casting would have converted a refutation into a confirmation.
 Results below report both the recorded and the corrected figures.
+
+\subsection{A metric that could not move}
+\label{sec:evidence-ready}
+
+Five further runs of the same corpus were collected in the final week, with
+dataset discovery enabled by default. Every one scored \emph{zero} interpretable
+out of twelve, and the score was not wrong. Between one and four experiments per
+run found a real dataset, read it and computed their metrics; each had its verdict
+withheld because the dataset was found by keyword search and no human had
+confirmed that it answers the question (Section~\ref{sec:guardrail-coverage}).
+
+That withholding is correct, and it is also permanent. No improvement to code
+generation can open a gate that waits on a person, so a headline metric defined as
+``ran \emph{and} carries a verdict'' now reads zero under every configuration of
+the agent and will keep reading zero. A run that got four experiments onto real
+data and a run that got one are indistinguishable at $0$ versus $0$: the number
+had stopped measuring the thing it was introduced to measure.
+
+The scorer was split rather than relaxed. \emph{Interpretable} keeps its strict
+meaning; \emph{awaiting source review} counts an experiment that ran on real data
+and needs only a human to confirm the source; their sum, \emph{evidence ready}, is
+what the agent achieved holding aside a review step that was never the model's
+job. The sum is deliberately not named for validity --- an unconfirmed source can
+be real data about the wrong subject, which is precisely why the gate exists ---
+and the report prints the caution beside the number whenever the two disagree.
+
+Under the split metric the five runs score \textbf{1, 4, 3, 3 and 3} out of
+twelve, with completions at 9, 10, 10, 10 and 10 and a mean of 0.6 to 1.9 fix
+attempts per completed experiment. That is the same threefold spread as the first
+series on a metric defined ten days later, which is the more useful reading of it:
+the variance is a property of the pipeline, not an artefact of how success
+happened to be defined.
 
 \section{An ablation: dataset discovery}
 \label{sec:ablation}
@@ -348,58 +381,60 @@ checker that cries wolf is not merely noisy; it destroys the signal it exists to
 provide. Reference entries are rendered mechanically from the retrieved paper
 index and so cannot be fabricated by construction; they are now excluded.
 
-\section{Three sweeps of the same questions}
+\section{Four sweeps of the same questions}
 \label{sec:three-sweeps}
 
-The thirty-six questions were run three times over five days: once before the
+The thirty-six questions were run four times over eleven days: once before the
 mechanisms of Section~\ref{sec:wrong-data} existed (sweep~1, the sweep reported
-above), once after the three verification checks were repaired (sweep~2), and once
+above), once after the three verification checks were repaired (sweep~2), once
 after the three data gates of Sections~\ref{sec:guardrail-coverage}
-to~\ref{sec:saturation} were closed (sweep~3). The questions, the model and the
-cluster are identical across all three, so the columns of
-Table~\ref{tab:three-sweeps} differ only by which guardrails were in force.
+to~\ref{sec:saturation} were closed (sweep~3), and once after five real datasets
+were staged on the cluster and an inventory of them was placed in front of the
+Experiment Planner (sweep~4). The questions, the model and the cluster are
+identical throughout, so the columns of Table~\ref{tab:three-sweeps} differ only
+in which guardrails were in force and what data was within reach.
 
 \begin{table}[htbp]
 \centering\small
-\caption{The same thirty-six questions under three sets of guardrails. Review
+\caption{The same thirty-six questions under four sets of guardrails. Review
 findings are totals over three iterations per question; deterministic findings are
 the citation, results-accuracy and hypothesis-coverage checks, which the pipeline
 owns, as distinct from the model-judged hallucination check.}
 \label{tab:three-sweeps}
-\begin{tabularx}{\textwidth}{Xccc}
+\begin{tabularx}{\textwidth}{Xcccc}
 \toprule
-& \textbf{Sweep 1} & \textbf{Sweep 2} & \textbf{Sweep 3} \\
+& \textbf{Sweep 1} & \textbf{Sweep 2} & \textbf{Sweep 3} & \textbf{Sweep 4} \\
 \midrule
-Questions completed                & 36/36 & 33/36 & 34/36 \\
-Experiments that ran               & 25    & 25    & 26 \\
-Verdicts published                 & 16    & 3     & \textbf{0} \\
-\quad of which \emph{supported}    & 9     & 1     & 0 \\
-Verdicts withheld                  & 9     & 22    & 26 \\
-Inputs taken from a staged file    & 19    & 19    & \textbf{1} \\
-Inputs flagged as found by search  & 0     & 0     & \textbf{17} \\
-Deterministic review findings      & 3{,}871 & 267 & 353 \\
-Hallucination findings             & 8{,}483 & 7{,}126 & 7{,}341 \\
-Papers passing review              & 0     & 0     & 0 \\
+Questions completed                & 36/36 & 33/36 & 34/36 & 34/36 \\
+Experiments that ran               & 25    & 25    & 26    & 19 \\
+Plans refused as infeasible        & 0     & 0     & 0     & \textbf{4} \\
+Verdicts published                 & 16    & 3     & \textbf{0} & \textbf{7} \\
+\quad of which \emph{supported}    & 9     & 1     & 0     & 1 \\
+Verdicts withheld                  & 9     & 22    & 26    & 12 \\
+Inputs matched to a staged file    & 19    & 19    & \textbf{1} & \textbf{17} \\
+Inputs flagged as found by search  & 0     & 0     & \textbf{17} & 0 \\
+Deterministic review findings      & 3{,}871 & 267 & 353   & 392 \\
+Hallucination findings             & 8{,}483 & 7{,}126 & 7{,}341 & 7{,}257 \\
+Papers passing review              & 0     & 0     & 0     & 0 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The middle rows are the intended direction and the third column is its cost.
+Sweeps~1 to~3 are the guardrails closing, and the third column is their cost.
 Published verdicts fall from sixteen to three to none, and each fall removes claims
 the run had not earned: sweep~1's sixteen include nine \emph{supported} verdicts
 computed on staged files that could not answer their question, and sweep~2's three
 are the leaderboard, the perfect-calibration and the unit-correlation results
 described above. By sweep~3 nothing is over-claimed, because nothing is claimed.
 
-That is the honest state of the system and it should not be dressed up.
-Twenty-six experiments ran to completion in sweep~3 and every one had its verdict
-withheld: sixteen for synthetic inputs, ten for real data found by keyword search
-that no human has confirmed. What stands between this pipeline and a usable result
-is therefore not reliability --- it completes more experiments than it did at the
-start, with fewer failures --- but \emph{confirmation}. A verdict requires data
+That is the honest state of the system at that point and it should not be dressed
+up. Twenty-six experiments ran to completion in sweep~3 and every one had its
+verdict withheld: sixteen for synthetic inputs, ten for real data found by keyword
+search that no human has confirmed. What stands between this pipeline and a usable
+result is therefore not reliability --- it completes more experiments than it did at
+the start, with fewer failures --- but \emph{confirmation}. A verdict requires data
 somebody has vouched for, and the only two mechanisms that produce such data today
-are a human staging a file and a human approving a discovered one. Chapter~\ref{ch:conclusion}
-returns to this as the project's clearest unfinished business.
+are a human staging a file and a human approving a discovered one.
 
 The name extraction works, and works best where it was aimed. Where a plan names a
 dataset in an example clause the search now asks for that dataset: ``(e.g., German
@@ -414,16 +449,135 @@ the search returned the Iris dataset for three unrelated questions, one of them 
 probability calibration for imbalanced financial data. Those verdicts were withheld
 --- the system behaving correctly on data it should never have fetched.
 
+\subsection{Staging restores the verdict}
+\label{sec:staging-restores}
+
+Sweep~4 changed no guardrail. It changed what was on the shelf. Five real datasets
+--- UCI Credit Approval, Statlog German Credit, Adult Census Income, an hourly
+air-quality series and the MoleculeNet ESOL solubility set --- were staged on
+cluster scratch with a README recording each one's source, columns and units, and
+the inventory was named to the Experiment Planner rather than left for a keyword
+search to stumble on.
+
+It is the largest single-change effect in this evaluation. Plans now name a file
+outright (\texttt{plan source: uci\_statlog\_german\_credit.csv}); seventeen of the
+twenty resolved inputs matched a staged file, \emph{none} was found by search, and
+seven verdicts were published --- six refutations and one confirmation --- against
+zero the sweep before. Four plans were additionally refused outright by the
+Experiment Planner as infeasible, the first time that path fired in any sweep, each
+naming data the staged set does not hold: time-to-event data with censoring,
+industrial sensor data with known degradation times, multi-station weather records,
+and a tokenizer adapted to a domain.
+
+What that demonstrates is narrower than it first appears, and more useful. It is not
+that the agent became better at finding data; nothing about its searching changed.
+It is that the binding constraint on this pipeline stating a result is the
+availability of data somebody has vouched for, and that an afternoon of staging
+lifts the constraint for whichever questions the staged files happen to fit.
+Chapter~\ref{ch:conclusion} takes that as the deployment finding it is: a department
+that stages its own corpora gets verdicts, and one that expects the agent to go and
+find them does not.
+
+\subsection{The Planner substitutes what is on the shelf}
+\label{sec:planner-substitution}
+
+The cost arrives one stage upstream of every gate that exists. A staged file is
+real, and it is named, so \texttt{provenance.py} has nothing to object to; what
+nothing checks is whether it can answer the question that was asked. Four of the
+seven published verdicts rest on a dataset that cannot.
+
+Question~15 asks whether spatial autocorrelation improves prediction. The plan
+selected the single-site air-quality series, which carries no coordinates, so the
+generated code invented them --- recording in its own assumptions that the dataset
+``does not contain actual latitude and longitude coordinates, so synthetic ones are
+generated'' and that these are ``sufficient to demonstrate the spatial lag
+concept''. A refutation was published off invented geography. Question~6 asks about
+feature drift over time and was given German Credit, which has no time dimension;
+the code cut it into ``10 chronological time slices of 100 samples each'', and that
+is the sweep's single \emph{supported} verdict. Question~33 requires ``a tabular
+dataset with inherent time ordering'' and assumes German Credit's
+\texttt{duration\_months} and \texttt{age\_years} supply it; neither is a
+chronology. Question~3 asks about fraud detection and ran on credit \emph{approval}
+data, while its own assumptions note that the chosen metric suits ``fraud detection
+scenarios''.
+
+The other three are sound, and one is a genuine result: question~29 found that
+active selection needed 29 simulations against random sampling's 22 --- a 31.8\%
+\emph{increase} where the hypothesis predicted a 30\% reduction --- refuting it on a
+dataset that does answer the question.
+
+This is the wrong-but-real failure of Section~\ref{sec:wrong-data} arriving by its
+third distinct route, and the route was opened by the repair that closed the second.
+Discovered data is withheld pending confirmation; synthesised data is withheld
+outright; staged data is real and named and clears both, so whether it \emph{fits}
+is never asked. No provenance check can ask it, because every provenance check is a
+question about where data came from. Fitness is a question about the plan, and the
+plan is where it will have to be asked.
+
+\subsection{What the record cannot say}
+\label{sec:read-not-recorded}
+
+Thirteen of the twenty resolved inputs were downgraded to surrogate because the
+generated code declared a substitution in \texttt{assumptions\_made} and the
+deterministic pass of Section~\ref{sec:wrong-data} read the declaration. Ten of
+those thirteen name a staged file that exists, at exactly the absolute path the
+code passes to \texttt{read\_csv}.
+
+Two say so outright: ``the UCI Statlog German Credit dataset was not found at the
+expected path, so a synthetic dataset was created''. The file is there, with the
+thousand rows and twenty-one columns the code expects. Whether the fallback branch
+actually executed cannot be settled from what the run recorded, because nothing
+records it: a completed experiment keeps its \texttt{run.py}, its
+\texttt{results.json} and its two provenance documents, and no trace of which branch
+of the guarded read ran. The indirect evidence favours the fallback having fired ---
+every accuracy in that experiment sits flat at the 70\% base rate across all seven
+training-set sizes, which is what labels drawn independently of features produce,
+while another experiment reading the same staged file reports 0.77 --- but the point
+stands either way: a verdict is being withheld on the strength of a sentence the
+model wrote before its program ran.
+
+The discriminator is, in the end, grammatical mood. The same sweep contains
+question~33, whose assumptions include ``the synthetic dataset generation provides a
+reasonable approximation when the real dataset is unavailable'' --- a conditional
+describing the fallback the prompt requires, correctly ignored --- and its verdict
+was published on data its own baseline accuracy confirms was real. An assertion
+withholds and a conditional does not, and nothing checks which branch the program
+took. The remedy is small and is not a model problem: the template already hands
+generated code a \texttt{log\_progress} call, and one marker emitted from each side
+of the guarded read would replace an inference about prose with a fact about
+execution. It is recorded here rather than implemented because a repair that cannot
+be measured before submission is a claim, not a result.
+
+\subsection{Two failures that never reached the model}
+
+Nineteen experiments ran in sweep~4 against twenty-six in sweep~3. Of the twelve
+that did not, eight exhausted the fix budget on a traceback and one on metrics that
+failed the plausibility check, which is the loop working as designed. Two never
+reached the model's code at all. One asked for \texttt{gensim} in an environment
+\texttt{uv} had resolved to Python~3.14.7, for which no wheel is published, and the
+fallback source build failed compiling a C extension. The other requested
+\texttt{skopt} and \texttt{sklearn} --- the \emph{import} names of
+\texttt{scikit-optimize} and \texttt{scikit-learn}, both of which the same
+requirements list also names correctly --- and resolution failed as unsatisfiable,
+because no distribution called \texttt{skopt} exists.
+
+Both are deterministic defects in the layer beneath the agent: an interpreter floor
+nobody set, and a missing import-name-to-distribution mapping. Neither is visible in
+any metric this chapter reports except as a lower completion count, which is exactly
+how a systemic cause disguises itself as model weakness --- the same confusion the
+failure classification of Chapter~\ref{ch:design} exists to prevent, one layer
+further down than it currently looks.
+
 The writer/reviewer loop is unmoved by all of this, as it should be: every mechanism
-above is data-side. No paper passed review in any sweep. What changed is the
-composition of what remains, and it is stark. In sweep~3 the three deterministic
-checks account for 353 findings against 7{,}341 from the model-judged hallucination
-check --- 95\% of the total --- and in sweep~2, where the locations were tabulated,
-86\% of those fell in a single section, Related Work.
-Section~\ref{sec:end-to-end} showed one deterministic check failing by
-over-reporting. What sweeps~2 and~3 show is that repairing it exposes a second,
-much larger over-reporting problem underneath it, in the one check no deterministic
-rule can replace.
+above is data-side. No paper passed review in any of the four sweeps. What changed
+is the composition of what remains, and it is stark. In sweep~4 the three
+deterministic checks account for 392 findings against 7{,}257 from the model-judged
+hallucination check --- 95\% of the total, the same proportion as sweep~3 --- and in
+sweep~2, where the locations were tabulated, 86\% of those fell in a single section,
+Related Work. Section~\ref{sec:end-to-end} showed one deterministic check failing by
+over-reporting. What the three later sweeps show is that repairing it exposes a
+second, much larger over-reporting problem underneath it, in the one check no
+deterministic rule can replace.
 
 \section{What this evaluation does not establish}
 \label{sec:limitations}
@@ -459,8 +613,13 @@ them, or would calibrate their trust correctly. Those are the questions A1 and A
 raise, and the questions Chapter~\ref{ch:requirements}'s respondents raised first.
 They remain open, and they are the largest gap in this dissertation's evidence.
 
-Three further limits apply to what \emph{is} reported. Every run used a single model
-on a single cluster, so nothing here separates a property of the pipeline from a
+Four further limits apply to what \emph{is} reported. Each sweep is a single run of
+its configuration. Thirty-six questions is a larger sample than the twelve-case
+benchmark whose variance Section~\ref{sec:variance} measures, and the differences in
+Table~\ref{tab:three-sweeps} are mostly far larger than that instrument's spread ---
+but a difference of one or two in any row of that table should be read as noise, and
+the direction of a change is better evidence there than its size. Every run used a
+single model on a single cluster, so nothing here separates a property of the pipeline from a
 property of Qwen3-Coder-30B-A3B-Instruct. The thirty-six questions were written for
 this evaluation by one person and each names a concrete data type and an explicit
 baseline, which makes them a favourable sample rather than a representative one. And
@@ -468,6 +627,15 @@ there is no comparison against a human baseline or a competing system: the
 comparisons in Table~\ref{tab:three-sweeps} are internal, measuring the effect of
 specific repairs on a fixed set of questions, and say nothing about how the pipeline
 compares with a researcher doing the same work unaided.
+
+Two repairs this chapter argues for were not made. The substitution of staged data
+for the data a question requires (Section~\ref{sec:planner-substitution}) is
+described and not fixed, so four of sweep~4's seven published verdicts should be
+read as demonstrations of the failure rather than as results. The runtime marker
+that would let provenance record which branch of a guarded read executed
+(Section~\ref{sec:read-not-recorded}) is likewise specified and not implemented. In
+both cases a repair landing after the last sweep would have been an unmeasured
+claim, and the project has already recorded what unmeasured claims cost it.
 
 What the evidence does support is narrower, and still worth having: that a pipeline
 of this shape can carry a question end to end unattended; that its characteristic
@@ -493,8 +661,14 @@ those failures visible at all.
     through a staged-file match on one shared word
     (Section~\ref{sec:staged-hijack}), and through measurements that could not have
     come out otherwise (Section~\ref{sec:saturation}). Sweep~3 published no verdict
-    at all, which satisfies this aim in the only way it can currently be satisfied.
-    A silent substitution the model never declares remains uncaught.
+    at all, which satisfies this aim in the only way it can currently be satisfied
+    --- and sweep~4 shows what satisfying it that way was hiding. Once real data was
+    staged, verdicts returned, and four of the seven rest on a staged dataset the
+    Planner substituted for the one the question needed
+    (Section~\ref{sec:planner-substitution}). That is the same failure a fourth
+    time, through the one route no provenance check can cover. The aim is met for
+    every claim about where data came from and unmet for whether that data fits;
+    a silent substitution the model never declares also remains uncaught.
   \item[\textbf{A3}] \emph{Independently usable and steerable stages.} Met in the
     implementation, untested with users. Each agent validates its predecessor's
     contract and runs standalone, from the command line or from a previous run's
@@ -509,6 +683,8 @@ those failures visible at all.
     categories and their resolution rates reported in Chapter~\ref{ch:po}.
   \item[\textbf{A6}] \emph{Survive shared-HPC conditions.} Met: runs resume from
     durable checkpoints, batch sweeps resume per question from a manifest, and
-    the nine benchmark runs and 36-question sweep all completed on a contended
-    partition under a per-user GPU quota.
+    fourteen benchmark runs and four 36-question sweeps completed on contended,
+    pre-emptible partitions under a per-user GPU quota. Pre-emption stopped two
+    benchmark runs mid-corpus and the final sweep ran one question at a time for
+    two days; both finished, which is the property being claimed.
 \end{description}

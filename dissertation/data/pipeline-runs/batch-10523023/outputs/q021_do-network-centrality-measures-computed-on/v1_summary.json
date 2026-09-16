@@ -1,0 +1,53 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q021_do-network-centrality-measures-computed-on/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "befab26cd8caa6110b5c72cca412c4ea75d0b585",
+    "a48a8c9a5b23b18004c9bda506ea9ddfd2018368",
+    "525d7760520c7311dd8560c0a5dea331e29da238",
+    "708af6a7180b435b31f4e996f1ed44e6c3bafd4c",
+    "3c3c361ef96e7b636d075b715a97ae4c7ab36975",
+    "16c132c945b4967edbd0d3bf79372f23a4de0e55",
+    "1401.4704v2",
+    "3ed25156025137ddf3dd79a99294ee34f81a5b9b",
+    "2cf0727c9c5b7172c2c231f281bc94e699ee20dc",
+    "219f37e248a912080a40bc8d7c390496c2a9615e",
+    "16924cd876c0a486d376230f2bb164ef1d898802",
+    "2187b0bd230cb6c8417600e796804adc84582b97",
+    "ea20ad85abeca6154c3639949616148aac8534c0",
+    "841d3137354fe2e10636c908dd3457c162204340",
+    "82656287f773fd43538e86b2ba7ccbd4a40adf01",
+    "91f1884ab99d772fee07b5661c32938a6d71ab88",
+    "1d8193a8f453d3260e1cc3c6db4cee693ffea320",
+    "ad4a639d233bfaaba44653d4e1bb82054f27f84c",
+    "4a7cea67fd19aa0c38ba7cef242b67fcd2596295",
+    "7320cf783e72c37fcdb5eb98a9e801c36b6a7bdd",
+    "39d19f9dcd02ab919bc1a18399be512ff08ea57e",
+    "338d8e4336fa0d79e4b69f776c38aca0625ee38a",
+    "2103.04668v2",
+    "c107526425f1d2c8489e665fa4b6134e60437d16",
+    "1303.0868v2",
+    "6161d8fa4f798f893fa813ec558453710a3777d4",
+    "4ac2dff42169e1b3b449e227bd313a2df31ca143"
+  ],
+  "notes_for_review": [],
+  "generated_at": "2026-09-15T18:33:05.438823+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

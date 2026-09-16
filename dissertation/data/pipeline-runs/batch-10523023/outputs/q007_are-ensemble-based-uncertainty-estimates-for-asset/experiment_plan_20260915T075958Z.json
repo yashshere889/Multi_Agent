@@ -1,0 +1,96 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the availability of the Fama-French three-factor daily returns dataset, which provides both the necessary financial market data (daily returns and factors) and allows for direct computation of forecast errors and input variance. The experiment can be conducted using ensemble methods (bootstrap resampling and deep ensembles) on this real financial dataset with manageable computational requirements on a shared HPC cluster.",
+      "objective": "To determine whether ensemble-based uncertainty estimates from financial models using deep ensembles or bootstrap resampling show a stronger correlation with realized forecast error than with input variance, particularly when evaluated on daily stock return data from the Fama-French factors dataset.",
+      "variables": {
+        "independent": [
+          "ensemble spread",
+          "input variance"
+        ],
+        "dependent": [
+          "realized forecast error"
+        ]
+      },
+      "design": "A comparative analysis using two ensemble methods (bootstrap resampling and deep ensembles) to generate uncertainty estimates for daily stock return forecasts based on Fama-French factors. The correlation between ensemble spread and realized forecast error is compared against the correlation between input variance and realized forecast error.",
+      "data_requirements": {
+        "source": "fama_french_three_factor_daily_returns.csv",
+        "description": "Daily returns and Fama-French three factors (Market Risk Premium, Small Minus Big, High Minus Low) from Kenneth French's Data Library. This dataset provides the necessary time-series financial data to compute both forecast errors and input variances for evaluating ensemble uncertainty estimates.",
+        "preprocessing_steps": [
+          "Load daily returns and factors from fama_french_three_factor_daily_returns.csv",
+          "Convert percentage values to decimal form (divide by 100)",
+          "Compute rolling window statistics for input variance (e.g., 20-day rolling standard deviation of returns)",
+          "Construct a simple linear regression model using Fama-French factors to predict daily returns",
+          "Generate forecast errors by comparing actual returns with model predictions"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Bootstrap resampling",
+          "description": "Generate multiple resampled datasets from the Fama-French factor data to create an ensemble of models, each trained on a different bootstrap sample. Compute forecast errors and ensemble spread from these models.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Deep Ensembles",
+          "description": "Train multiple neural network models with random initialization on the Fama-French factor data to create an ensemble. Compute forecast errors and ensemble spread from these models.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Pearson correlation coefficient between ensemble spread and realized forecast error",
+          "Pearson correlation coefficient between input variance and realized forecast error"
+        ],
+        "baseline": "A null model where ensemble spread and input variance are uncorrelated with forecast error",
+        "success_criteria": "Support for the hypothesis would be demonstrated if the correlation between ensemble spread and realized forecast error is significantly higher than the correlation between input variance and realized forecast error. Refutation would occur if the opposite is true or if both correlations are similar."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load fama_french_three_factor_daily_returns.csv and preprocess data by converting percentage values to decimals and computing rolling input variance (e.g., 20-day rolling standard deviation of returns)"
+        },
+        {
+          "step": 2,
+          "description": "Implement a simple linear regression model using Fama-French factors to predict daily returns, compute forecast errors, and store actual vs predicted returns"
+        },
+        {
+          "step": 3,
+          "description": "Create bootstrap samples from the Fama-French dataset and train multiple models (e.g., 50 bootstrap samples) to generate ensemble predictions and compute ensemble spread (standard deviation of predictions)"
+        },
+        {
+          "step": 4,
+          "description": "Train a deep ensemble of neural networks (e.g., 10 networks) on the same Fama-French data, compute ensemble predictions and ensemble spread (standard deviation of predictions)"
+        },
+        {
+          "step": 5,
+          "description": "Calculate Pearson correlation coefficients between ensemble spread (from both bootstrap and deep ensemble) and realized forecast error, and between input variance and realized forecast error"
+        },
+        {
+          "step": 6,
+          "description": "Compare the strength of correlations to determine if ensemble spread correlates more strongly with forecast error than input variance, supporting or refuting the hypothesis"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data for stable ensemble estimates due to limited time periods in the dataset",
+        "Potential confounding effects from non-stationarity in financial markets that might affect correlation stability",
+        "Computational overhead from running multiple bootstrap samples or neural networks within the HPC constraints"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T07:59:58.358249+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

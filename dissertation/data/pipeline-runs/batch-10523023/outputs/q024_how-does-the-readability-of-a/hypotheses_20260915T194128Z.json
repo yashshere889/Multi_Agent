@@ -1,0 +1,396 @@
+{
+  "literature_summary": "The literature explores the complex interplay between readability and factual accuracy in text summarization, particularly in specialized domains such as healthcare, finance, and technical documentation. While numerous approaches aim to improve both readability and factual consistency—such as controllable summarization, grounding with external knowledge, and factuality detection—there remains a persistent tension between these goals. Many existing methods prioritize informativeness and faithfulness over readability, especially in extractive approaches, and often fall short in addressing the needs of diverse audiences or readers with difficulties. Empirical studies reveal gaps in understanding how document-summary length disparities, compression rates, and cognitive load affect both readability and accuracy. Furthermore, there is limited consensus on standardized evaluation metrics that adequately capture human-centered qualities like accessibility, trustworthiness, and contextual appropriateness. The field also shows a growing interest in integrating controlled language principles, multi-agent frameworks, and human-in-the-loop techniques to bridge the gap between automated generation and human usability.",
+  "methods_overview": [
+    {
+      "method": "Readability Controllable Summarization",
+      "papers_using_it": [
+        "2210.04705v3",
+        "3051d94ff55d1e882c6876d6e3bcedfc2996d5c7",
+        "8ae48c67f8f9533a6043f9fbe25eb9c4a568523c",
+        "2f4a1410fe9ebc30a5c3aa3989418f0e0c6210b6",
+        "c146966ed1050872246fdf6c67cfe05cef225204"
+      ],
+      "notes": "Commonly used across biomedical and general summarization tasks to tailor output readability to specific audiences; often combined with external knowledge grounding or retrieval-augmented generation."
+    },
+    {
+      "method": "FIZZ (Factual Inconsistency Detection)",
+      "papers_using_it": [
+        "2404.11184v3"
+      ],
+      "notes": "Rare but emerging approach for detecting factual inconsistencies using atomic fact decomposition; lacks interpretability and refinement."
+    },
+    {
+      "method": "Background Knowledge Grounding",
+      "papers_using_it": [
+        "2305.02104v1",
+        "3051d94ff55d1e882c6876d6e3bcedfc2996d5c7"
+      ],
+      "notes": "Used moderately in biomedical and lay summarization to improve relevance and readability, though not always tied to factual accuracy."
+    },
+    {
+      "method": "Conformal Prediction for Content Importance",
+      "papers_using_it": [
+        "2509.20461v1"
+      ],
+      "notes": "Rare application in extractive summarization to ensure coverage of critical content using statistical guarantees."
+    },
+    {
+      "method": "Multi-Agent Frameworks for Plain-Language Outputs",
+      "papers_using_it": [
+        "8ae48c67f8f9533a6043f9fbe25eb9c4a568523c"
+      ],
+      "notes": "Rare but promising method simulating different reader groups to generate accessible summaries."
+    },
+    {
+      "method": "Factual Consistency Evaluation Metrics",
+      "papers_using_it": [
+        "9d4b458949fda6ba475675d0d5d830835220da63",
+        "0c0e365a655c24996e49c433ba420b35267fc8c2",
+        "03a35e97a1500ef4235be3c6659b1b560f94c998",
+        "030dc3f737b51bd8582f6a1e3d9e5ed4c024c7fd",
+        "9a170e202b071c32740bbd7b37b3fb3effda5466",
+        "08053e25f04ef429f3b51328efe548427314e8c5",
+        "111fb0dee9d1d9401ec64edd54418cf3f4fc6226"
+      ],
+      "notes": "Commonly used in evaluating factual correctness in RAG and abstractive systems, often with human or LLM-based validation."
+    },
+    {
+      "method": "Zero-Shot Faithfulness Evaluation",
+      "papers_using_it": [
+        "cd7a8270c6507cb589cfe0a282b5c55c135da7a4"
+      ],
+      "notes": "Rare but increasingly adopted for assessing whether summaries are grounded in source documents without training."
+    },
+    {
+      "method": "Retrieval-Augmented Generation (RAG)",
+      "papers_using_it": [
+        "659bf9ce7175e1ec266ff54359e2bd76e0b7ff31",
+        "3051d94ff55d1e882c6876d6e3bcedfc2996d5c7"
+      ],
+      "notes": "Common in biomedical and multi-source summarization to improve factual accuracy by leveraging external knowledge."
+    },
+    {
+      "method": "Readability Indices (e.g., Flesch-Kincaid, SMOG)",
+      "papers_using_it": [
+        "340262610",
+        "393bdb1348567e453606159a7668f10b9d85e7f1",
+        "a1bbb01bef775003cf856d8eca195975c1ded18d",
+        "c55a5ccf56509dc51a66f086a8245732f7bcfc83",
+        "17cc5a19bfb13e602a23f41c1a7c641b5be55b7d",
+        "a8b511e806ab26202fa99adadfc6139770f8dc65",
+        "cc388b2013c9a96e2cf3efa360ad6ab2610623b8"
+      ],
+      "notes": "Very common across health, technical, and general summarization for assessing text accessibility."
+    },
+    {
+      "method": "Human-in-the-Loop Evaluation",
+      "papers_using_it": [
+        "2d317adc73c4ef2c7f56e23333f3219c9e85add8",
+        "2510.10801v1",
+        "2506.16345v1",
+        "0b3f7ecf0b7c202d65dbfe694f175c013ae93141",
+        "5f2e5e273cdae2b9f3275f8331710cc4d00730ea"
+      ],
+      "notes": "Moderately common in usability and trust studies, emphasizing alignment with human values and expectations."
+    },
+    {
+      "method": "Controlled Natural Language (CNL)",
+      "papers_using_it": [
+        "333002756",
+        "4763720",
+        "1406.2204v1",
+        "1405.3772v1",
+        "1406.3460v1",
+        "1407.1933v1"
+      ],
+      "notes": "Moderately used in knowledge engineering and technical documentation to improve clarity and usability."
+    },
+    {
+      "method": "Cognitive Load Measurement (Eye Tracking, Pupillometry)",
+      "papers_using_it": [
+        "04fa7f7e5ca27cedee9a9a56ba424e18150d48e8",
+        "cf6803997786af22415f23686db7f9fe68942e96",
+        "149655022",
+        "2408.06349v3"
+      ],
+      "notes": "Used in specialized contexts like reading comprehension and driving simulators; results are inconsistent or limited."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited direct evaluation of how compression rate affects readability in summarization",
+      "supporting_evidence": [
+        "fe833639b6f7b68c00cd1a53264fc2af47a60922"
+      ],
+      "notes": "Despite recognizing its impact on L2 readers, few studies directly measure this relationship."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for evaluating controlled generation across diverse domains",
+      "supporting_evidence": [
+        "d9b26d458f43d204bc0fb2781ab6bea21ce98a22",
+        "1407966036a1d70124f822b16bd961526de88295"
+      ],
+      "notes": "Most work focuses on dialogue or MT; broader applications remain underexplored."
+    },
+    {
+      "gap": "Insufficient research on the impact of AI readability on non-expert audiences in medical contexts",
+      "supporting_evidence": [
+        "c55a5ccf56509dc51a66f086a8245732f7bcfc83"
+      ],
+      "notes": "While AI-generated content is evaluated, its reception by laypeople is rarely studied."
+    },
+    {
+      "gap": "Limited exploration of how cognitive load varies across different interfaces and processing technologies in financial disclosures",
+      "supporting_evidence": [
+        "2507.07037v2"
+      ],
+      "notes": "Cognitive load studies mostly focus on reading or driving, not financial text processing."
+    },
+    {
+      "gap": "Understudied relationship between text readability and student engagement in social studies",
+      "supporting_evidence": [
+        "1a2705d766c7f8f5259d11235d7da35fb45fd993"
+      ],
+      "notes": "The moderating role of reading comprehension instruction is not well understood."
+    },
+    {
+      "gap": "Lack of standardized readability benchmarks for controlled natural languages in knowledge engineering",
+      "supporting_evidence": [
+        "1406.2204v1",
+        "1405.3772v1"
+      ],
+      "notes": "CNLs are applied but lack formal evaluation standards."
+    },
+    {
+      "gap": "Impact of document-summary length disparity on factual consistency detection",
+      "supporting_evidence": [
+        "03a35e97a1500ef4235be3c6659b1b560f94c998"
+      ],
+      "notes": "Non-linear trends in model accuracy are observed but not systematically studied."
+    },
+    {
+      "gap": "Limited empirical comparison between controlling source vs. target language in controlled translation systems",
+      "supporting_evidence": [
+        "333001821",
+        "333001815"
+      ],
+      "notes": "Few studies compare effectiveness of applying CNL to source vs. target language."
+    },
+    {
+      "gap": "Effectiveness of sentence splitting on readability remains underexplored",
+      "supporting_evidence": [
+        "2302.00937v1"
+      ],
+      "notes": "Only basic binary vs. ternary splits have been tested."
+    },
+    {
+      "gap": "Use of machine translation for readability labeling in low-resource languages requires validation",
+      "supporting_evidence": [
+        "1359a043c818610a85501ceef778f1cb7822b116"
+      ],
+      "notes": "Post-edited translations are used but not rigorously validated."
+    },
+    {
+      "gap": "Generalizability of machine scoring in clinical reasoning assessment",
+      "supporting_evidence": [
+        "ecf00fc32106fbc3a1bc1c6b096b6dce1f53c873"
+      ],
+      "notes": "Automated scoring shows promise but lacks broad validation."
+    },
+    {
+      "gap": "Interaction between background music and cognitive load during reading",
+      "supporting_evidence": [
+        "cf6803997786af22415f23686db7f9fe68942e96"
+      ],
+      "notes": "Not well investigated, especially in relation to different types of cognitive load."
+    },
+    {
+      "gap": "Effectiveness of text simplification in crisis management contexts across diverse populations",
+      "supporting_evidence": [
+        "333545510"
+      ],
+      "notes": "Simplification is proposed but not validated in real-world or diverse settings."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "For news articles from the AG News corpus, increasing the compression rate (defined as the ratio of summary length to source document length) will lead to a significant decrease in readability scores measured by Flesch-Kincaid Grade Level, while having a moderate negative correlation with factual accuracy as measured by zero-shot faithfulness evaluation.",
+      "rationale": "This hypothesis builds on the identified gap regarding limited direct evaluation of how compression rate affects readability in summarization [fe833639b6f7b68c00cd1a53264fc2af47a60922]. It leverages the common use of readability indices like Flesch-Kincaid in summarization tasks [340262610] and the availability of real news documents with known lengths in the AG News dataset. The hypothesis also connects to the method of zero-shot faithfulness evaluation, which is used to assess factual consistency [cd7a8270c6507cb589cfe0a282b5c55c135da7a4].",
+      "related_gaps": [
+        "fe833639b6f7b68c00cd1a53264fc2af47a60922"
+      ],
+      "related_methods": [
+        "Readability Indices (e.g., Flesch-Kincaid, SMOG)",
+        "Zero-Shot Faithfulness Evaluation"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "compression_rate"
+        ],
+        "dependent": [
+          "readability_score",
+          "factual_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "In financial documents from the Fama-French dataset, extractive summaries generated using a controlled language approach that reduces syntactic complexity will show higher readability scores compared to standard extractive summaries, but this improvement in readability will not significantly alter the factual accuracy of the summaries as assessed by human evaluators.",
+      "rationale": "This hypothesis draws upon the cross-disciplinary insight that controlled language approaches can improve readability by focusing on syntactic simplicity [333002756], and it connects to the gap in insufficient research on the impact of AI readability on non-expert audiences in medical contexts [c55a5ccf56509dc51a66f086a8245732f7bcfc83]. Although the financial domain is not medical, the principle of readability affecting comprehension applies. The hypothesis uses the controlled natural language method [1406.2204v1] and tests it against a real financial dataset with structured time-series data.",
+      "related_gaps": [
+        "c55a5ccf56509dc51a66f086a8245732f7bcfc83"
+      ],
+      "related_methods": [
+        "Controlled Natural Language",
+        "Readability Indices (e.g., Flesch-Kincaid, SMOG)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "use_of_controlled_language"
+        ],
+        "dependent": [
+          "readability_score",
+          "factual_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "For documents in the 20 Newsgroups dataset, extractive summaries that incorporate sentence splitting techniques to reduce syntactic complexity will demonstrate improved readability scores according to eye-tracking derived metrics (such as average fixation duration) compared to summaries without such preprocessing, without compromising factual consistency as measured by retrieval-augmented generation grounding.",
+      "rationale": "This hypothesis is informed by the cross-disciplinary insight that sentence splitting can reduce cognitive load during reading [2302.00937v1] and the gap in limited exploration of how cognitive load varies across different interfaces and processing technologies [2507.07037v2]. It utilizes the 20 Newsgroups dataset which contains long-form documents suitable for testing sentence-level interventions. The hypothesis integrates cognitive load measurement through eye-tracking metrics and grounding techniques [659bf9ce7175e1ec266ff54359e2bd76e0b7ff31] to evaluate both readability and factual accuracy.",
+      "related_gaps": [
+        "2507.07037v2"
+      ],
+      "related_methods": [
+        "Sentence Splitting",
+        "Cognitive Load Measurement (Eye Tracking, Pupillometry)",
+        "Retrieval-Augmented Generation (RAG)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "sentence_splitting"
+        ],
+        "dependent": [
+          "readability_score",
+          "factual_accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is the most feasible as it uses the AG News corpus, which is explicitly listed and contains real news documents with known lengths and categories. It directly tests the relationship between compression rate and readability/factual accuracy using established methods like Flesch-Kincaid and zero-shot faithfulness evaluation. The hypothesis is specific enough to be clearly supported or refuted, and the claim is internally coherent with no contradictions. The data from AG News can genuinely decide the outcome, making it highly testable. It is well-grounded in the literature gap regarding compression rate effects on readability and leverages widely-used readability indices and evaluation techniques."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 proposes testing financial documents from the Fama-French dataset using controlled language approaches. However, the Fama-French dataset contains only factor returns and risk-free rates, not actual financial documents suitable for extractive summarization. This makes it infeasible to test the hypothesis directly. While the idea of controlled language is sound and the hypothesis is reasonably specific, the lack of appropriate data prevents it from being practically testable. It also relies on human evaluators for factual accuracy, which introduces subjectivity without clear objective measures."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.5,
+      "justification": "H3 involves using the 20 Newsgroups dataset and eye-tracking derived metrics such as average fixation duration. While the 20 Newsgroups dataset is available and contains long-form documents, eye-tracking metrics require specialized hardware or simulated data that isn't included in the listed datasets. Additionally, retrieval-augmented generation grounding is a complex method requiring additional infrastructure beyond what's provided. Though the hypothesis is theoretically interesting and grounded in cognitive load research, it cannot be realistically tested with the available data and tools, making it less feasible and testable than H1."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2210.04705v3",
+    "2509.20461v1",
+    "2311.17771v1",
+    "2305.02104v1",
+    "2404.11184v3",
+    "8ae48c67f8f9533a6043f9fbe25eb9c4a568523c",
+    "2f4a1410fe9ebc30a5c3aa3989418f0e0c6210b6",
+    "3051d94ff55d1e882c6876d6e3bcedfc2996d5c7",
+    "be86f67fd3a297939f3f532f4832ee0d8dd381a1",
+    "331fdba92b8a98377dbbd56015a39de1b3559ab5",
+    "3e5b06e05b335143bf5634a1169c100d11cfb4d3",
+    "44f02e037fd78116f921c8c57bc9ee3f7b2e64fd",
+    "3219659b3de3bb8e4ee30d7d92be74151b95db04",
+    "be08df400d9f13af4532f3ad580aaad47c82422c",
+    "340262610",
+    "333002756",
+    "4763720",
+    "18440635",
+    "29121950",
+    "15320045",
+    "144f70267c3bc8d76e8e91d267f6921cadcc4e29",
+    "c146966ed1050872246fdf6c67cfe05cef225204",
+    "0f072fd6c9c546d23aea415457e3705d4f399c18",
+    "d7bbf98163850b8c54b0637d7400f55b37ab29b9",
+    "fe833639b6f7b68c00cd1a53264fc2af47a60922",
+    "fd0e66b39530949f82e61b0eb2a2823471230f76",
+    "5e57c686572c70aa01fad7d810ba531db9a99bfd",
+    "dbed9b9a616d7525583b58b56ee103b4d45beea3",
+    "9d4b458949fda6ba475675d0d5d830835220da63",
+    "0c0e365a655c24996e49c433ba420b35267fc8c2",
+    "03a35e97a1500ef4235be3c6659b1b560f94c998",
+    "030dc3f737b51bd8582f6a1e3d9e5ed4c024c7fd",
+    "9a170e202b071c32740bbd7b37b3fb3effda5466",
+    "08053e25f04ef429f3b51328efe548427314e8c5",
+    "111fb0dee9d1d9401ec64edd54418cf3f4fc6226",
+    "cd7a8270c6507cb589cfe0a282b5c55c135da7a4",
+    "f1a834ca955edcbab2c6247e4e08c3f9898d43d9",
+    "6810ac40c7c36249ef3f988ef803ea8540419f39",
+    "9e26a2328626a978edab42fea3c606bbaee61837",
+    "e7acd7d8eff83093a4a2bb5c25817e93fe51a36f",
+    "dbeeca8466e0c177ec67c60d529899232415ca87",
+    "659bf9ce7175e1ec266ff54359e2bd76e0b7ff31",
+    "ee1ef7b70dc34adcc90c42cc28168165ea56501f",
+    "a94435255b248bb869030cd0bc73326d21a08072",
+    "2110.07087v1",
+    "2302.00937v1",
+    "2310.00355v1",
+    "2511.08177v1",
+    "2507.07037v2",
+    "2408.06349v3",
+    "1a2705d766c7f8f5259d11235d7da35fb45fd993",
+    "f32a1aa70a4d233cc0b4f5ec545a050e552f75b9",
+    "7dc56f5a23ea1e347685ce2ae6a41dd6ae07bfe5",
+    "0ff7d79b10f941181940a78b8df752c1ea1e49d4",
+    "723d97e49e57e625d6a562ad731bb6ef54c1b7b3",
+    "74b16fda2a3145bed659134ab1e769068469a255",
+    "04fa7f7e5ca27cedee9a9a56ba424e18150d48e8",
+    "d7d66bc43e52158b7e7b58f50dc9b858774b6771",
+    "91cef7a3ec9ff8cd6c2d1238911d56fd53833b8c",
+    "cf6803997786af22415f23686db7f9fe68942e96",
+    "333545510",
+    "149655022",
+    "291548123",
+    "2603.12895v1",
+    "2506.16345v1",
+    "2510.10801v1",
+    "0b3f7ecf0b7c202d65dbfe694f175c013ae93141",
+    "5f2e5e273cdae2b9f3275f8331710cc4d00730ea",
+    "2d317adc73c4ef2c7f56e23333f3219c9e85add8",
+    "5c2c19178699337360460c53683f73a97ecedec9",
+    "393bdb1348567e453606159a7668f10b9d85e7f1",
+    "a1bbb01bef775003cf856d8eca195975c1ded18d",
+    "c55a5ccf56509dc51a66f086a8245732f7bcfc83",
+    "1359a043c818610a85501ceef778f1cb7822b116",
+    "388307804",
+    "1406.3460v1",
+    "1407.1933v1",
+    "1406.2204v1",
+    "1405.3772v1",
+    "17cc5a19bfb13e602a23f41c1a7c641b5be55b7d",
+    "a8b511e806ab26202fa99adadfc6139770f8dc65",
+    "ecf00fc32106fbc3a1bc1c6b096b6dce1f53c873",
+    "cc388b2013c9a96e2cf3efa360ad6ab2610623b8",
+    "be5569465daeb5f8e0ccd2e6a102fa50e83cd842",
+    "138f0b2bb1c8ffec1cb858a01070667a6da9a432",
+    "d9b26d458f43d204bc0fb2781ab6bea21ce98a22",
+    "f2d04c991a149d6287fe295ecb83ac4e5bee2351",
+    "1407966036a1d70124f822b16bd961526de88295",
+    "333001821",
+    "333001815"
+  ],
+  "generated_at": "2026-09-15T19:41:28.570581+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,61 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "8d02573da4c3d197804d8829bdc83c292562ed37",
+    "2605.23962v1",
+    "8f025f166dee4db5c42c9f30d4decae29a09ab0c",
+    "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+    "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+    "3c4f1244301577cffff9affc73690669725e7e08",
+    "109e50d9c7830706616d20e2cadc7606e601275b",
+    "2e430e6e57c19733989ae5e16bd545ae86650334",
+    "2109.13725v1",
+    "2512.19484v1",
+    "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+    "8ccf60f844e0baa450a55a68584e429ab34eaf4a",
+    "6ed5d31497d8050b822924b09647a918226f437b",
+    "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+    "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+    "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+    "3b740025953475a1cb23780961bdead5c71fd3fe",
+    "1507.00784v3",
+    "089e76b551fddb1731cafe72c4235c0d2ccd66e0",
+    "1705.00294v1"
+  ],
+  "notes_for_review": [
+    "Removed fabricated-looking citation text \"Loughran and McDonald (2011)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+    "Dropped a citation to unknown paper id 'H1' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H2' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H3' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '2003.07129' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '2003.07129' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T05:09:38.584270+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

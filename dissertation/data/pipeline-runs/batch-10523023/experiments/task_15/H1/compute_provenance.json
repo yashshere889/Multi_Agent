@@ -1,0 +1,11 @@
+{
+  "downscaled": false,
+  "changes": [],
+  "converged": true,
+  "convergence_findings": [],
+  "measurement_changes": [],
+  "precision_changes": [],
+  "timeout_seconds": 120,
+  "compute_validity": "ran at the size it was generated for \u2014 metrics describe the experiment as written",
+  "ran_at_full_size": true
+}

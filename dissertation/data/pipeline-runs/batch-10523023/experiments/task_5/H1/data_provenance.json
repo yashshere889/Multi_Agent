@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    {
+      "name": "historical_stock_market_daily_closing_price_financial_data.csv",
+      "kind": "synthetic_surrogate",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/historical_stock_market_daily_closing_price_financial_data.csv",
+      "reason": "the generated code reports substituting for the data this plan requires: The synthetic dataset has the same structure and approximate statistical properties as the real S&P 500 dataset; The synthetic data is sufficient to run the clustering and momentum strategy backtests",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1,
+  "unconfirmed_discovered_inputs": []
+}

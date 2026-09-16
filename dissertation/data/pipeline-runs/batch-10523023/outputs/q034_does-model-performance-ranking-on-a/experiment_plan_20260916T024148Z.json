@@ -1,0 +1,103 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data assumptions. The AG News dataset is available with 120,000 training samples and 7,600 test samples, allowing for both fivefold cross-validation on the training set and evaluation on the held-out test set. The experiment can be conducted within a few hours on a single GPU node, using standard text classification models like BERT or RoBERTa variants.",
+      "objective": "To determine whether model performance rankings derived from fivefold cross-validation on the AG News training set differ significantly from those based on the held-out test set, as measured by Spearman rank correlation below 0.7.",
+      "variables": {
+        "independent": [
+          "model performance metric (accuracy, F1-score) from 5-fold CV",
+          "model performance metric (accuracy, F1-score) from test set"
+        ],
+        "dependent": [
+          "Spearman rank correlation coefficient"
+        ]
+      },
+      "design": "Comparative benchmarking of model performance rankings using two distinct evaluation methodologies: fivefold cross-validation on the training set and a single held-out test set evaluation. The experiment ranks models based on each method and computes the Spearman rank correlation between these rankings.",
+      "data_requirements": {
+        "source": "ag_news_document_text_category_classification_train.csv",
+        "description": "The AG News dataset contains 120,000 short news headlines and descriptions labeled into four categories (World, Sports, Business, Sci/Tech). This dataset is ideal for text classification tasks and provides sufficient size for robust cross-validation while maintaining a distinct test set for comparison.",
+        "preprocessing_steps": [
+          "Load the CSV file using pandas.read_csv()",
+          "Normalize whitespace in the 'text' column",
+          "Map integer labels 0..3 to category names ('World', 'Sports', 'Business', 'Sci/Tech')",
+          "Split the training data into 5 folds for cross-validation",
+          "Use the provided test set (ag_news_document_text_category_classification_test.csv) for final evaluation"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Fivefold cross-validation",
+          "description": "Divides the training data into 5 equal parts, trains models on 4 parts and validates on the remaining part, repeating this process 5 times. Computes average performance metrics across all folds to estimate model stability and performance.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Train-test split",
+          "description": "Uses the predefined train/test split of the AG News dataset to evaluate model performance on a held-out test set, providing an independent estimate of generalization capability.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Spearman rank correlation coefficient"
+        ],
+        "baseline": "A Spearman correlation of 1.0 would indicate perfect agreement between CV and test set rankings, while a value of 0.7 or higher would suggest minimal disagreement.",
+        "success_criteria": "If the Spearman rank correlation between model rankings from 5-fold CV and the held-out test set is below 0.7, the hypothesis is supported. A correlation of 0.7 or higher would refute the hypothesis."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the training data from ag_news_document_text_category_classification_train.csv and preprocess the text column by normalizing whitespace. Map integer labels to category names."
+        },
+        {
+          "step": 2,
+          "description": "Initialize a list of candidate models (e.g., BERT, RoBERTa, DistilBERT) for text classification, ensuring they are compatible with the HPC environment and can run on a single GPU."
+        },
+        {
+          "step": 3,
+          "description": "Perform fivefold cross-validation on the training data using scikit-learn's StratifiedKFold to maintain class distribution. For each fold, train each model and record its accuracy and F1-score."
+        },
+        {
+          "step": 4,
+          "description": "Compute mean performance metrics (accuracy and F1-score) for each model across all 5 folds to establish CV rankings."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate each model on the held-out test set (ag_news_document_text_category_classification_test.csv) and record its accuracy and F1-score."
+        },
+        {
+          "step": 6,
+          "description": "Rank models based on their average CV performance and their test set performance separately."
+        },
+        {
+          "step": 7,
+          "description": "Calculate the Spearman rank correlation coefficient between the two sets of rankings using scipy.stats.spearmanr."
+        },
+        {
+          "step": 8,
+          "description": "Output the correlation coefficient and determine whether it supports or refutes the hypothesis based on the threshold of 0.7."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient model diversity to observe meaningful differences in rankings",
+        "Potential overfitting during cross-validation leading to inflated CV scores",
+        "Computational overhead from running multiple models on the same dataset"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T02:41:48.025864+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

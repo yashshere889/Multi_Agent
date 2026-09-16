@@ -1,0 +1,740 @@
+{
+  "literature_summary": "The literature consistently highlights the challenges of class imbalance in machine learning, particularly in high-stakes domains such as fraud detection, healthcare, and financial risk prediction. While various techniques—such as resampling (oversampling, undersampling, SMOTE-based methods), class weighting, and decision threshold tuning—are employed to address imbalance, there is growing concern that many of these methods can compromise model calibration and reliability. Deep learning models like GRUs, GNNs, and ensemble methods often outperform classical models in recall but may sacrifice precision or interpretability. A recurring theme is the tension between achieving high recall and maintaining well-calibrated predictions, especially in real-world applications where misclassification can have serious consequences. There is also limited consensus on how best to evaluate performance under extreme imbalance, particularly regarding the trade-offs between recall, precision, and calibration. Many studies point to the need for better understanding of how different imbalance correction strategies affect model behavior in practice, especially in dynamic or deployment-relevant settings.",
+  "methods_overview": [
+    {
+      "method": "Gated Recurrent Unit (GRU)",
+      "papers_using_it": [
+        "9d86450ee9387056dd62bcfeba890368c30b9f59"
+      ],
+      "notes": "Rare; used for high-recall fraud detection on imbalanced data."
+    },
+    {
+      "method": "Graph Neural Networks (GNNs)",
+      "papers_using_it": [
+        "3f8016980c6e6133d988604cdef3ee2c53126720"
+      ],
+      "notes": "Rare; applied for real-time credit card fraud detection with balanced precision and recall."
+    },
+    {
+      "method": "Autoencoders",
+      "papers_using_it": [
+        "3f8016980c6e6133d988604cdef3ee2c53126720"
+      ],
+      "notes": "Rare; utilized for anomaly detection in credit card fraud prevention."
+    },
+    {
+      "method": "Stacking Ensemble with K-means SMOTEENN",
+      "papers_using_it": [
+        "d92f7f1bce2f2c799737ad33619b8cde02f66556"
+      ],
+      "notes": "Rare; combines multiple classifiers with resampling to improve F1-score and AUPRC."
+    },
+    {
+      "method": "SMOTEBoost and Cost-Sensitive Learning",
+      "papers_using_it": [
+        "e0592b35b365396da2a58188ea5e8fa36a8d72c7"
+      ],
+      "notes": "Rare; hybrid framework to handle class imbalance and adversarial threats."
+    },
+    {
+      "method": "Random Oversampling and Undersampling",
+      "papers_using_it": [
+        "84fa0146402169eb50281b3b98ccc8d793c5f4d8",
+        "5f16326fc0520777833d5e439e266921343ea5ef"
+      ],
+      "notes": "Common; used for class imbalance correction but shown to impair model calibration."
+    },
+    {
+      "method": "SHAP and LIME",
+      "papers_using_it": [
+        "e0592b35b365396da2a58188ea5e8fa36a8d72c7"
+      ],
+      "notes": "Rare; applied for model interpretability in fraud detection."
+    },
+    {
+      "method": "Synthetic Minority Oversampling Technique (SMOTE)",
+      "papers_using_it": [
+        "19ccf4bed94bb58c0ebb908ee42e4ee0d78fca2d",
+        "173148126"
+      ],
+      "notes": "Common; used for addressing class imbalance by generating synthetic samples for minority classes."
+    },
+    {
+      "method": "Random Forests",
+      "papers_using_it": [
+        "19ccf4bed94bb58c0ebb908ee42e4ee0d78fca2d",
+        "3a69d9befec2e53fb318f731fc1404c7d49c5347"
+      ],
+      "notes": "Common; employed as a classification model in maternal health risk prediction and protein interaction prediction."
+    },
+    {
+      "method": "Class-weighted Random Forests (CWRF)",
+      "papers_using_it": [
+        "3a69d9befec2e53fb318f731fc1404c7d49c5347"
+      ],
+      "notes": "Rare; utilized to adjust for class imbalance through weighting mechanisms in predicting protein interactions."
+    },
+    {
+      "method": "Resampling strategies (undersampling, oversampling)",
+      "papers_using_it": [
+        "ff16a8b52e083a624cb3d69ca26124a19cf279bc"
+      ],
+      "notes": "Common; evaluated for their impact on discrimination and calibration in clinical risk prediction models."
+    },
+    {
+      "method": "Distance ExtSMOTE, Dirichlet ExtSMOTE, FCRP SMOTE, BGMM SMOTE, Deep ExtSMOTE",
+      "papers_using_it": [
+        "173148126"
+      ],
+      "notes": "Rare; novel extensions of SMOTE designed to handle abnormal instances and high-dimensional data."
+    },
+    {
+      "method": "Conditional GAN (CGAN)",
+      "papers_using_it": [
+        "160236412"
+      ],
+      "notes": "Rare; used for generating synthetic multivariate time series data to mitigate class imbalance in solar flare forecasting."
+    },
+    {
+      "method": "Two-stage CGAN framework",
+      "papers_using_it": [
+        "160236412"
+      ],
+      "notes": "Rare; proposed to enhance synthetic sample quality and diversity for minority classes in both image and time series tasks."
+    },
+    {
+      "method": "FFAD metric",
+      "papers_using_it": [
+        "160236412"
+      ],
+      "notes": "Rare; a novel internal evaluation metric for assessing the fidelity of synthetic time series data."
+    },
+    {
+      "method": "CP-SMOTE and Random Under-Sampling",
+      "papers_using_it": [
+        "29162667"
+      ],
+      "notes": "Rare; techniques used to balance datasets in fraud detection while maintaining high recall and acceptable precision."
+    },
+    {
+      "method": "SMOTE and SMOTE-ENN",
+      "papers_using_it": [
+        "ac450b053cebed2a3559a562024c216c0e4f17f9",
+        "6cf134dc637f7681fbc7c169685b4c69da0b25e4"
+      ],
+      "notes": "Common; data augmentation methods applied to credit card fraud detection to improve model performance."
+    },
+    {
+      "method": "XGBoost with SMOTE ENN",
+      "papers_using_it": [
+        "6cf134dc637f7681fbc7c169685b4c69da0b25e4"
+      ],
+      "notes": "Rare; a model configuration that improves fraud detection sensitivity while managing false positive rates."
+    },
+    {
+      "method": "HMOA-GNN",
+      "papers_using_it": [
+        "6ca46fc37638b6a4389979edb9580fb3143be6f6"
+      ],
+      "notes": "Rare; an adaptive adversarial GraphSAGE model for fraud detection using hierarchical sampling and optimized graph construction."
+    },
+    {
+      "method": "Evaluation metrics (Recall, F1-score, AUC)",
+      "papers_using_it": [
+        "6ca46fc37638b6a4389979edb9580fb3143be6f6",
+        "14a0f938d9e40f4bf757d2ee2ce1c027182911f3"
+      ],
+      "notes": "Common; commonly used metrics to assess performance in imbalanced fraud detection scenarios."
+    },
+    {
+      "method": "resampling techniques",
+      "papers_using_it": [
+        "858398bbb9f494d9c4854c52bde106da3fd63c65",
+        "4a0eca336f79987d8188c88543c0b510683fa596",
+        "1cbd1e418a33c72c220e6271532e5f1efe7e732b"
+      ],
+      "notes": "Common; includes undersampling, oversampling, and hybrid methods to balance class distribution."
+    },
+    {
+      "method": "loss reweighting",
+      "papers_using_it": [
+        "11d94317c5a3663aa0988a04dd56e8afcffdbe29"
+      ],
+      "notes": "Rare; adjusts loss function weights to emphasize minority class examples."
+    },
+    {
+      "method": "margin adjustment",
+      "papers_using_it": [
+        "11d94317c5a3663aa0988a04dd56e8afcffdbe29"
+      ],
+      "notes": "Rare; modifies class logits by introducing class-specific margins to reduce overrepresentation."
+    },
+    {
+      "method": "thresholding",
+      "papers_using_it": [
+        "6fe33506ab8153f572cb836ea679f77919941385"
+      ],
+      "notes": "Rare; adjusts decision thresholds to improve minority class detection."
+    },
+    {
+      "method": "ensemble learning",
+      "papers_using_it": [
+        "923fe535026801a592e36914e6d7030f162c65be"
+      ],
+      "notes": "Rare; used for spam detection under varying class imbalance conditions."
+    },
+    {
+      "method": "QC-SMOTE",
+      "papers_using_it": [
+        "32b657052641a040745f565a6588d7d68256209a"
+      ],
+      "notes": "Rare; a quality-controlled variant of SMOTE designed for imbalanced classification."
+    },
+    {
+      "method": "SMOTE (Synthetic Minority Over-sampling Technique)",
+      "papers_using_it": [
+        "8cb44f06586f609a29d9b496cc752ec01475dffe"
+      ],
+      "notes": "Rare; used for generating synthetic minority class examples to balance datasets."
+    },
+    {
+      "method": "Undersampling with EM Clustering",
+      "papers_using_it": [
+        "19e79af728df2673562faedd03b3aeff37298f46"
+      ],
+      "notes": "Rare; employed to reduce majority class instances by clustering and random selection."
+    },
+    {
+      "method": "AF-SMOTE (Adversarial Filtering SMOTE)",
+      "papers_using_it": [
+        "47deb6b355207dca7edeaaecede802029c9bc7e8"
+      ],
+      "notes": "Rare; combines synthetic minority generation with adversarial filtering and boundary utility modeling."
+    },
+    {
+      "method": "Risk-Calibrated Threshold Selection",
+      "papers_using_it": [
+        "acb4b0286b6c9454b0de503c6f4f3cfede23f367"
+      ],
+      "notes": "Rare; adjusts decision thresholds based on cost-sensitive risk trade-offs."
+    },
+    {
+      "method": "K-Budgeted Out-of-Fold Threshold Selection",
+      "papers_using_it": [
+        "b694154fc1f3be8ce6d6f4f43b33c10d1d0f79b8"
+      ],
+      "notes": "Rare; controls false-positive rates via operational thresholds under domain shifts."
+    },
+    {
+      "method": "Selective Risk Control with Certificates",
+      "papers_using_it": [
+        "0408c4f7974611e4ce7049b8b417aec2a51fa377"
+      ],
+      "notes": "Rare; uses upper confidence bounds and Bonferroni correction for risk control."
+    },
+    {
+      "method": "Machine learning for fraud detection with imbalanced data",
+      "papers_using_it": [
+        "ba14495037f6bb5a1a4442c0aa3bfb8a70242348"
+      ],
+      "notes": "Rare; uses preprocessing techniques including feature engineering, SMOTE-ENN for balancing, and multilayer perceptron and CatBoost classifiers evaluated via composite productivity index."
+    },
+    {
+      "method": "Sample size calculation for risk prediction models",
+      "papers_using_it": [
+        "f00eb00fb85e692ff3d59c703b5d9d95fa05bf36"
+      ],
+      "notes": "Rare; compares analytical formulae with simulation-based approaches for estimating sample sizes based on calibration slope and mean absolute prediction error."
+    },
+    {
+      "method": "Decision tree model for adverse drug reaction prediction",
+      "papers_using_it": [
+        "9693f5120239d3ffcf632c48dec6c70c1dd93dc7"
+      ],
+      "notes": "Rare; applies data mining to construct a risk prediction model for vancomycin-associated nephrotoxicity; specific methods not detailed in abstract."
+    },
+    {
+      "method": "Longitudinal evaluation of ML-based clinical risk models",
+      "papers_using_it": [
+        "5d6d1b359b84398766995c42d0a8ff905228c388"
+      ],
+      "notes": "Rare; evaluates model performance over time using AUROC, calibration curves, and decision curve analysis across multiple hospitals and clinical use cases."
+    },
+    {
+      "method": "Cox proportional-hazards model",
+      "papers_using_it": [
+        "0e2944b19946a2c3943196b8ebaed985bfee279d"
+      ],
+      "notes": "Rare; used for developing the CanPredict (lung) model in a large cohort study."
+    },
+    {
+      "method": "LightGBM algorithm",
+      "papers_using_it": [
+        "7617d199d49af12e34766e54d629a366a84ded73"
+      ],
+      "notes": "Rare; applied for constructing a financial default risk prediction model."
+    },
+    {
+      "method": "Monte Carlo simulations",
+      "papers_using_it": [
+        "290296822"
+      ],
+      "notes": "Rare; used to assess the impact of class imbalance corrections on model calibration."
+    },
+    {
+      "method": "Linear blending",
+      "papers_using_it": [
+        "7617d199d49af12e34766e54d629a366a84ded73"
+      ],
+      "notes": "Rare; integrated with LightGBM to improve model performance."
+    },
+    {
+      "method": "Harrell's C statistic",
+      "papers_using_it": [
+        "0e2944b19946a2c3943196b8ebaed985bfee279d"
+      ],
+      "notes": "Rare; used to measure discrimination in the lung cancer risk model."
+    },
+    {
+      "method": "Calibration plots",
+      "papers_using_it": [
+        "0e2944b19946a2c3943196b8ebaed985bfee279d"
+      ],
+      "notes": "Rare; used to evaluate model calibration in internal and external validations."
+    },
+    {
+      "method": "multivariate linear mixed model",
+      "papers_using_it": [
+        "8307563"
+      ],
+      "notes": "Rare; used for genetic risk prediction by exploiting correlations between psychiatric disorders."
+    },
+    {
+      "method": "multi-trait genomic best linear unbiased prediction",
+      "papers_using_it": [
+        "8307563"
+      ],
+      "notes": "Rare; applied to simultaneously evaluate individual risk for multiple psychiatric disorders."
+    },
+    {
+      "method": "genome annotation-based SNP grouping",
+      "papers_using_it": [
+        "8307563"
+      ],
+      "notes": "Rare; used to fit multiple random effects and improve prediction accuracy."
+    },
+    {
+      "method": "Logistic regression model",
+      "papers_using_it": [
+        "8002016",
+        "8657897"
+      ],
+      "notes": "Common; used to identify predictors and build risk scores for adverse outcomes."
+    },
+    {
+      "method": "Bootstrapping and external validation",
+      "papers_using_it": [
+        "8002016"
+      ],
+      "notes": "Rare; employed for assessing model performance and generalizability."
+    },
+    {
+      "method": "Multicriteria decision-making with fuzzy logic",
+      "papers_using_it": [
+        "274895535"
+      ],
+      "notes": "Rare; applied to improve transparency and handling of uncertainty in risk evaluation."
+    },
+    {
+      "method": "Observational cohort study",
+      "papers_using_it": [
+        "8657897"
+      ],
+      "notes": "Rare; used to derive and validate a risk score for postoperative AKI."
+    },
+    {
+      "method": "Nomogram-based risk prediction model",
+      "papers_using_it": [
+        "157320376"
+      ],
+      "notes": "Rare; constructed using logistic regression and cross-validation to predict carotid atherosclerosis in hyperuricemia patients."
+    },
+    {
+      "method": "Deep learning for multivariate time series anomaly detection",
+      "papers_using_it": [
+        "e725b39906251f9e47bf99e06ad11015856fba3d"
+      ],
+      "notes": "Rare; taxonomic review of deep learning models for detecting anomalies in multivariate time series."
+    },
+    {
+      "method": "Agentic system with LLMs for time-series anomaly detection",
+      "papers_using_it": [
+        "5875b7e8f6cfe52cd4c6f68b26ac2bc64fbd8112"
+      ],
+      "notes": "Rare; uses LLMs to autonomously generate explainable and reproducible anomaly rules."
+    },
+    {
+      "method": "Multimodal LLMs for time series anomaly detection",
+      "papers_using_it": [
+        "fc6b3ce994c60f1b85738c28ef5bee4ef2ce3b3d"
+      ],
+      "notes": "Rare; proposes a multi-agent framework using vision-language models for automatic TSAD."
+    },
+    {
+      "method": "Active learning with disagreement and diversity analysis",
+      "papers_using_it": [
+        "d7849f8c579d8f5a9dcc31a2c0cb80cad7b1dbf3"
+      ],
+      "notes": "Rare; applies MFFT algorithm to improve rare sound event detection with minimal labeled data."
+    },
+    {
+      "method": "CRNN with multi-width kernels for rare sound event detection",
+      "papers_using_it": [
+        "9c496be1c109b9d5bc7b6ec53c81784de970874c"
+      ],
+      "notes": "Rare; improves performance on DCASE 2017 Rare SED benchmark using enhanced CRNN architecture."
+    },
+    {
+      "method": "Deep embeddings with triple-header cross entropy",
+      "papers_using_it": [
+        "f6864d7b2a3a9e73bad3b9980114ff082fc95d72"
+      ],
+      "notes": "Rare; used to handle data imbalance in acoustic event detection by learning embeddings that incorporate inter-cluster and inter-class margins."
+    },
+    {
+      "method": "Temporal Fusion Transformer (TFT)",
+      "papers_using_it": [
+        "159434718"
+      ],
+      "notes": "Rare; applied for multivariate time series anomaly detection in industrial settings to capture complex temporal patterns."
+    },
+    {
+      "method": "Subspace learning with graph-based algorithm",
+      "papers_using_it": [
+        "384955741"
+      ],
+      "notes": "Rare; utilized for video anomaly detection by discovering a low-dimensional subspace where abnormality detection is easier."
+    },
+    {
+      "method": "Hierarchical CNN framework",
+      "papers_using_it": [
+        "121657958"
+      ],
+      "notes": "Rare; proposed for rare sound event detection using a two-stage CNN architecture to refine event detection and improve generalization."
+    },
+    {
+      "method": "Domain adaptation with Interval Proposal Algorithm (IPA)",
+      "papers_using_it": [
+        "157034559"
+      ],
+      "notes": "Rare; decouples event localization and classification to enable cross-device generalization in optical signal event detection."
+    },
+    {
+      "method": "Multi-event vs single-event classifiers",
+      "papers_using_it": [
+        "c5ff22074710a9177b1d285d2305c3150296e78b"
+      ],
+      "notes": "Rare; compares performance of multi-event training versus single-event training for rare sound event detection."
+    },
+    {
+      "method": "Volatility Risk Analyzer (VRA) with hybrid supervised and unsupervised learning",
+      "papers_using_it": [
+        "a72eaff7fa24017854b199b7e469ca1db7dc0801"
+      ],
+      "notes": "Rare; combines K-means clustering and LSTM for regime detection and temporal modeling."
+    },
+    {
+      "method": "Asymmetric loss function derived from newsvendor model",
+      "papers_using_it": [
+        "7c4e185c49ff32430aa09dbe87aed1aa009310c6"
+      ],
+      "notes": "Rare; used to minimize economic costs in sales forecasting with unequal over- and underprediction penalties."
+    },
+    {
+      "method": "Generalized Extreme Value (GEV) regression for binary rare events",
+      "papers_using_it": [
+        "2458449"
+      ],
+      "notes": "Rare; applies GEV quantile function as link in GLM for modeling rare defaults in SMEs."
+    },
+    {
+      "method": "Optimal prediction under asymmetric loss",
+      "papers_using_it": [
+        "2840541"
+      ],
+      "notes": "Rare; characterizes conditionally optimal predictors that are biased and time-varying under asymmetric loss."
+    },
+    {
+      "method": "Detection-response integration in financial risk analytics",
+      "papers_using_it": [
+        "45c76738b28c45e8e6804c2058609a2d105775b0"
+      ],
+      "notes": "Rare; evaluates organizational capabilities including anomaly detection, model governance, and response mechanisms."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The effect of class imbalance correction on model calibration remains poorly understood, especially in healthcare settings.",
+      "supporting_evidence": [
+        "cd46d2c1490e8565d258acb4a40f6c4e448697b3"
+      ],
+      "notes": "Repeated across several studies focusing on clinical and financial domains."
+    },
+    {
+      "gap": "There is limited discussion on how real-time constraints affect model selection and performance in fraud detection systems.",
+      "supporting_evidence": [
+        "14a0f938d9e40f4bf757d2ee2ce1c027182911f3"
+      ],
+      "notes": "Specifically noted in studies involving fraud detection."
+    },
+    {
+      "gap": "How class imbalance interacts with other data challenges such as small disjuncts or heterogeneous density is understudied.",
+      "supporting_evidence": [
+        "32b657052641a040745f565a6588d7d68256209a"
+      ],
+      "notes": "Identified in studies dealing with imbalanced classification."
+    },
+    {
+      "gap": "There is a lack of consensus on how to properly evaluate performance under extreme class imbalance, particularly in terms of recall and calibration.",
+      "supporting_evidence": [
+        "47deb6b355207dca7edeaaecede802029c9bc7e8"
+      ],
+      "notes": "Highlighted in studies involving fraud and risk prediction."
+    },
+    {
+      "gap": "Limited exploration of multimodal LLMs' effectiveness in fine-grained time series anomaly detection compared to traditional methods.",
+      "supporting_evidence": [
+        "fc6b3ce994c60f1b85738c28ef5bee4ef2ce3b3d"
+      ],
+      "notes": "Noted in studies on time-series anomaly detection."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for evaluating explainability and reproducibility in time-series anomaly detection systems.",
+      "supporting_evidence": [
+        "5875b7e8f6cfe52cd4c6f68b26ac2bc64fbd8112"
+      ],
+      "notes": "Observed in studies using LLMs for anomaly detection."
+    },
+    {
+      "gap": "No clear consensus on how to best handle imbalanced data in anomaly detection tasks across different domains.",
+      "supporting_evidence": [
+        "f6864d7b2a3a9e73bad3b9980114ff082fc95d72",
+        "13e4698addef3576fe51a982ac3d463f02421562"
+      ],
+      "notes": "Identified in studies across audio, video, and time-series domains."
+    },
+    {
+      "gap": "Limited discussion on how to scale hybrid ML frameworks like VRA for real-time financial decision-making.",
+      "supporting_evidence": [
+        "a72eaff7fa24017854b199b7e469ca1db7dc0801"
+      ],
+      "notes": "Noted in studies involving financial risk analytics."
+    },
+    {
+      "gap": "Lack of comparative analysis between different asymmetric loss functions in practical applications.",
+      "supporting_evidence": [
+        "7c4e185c49ff32430aa09dbe87aed1aa009310c6"
+      ],
+      "notes": "Observed in forecasting and risk modeling studies."
+    },
+    {
+      "gap": "While optimal predictors under asymmetric loss are characterized, there is little empirical validation of their performance in dynamic environments.",
+      "supporting_evidence": [
+        "2840541"
+      ],
+      "notes": "Identified in theoretical studies on asymmetric loss functions."
+    },
+    {
+      "gap": "Survey-based validation in financial risk analytics lacks longitudinal tracking of capability evolution over time.",
+      "supporting_evidence": [
+        "45c76738b28c45e8e6804c2058609a2d105775b0"
+      ],
+      "notes": "Noted in studies on financial risk management."
+    },
+    {
+      "gap": "There is insufficient discussion on how model drift impacts real-time clinical decision-making beyond performance metrics in longitudinal model evaluation studies.",
+      "supporting_evidence": [
+        "5d6d1b359b84398766995c42d0a8ff905228c388"
+      ],
+      "notes": "Highlighted in clinical risk prediction studies."
+    },
+    {
+      "gap": "Limited exploration of how class imbalance correction affects model calibration in financial risk prediction models.",
+      "supporting_evidence": [
+        "290296822"
+      ],
+      "notes": "Observed in studies using Monte Carlo simulations."
+    },
+    {
+      "gap": "There is limited discussion on how model drift impacts real-time clinical decision-making beyond performance metrics in longitudinal model evaluation studies.",
+      "supporting_evidence": [
+        "5d6d1b359b84398766995c42d0a8ff905228c388"
+      ],
+      "notes": "Repeated in clinical risk prediction literature."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "In a credit approval dataset with class imbalance (like uci_credit_approval.csv), applying SMOTE oversampling will reduce fraud-detection recall at a fixed false-positive budget compared to using class-weighted models or decision-threshold tuning.",
+      "rationale": "The literature consistently shows that resampling techniques such as SMOTE can impair model calibration, which is critical for maintaining reliable recall under a fixed false-positive constraint. This aligns with the gap identified in healthcare risk prediction where resampling leads to miscalibrated models. Decision-threshold tuning and class weighting are suggested as alternatives that preserve calibration better than resampling.",
+      "related_gaps": [
+        "The effect of class imbalance correction on model calibration remains poorly understood, especially in healthcare settings."
+      ],
+      "related_methods": [
+        "SMOTE",
+        "class-weighted models",
+        "decision threshold tuning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "method_used"
+        ],
+        "dependent": [
+          "recall_at_fixed_fpr"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using AF-SMOTE (a boundary-aware adversarial filtering method) in a fraud detection setting will increase recall at a fixed false-positive budget compared to standard SMOTE, without significantly degrading model calibration.",
+      "rationale": "AF-SMOTE is proposed as a mathematically motivated technique for extreme class imbalance that preserves decision boundaries while augmenting minority samples. Drawing from bridge insights in healthcare risk prediction, this method could offer improved recall in fraud detection without sacrificing calibration, which is essential for maintaining trust in financial systems.",
+      "related_gaps": [
+        "AF-SMOTE, a boundary-aware adversarial filtering method proposed for extreme class imbalance in medical diagnosis, offers a mathematically motivated approach to augmenting minority samples while preserving decision boundaries"
+      ],
+      "related_methods": [
+        "AF-SMOTE",
+        "SMOTE"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "method_used"
+        ],
+        "dependent": [
+          "recall_at_fixed_fpr",
+          "calibration_score"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "In a financial risk prediction context using the UCI Statlog German Credit dataset, class-weighted Random Forests will achieve higher fraud-detection recall at a fixed false-positive budget than both undersampling and oversampling strategies.",
+      "rationale": "Class-weighted Random Forests are noted as a rare but effective method for adjusting for class imbalance. The literature indicates that resampling methods often impair model calibration, whereas class weighting avoids this issue. This hypothesis leverages the gap around limited consensus on performance evaluation under extreme imbalance and tests whether weighting strategies outperform resampling in recall-focused fraud detection.",
+      "related_gaps": [
+        "There is a lack of consensus on how to properly evaluate performance under extreme class imbalance, particularly in terms of recall and calibration."
+      ],
+      "related_methods": [
+        "Class-weighted Random Forests",
+        "undersampling",
+        "oversampling"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "method_used"
+        ],
+        "dependent": [
+          "recall_at_fixed_fpr"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is highly feasible as it uses the UCI Credit Approval dataset (uci_credit_approval.csv), which contains the necessary binary classification target ('approved') and features to test SMOTE vs class-weighted models or decision threshold tuning. It is testable because it makes a specific claim about recall at a fixed false-positive rate, allowing for clear refutation or support. The hypothesis is coherent, contrasting resampling with weighting/threshold tuning without internal contradictions, and focuses on the system (fraud detection) rather than analysis methods. The data is sufficient to determine whether SMOTE reduces recall compared to alternatives, making it grounded in real-world applicability and supported by bridge insights from healthcare risk prediction showing calibration issues with resampling."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 is feasible using the UCI Statlog German Credit dataset (uci_statlog_german_credit.csv), which has a binary target ('credit_risk') and sufficient features for testing class-weighted Random Forests versus resampling strategies. However, it is less testable than H1 because it compares three methods (class-weighted RF, undersampling, oversampling) without specifying a direct comparison between two contrasting approaches, potentially diluting the clarity of results. It is somewhat coherent but slightly less focused than H1, and while grounded in literature, it lacks the strong cross-disciplinary bridge insight that strengthens H1’s rationale."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 introduces AF-SMOTE, a novel method not present in any of the listed datasets, and relies heavily on a bridge insight from healthcare risk prediction. While theoretically compelling, it is not feasible for experimental testing with current data, as AF-SMOTE cannot be applied to the available datasets without significant modifications or assumptions. Its testability is weak because it assumes a new method's performance without empirical validation. Although it is internally coherent and grounded in a cross-disciplinary insight, its reliance on an untested method and lack of real-world data availability make it the weakest candidate overall."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "9d86450ee9387056dd62bcfeba890368c30b9f59",
+    "3f8016980c6e6133d988604cdef3ee2c53126720",
+    "1da45721e9ff038286578f545c9980ba5d6d3ac5",
+    "d92f7f1bce2f2c799737ad33619b8cde02f66556",
+    "e0592b35b365396da2a58188ea5e8fa36a8d72c7",
+    "84fa0146402169eb50281b3b98ccc8d793c5f4d8",
+    "5f16326fc0520777833d5e439e266921343ea5ef",
+    "ff16a8b52e083a624cb3d69ca26124a19cf279bc",
+    "19ccf4bed94bb58c0ebb908ee42e4ee0d78fca2d",
+    "3a69d9befec2e53fb318f731fc1404c7d49c5347",
+    "72522",
+    "251122",
+    "25513118",
+    "173148126",
+    "160236412",
+    "29162667",
+    "1734f08034dae84799afbab9e631629797806cc3",
+    "ac450b053cebed2a3559a562024c216c0e4f17f9",
+    "6cf134dc637f7681fbc7c169685b4c69da0b25e4",
+    "6ca46fc37638b6a4389979edb9580fb3143be6f6",
+    "14a0f938d9e40f4bf757d2ee2ce1c027182911f3",
+    "858398bbb9f494d9c4854c52bde106da3fd63c65",
+    "4a0eca336f79987d8188c88543c0b510683fa596",
+    "1cbd1e418a33c72c220e6271532e5f1efe7e732b",
+    "11d94317c5a3663aa0988a04dd56e8afcffdbe29",
+    "923fe535026801a592e36914e6d7030f162c65be",
+    "6fe33506ab8153f572cb836ea679f77919941385",
+    "32b657052641a040745f565a6588d7d68256209a",
+    "19e79af728df2673562faedd03b3aeff37298f46",
+    "acb4b0286b6c9454b0de503c6f4f3cfede23f367",
+    "b694154fc1f3be8ce6d6f4f43b33c10d1d0f79b8",
+    "4fbabb6d079ba93f0acfe10681991c3d1f9201cf",
+    "0408c4f7974611e4ce7049b8b417aec2a51fa377",
+    "8cb44f06586f609a29d9b496cc752ec01475dffe",
+    "6a97303b92477d95d1e6acf7b443ebe19a6beb60",
+    "971c56413d65e88cd378586666de16cc49e2dd1d",
+    "36bca41eba5a7cea8d69a89ee7bc24923bc380ba",
+    "cd46d2c1490e8565d258acb4a40f6c4e448697b3",
+    "47deb6b355207dca7edeaaecede802029c9bc7e8",
+    "95847a0cd3bdef572ef9949cb0bec69a1e295cdb",
+    "ba14495037f6bb5a1a4442c0aa3bfb8a70242348",
+    "f00eb00fb85e692ff3d59c703b5d9d95fa05bf36",
+    "9693f5120239d3ffcf632c48dec6c70c1dd93dc7",
+    "5d6d1b359b84398766995c42d0a8ff905228c388",
+    "0e2944b19946a2c3943196b8ebaed985bfee279d",
+    "7617d199d49af12e34766e54d629a366a84ded73",
+    "290296822",
+    "8307563",
+    "8002016",
+    "274895535",
+    "8657897",
+    "157320376",
+    "d5e52481fd57533908c1f83763ba48f90050a726",
+    "25055bfd9970ca9c08d8a3272307cc125d3cc7ea",
+    "e725b39906251f9e47bf99e06ad11015856fba3d",
+    "5875b7e8f6cfe52cd4c6f68b26ac2bc64fbd8112",
+    "fc6b3ce994c60f1b85738c28ef5bee4ef2ce3b3d",
+    "7a22bae04b8d0c902d76bfe109ba2ea81691c499",
+    "d7849f8c579d8f5a9dcc31a2c0cb80cad7b1dbf3",
+    "9c496be1c109b9d5bc7b6ec53c81784de970874c",
+    "c5ff22074710a9177b1d285d2305c3150296e78b",
+    "f6864d7b2a3a9e73bad3b9980114ff082fc95d72",
+    "159434718",
+    "384955741",
+    "15108016",
+    "168127539",
+    "121657958",
+    "157034559",
+    "13e4698addef3576fe51a982ac3d463f02421562",
+    "a72eaff7fa24017854b199b7e469ca1db7dc0801",
+    "45c76738b28c45e8e6804c2058609a2d105775b0",
+    "7c4e185c49ff32430aa09dbe87aed1aa009310c6",
+    "2458449",
+    "2840541"
+  ],
+  "generated_at": "2026-09-15T06:02:14.095307+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

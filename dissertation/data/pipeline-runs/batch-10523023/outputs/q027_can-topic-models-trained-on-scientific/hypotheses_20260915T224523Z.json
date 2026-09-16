@@ -1,0 +1,1381 @@
+{
+  "literature_summary": "The literature demonstrates a broad interest in applying topic modeling techniques—particularly Latent Dirichlet Allocation (LDA), Neural Topic Models (NTMs), and Structural Topic Models (STM)—to analyze scientific literature, detect interdisciplinary research, and track evolving themes. These methods are often combined with citation analysis, semantic similarity measures, and machine learning approaches to enhance understanding of research dynamics. While there is significant progress in identifying latent topics and thematic structures, key challenges persist in interpretability, scalability, and the ability to accurately capture interdisciplinary connections and temporal shifts. Many studies highlight the limitations of traditional bibliometric approaches and advocate for integrating textual content and advanced modeling techniques to better identify emerging research areas and interdisciplinarity. However, gaps remain in validating these methods across diverse domains, ensuring reproducibility, and establishing standardized benchmarks for evaluating topic model quality and performance.",
+  "methods_overview": [
+    {
+      "method": "Latent Dirichlet Allocation (LDA)",
+      "papers_using_it": [
+        "1709.09373v1",
+        "f1fd96310234a769c53a047dadf5e7d0ac844951",
+        "2e1bcd3e3032697fe67c0c9c07fc23189e80fe4b",
+        "ab8f54a22f1940264a0e92f6cb8731a84f2c9678",
+        "f1fd96310234a769c53a047dadf5e7d0ac844951",
+        "47dfdf2e48d7e8e48532c4edbf857301de267c3b",
+        "2b65aa238caaa9ed630b28ebe7c2ac4c8ced8dc4",
+        "cfd0a84cec28f8f5865b04b58568049338c512a8",
+        "78934fbe85362143287ffc4037d269f43a31677b",
+        "ef26361a6f5c2bda870e83f3d0e6e81d512081f0",
+        "ed429e8e529c26f23a72b217677446d4d79dd503",
+        "85680a35a409ae4b92e4804c8fe6826349c4d49b",
+        "293d0981eb02dca123361b6b0a5502efd43d53b6",
+        "2a0e132c40a485f60622f587ea062683cb5a101d",
+        "d509261496e3aec97311d9428b1044aa021bf0aa",
+        "c9516d1e77a7785b8974e3b6fccf6443f4743f21",
+        "4b820a8a24fb0ffda946c56c138970a93d270f53",
+        "794e6187ad7b4d286547cb10eeb8cdf64a347f07",
+        "c1c7a30d2a15e6ab49ba042771fb2f0cb6182b54",
+        "2401.15351v2",
+        "2204.10189v2",
+        "2006.03354v2",
+        "ea107ed4a7fa40fcb8eb95bffba8bb4d5464d5bc",
+        "03a9d426c75225d2bb07aa5c1fcf5d79e4009cca",
+        "84305862ecdfd32078cfd3c0ccf8e6183a520893",
+        "26141235",
+        "161516196",
+        "8983887"
+      ],
+      "notes": "Common; widely used for discovering latent topics in scientific literature and analyzing thematic evolution."
+    },
+    {
+      "method": "Neural Topic Models (NTMs)",
+      "papers_using_it": [
+        "2103.00498v1",
+        "2204.10189v2",
+        "2006.03354v2",
+        "ea107ed4a7fa40fcb8eb95bffba8bb4d5464d5bc",
+        "5d1cfbb41a5deb80efbe0df2539baf3228f7058b",
+        "fbe383111e4369240374d4ac9d4a4dcb4aee763d"
+      ],
+      "notes": "Common; increasingly adopted for improved topic discovery and integration with other deep learning techniques."
+    },
+    {
+      "method": "Structural Topic Model (STM)",
+      "papers_using_it": [
+        "bfe3b993bbe6e6b6b7df8b99c234da45d1f2c5cc",
+        "85680a35a409ae4b92e4804c8fe6826349c4d49b",
+        "e9bbe2961e5bbf93cf5b087541ad32ab0717ab4c"
+      ],
+      "notes": "Moderately common; used for incorporating metadata and covariates to analyze thematic evolution."
+    },
+    {
+      "method": "Citation Analysis",
+      "papers_using_it": [
+        "ab8f54a22f1940264a0e92f6cb8731a84f2c9678",
+        "274851520",
+        "26261319",
+        "702c887f9a63c1b54c564c2d0d8fe096694f3e13",
+        "97dd6ce39e9dab9bca48d68afbfa11a0d6fd2b37",
+        "c8371626a17a214182f72eca58dbc90bc11fde40",
+        "1be71beee8ecfde864af14fd47ec73ee1b3b9a57",
+        "1912.00524v1",
+        "17c97de5f2008208d909b21f8420b9ce3796bcde",
+        "934983c0e8c1e942e1397f4eb4a7473e9c98f86c",
+        "293d0981eb02dca123361b6b0a5502efd43d53b6",
+        "2a0e132c40a485f60622f587ea062683cb5a101d",
+        "2833875",
+        "316531330",
+        "8cbffae91eeb2e1d75763a478c8ad5f632152589",
+        "2795856",
+        "5112004"
+      ],
+      "notes": "Common; frequently used to understand research impact, thematic evolution, and knowledge structures."
+    },
+    {
+      "method": "Dynamic Topic Models",
+      "papers_using_it": [
+        "cf10e543cc8e998e900d577beb72a1090c52e233",
+        "bfe3b993bbe6e6b6b7df8b99c234da45d1f2c5cc",
+        "70aa50072d0ddb20db621eaed9cc55de47b9f4bc",
+        "35f78d04b76f93f412e67b775f36f585cba46a1a",
+        "d509261496e3aec97311d9428b1044aa021bf0aa"
+      ],
+      "notes": "Moderately common; applied to capture evolving themes and temporal dynamics in research fields."
+    },
+    {
+      "method": "Large Language Models (LLMs)",
+      "papers_using_it": [
+        "2406.10833v3",
+        "665fd3f78b5ac74dd9c337473cb6eeac6123f7fc",
+        "9f154961c26a8d54eecae18984a28c293ff08587",
+        "4b820a8a24fb0ffda946c56c138970a93d270f53",
+        "794e6187ad7b4d286547cb10eeb8cdf64a347f07",
+        "84305862ecdfd32078cfd3c0ccf8e6183a520893",
+        "c1c7a30d2a15e6ab49ba042771fb2f0cb6182b54"
+      ],
+      "notes": "Common; increasingly used for topic labeling, classification, and thematic analysis in scientific texts."
+    },
+    {
+      "method": "Hierarchical Interdisciplinary Research Proposal Classification Network (HIRPCN)",
+      "papers_using_it": [
+        "2203.10922v1",
+        "2209.13519v3"
+      ],
+      "notes": "Rare; a specialized deep learning model for interdisciplinary topic path detection."
+    },
+    {
+      "method": "Non-negative Matrix Factorization (NMF)",
+      "papers_using_it": [
+        "665fd3f78b5ac74dd9c337473cb6eeac6123f7fc"
+      ],
+      "notes": "Rare; used for topic modeling with automatic labeling via LLMs."
+    },
+    {
+      "method": "Citation-Constellation Tool",
+      "papers_using_it": [
+        "2603.24216v1"
+      ],
+      "notes": "Rare; a tool for decomposing citation networks using BARON and HEROCON scores."
+    },
+    {
+      "method": "Multilingual Topic Models",
+      "papers_using_it": [
+        "44166da8b7c6c8fdf1f5b89860f902927a22673d"
+      ],
+      "notes": "Rare; proposed to align different document representations into a shared topic space."
+    },
+    {
+      "method": "Joint Nonnegative Matrix Factorization (NMF)",
+      "papers_using_it": [
+        "2e1bcd3e3032697fe67c0c9c07fc23189e80fe4b"
+      ],
+      "notes": "Rare; used for simultaneous discovery of common and discriminative topics."
+    },
+    {
+      "method": "Semantic Clustering with K-means",
+      "papers_using_it": [
+        "ab8f54a22f1940264a0e92f6cb8731a84f2c9678"
+      ],
+      "notes": "Rare; applied for topic segmentation using Sentence-BERT embeddings."
+    },
+    {
+      "method": "DDiv Index for Interdisciplinary Breakthrough Innovation Detection",
+      "papers_using_it": [
+        "fc7f20931644eb82d34d0ce2f2cf4eaa6391a8fe"
+      ],
+      "notes": "Rare; a novel index combining interdisciplinarity and disruption metrics."
+    },
+    {
+      "method": "Continuous-time infinite dynamic topic model",
+      "papers_using_it": [
+        "4519663"
+      ],
+      "notes": "Rare; combines advantages of online-hierarchical Dirichlet process and continuous-time dynamic topic model."
+    },
+    {
+      "method": "Aspect-based sentiment analysis (ABSA) with bibliometric mapping and topic modeling",
+      "papers_using_it": [
+        "274851520"
+      ],
+      "notes": "Rare; employs bibliometrics, topic modeling, and keyword co-occurrence to analyze ABSA research."
+    },
+    {
+      "method": "Topic modeling for preprint analysis",
+      "papers_using_it": [
+        "bec40b60411004de2ad1de59cfa0d9720d039c0d"
+      ],
+      "notes": "Rare; applies topic modeling to academic preprints to identify themes and map knowledge structures."
+    },
+    {
+      "method": "Machine learning for Smart Specialisation thematic networks",
+      "papers_using_it": [
+        "42e39a664aaa7e6c16980d0cfb7ff993fb6aa1fc"
+      ],
+      "notes": "Rare; uses topic modeling on abstracts from Arctic Scandinavian research to uncover latent topics."
+    },
+    {
+      "method": "Variational Expectation-Maximization Algorithm",
+      "papers_using_it": [
+        "6905757",
+        "2491072"
+      ],
+      "notes": "Rare; implemented in the R package topicmodels for fitting topic models."
+    },
+    {
+      "method": "Gibbs Sampling Algorithm",
+      "papers_using_it": [
+        "6905757",
+        "2491072"
+      ],
+      "notes": "Rare; also implemented in the R package topicmodels for topic model fitting."
+    },
+    {
+      "method": "Topic Relation Identification Approach",
+      "papers_using_it": [
+        "90369039"
+      ],
+      "notes": "Rare; quantitatively models relationships among discovered topics."
+    },
+    {
+      "method": "Correlated Topic Model (CTM)",
+      "papers_using_it": [
+        "f1fd96310234a769c53a047dadf5e7d0ac844951"
+      ],
+      "notes": "Rare; one of the state-of-the-art topic modeling techniques compared in the study."
+    },
+    {
+      "method": "Hierarchical Dirichlet Process (HDP)",
+      "papers_using_it": [
+        "f1fd96310234a769c53a047dadf5e7d0ac844951"
+      ],
+      "notes": "Rare; another advanced topic modeling technique considered for comparison."
+    },
+    {
+      "method": "Dirichlet Multinomial Regression (DMR)",
+      "papers_using_it": [
+        "f1fd96310234a769c53a047dadf5e7d0ac844951"
+      ],
+      "notes": "Rare; included among the comparative topic modeling methods."
+    },
+    {
+      "method": "Hierarchical Pachinko Allocation (HPA)",
+      "papers_using_it": [
+        "f1fd96310234a769c53a047dadf5e7d0ac844951"
+      ],
+      "notes": "Rare; used for comparison in large-scale scientific text analysis."
+    },
+    {
+      "method": "Content-based interdisciplinarity detection using lexical and semantic features",
+      "papers_using_it": [
+        "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce"
+      ],
+      "notes": "Rare; uses TF-IDF term vectors, topic distributions, and word embeddings for interdisciplinarity detection."
+    },
+    {
+      "method": "Co-cited journals for identifying interdisciplinary research",
+      "papers_using_it": [
+        "2cfec242417f916c270030250b63d72e45314470"
+      ],
+      "notes": "Rare; relies on bibliometric analysis of journal co-citation patterns."
+    },
+    {
+      "method": "Text CNN model",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; used for quantifying interdisciplinarity in scientific articles based on textual content."
+    },
+    {
+      "method": "Attention mechanisms",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; proposed for improving interpretability in interdisciplinary detection."
+    },
+    {
+      "method": "Layer-wise relevance propagation",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; suggested as a technique to improve model interpretability."
+    },
+    {
+      "method": "Saliency maps",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; used for interpreting deep learning model decisions."
+    },
+    {
+      "method": "Integrated gradients",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; explored for enhancing model interpretability."
+    },
+    {
+      "method": "LIME",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; considered for improving interpretability of deep learning models."
+    },
+    {
+      "method": "SciBERT-CNN models with topic modeling",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; referenced as a related approach for multi-label text classification."
+    },
+    {
+      "method": "Set-CNN model",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; proposed for semantic extension to enrich text representations."
+    },
+    {
+      "method": "Shannon Entropy",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; used as a diversity index to quantify interdisciplinarity via reference discipline distribution."
+    },
+    {
+      "method": "Simpson's Index",
+      "papers_using_it": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Rare; applied to measure interdisciplinarity based on probability of different discipline references."
+    },
+    {
+      "method": "Topic modeling (LDA, BERTopic)",
+      "papers_using_it": [
+        "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1"
+      ],
+      "notes": "Rare; used for capturing thematic interdisciplinarity and enhancing topic coherence."
+    },
+    {
+      "method": "Keyword mining",
+      "papers_using_it": [
+        "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1"
+      ],
+      "notes": "Rare; relies on extracted terms to infer interdisciplinary trends."
+    },
+    {
+      "method": "IRD-BERT with DBSCAN",
+      "papers_using_it": [
+        "36ef06dc727e79738c4ecdf7537bf3f88bc1f4af"
+      ],
+      "notes": "Rare; simulates manual screening of keywords by projecting them into vector space."
+    },
+    {
+      "method": "sIB method (information theory)",
+      "papers_using_it": [
+        "50008708702b529429ba990d0ebc5b3ae5f755f8"
+      ],
+      "notes": "Rare; used to cluster high-dimensional abstract data for measuring researcher interdisciplinarity."
+    },
+    {
+      "method": "Cross-citation analysis",
+      "papers_using_it": [
+        "50008708702b529429ba990d0ebc5b3ae5f755f8"
+      ],
+      "notes": "Rare; used to group related subject categories and assess interdisciplinarity via reference data."
+    },
+    {
+      "method": "Rao-Stirling Diversity index",
+      "papers_using_it": [
+        "934983c0e8c1e942e1397f4eb4a7473e9c98f86c"
+      ],
+      "notes": "Rare; used to measure interdisciplinary research by assessing the diversity and dissimilarity of disciplines."
+    },
+    {
+      "method": "Citation graph analysis",
+      "papers_using_it": [
+        "934983c0e8c1e942e1397f4eb4a7473e9c98f86c"
+      ],
+      "notes": "Rare; used to identify citation structures associated with interdisciplinary research."
+    },
+    {
+      "method": "Author Co-Citation Analysis",
+      "papers_using_it": [
+        "35f78d04b76f93f412e67b775f36f585cba46a1a"
+      ],
+      "notes": "Rare; extended with citing sentence similarity to measure topic relatedness."
+    },
+    {
+      "method": "Social Network Analysis (SNA)",
+      "papers_using_it": [
+        "e9bbe2961e5bbf93cf5b087541ad32ab0717ab4c",
+        "2b65aa238caaa9ed630b28ebe7c2ac4c8ced8dc4",
+        "455489",
+        "316531330"
+      ],
+      "notes": "Rare; employed to visualize scientific collaborations and research relationships."
+    },
+    {
+      "method": "Scientific Knowledge Graphs",
+      "papers_using_it": [
+        "78934fbe85362143287ffc4037d269f43a31677b"
+      ],
+      "notes": "Rare; employed for detecting and representing research topics in structured formats."
+    },
+    {
+      "method": "Multivariate Mann-Kendall Test",
+      "papers_using_it": [
+        "cfd0a84cec28f8f5865b04b58568049338c512a8"
+      ],
+      "notes": "Rare; used to identify and analyze trends in research topics."
+    },
+    {
+      "method": "Classification Aware Neural Topic Model (CANTM)",
+      "papers_using_it": [
+        "2006.03354v2"
+      ],
+      "notes": "Rare; designed for both topic discovery and classification of COVID-19 disinformation."
+    },
+    {
+      "method": "Evidential Deep Learning",
+      "papers_using_it": [
+        "2306.11113v2"
+      ],
+      "notes": "Rare; utilizes belief theory and subjective logic to quantify uncertainty in neural networks."
+    },
+    {
+      "method": "Monodense Deep Neural Network",
+      "papers_using_it": [
+        "2603.29261v1"
+      ],
+      "notes": "Rare; proposed for estimating item-level price elasticity using transactional data."
+    },
+    {
+      "method": "Multitask Learning (MTL)",
+      "papers_using_it": [
+        "1711.00146v1"
+      ],
+      "notes": "Rare; applied to combine Object Detection and Semantic Segmentation in embedded systems."
+    },
+    {
+      "method": "Neural Topic Models (NTM) with variance-invariance-covariance regularization",
+      "papers_using_it": [
+        "ea107ed4a7fa40fcb8eb95bffba8bb4d5464d5bc"
+      ],
+      "notes": "Rare; enhances topic quality via regularization of latent topic representations."
+    },
+    {
+      "method": "Context network and composite VAE topic model",
+      "papers_using_it": [
+        "fbe383111e4369240374d4ac9d4a4dcb4aee763d"
+      ],
+      "notes": "Rare; simultaneously learns syntactic and semantic topics without preprocessing."
+    },
+    {
+      "method": "Negative sampling in variational autoencoder-based NTMs",
+      "papers_using_it": [
+        "5d1cfbb41a5deb80efbe0df2539baf3228f7058b"
+      ],
+      "notes": "Rare; improves topic coherence, diversity, and classification accuracy."
+    },
+    {
+      "method": "Local explainable model using Naïve Bayes classifier",
+      "papers_using_it": [
+        "099b9734f115d86bc0700c860ecbe41b7a0eaabc"
+      ],
+      "notes": "Rare; explains Graph Neural Topic Model outputs with 88.39% fidelity."
+    },
+    {
+      "method": "Hierarchical neural topic modeling with manifold regularization",
+      "papers_using_it": [
+        "26141235"
+      ],
+      "notes": "Rare; proposes a hierarchical topic model with improved interpretability and reduced redundancy."
+    },
+    {
+      "method": "Multi-view deep learning for community detection",
+      "papers_using_it": [
+        "905e784ff32011f705d21aa58e424b28d296b35f"
+      ],
+      "notes": "Rare; integrates topic modeling and attributed graph analysis for hybrid community detection."
+    },
+    {
+      "method": "Cross-validation of neural networks for topic shift identification",
+      "papers_using_it": [
+        "333197326"
+      ],
+      "notes": "Rare; validates neural network models trained on one search engine's data for identifying topic shifts."
+    },
+    {
+      "method": "Sparse and low-rank modeling in deep learning",
+      "papers_using_it": [
+        "161516196"
+      ],
+      "notes": "Rare; explores connections between deep learning and sparse/low-rank modeling."
+    },
+    {
+      "method": "Hierarchical Dirichlet Process for topic and role modeling in meetings",
+      "papers_using_it": [
+        "8983887"
+      ],
+      "notes": "Rare; uses nonparametric Bayesian modeling to jointly capture topic and speaker role information."
+    },
+    {
+      "method": "Deep Learning",
+      "papers_using_it": [
+        "154233298"
+      ],
+      "notes": "Rare; applied to medical image detection, segmentation, and registration."
+    },
+    {
+      "method": "Generative Probabilistic Topic Modelling",
+      "papers_using_it": [
+        "8849944"
+      ],
+      "notes": "Rare; used for unsupervised person re-identification to discover salient image patches."
+    },
+    {
+      "method": "Dynamic Mode Decomposition (DMD)",
+      "papers_using_it": [
+        "2110.06573v2"
+      ],
+      "notes": "Rare; employed for modeling nonlinear systems and analyzing sampling effects."
+    },
+    {
+      "method": "Data-enabled Theoretical Chemistry",
+      "papers_using_it": [
+        "1806.02690v2"
+      ],
+      "notes": "Rare; focuses on machine learning in theoretical chemistry."
+    },
+    {
+      "method": "Small-World Network with Elite-Clique",
+      "papers_using_it": [
+        "1811.07471v1"
+      ],
+      "notes": "Rare; modeling venture capital networks using embeddedness theory."
+    },
+    {
+      "method": "Citation Failure Analysis",
+      "papers_using_it": [
+        "2510.20303v3"
+      ],
+      "notes": "Rare; investigates citation failures in LLM-based RAG systems."
+    },
+    {
+      "method": "RWKV for sentence embeddings",
+      "papers_using_it": [
+        "2502.14620v1"
+      ],
+      "notes": "Rare; used layer-wise analysis and Spearman correlation for semantic similarity evaluation."
+    },
+    {
+      "method": "Semantic similarity ensemble (SSE)",
+      "papers_using_it": [
+        "1401.2517v1"
+      ],
+      "notes": "Rare; combines multiple similarity measures to mimic expert judgment."
+    },
+    {
+      "method": "Semantic text compression",
+      "papers_using_it": [
+        "2309.10809v1"
+      ],
+      "notes": "Rare; utilizes sentence embeddings and semantic distortion metrics for efficient text representation."
+    },
+    {
+      "method": "Technical Language Processing (TLP) for maintenance work orders",
+      "papers_using_it": [
+        "85273313b70f13173a479f5918e785bd64f6c602"
+      ],
+      "notes": "Rare; applies syntactic and semantic similarity matching with cosine similarity."
+    },
+    {
+      "method": "BERTopic and LDA for climate change discourse",
+      "papers_using_it": [
+        "c1c7a30d2a15e6ab49ba042771fb2f0cb6182b54"
+      ],
+      "notes": "Rare; applied for identifying and visualizing topics in social media and blog data."
+    },
+    {
+      "method": "Sentence similarity for text classification",
+      "papers_using_it": [
+        "2d18c345decad1d3f5bf2e12bab24f7ea743417b"
+      ],
+      "notes": "Rare; explored application of semantic similarity in classifying textual data."
+    },
+    {
+      "method": "Enhanced Semantic Similarity Learning (ESL)",
+      "papers_using_it": [
+        "79bf2b360c9f4e7a48dfb0d3a047b324fe5cabe2"
+      ],
+      "notes": "Rare; introduces a dynamic learnable framework for multi-dimensional correspondence."
+    },
+    {
+      "method": "Ensemble BERT-related Model",
+      "papers_using_it": [
+        "9843849ab3043d99cedf190dc976d3719ce66b1c"
+      ],
+      "notes": "Rare; uses weighted averaging of multiple BERT models to improve semantic similarity accuracy."
+    },
+    {
+      "method": "Matryoshka Representation Learning and Hybrid Loss Training",
+      "papers_using_it": [
+        "e3d8d1f20fcf254384ca0ae48f729d75f0940144"
+      ],
+      "notes": "Rare; proposes GATE models for Arabic text embedding with improved STS performance."
+    },
+    {
+      "method": "FicSim Dataset",
+      "papers_using_it": [
+        "e298a61a155a5853d90b7b9a0f773109b2bf66e6"
+      ],
+      "notes": "Rare; releases a long-form fiction dataset with multi-faceted similarity annotations."
+    },
+    {
+      "method": "Genetic Algorithm (GA) Clustering with Ontology",
+      "papers_using_it": [
+        "333202614",
+        "26261813"
+      ],
+      "notes": "Rare; applies GA-based clustering combined with thesaurus-based and corpus-based ontology methods."
+    },
+    {
+      "method": "Transformed Latent Semantic Analysis (LSA)",
+      "papers_using_it": [
+        "333202614",
+        "26261813"
+      ],
+      "notes": "Rare; utilizes a transformed LSA model as part of a hybrid strategy for semantic similarity."
+    },
+    {
+      "method": "Semantic similarity measure for Gene Ontology annotations (SSA)",
+      "papers_using_it": [
+        "60979"
+      ],
+      "notes": "Rare; extends instance-based term similarity methods to annotations by exploiting ontological relations."
+    },
+    {
+      "method": "Human assessments of document similarity",
+      "papers_using_it": [
+        "12268483"
+      ],
+      "notes": "Rare; examines interassessor reliability and correlation between human ratings and n-gram automatic text analysis."
+    },
+    {
+      "method": "N-gram automatic text analysis (ATA)",
+      "papers_using_it": [
+        "12268483"
+      ],
+      "notes": "Rare; used to approximate human assessments of document similarity."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited discussion on how interdisciplinary research impacts long-term scientific influence beyond citation peaks",
+      "supporting_evidence": [
+        "2207.04244v1"
+      ],
+      "notes": "A recurring issue in interdisciplinary research studies."
+    },
+    {
+      "gap": "Manual topic labeling remains a bottleneck in NMF-based topic modeling despite advances in LLMs",
+      "supporting_evidence": [
+        "665fd3f78b5ac74dd9c337473cb6eeac6123f7fc"
+      ],
+      "notes": "Persistent limitation in automated topic modeling workflows."
+    },
+    {
+      "gap": "The effectiveness of AI in reviewer assignment for interdisciplinary proposals needs further validation in diverse contexts",
+      "supporting_evidence": [
+        "2203.10922v1"
+      ],
+      "notes": "An area requiring empirical testing across varied domains."
+    },
+    {
+      "gap": "Existing surveys on scientific LLMs lack comprehensive cross-modal and cross-field comparisons",
+      "supporting_evidence": [
+        "2406.10833v3"
+      ],
+      "notes": "A notable absence in current literature reviews."
+    },
+    {
+      "gap": "Limited empirical validation of multilingual topic models in real-world scientific datasets beyond controlled experiments",
+      "supporting_evidence": [
+        "44166da8b7c6c8fdf1f5b89860f902927a22673d"
+      ],
+      "notes": "A major limitation in deploying multilingual models."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing topic coherence measures across different domains and languages",
+      "supporting_evidence": [
+        "f1fd96310234a769c53a047dadf5e7d0ac844951"
+      ],
+      "notes": "A critical gap in methodological rigor."
+    },
+    {
+      "gap": "Insufficient exploration of how topic modeling results interact with citation-based indicators of scholarly impact",
+      "supporting_evidence": [
+        "ab8f54a22f1940264a0e92f6cb8731a84f2c9678"
+      ],
+      "notes": "Missing link between computational and bibliometric approaches."
+    },
+    {
+      "gap": "No clear discussion on scalability issues when applying dynamic topic models to extremely large datasets",
+      "supporting_evidence": [
+        "cf10e543cc8e998e900d577beb72a1090c52e233"
+      ],
+      "notes": "A growing concern with big data applications."
+    },
+    {
+      "gap": "Contradictory findings regarding the effectiveness of certain topic modeling techniques in capturing interdisciplinary innovation due to varying evaluation criteria",
+      "supporting_evidence": [
+        "fc7f20931644eb82d34d0ce2f2cf4eaa6391a8fe"
+      ],
+      "notes": "Inconsistencies in empirical validation."
+    },
+    {
+      "gap": "Limited application of integrated topic models to academic preprints despite their potential for identifying emerging research trajectories",
+      "supporting_evidence": [
+        "bec40b60411004de2ad1de59cfa0d9720d039c0d"
+      ],
+      "notes": "Underutilization of topic modeling in preprint analysis."
+    },
+    {
+      "gap": "Lack of empirical studies on the determinants of interdisciplinary research among academic scientists",
+      "supporting_evidence": [
+        "2833875"
+      ],
+      "notes": "A gap in understanding the drivers of interdisciplinary work."
+    },
+    {
+      "gap": "Traditional academic career incentives do not stimulate interdisciplinary research, while industry connections do",
+      "supporting_evidence": [
+        "2833875"
+      ],
+      "notes": "A contradiction in institutional support for interdisciplinary work."
+    },
+    {
+      "gap": "Existing reviews on aspect-based sentiment analysis lack focus on methodology and topic interactions",
+      "supporting_evidence": [
+        "274851520"
+      ],
+      "notes": "Methodological gaps in sentiment analysis literature."
+    },
+    {
+      "gap": "Limited discussion on how to handle the emergence or disappearance of topics in dynamic topic models beyond temporal shifts",
+      "supporting_evidence": [
+        "70aa50072d0ddb20db621eaed9cc55de47b9f4bc"
+      ],
+      "notes": "A limitation in modeling topic dynamics."
+    },
+    {
+      "gap": "Manual evaluation of topic models relies heavily on expert judgment, which introduces subjectivity and may not generalize across domains",
+      "supporting_evidence": [
+        "9f154961c26a8d54eecae18984a28c293ff08587"
+      ],
+      "notes": "Subjectivity in validation methods."
+    },
+    {
+      "gap": "Temporal analysis of topics often fails to distinguish between relative and absolute changes in topic prevalence due to increasing document volumes",
+      "supporting_evidence": [
+        "d509261496e3aec97311d9428b1044aa021bf0aa"
+      ],
+      "notes": "Challenges in temporal interpretation."
+    },
+    {
+      "gap": "There is a lack of standardized metrics for evaluating topic model quality beyond precision, recall, and F1 scores in some studies",
+      "supporting_evidence": [
+        "9f154961c26a8d54eecae18984a28c293ff08587"
+      ],
+      "notes": "Need for broader evaluation criteria."
+    },
+    {
+      "gap": "The lack of ground-truth labels in scientific literature datasets poses a challenge for evaluating topic modeling accuracy, especially when relying on LLMs",
+      "supporting_evidence": [
+        "4b820a8a24fb0ffda946c56c138970a93d270f53"
+      ],
+      "notes": "A fundamental limitation in validation."
+    },
+    {
+      "gap": "Primary classification phases in LLM-based frameworks may fail to capture multi-topic nature of scientific literature due to single-label assignment constraints",
+      "supporting_evidence": [
+        "4b820a8a24fb0ffda946c56c138970a93d270f53"
+      ],
+      "notes": "Constraint in multi-topic modeling."
+    },
+    {
+      "gap": "There is limited discussion on how LLMs might introduce bias or hallucinate topics without explicit supervision or ground truth",
+      "supporting_evidence": [
+        "4b820a8a24fb0ffda946c56c138970a93d270f53"
+      ],
+      "notes": "Concerns about LLM reliability."
+    },
+    {
+      "gap": "While Gompertz models show better performance in capturing scientific trend life cycles, the implications of asymmetry in topic growth remain underexplored",
+      "supporting_evidence": [
+        "fdea5396e8a945692a3449d9aae4dc7136cbd2a7"
+      ],
+      "notes": "Need for deeper analysis of growth patterns."
+    },
+    {
+      "gap": "Previous work assumed that using prediction confidences from main discipline classifiers improves interdisciplinarity detection, but experiments show this is not the case",
+      "supporting_evidence": [
+        "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce"
+      ],
+      "notes": "Misconceptions in interdisciplinarity detection methods."
+    },
+    {
+      "gap": "There is a lack of gold standard datasets and quantitative evaluation benchmarks for interdisciplinarity detection",
+      "supporting_evidence": [
+        "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce"
+      ],
+      "notes": "A major barrier to reliable evaluation."
+    },
+    {
+      "gap": "The use of bibliometric network data such as co-author networks and citation graphs is limited due to difficulty in obtaining such data across different research areas",
+      "supporting_evidence": [
+        "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce"
+      ],
+      "notes": "Data accessibility issues."
+    },
+    {
+      "gap": "Understanding the decision-making process of deep learning models for interdisciplinarity detection remains challenging",
+      "supporting_evidence": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Interpretability challenges."
+    },
+    {
+      "gap": "Traditional bibliometric and diversity indices rely heavily on discipline classification of references, which can be subjective and inconsistent",
+      "supporting_evidence": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Subjectivity in classification methods."
+    },
+    {
+      "gap": "Topic modeling approaches may not capture complex interactions between disciplines and suffer from interpretability issues",
+      "supporting_evidence": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Limitations in capturing nuanced interdisciplinary dynamics."
+    },
+    {
+      "gap": "There is a lack of scalable and semantically rich methods for quantifying interdisciplinarity that go beyond citation-based measures",
+      "supporting_evidence": [
+        "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024"
+      ],
+      "notes": "Need for advanced interdisciplinarity metrics."
+    },
+    {
+      "gap": "Keyword mining approaches struggle with synonym recognition and latent semantic links",
+      "supporting_evidence": [
+        "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1"
+      ],
+      "notes": "Limitations in keyword-based methods."
+    },
+    {
+      "gap": "Topic modeling methods face challenges in dynamic tracking and interpretability when modeling evolving interdisciplinary fields",
+      "supporting_evidence": [
+        "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1"
+      ],
+      "notes": "Challenges in tracking evolving topics."
+    },
+    {
+      "gap": "Manual methods for interdisciplinary research discovery are time-consuming and lack automation",
+      "supporting_evidence": [
+        "36ef06dc727e79738c4ecdf7537bf3f88bc1f4af"
+      ],
+      "notes": "Need for automated solutions."
+    },
+    {
+      "gap": "Bibliometric approaches like WoK's SC mapping may be confounded by journals being assigned to multiple subject categories",
+      "supporting_evidence": [
+        "50008708702b529429ba990d0ebc5b3ae5f755f8"
+      ],
+      "notes": "Confounding factors in bibliometric analysis."
+    },
+    {
+      "gap": "Explicit discipline categorizations from databases like Web of Science and Scopus are problematic due to inconsistencies and lack of a single correct taxonomy",
+      "supporting_evidence": [
+        "934983c0e8c1e942e1397f4eb4a7473e9c98f86c"
+      ],
+      "notes": "Issues with database categorization."
+    },
+    {
+      "gap": "There is limited direct comparison between different topic modeling techniques specifically tailored for bibliometric analysis in the context of interdisciplinary research",
+      "supporting_evidence": [
+        "293d0981eb02dca123361b6b0a5502efd43d53b6"
+      ],
+      "notes": "Need for comparative studies."
+    },
+    {
+      "gap": "While LDA is widely applied in topic modeling, its effectiveness in capturing nuanced interdisciplinary themes remains underexplored",
+      "supporting_evidence": [
+        "2a0e132c40a485f60622f587ea062683cb5a101d"
+      ],
+      "notes": "Need for deeper exploration of LDA's capabilities."
+    },
+    {
+      "gap": "The balance between deductive and inductive approaches in citation motivation categorization remains an open question",
+      "supporting_evidence": [
+        "57e9443d64e2545dbee470a5960017855dc97a5e"
+      ],
+      "notes": "Uncertainty in categorization methods."
+    },
+    {
+      "gap": "Topic modeling is underutilized in psychological fields despite its effectiveness in identifying latent topics",
+      "supporting_evidence": [
+        "e9bbe2961e5bbf93cf5b087541ad32ab0717ab4c"
+      ],
+      "notes": "Field-specific adoption gaps."
+    },
+    {
+      "gap": "Traditional bibliometric methods like co-citation and keyword network analysis may lack accuracy due to reliance on predefined keywords or limited keyword listings",
+      "supporting_evidence": [
+        "47dfdf2e48d7e8e48532c4edbf857301de267c3b"
+      ],
+      "notes": "Accuracy concerns in traditional methods."
+    },
+    {
+      "gap": "There is a need for updated bibliometric studies that include recent publications beyond 2015 to reflect advancements in human-computer interaction research",
+      "supporting_evidence": [
+        "e9bbe2961e5bbf93cf5b087541ad32ab0717ab4c"
+      ],
+      "notes": "Outdated data in bibliometric studies."
+    },
+    {
+      "gap": "Topic modeling is underutilized despite offering deeper insights compared to term-level analysis",
+      "supporting_evidence": [
+        "ef26361a6f5c2bda870e83f3d0e6e81d512081f0"
+      ],
+      "notes": "Missed opportunities in analysis depth."
+    },
+    {
+      "gap": "Interpretability of topic models remains a challenge, especially when mapping topics to research subjects",
+      "supporting_evidence": [
+        "78934fbe85362143287ffc4037d269f43a31677b"
+      ],
+      "notes": "Interpretability issues in topic modeling."
+    },
+    {
+      "gap": "Trend analysis based on citation indices may not be suitable for fast-changing domains due to publication latency",
+      "supporting_evidence": [
+        "cfd0a84cec28f8f5865b04b58568049338c512a8"
+      ],
+      "notes": "Latency issues in citation-based trend analysis."
+    },
+    {
+      "gap": "There is a need for careful tuning of topic modeling parameters to extract granular research themes",
+      "supporting_evidence": [
+        "cfd0a84cec28f8f5865b04b58568049338c512a8"
+      ],
+      "notes": "Parameter optimization needed."
+    },
+    {
+      "gap": "Limited exploration of how neural topic models can be applied to clinical or therapeutic decision-making beyond psychotherapy",
+      "supporting_evidence": [
+        "2204.10189v2"
+      ],
+      "notes": "Application scope limitations."
+    },
+    {
+      "gap": "Theoretical limitations in evidential deep learning due to zero evidence regions in activation functions",
+      "supporting_evidence": [
+        "2306.11113v2"
+      ],
+      "notes": "Theoretical constraints in deep learning models."
+    },
+    {
+      "gap": "Lack of integration between neural network models of psychiatric disorders and real-world clinical applications",
+      "supporting_evidence": [
+        "1906.10015v2"
+      ],
+      "notes": "Clinical application gaps."
+    },
+    {
+      "gap": "Need for more robust frameworks to handle temporal dynamics in topic modeling for time-series data",
+      "supporting_evidence": [
+        "2204.10189v2"
+      ],
+      "notes": "Temporal modeling challenges."
+    },
+    {
+      "gap": "Limited exploration of how negative sampling impacts unsupervised neural topic models in comparison to supervised settings",
+      "supporting_evidence": [
+        "5d1cfbb41a5deb80efbe0df2539baf3228f7058b"
+      ],
+      "notes": "Comparative analysis gaps."
+    },
+    {
+      "gap": "Lack of standardized evaluation metrics for assessing the integration of syntax and semantics in topic models",
+      "supporting_evidence": [
+        "fbe383111e4369240374d4ac9d4a4dcb4aee763d"
+      ],
+      "notes": "Evaluation metric gaps."
+    },
+    {
+      "gap": "Insufficient investigation into the generalizability of explainability techniques across different types of neural topic models",
+      "supporting_evidence": [
+        "099b9734f115d86bc0700c860ecbe41b7a0eaabc"
+      ],
+      "notes": "Generalizability concerns."
+    },
+    {
+      "gap": "The application of topic modeling in clinical decision-making lacks long-term validation and real-world deployment studies",
+      "supporting_evidence": [
+        "03a9d426c75225d2bb07aa5c1fcf5d79e4009cca"
+      ],
+      "notes": "Validation and deployment gaps."
+    },
+    {
+      "gap": "Limited empirical validation of hybrid community detection frameworks in real-world multimodal social networks beyond standard metrics",
+      "supporting_evidence": [
+        "905e784ff32011f705d21aa58e424b28d296b35f"
+      ],
+      "notes": "Validation gaps in community detection."
+    },
+    {
+      "gap": "Lack of detailed evaluation of MF-CNN-BILSTM sentiment analysis model on tweets related to Ukraine-Russia conflict",
+      "supporting_evidence": [
+        "f0c3a3cf5a42a282f75fc6749c64cb3dfb8789b2"
+      ],
+      "notes": "Evaluation gaps in specific domains."
+    },
+    {
+      "gap": "Most topic modeling studies assume flat topic structures despite the presence of hierarchical relationships in real-world data",
+      "supporting_evidence": [
+        "26141235"
+      ],
+      "notes": "Assumption limitations."
+    },
+    {
+      "gap": "The effectiveness of over-sampling in Dynamic Mode Decomposition leads to algorithmic instability when temporal dimension exceeds spatial dimension",
+      "supporting_evidence": [
+        "2110.06573v2"
+      ],
+      "notes": "Algorithmic instability issues."
+    },
+    {
+      "gap": "Unsupervised learning methods for person re-identification lack the scalability of supervised methods due to dependency on labeled data",
+      "supporting_evidence": [
+        "8849944"
+      ],
+      "notes": "Scalability limitations."
+    },
+    {
+      "gap": "Citation failure in LLM-based systems is underexplored, particularly in distinguishing it from response failure",
+      "supporting_evidence": [
+        "2510.20303v3"
+      ],
+      "notes": "Understudied phenomenon."
+    },
+    {
+      "gap": "Limited empirical validation of the proposed combined latent and logistic regression model in citation network analysis beyond simulation studies",
+      "supporting_evidence": [
+        "1912.00524v1"
+      ],
+      "notes": "Validation gaps in network models."
+    },
+    {
+      "gap": "Lack of detailed explanation regarding how the ranking-based misinformation detection technique handles noisy or ambiguous data in real-world applications",
+      "supporting_evidence": [
+        "17c97de5f2008208d909b21f8420b9ce3796bcde"
+      ],
+      "notes": "Real-world applicability gaps."
+    },
+    {
+      "gap": "Absence of abstract or detailed methodology in several papers limits understanding of specific analytical approaches used",
+      "supporting_evidence": [
+        "21740103a92b60511192e86bf9c6280852db1123",
+        "646035027e860c1e2412a9c0b5b8b616546520af"
+      ],
+      "notes": "Methodological transparency issues."
+    },
+    {
+      "gap": "No explicit discussion on how the identified themes in gamification literature relate to actual implementation challenges or outcomes in educational settings",
+      "supporting_evidence": [
+        "1be71beee8ecfde864af14fd47ec73ee1b3b9a57"
+      ],
+      "notes": "Implementation gap."
+    },
+    {
+      "gap": "Limited application of citation network analysis in specific fields such as sport and exercise psychology",
+      "supporting_evidence": [
+        "8cbffae91eeb2e1d75763a478c8ad5f632152589"
+      ],
+      "notes": "Field-specific application gaps."
+    },
+    {
+      "gap": "Need for more robust methods to handle the complexity and evolving nature of citation networks over time",
+      "supporting_evidence": [
+        "2795856",
+        "5112004"
+      ],
+      "notes": "Network complexity challenges."
+    },
+    {
+      "gap": "Integration of topic modeling with fine-tuned LLMs shows promise but requires further validation in diverse domains",
+      "supporting_evidence": [
+        "2408.03099v2"
+      ],
+      "notes": "Validation needs in domain-specific applications."
+    },
+    {
+      "gap": "RWKV models underperform compared to simpler baselines like GloVe in zero-shot semantic similarity tasks",
+      "supporting_evidence": [
+        "2502.14620v1"
+      ],
+      "notes": "Performance comparison gaps."
+    },
+    {
+      "gap": "Traditional topic modeling methods like LDA may not adequately capture context-specific themes in informal or technical text domains",
+      "supporting_evidence": [
+        "794e6187ad7b4d286547cb10eeb8cdf64a347f07"
+      ],
+      "notes": "Domain-specific capability gaps."
+    },
+    {
+      "gap": "The effectiveness of semantic similarity in technical domains such as maintenance work orders remains underexplored despite challenges posed by jargon and structure",
+      "supporting_evidence": [
+        "85273313b70f13173a479f5918e785bd64f6c602"
+      ],
+      "notes": "Technical domain gaps."
+    },
+    {
+      "gap": "There is limited discussion on how to optimize semantic similarity measures for specific domains beyond general-purpose applications",
+      "supporting_evidence": [
+        "c1c7a30d2a15e6ab49ba042771fb2f0cb6182b54"
+      ],
+      "notes": "Domain-specific optimization needs."
+    },
+    {
+      "gap": "Limited research on semantic similarity for Arabic language due to lack of high-quality datasets and pre-trained models",
+      "supporting_evidence": [
+        "e3d8d1f20fcf254384ca0ae48f729d75f0940144"
+      ],
+      "notes": "Language-specific research gaps."
+    },
+    {
+      "gap": "Current embedding similarity datasets are unsuitable for evaluating literary-domain tasks due to focus on coarse-grained similarity and short texts",
+      "supporting_evidence": [
+        "e298a61a155a5853d90b7b9a0f773109b2bf66e6"
+      ],
+      "notes": "Dataset suitability issues."
+    },
+    {
+      "gap": "Existing clustering algorithms using VSM ignore conceptual relationships between non-co-occurring terms",
+      "supporting_evidence": [
+        "333202614",
+        "26261813"
+      ],
+      "notes": "Clustering limitations."
+    },
+    {
+      "gap": "Lack of standardized evaluation methods for semantic similarity in image-text matching tasks",
+      "supporting_evidence": [
+        "79bf2b360c9f4e7a48dfb0d3a047b324fe5cabe2"
+      ],
+      "notes": "Evaluation method gaps."
+    },
+    {
+      "gap": "Human interassessor reliability for document similarity assessments is moderate to poor, suggesting potential overestimation of human reliability in prior studies",
+      "supporting_evidence": [
+        "12268483"
+      ],
+      "notes": "Reliability concerns."
+    },
+    {
+      "gap": "There is a lack of direct comparison between relation-based semantic similarity methods for biological annotations and human judgment in similar contexts",
+      "supporting_evidence": [
+        "60979",
+        "12268483"
+      ],
+      "notes": "Comparison gaps in biological annotation."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Neural Topic Models (NTMs) with variance-invariance-covariance regularization will detect emerging interdisciplinary research areas in scientific abstracts earlier than traditional Latent Dirichlet Allocation (LDA) models, as measured by the temporal proximity of detected topic shifts to subsequent citation peaks.",
+      "rationale": "This hypothesis builds on the gap regarding the need for more robust and interpretable topic modeling techniques that can reliably identify interdisciplinary signals. The bridge insight from Machine Learning suggests that self-supervised neural topic models with regularization improve topic coherence and generalization, which is essential for detecting subtle interdisciplinary patterns. The hypothesis leverages the fact that NTMs with regularization are designed to enhance model reliability and topic quality, potentially enabling earlier detection of interdisciplinary trends before they gain citation momentum. This can be tested using real scientific abstract datasets where citation data is available to validate temporal alignment between topic shifts and citation increases.",
+      "related_gaps": [
+        "Lack of standardized benchmarks for comparing topic coherence measures across different domains and languages",
+        "Limited discussion on how to handle the emergence or disappearance of topics in dynamic topic models beyond temporal shifts"
+      ],
+      "related_methods": [
+        "Neural Topic Models (NTMs)",
+        "Latent Dirichlet Allocation (LDA)",
+        "Neural Topic Models (NTM) with variance-invariance-covariance regularization"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "topic model type (NTM vs LDA)",
+          "regularization applied"
+        ],
+        "dependent": [
+          "temporal proximity of topic shift to citation peak"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Hierarchical Neural Topic Models (HNTMs) with manifold regularization will more accurately identify interdisciplinary research areas in scientific abstracts compared to flat topic models, as evidenced by higher topic coherence scores and better alignment with known disciplinary boundaries.",
+      "rationale": "This hypothesis is grounded in the gap concerning the assumption of flat topic structures in most topic modeling studies, despite the presence of hierarchical relationships in real-world data. The bridge insight from Machine Learning indicates that hierarchical neural topic models can capture structured relationships between topics, which is crucial for identifying interdisciplinary research that often spans nested or hierarchical domains. Testing this hypothesis would involve comparing topic coherence and disciplinary alignment using real scientific abstracts, where known disciplinary hierarchies exist to evaluate model performance.",
+      "related_gaps": [
+        "Most topic modeling studies assume flat topic structures despite the presence of hierarchical relationships in real-world data",
+        "Limited discussion on how topic modeling results interact with citation-based indicators of scholarly impact"
+      ],
+      "related_methods": [
+        "Hierarchical Neural Topic Models (HNTMs)",
+        "Hierarchical Dirichlet Process (HDP)",
+        "Hierarchical neural topic modeling with manifold regularization"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model type (flat vs hierarchical)"
+        ],
+        "dependent": [
+          "topic coherence score",
+          "alignment with disciplinary boundaries"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Classification-Aware Neural Topic Models (CANTMs) will demonstrate superior sensitivity in identifying interdisciplinary research topics compared to standard LDA models, as measured by their ability to distinguish between intra- and inter-disciplinary themes in scientific abstracts.",
+      "rationale": "This hypothesis stems from the gap highlighting the need for topic models that are sensitive to characteristics distinguishing interdisciplinary from intra-disciplinary topics. The bridge insight from Machine Learning shows that classification-aware models can be adapted to prioritize discovery of topics indicative of interdisciplinary research. By training CANTMs to classify topics as interdisciplinary or not, we can directly evaluate their capacity to identify emerging cross-disciplinary areas. This can be validated using real scientific abstracts where the disciplinary nature of topics is known or can be inferred.",
+      "related_gaps": [
+        "Limited exploration of how topic modeling results interact with citation-based indicators of scholarly impact",
+        "Insufficient exploration of how neural topic models can be applied to clinical or therapeutic decision-making beyond psychotherapy"
+      ],
+      "related_methods": [
+        "Classification Aware Neural Topic Model (CANTM)",
+        "Latent Dirichlet Allocation (LDA)",
+        "Classification-aware neural topic models"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "model type (CANTM vs LDA)"
+        ],
+        "dependent": [
+          "sensitivity to interdisciplinary themes",
+          "classification accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the strongest hypothesis because it directly leverages the bridge insight from Machine Learning about variance-invariance-covariance regularization in NTMs, which enhances topic coherence and generalization—key for detecting interdisciplinary signals. It is highly feasible as it can be tested using real scientific abstract datasets (like those from 20 Newsgroups or AG News) where citation data could be aligned temporally to validate topic shifts. The hypothesis is specific enough to be supported or refuted by empirical results, and it aligns well with the literature gap regarding robustness in topic modeling. Its mechanism follows logically from the stated methods and is grounded in both ML and bibliometrics literature."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 focuses on hierarchical neural topic models with manifold regularization, which is a promising approach for capturing structured relationships in interdisciplinary research. However, it is less directly tied to a specific bridge insight from Machine Learning compared to H1, and its testability depends more on the availability of datasets with known disciplinary hierarchies. While feasible with appropriate data, it lacks the clear temporal alignment measure (citation peaks) that makes H1 more concrete and testable. It also suffers slightly from being less grounded in the cited literature’s emphasis on early detection versus structural modeling."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 proposes classification-aware neural topic models to distinguish intra- vs inter-disciplinary themes, which is conceptually sound but lacks a strong connection to the core research question of early detection. It is less grounded in the provided bridge insights and more speculative in its application. Although testable, it does not leverage the temporal dynamics or regularization techniques that make H1 more compelling. Additionally, it requires a dataset with labeled interdisciplinary themes, which may not be readily available in the listed datasets, limiting its feasibility and data-driven validity."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2103.00498v1",
+    "1709.09373v1",
+    "2406.10833v3",
+    "2209.13519v3",
+    "1810.12637v1",
+    "2203.10922v1",
+    "2207.04244v1",
+    "2603.24216v1",
+    "811733450612a27012ef081549ecef9d208953bf",
+    "665fd3f78b5ac74dd9c337473cb6eeac6123f7fc",
+    "cf10e543cc8e998e900d577beb72a1090c52e233",
+    "f1fd96310234a769c53a047dadf5e7d0ac844951",
+    "44166da8b7c6c8fdf1f5b89860f902927a22673d",
+    "fc7f20931644eb82d34d0ce2f2cf4eaa6391a8fe",
+    "2e1bcd3e3032697fe67c0c9c07fc23189e80fe4b",
+    "3c97335bc53f5b8e16a177ede7688d05fa3a437e",
+    "ab8f54a22f1940264a0e92f6cb8731a84f2c9678",
+    "6905757",
+    "2491072",
+    "90369039",
+    "4519663",
+    "2833875",
+    "274851520",
+    "26261319",
+    "46829947",
+    "702c887f9a63c1b54c564c2d0d8fe096694f3e13",
+    "bec40b60411004de2ad1de59cfa0d9720d039c0d",
+    "42e39a664aaa7e6c16980d0cfb7ff993fb6aa1fc",
+    "bfe3b993bbe6e6b6b7df8b99c234da45d1f2c5cc",
+    "70aa50072d0ddb20db621eaed9cc55de47b9f4bc",
+    "9f154961c26a8d54eecae18984a28c293ff08587",
+    "d509261496e3aec97311d9428b1044aa021bf0aa",
+    "4b820a8a24fb0ffda946c56c138970a93d270f53",
+    "fdea5396e8a945692a3449d9aae4dc7136cbd2a7",
+    "ed429e8e529c26f23a72b217677446d4d79dd503",
+    "85680a35a409ae4b92e4804c8fe6826349c4d49b",
+    "3bbdbef780ffebfd549f8474cfdf38b3b4e521ce",
+    "2cfec242417f916c270030250b63d72e45314470",
+    "f04f6fc65c25572019e4ff64e6b03e7ebd3c7024",
+    "dcca6e1c589fa00094508da6c8d7e493c0f4b3d1",
+    "36ef06dc727e79738c4ecdf7537bf3f88bc1f4af",
+    "50008708702b529429ba990d0ebc5b3ae5f755f8",
+    "934983c0e8c1e942e1397f4eb4a7473e9c98f86c",
+    "a5edeec8df84d966d8903788b1f8fb0a943e4e4e",
+    "293d0981eb02dca123361b6b0a5502efd43d53b6",
+    "2a0e132c40a485f60622f587ea062683cb5a101d",
+    "57e9443d64e2545dbee470a5960017855dc97a5e",
+    "35f78d04b76f93f412e67b775f36f585cba46a1a",
+    "47dfdf2e48d7e8e48532c4edbf857301de267c3b",
+    "e9bbe2961e5bbf93cf5b087541ad32ab0717ab4c",
+    "2b65aa238caaa9ed630b28ebe7c2ac4c8ced8dc4",
+    "ef26361a6f5c2bda870e83f3d0e6e81d512081f0",
+    "cfd0a84cec28f8f5865b04b58568049338c512a8",
+    "78934fbe85362143287ffc4037d269f43a31677b",
+    "233e702fa7ccfd55061680e3af9bd2f7efe5e08f",
+    "2401.15351v2",
+    "2204.10189v2",
+    "1906.10015v2",
+    "2006.03354v2",
+    "2306.11113v2",
+    "2105.04026v2",
+    "2301.00942v1",
+    "2603.29261v1",
+    "1711.00146v1",
+    "ea107ed4a7fa40fcb8eb95bffba8bb4d5464d5bc",
+    "fbe383111e4369240374d4ac9d4a4dcb4aee763d",
+    "5d1cfbb41a5deb80efbe0df2539baf3228f7058b",
+    "099b9734f115d86bc0700c860ecbe41b7a0eaabc",
+    "84305862ecdfd32078cfd3c0ccf8e6183a520893",
+    "03a9d426c75225d2bb07aa5c1fcf5d79e4009cca",
+    "bddeaf71c79a2a3384adb085da2e67e7ac1d035f",
+    "905e784ff32011f705d21aa58e424b28d296b35f",
+    "f0c3a3cf5a42a282f75fc6749c64cb3dfb8789b2",
+    "333197326",
+    "26141235",
+    "161516196",
+    "8983887",
+    "155742143",
+    "154233298",
+    "8849944",
+    "2110.06573v2",
+    "1806.02690v2",
+    "1811.07471v1",
+    "2510.20303v3",
+    "1912.00524v1",
+    "17c97de5f2008208d909b21f8420b9ce3796bcde",
+    "21740103a92b60511192e86bf9c6280852db1123",
+    "70bf69ce933274d2b50eb088ead294c9a1f8e5a2",
+    "8ee00dd2717066806a0f18a8a915696a99d56dd9",
+    "646035027e860c1e2412a9c0b5b8b616546520af",
+    "97dd6ce39e9dab9bca48d68afbfa11a0d6fd2b37",
+    "c8371626a17a214182f72eca58dbc90bc11fde40",
+    "1be71beee8ecfde864af14fd47ec73ee1b3b9a57",
+    "8cbffae91eeb2e1d75763a478c8ad5f632152589",
+    "455489",
+    "2795856",
+    "5112004",
+    "316531330",
+    "147012113",
+    "1405.6886v1",
+    "2408.03099v2",
+    "1704.05295v1",
+    "1911.08743v1",
+    "2502.14620v1",
+    "1401.2517v1",
+    "2309.10809v1",
+    "85273313b70f13173a479f5918e785bd64f6c602",
+    "794e6187ad7b4d286547cb10eeb8cdf64a347f07",
+    "c9516d1e77a7785b8974e3b6fccf6443f4743f21",
+    "c1c7a30d2a15e6ab49ba042771fb2f0cb6182b54",
+    "2d18c345decad1d3f5bf2e12bab24f7ea743417b",
+    "79bf2b360c9f4e7a48dfb0d3a047b324fe5cabe2",
+    "9843849ab3043d99cedf190dc976d3719ce66b1c",
+    "e3d8d1f20fcf254384ca0ae48f729d75f0940144",
+    "e298a61a155a5853d90b7b9a0f773109b2bf66e6",
+    "147720795",
+    "147189292",
+    "333202614",
+    "26261813",
+    "60979",
+    "12268483"
+  ],
+  "generated_at": "2026-09-15T22:45:23.895991+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

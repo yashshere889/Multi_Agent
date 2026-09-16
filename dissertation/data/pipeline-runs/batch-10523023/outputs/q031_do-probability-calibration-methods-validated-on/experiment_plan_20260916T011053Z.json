@@ -1,0 +1,100 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available datasets and compute resources. We will use the UCI Credit Approval dataset (690 rows) and UCI German Credit dataset (1000 rows) as the imbalanced real-world tabular data sources, and AG News (7600 rows) and 20 Newsgroups (7317 rows) as the balanced benchmarks. These datasets fit the requirements for testing ECE differences between balanced and imbalanced settings. The datasets are already on disk and contain sufficient samples for calibration evaluation. The compute constraints are met as we will train simple classifiers (e.g., Logistic Regression or Random Forest) and evaluate ECE on a single GPU node.",
+      "objective": "To determine whether probability calibration methods (Platt Scaling, Isotonic Regression) exhibit significantly higher Expected Calibration Error (ECE) when applied to heavily imbalanced real-world tabular data (UCI Credit Approval, UCI German Credit) compared to their performance on balanced benchmarks (AG News, 20 Newsgroups).",
+      "variables": {
+        "independent": [
+          "Dataset type (balanced vs. imbalanced)",
+          "Calibration method used"
+        ],
+        "dependent": [
+          "Expected Calibration Error (ECE)"
+        ]
+      },
+      "design": "A comparative benchmark experiment where we train classifiers on both balanced and imbalanced datasets, apply two calibration methods (Platt Scaling and Isotonic Regression) to each, and measure ECE for each combination. We will compare ECE values across dataset types and calibration methods to assess the hypothesis.",
+      "data_requirements": {
+        "source": "uci_credit_approval.csv",
+        "description": "A tabular dataset with 690 rows and 16 features, containing categorical and numerical attributes related to credit approval decisions. The target variable 'approved' has a highly imbalanced distribution (approximately 60% negative, 40% positive). This dataset provides a realistic example of imbalanced real-world data for testing calibration methods.",
+        "preprocessing_steps": [
+          "Load the dataset from uci_credit_approval.csv",
+          "Replace '?' values with NaN and drop rows with missing values",
+          "Encode categorical variables using one-hot encoding",
+          "Split into features X and target y",
+          "Train-test split (80/20) with stratification to preserve class ratio"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Expected Calibration Error (ECE)",
+          "description": "Quantifies the average deviation between predicted probabilities and actual outcomes in bins. Computed using the implementation from the literature (e.g., from torchmetrics or scikit-learn compatible libraries).",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Platt Scaling",
+          "description": "A sigmoid function fitted to map raw classifier outputs to calibrated probabilities using maximum likelihood estimation. Applied post-hoc to binary classifiers.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Isotonic Regression",
+          "description": "A non-parametric method that fits a non-decreasing function to map classifier outputs to calibrated probabilities. Applied post-hoc to binary classifiers.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Expected Calibration Error (ECE)"
+        ],
+        "baseline": "ECE values obtained from applying the same calibration methods to the balanced benchmark datasets (AG News, 20 Newsgroups) using identical models and preprocessing steps.",
+        "success_criteria": "If ECE values are significantly higher for the imbalanced datasets compared to the balanced ones when using the same calibration methods, the hypothesis is supported. If ECE values are similar or lower for imbalanced datasets, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess uci_credit_approval.csv: replace '?' with NaN, drop missing rows, encode categorical variables, split into features X and target y, and create a stratified 80/20 train/test split."
+        },
+        {
+          "step": 2,
+          "description": "Train a binary classifier (Logistic Regression) on the preprocessed uci_credit_approval dataset using the training subset."
+        },
+        {
+          "step": 3,
+          "description": "Apply Platt Scaling and Isotonic Regression calibration to the trained classifier's predictions on the test set."
+        },
+        {
+          "step": 4,
+          "description": "Compute ECE for each calibration method applied to the imbalanced dataset using the test set predictions and true labels."
+        },
+        {
+          "step": 5,
+          "description": "Repeat steps 1-4 for the 20 Newsgroups dataset (using a binary classification task) to establish baseline ECE values."
+        },
+        {
+          "step": 6,
+          "description": "Compare ECE values from the imbalanced dataset (UCI Credit Approval) versus the balanced dataset (20 Newsgroups) for each calibration method to determine if the hypothesis holds."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient samples in the imbalanced dataset to reliably estimate ECE, potentially leading to high variance in results.",
+        "The choice of classifier might influence ECE results, introducing variability not due to calibration methods alone.",
+        "Potential overfitting during calibration fitting if the test set is too small relative to the number of bins used for ECE computation."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T01:10:53.346072+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

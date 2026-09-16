@@ -1,0 +1,55 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v3.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "4b78ce1af7cad36a105d3e80a73925cbb28b22de",
+    "8d02573da4c3d197804d8829bdc83c292562ed37",
+    "2605.23962v1",
+    "e452391a5ae07e0713a4a6afc3dc86425e1870eb",
+    "50052383ec0b8f2deb199064b6dfe45364af97e1",
+    "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+    "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+    "109e50d9c7830706616d20e2cadc7606e601275b",
+    "2e430e6e57c19733989ae5e16bd545ae86650334",
+    "2109.13725v1",
+    "3fde48753b4975ac8f4d7ce77e3e89531ecf4477",
+    "2512.19484v1",
+    "ff24cf22a21ac3921c71edfaeb461a29a28b1c57",
+    "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+    "8ccf60f844e0baa450a55a68584e429ab34eaf4a",
+    "2510.15915v1",
+    "bcc576b7957c96faaf8bfefaed4279ee7d39b8cd",
+    "3da9dbffff9bd0273f4de3d5560970b13c688177",
+    "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+    "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+    "995d24ce53571a24bbfe7f80c9d668e81b8a2971",
+    "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+    "3b740025953475a1cb23780961bdead5c71fd3fe",
+    "089e76b551fddb1731cafe72c4235c0d2ccd66e0",
+    "1705.00294v1"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Future Work section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T05:13:33.687216+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

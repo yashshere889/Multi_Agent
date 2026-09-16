@@ -1,0 +1,94 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute constraints. We will use the Fama-French three-factor monthly returns dataset to derive macroeconomic variables (GDP growth, inflation) and construct a regional unemployment proxy from the time series. For policy uncertainty, we will apply dictionary-based text mining on a news corpus (AG News or 20 Newsgroups) to create an EPU index. This setup allows for a controlled comparison between lagged unemployment and textual EPU indices while adjusting for macroeconomic factors within a standard econometric framework.",
+      "objective": "To determine whether policy uncertainty indices derived from news text using dictionary-based methods show a stronger correlation with subsequent regional unemployment changes compared to lagged unemployment alone, when controlling for macroeconomic factors such as GDP growth and inflation.",
+      "variables": {
+        "independent": [
+          "Policy Uncertainty Index (from news text)",
+          "Lagged Unemployment",
+          "GDP Growth",
+          "Inflation"
+        ],
+        "dependent": [
+          "Subsequent Regional Unemployment Changes"
+        ]
+      },
+      "design": "A comparative econometric analysis using panel data regression models. We will construct two versions of the independent variable: one based on lagged unemployment and another based on a dictionary-derived EPU index from news text. Both will be regressed against the dependent variable (unemployment change) while controlling for GDP growth and inflation. The comparison will be made via the magnitude and significance of coefficients and adjusted R-squared values.",
+      "data_requirements": {
+        "source": "fama_french_three_factor_monthly_returns.csv",
+        "description": "This dataset provides monthly Fama-French factor returns including Market Risk Premium (Mkt-RF), Small Minus Big (SMB), and High Minus Low Book-to-Market (HML). From these, we can derive GDP growth and inflation proxies. Additionally, we will use a news text dataset to build the policy uncertainty index.",
+        "preprocessing_steps": [
+          "Extract Mkt-RF to approximate GDP growth (as a proxy for economic activity)",
+          "Use HML and SMB to capture additional macroeconomic variability",
+          "Apply dictionary-based text mining on AG News or 20 Newsgroups datasets to compute EPU scores",
+          "Align all time-series data to monthly frequency and merge on date"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Text mining methods",
+          "description": "Dictionary-based approach to extract sentiment and uncertainty signals from news text. We will apply a predefined list of uncertainty-related keywords to quantify policy uncertainty levels in news articles over time.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Econometric modeling (ARDL, VAR, Granger Causality)",
+          "description": "We will fit a linear regression model with lagged unemployment and EPU index as predictors, along with controls for GDP growth and inflation. The model will be evaluated for predictive strength using adjusted R-squared and t-statistics.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Adjusted R-squared",
+          "Coefficient estimates and p-values for EPU vs Lagged Unemployment",
+          "F-test statistic for joint significance of predictors"
+        ],
+        "baseline": "A simple linear regression model using only lagged unemployment and macroeconomic controls",
+        "success_criteria": "If the coefficient for the EPU index is significantly larger than that for lagged unemployment, and the adjusted R-squared improves, the hypothesis is supported. Conversely, if the lagged unemployment term dominates or shows higher explanatory power, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load fama_french_three_factor_monthly_returns.csv and preprocess to derive GDP growth and inflation proxies (e.g., Mkt-RF as a proxy for GDP growth)."
+        },
+        {
+          "step": 2,
+          "description": "Select a news text dataset (e.g., ag_news_document_text_category_classification_train.csv) and apply dictionary-based text mining to compute a policy uncertainty score per month."
+        },
+        {
+          "step": 3,
+          "description": "Merge the derived EPU index with macroeconomic variables and unemployment data (if available) to form a unified panel dataset."
+        },
+        {
+          "step": 4,
+          "description": "Construct two regression models: one with lagged unemployment as predictor, and another with EPU index as predictor, both controlling for GDP growth and inflation."
+        },
+        {
+          "step": 5,
+          "description": "Compare the adjusted R-squared, coefficient magnitudes, and statistical significance of each predictor to evaluate which explains more variance in unemployment changes."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient overlap in temporal coverage between news text and macroeconomic data",
+        "Noise in dictionary-based EPU scores leading to spurious correlations",
+        "Misalignment of data frequencies causing loss of observations during merging"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T14:59:20.363960+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

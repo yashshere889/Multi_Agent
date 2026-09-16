@@ -1,0 +1,23 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To empirically test whether higher feature selection stability, as measured by the Consistency Index, correlates with higher downstream test accuracy in NLP text classification tasks using the AG News dataset.",
+  "author": "coder-agent",
+  "baseline": "Random feature selection without stability considerations",
+  "success_criteria": "A positive correlation between Consistency Index scores and test accuracy would support the hypothesis. Conversely, no correlation or negative correlation would refute it.",
+  "timestamp_utc": "2026-09-16T01:46:21.424978+00:00",
+  "status": "success",
+  "elapsed_seconds": 106.0475,
+  "resumed": false,
+  "metrics": {
+    "accuracy_low_consistency": 0.7622368421052632,
+    "accuracy_high_consistency": 0.8452631578947368,
+    "accuracy_full_features": 0.9040789473684211,
+    "consistency_low": 0.6,
+    "consistency_high": 1.0,
+    "correlation_coefficient": 0.9999999999999999
+  },
+  "meets_success_criteria": true,
+  "notes": "Correlation coefficient: 1.0000. Positive correlation indicates support for hypothesis.",
+  "error": null
+}

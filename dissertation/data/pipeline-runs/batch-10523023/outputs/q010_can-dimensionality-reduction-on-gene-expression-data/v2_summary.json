@@ -1,0 +1,50 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q010_can-dimensionality-reduction-on-gene-expression-data/v2.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "08ad01586ceb5ecbcbe18c9b0c459e08b9d10f0f",
+    "4858de0d3c75fc098e13611073d81e97e2d50af0",
+    "9634bc4eb0dc97b1d3d7941720d28aab8aed2405",
+    "d8c12bc535bae530cb95b3f39248ebb49a8d7d1a",
+    "124587",
+    "340428709",
+    "3ba5aeb67347cb151d558b2660c894f4e3b92050",
+    "2d99e2aa27a02a6cb5591071a9d9dfc8dc52b5a7",
+    "ba969a4f3bc5f5a84f6025478e566c40661d85f3",
+    "2502.13080v2",
+    "688f393b69ba398fccf9f497308e261a40b1756c",
+    "0a97aa39cf3f5d2c52947ca950dd47ec2beabaf2",
+    "1607.01327v8",
+    "09181eb32feb76dd8e85b1815b440f4c26596a04",
+    "2209.02746v1",
+    "fff700b24dd1d816c07feb22e222e0a7b8ba686b",
+    "171050456",
+    "a7c1642509397ccebaa98bf5ec67b8b6ba219cc8",
+    "5d21619629e6f63763d4a6b26ec959593effa9ee",
+    "f84e31457efc688b2607aa78944efce958e26023",
+    "3f956d97bbf8be066e9609acccf868be2f648a0a",
+    "77f6085fa5db79dcadb1b81875d0103420b282c7"
+  ],
+  "notes_for_review": [
+    "Dropped a citation to unknown paper id 'PAPER_ID' in the Title section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T10:13:21.483391+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

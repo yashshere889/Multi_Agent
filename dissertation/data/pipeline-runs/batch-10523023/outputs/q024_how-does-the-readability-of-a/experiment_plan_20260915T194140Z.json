@@ -1,0 +1,94 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available data and compute resources. The AG News corpus provides real news articles with known lengths, suitable for measuring compression rate effects on readability and factual accuracy. The experiment uses a controlled truncation approach to vary compression rates, which aligns with the short document lengths in the dataset. Readability is assessed using Flesch-Kincaid Grade Level, and factual accuracy is evaluated via zero-shot faithfulness, both of which are supported by the provided methods_overview.",
+      "objective": "To determine whether increasing the compression rate (ratio of summary length to source document length) in news articles from the AG News corpus leads to a significant decrease in readability scores (Flesch-Kincaid Grade Level) and a moderate negative correlation with factual accuracy (zero-shot faithfulness evaluation).",
+      "variables": {
+        "independent": [
+          "compression_rate"
+        ],
+        "dependent": [
+          "readability_score",
+          "factual_accuracy"
+        ]
+      },
+      "design": "A controlled experiment varying compression rates across a range of news articles from the AG News corpus. For each article, multiple truncated versions are generated at different compression levels (e.g., 0.25, 0.5, 0.75). Each truncated version is scored for readability (Flesch-Kincaid Grade Level) and factual accuracy (zero-shot faithfulness). The resulting data points are analyzed to observe trends in readability and accuracy as compression increases.",
+      "data_requirements": {
+        "source": "ag_news_document_text_category_classification_test.csv",
+        "description": "A collection of 7600 real news articles from the AG News dataset, categorized into four domains (World, Sports, Business, Sci/Tech). Each article includes the full text and word count, making it suitable for generating truncated summaries at various compression rates.",
+        "preprocessing_steps": [
+          "Load the CSV file using pandas.read_csv()",
+          "Filter out articles with fewer than 20 words to ensure meaningful truncation",
+          "Extract the 'text' column for summarization and 'word_count' for calculating compression rates"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Readability Indices (e.g., Flesch-Kincaid, SMOG)",
+          "description": "Used to compute the Flesch-Kincaid Grade Level score for each truncated summary, quantifying its readability. This index evaluates text complexity based on average sentence length and syllable count per word.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Zero-Shot Faithfulness Evaluation",
+          "description": "Applied to assess factual consistency of each truncated summary against the original article. This method evaluates whether the summary accurately reflects information present in the source without requiring labeled training data.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Flesch-Kincaid Grade Level",
+          "Zero-Shot Faithfulness Score"
+        ],
+        "baseline": "Baseline readability and faithfulness scores for the full-length articles (compression rate = 1.0). These serve as reference points for comparing changes in readability and accuracy as compression increases.",
+        "success_criteria": "Supporting the hypothesis would show a statistically significant negative trend in Flesch-Kincaid Grade Level with increasing compression rate, and a moderate negative correlation with zero-shot faithfulness scores. Refuting the hypothesis would mean observing no clear trend or even positive trends in either metric."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the ag_news_document_text_category_classification_test.csv file using pandas. Filter articles with word counts greater than 20 to allow for meaningful truncation."
+        },
+        {
+          "step": 2,
+          "description": "Define a list of compression rates (e.g., [0.25, 0.5, 0.75]) and truncate each article accordingly by selecting the first N words, where N equals the original word count multiplied by the compression rate."
+        },
+        {
+          "step": 3,
+          "description": "For each truncated version, calculate the Flesch-Kincaid Grade Level using a library like textstat or NLTK. Store the readability score alongside the compression rate."
+        },
+        {
+          "step": 4,
+          "description": "Apply zero-shot faithfulness evaluation using a pre-trained model (e.g., from Hugging Face Transformers) to score each truncated summary against the original article. Store the faithfulness score with corresponding compression rate."
+        },
+        {
+          "step": 5,
+          "description": "Aggregate all results into a structured dataset containing columns: article_id, compression_rate, readability_score, factual_accuracy_score. Export this dataset for statistical analysis."
+        },
+        {
+          "step": 6,
+          "description": "Perform regression analysis or correlation tests on the aggregated dataset to determine if there is a significant negative relationship between compression rate and readability/factual accuracy."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient variation in readability scores due to the short length of articles in the AG News corpus, potentially masking trends.",
+        "Zero-shot faithfulness evaluation may yield inconsistent or unreliable scores across different articles, affecting the validity of the accuracy metric.",
+        "Computational overhead from running multiple truncations and evaluations per article might exceed typical SLURM job limits if not batched efficiently."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T19:41:40.233345+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

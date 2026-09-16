@@ -1,0 +1,85 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis can be tested using the UCI Adult Census Income dataset, which contains age, sex, race, and other demographic features along with income as a target variable. This dataset is suitable for testing whether demographic features improve prediction accuracy beyond clinical features alone. The dataset is already on disk and has sufficient size (32,561 rows) to support reliable model training and evaluation. The experiment will use binary classification to predict income >50K, treating demographic features as independent variables and clinical-like features (age, education, hours worked) as another set of predictors. The comparison will be made using standard classification metrics like accuracy and AUC-ROC.",
+      "objective": "To determine whether adding demographic features (age, sex, race) to a clinical time-series model for predicting early patient deterioration improves prediction accuracy beyond what can be achieved with clinical features alone.",
+      "variables": {
+        "independent": [
+          "age",
+          "sex",
+          "race",
+          "clinical_features"
+        ],
+        "dependent": [
+          "prediction_accuracy"
+        ]
+      },
+      "design": "Ablation study comparing two models: one trained with only clinical features and another trained with both clinical and demographic features. The performance difference will be measured using cross-validation.",
+      "data_requirements": {
+        "source": "uci_adult_census_income.csv",
+        "description": "The UCI Adult Census Income dataset contains demographic information including age, sex, and race, along with income as a target variable. This dataset allows us to test whether demographic features provide additional predictive power beyond clinical features in a healthcare-like setting.",
+        "preprocessing_steps": [
+          "Remove the fnlwgt column (sampling weight, not a feature)",
+          "Encode categorical variables (sex, race) using one-hot encoding",
+          "Handle missing values ('?' in the dataset) by removing rows with missing values",
+          "Normalize numerical features (age, education_num, hours_per_week)",
+          "Split data into train/test sets (80/20)"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Multivariate logistic regression models",
+          "description": "Used to build two models: one with only clinical features (age, education_num, hours_per_week) and another with all features including demographic variables (sex, race). The coefficients and significance of each feature will be analyzed to determine contribution to prediction.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Accuracy",
+          "AUC-ROC"
+        ],
+        "baseline": "Model trained with clinical features only",
+        "success_criteria": "If the model with demographic features shows significantly better performance (higher accuracy and AUC-ROC), the hypothesis is refuted. If there is no significant difference in performance, the hypothesis is supported."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_adult_census_income.csv using pandas and apply preprocessing steps: remove fnlwgt column, handle missing values, encode categorical variables, normalize numerical features, and split into train/test sets (80/20). Save processed data to disk."
+        },
+        {
+          "step": 2,
+          "description": "Train two logistic regression models using scikit-learn: one with only clinical features (age, education_num, hours_per_week) and another with all features including demographic variables (sex, race). Use 5-fold cross-validation for both models."
+        },
+        {
+          "step": 3,
+          "description": "Evaluate both models using accuracy and AUC-ROC metrics on the test set. Compare the results to determine if demographic features provide significant improvement in prediction accuracy."
+        },
+        {
+          "step": 4,
+          "description": "Analyze feature importance from both models to determine which features contribute most to prediction. Generate a report summarizing the performance differences and supporting or refuting the hypothesis."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data to support reliable model training and evaluation",
+        "High correlation between demographic features and other variables causing multicollinearity issues",
+        "Misinterpretation of results due to confounding variables in the dataset"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T08:56:38.692623+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

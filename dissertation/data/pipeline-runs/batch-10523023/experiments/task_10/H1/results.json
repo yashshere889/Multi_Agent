@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether nonlinear dimensionality reduction techniques (t-SNE, LLE) can preserve sufficient signal for accurate tissue-type classification when reducing the feature space to less than 10% of the original dimensions, compared to linear methods like PCA.",
+  "author": "coder-agent",
+  "baseline": "Performance of PCA at full dimensionality (100%) and at <10% reduction ratio",
+  "success_criteria": "If t-SNE or LLE achieves classification accuracy within 5% of PCA at <10% reduction ratio, the hypothesis is supported. If both nonlinear methods fall below 5% accuracy compared to PCA, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T10:09:34.978983+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.2592,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_10/H1/run.py\", line 678, in run\n    experiment_output = run_experiment(data, model)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_10/H1/run.py\", line 422, in run_experiment\n    X_test_reduced = method_func(X_test, n_components)\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_10/H1/run.py\", line 376, in <lambda>\n    \"PCA\": lambda X, n_components: PCA(n_components=n_components, random_state=RANDOM_SEED, svd_solver='auto').fit_transform(X),\n                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10524174/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/utils/_set_output.py\", line 327, in wrapped\n    data_to_wrap = f(self, X, *args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10524174/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/base.py\", line 1403, in wrapper\n    return fit_method(estimator, *args, **kwargs)\n  File \"/tmp/users/sgyshere/coder-venvs-10524174/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/decomposition/_pca.py\", line 466, in fit_transform\n    U, S, _, X, x_is_centered, xp = self._fit(X)\n                                    ~~~~~~~~~^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10524174/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/decomposition/_pca.py\", line 540, in _fit\n    return self._fit_full(X, n_components, xp, is_array_api_compliant)\n           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10524174/142f73e0e832a1b1/.venv/lib/python3.14/site-packages/sklearn/decomposition/_pca.py\", line 554, in _fit_full\n    raise ValueError(\n    ...<3 lines>...\n    )\nValueError: n_components=71 must be between 0 and min(n_samples, n_features)=18 with svd_solver='full'\n"
+}

@@ -1,0 +1,43 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v3.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "2731600",
+    "82ca2f5f04786b2d9ea66a834889c7694fd3018b",
+    "1612.06850v2",
+    "2009.00436v1",
+    "2012.05187v2",
+    "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+    "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+    "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+    "85d492db335fa602fc954893f048f22c3f7738d1",
+    "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+    "29807896abc8650777fe52f4ab66bb509d20149b",
+    "992e2f5557ccf4a1dbda2db0db173553160c5890",
+    "2859241",
+    "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+    "20396c9443c8858bbfd5ac27c18f2f9b5b1ed4ac"
+  ],
+  "notes_for_review": [
+    "Removed fabricated-looking citation text \"Huber (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text."
+  ],
+  "generated_at": "2026-09-15T08:32:58.221141+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,106 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The required dataset 'fama_french_three_factor_daily_returns.csv' is available and contains the necessary macroeconomic factors (Mkt-RF, SMB, HML). The experiment can be conducted using a standard multi-task learning setup with a single GPU node for a few hours. The credit risk dataset 'uci_statlog_german_credit.csv' is also available and suitable for borrower-level feature modeling. The experiment will train a multi-task model with auxiliary targets and compare it to a single-task model, both on the same credit risk data.",
+      "objective": "To determine whether incorporating Fama-French three-factor returns (Mkt-RF, SMB, HML) as auxiliary prediction targets in a multi-task learning model for credit default prediction improves out-of-sample AUC performance compared to a single-task model trained only on borrower-level features.",
+      "variables": {
+        "independent": [
+          "Mkt-RF",
+          "SMB",
+          "HML"
+        ],
+        "dependent": [
+          "AUC"
+        ]
+      },
+      "design": "A comparative benchmark experiment where we train two models: a single-task model that predicts credit default solely from borrower-level features, and a multi-task model that additionally predicts the Fama-French factors as auxiliary tasks. We will compare their out-of-sample AUC performance on a held-out test set.",
+      "data_requirements": {
+        "source": "uci_statlog_german_credit.csv",
+        "description": "This dataset contains 1000 German credit records with 20 borrower-level features and a binary credit risk outcome (good/bad). It is suitable for credit default prediction and provides the necessary borrower-level features for our models.",
+        "preprocessing_steps": [
+          "Load the dataset and remove the target variable 'credit_risk' from features",
+          "Encode categorical variables using one-hot encoding",
+          "Normalize numerical features to zero mean and unit variance",
+          "Split into train/validation/test sets (70/15/15%)",
+          "Merge with Fama-French factors from 'fama_french_three_factor_daily_returns.csv' using date matching",
+          "Create time-lagged features for borrower data to align with macroeconomic periods"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Multi-task deep learning",
+          "description": "A neural network architecture with shared layers followed by task-specific heads for credit default prediction and the three Fama-French factors. The shared representation learns common patterns between tasks while task-specific layers adapt to each prediction goal.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Deep Neural Networks (DNN)",
+          "description": "A feedforward neural network with hidden layers to learn non-linear relationships between borrower features and credit risk, as well as between macroeconomic factors and credit risk.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "AUC"
+        ],
+        "baseline": "Single-task model trained only on borrower-level features without auxiliary macroeconomic targets",
+        "success_criteria": "If the multi-task model achieves higher AUC than the single-task model on out-of-sample test data, the hypothesis is supported. If the AUC is equal or lower, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess the uci_statlog_german_credit.csv dataset, including categorical encoding and normalization of numerical features"
+        },
+        {
+          "step": 2,
+          "description": "Load and preprocess the fama_french_three_factor_daily_returns.csv dataset, converting date formats and ensuring proper alignment with credit data"
+        },
+        {
+          "step": 3,
+          "description": "Merge the credit data with macroeconomic factors using date matching to create aligned time-series features"
+        },
+        {
+          "step": 4,
+          "description": "Create a multi-task DNN model with shared layers for borrower features and separate heads for credit default prediction and Fama-French factor prediction"
+        },
+        {
+          "step": 5,
+          "description": "Train the multi-task model on the training set with appropriate loss weighting for both tasks"
+        },
+        {
+          "step": 6,
+          "description": "Train a single-task DNN model on the same borrower features but only for credit default prediction"
+        },
+        {
+          "step": 7,
+          "description": "Evaluate both models on the test set using AUC as the primary metric"
+        },
+        {
+          "step": 8,
+          "description": "Compare AUC scores between the multi-task and single-task models to determine if auxiliary factors improve performance"
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient temporal alignment between borrower data and macroeconomic factors",
+        "Overfitting due to limited sample size (1000 observations) in the credit dataset",
+        "Negative transfer between tasks if the auxiliary factors don't provide useful signal for credit prediction",
+        "Computational cost exceeding SLURM allocation limits if model complexity is too high"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T06:40:56.230404+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

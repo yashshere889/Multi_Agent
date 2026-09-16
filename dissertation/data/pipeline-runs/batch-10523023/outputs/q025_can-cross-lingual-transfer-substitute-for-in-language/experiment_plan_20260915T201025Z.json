@@ -1,0 +1,97 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the available datasets and compute constraints. We use the AG News dataset, which provides sufficient labeled examples for both high-resource (English) and low-resource simulation (by subsampling). The experiment simulates low-resource conditions by training on 10% of the in-language data, which is well within the compute budget of a few hours on a shared GPU node. The sparse fine-tuning method is reused from literature (Composable Sparse Fine-Tuning) and is compatible with standard HuggingFace transformers.",
+      "objective": "To test whether sparse fine-tuning on multilingual pretrained language models (mPLMs) enables effective cross-lingual sentiment classification in low-resource languages with as little as 10% of the in-language training data required by full fine-tuning, while maintaining performance comparable to full fine-tuning on high-resource languages.",
+      "variables": {
+        "independent": [
+          "data_ratio",
+          "fine_tuning_method"
+        ],
+        "dependent": [
+          "accuracy",
+          "f1_score"
+        ]
+      },
+      "design": "Controlled comparative experiment with two groups: full fine-tuning and sparse fine-tuning. For each group, we train on 10% of the training data (simulating low-resource condition) and evaluate performance on the test set. Performance is compared against full fine-tuning on 100% of the data (high-resource baseline).",
+      "data_requirements": {
+        "source": "ag_news_document_text_category_classification_train.csv",
+        "description": "The AG News dataset contains 120,000 short news articles across 4 categories (World, Sports, Business, Sci/Tech). It is used to simulate a high-resource language setting where full fine-tuning is possible. The dataset is already on disk and provides sufficient labeled examples for both training and testing.",
+        "preprocessing_steps": [
+          "Load the training data from ag_news_document_text_category_classification_train.csv",
+          "Filter the data to keep only the 'Business' category to simulate a binary sentiment classification task (positive/negative)",
+          "Convert labels to binary (0 for negative, 1 for positive) based on the category",
+          "Split the filtered data into 10% and 100% subsets for training",
+          "Use the test set from ag_news_document_text_category_classification_test.csv for evaluation"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Multilingual pretrained language models (mPLMs)",
+          "description": "We use a multilingual pretrained language model (mBERT) as the base model for cross-lingual transfer. The model is initialized with pre-trained weights and fine-tuned on the AG News dataset to classify sentiment. This method is reused from literature and is suitable for zero-shot and few-shot cross-lingual transfer.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Composable Sparse Fine-Tuning",
+          "description": "We apply sparse fine-tuning techniques to update only a small subset of model parameters during training. This method is reused from literature and aims to reduce the need for large in-language training datasets by focusing on key parameters that contribute most to performance.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy",
+          "f1_score"
+        ],
+        "baseline": "Full fine-tuning on 100% of the training data",
+        "success_criteria": "If sparse fine-tuning achieves performance (accuracy and F1-score) comparable to full fine-tuning on 100% of the data when trained on only 10% of the data, the hypothesis is supported. If sparse fine-tuning performs significantly worse than full fine-tuning on 100% of the data, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the AG News training dataset (ag_news_document_text_category_classification_train.csv) and filter for 'Business' category to create a binary sentiment classification task. Split the data into 10% and 100% subsets for training."
+        },
+        {
+          "step": 2,
+          "description": "Initialize a multilingual BERT (mBERT) model for sequence classification using HuggingFace Transformers. Set up the tokenizer and model configuration for binary sentiment classification."
+        },
+        {
+          "step": 3,
+          "description": "Train the mBERT model using full fine-tuning on 100% of the training data. Save the trained model as a baseline."
+        },
+        {
+          "step": 4,
+          "description": "Train the mBERT model using sparse fine-tuning on 10% of the training data. Apply the Composable Sparse Fine-Tuning technique to update only a subset of parameters."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate both models (full fine-tuned and sparse fine-tuned) on the test set (ag_news_document_text_category_classification_test.csv) using accuracy and F1-score metrics."
+        },
+        {
+          "step": 6,
+          "description": "Compare the performance of the sparse fine-tuned model against the full fine-tuned model on the test set. Record the results for analysis."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient performance difference between full and sparse fine-tuning to draw meaningful conclusions",
+        "Overfitting on the small 10% subset leading to inflated performance estimates",
+        "Computational cost exceeding the allocated time for training on a single GPU node"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T20:10:25.465209+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

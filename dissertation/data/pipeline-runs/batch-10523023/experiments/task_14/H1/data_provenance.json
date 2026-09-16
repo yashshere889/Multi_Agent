@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    {
+      "name": "Hugging Face dataset electricsheepafrica/africa-emissions-from-crops-synthetic-fertilizers-agricultural-use",
+      "kind": "synthetic_surrogate",
+      "uri": "https://datasets-server.huggingface.co/rows?dataset=electricsheepafrica%2Fafrica-emissions-from-crops-synthetic-fertilizers-agricultural-use&config=default&split=train&offset=0&length=100",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data-cache/b42592cee5f17cfa/hugging_face_dataset_electricsheepafrica_africa-emissions-fr.jsonl",
+      "reason": "the generated code reports substituting for the data this plan requires: The dataset from Hugging Face was not suitable for the experiment's requirements, so synthetic data was generated instead",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1,
+  "unconfirmed_discovered_inputs": []
+}

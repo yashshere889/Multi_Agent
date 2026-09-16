@@ -1,0 +1,106 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The UCI Statlog German Credit dataset (uci_statlog_german_credit.csv) is available and contains the required sensitive attribute (personal_status_sex) and credit risk outcome (credit_risk). The experiment can be implemented using standard fairness-constrained optimization techniques on a single GPU node within a few hours. The hypothesis compares two fairness constraints at equal overall accuracy, which is achievable with proper model calibration and threshold adjustment.",
+      "objective": "To determine whether applying demographic parity versus equal opportunity fairness constraints to a credit approval model results in significantly different rejection patterns for male applicants when overall accuracy is held constant.",
+      "variables": {
+        "independent": [
+          "fairness_constraint",
+          "gender"
+        ],
+        "dependent": [
+          "rejection_decision",
+          "accuracy"
+        ]
+      },
+      "design": "Controlled comparison experiment using the UCI German Credit dataset. Two models are trained under different fairness constraints (demographic parity vs equal opportunity) while maintaining equal overall accuracy. The resulting rejection decisions for male applicants are compared to test the hypothesis.",
+      "data_requirements": {
+        "source": "uci_statlog_german_credit.csv",
+        "description": "The UCI Statlog German Credit dataset contains 1000 credit applications with 20 features including personal_status_sex (gender) and credit_risk (outcome). This dataset is ideal because it has a clear sensitive attribute (gender) and binary credit risk classification, allowing for direct application of fairness constraints.",
+        "preprocessing_steps": [
+          "Load uci_statlog_german_credit.csv",
+          "Convert personal_status_sex column to binary indicator (male=1, female=0)",
+          "Encode categorical variables using one-hot encoding",
+          "Handle missing values (if any) by dropping rows with '?' values",
+          "Split data into train/test sets (80/20) while preserving class distribution",
+          "Normalize numerical features to [0,1] range"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Fairness-Constrained Optimization",
+          "description": "Train logistic regression models with fairness constraints using the scikit-learn compatible fairlearn library. Apply demographic parity constraint to one model and equal opportunity constraint to another, both optimized for equal overall accuracy.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Demographic Parity",
+          "description": "Apply demographic parity constraint requiring equal acceptance rates across genders. This is achieved by adjusting decision thresholds to ensure that the proportion of accepted applicants is the same for males and females.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Equal Opportunity",
+          "description": "Apply equal opportunity constraint requiring equal true positive rates across genders. This ensures that among applicants who would be approved by the model, the proportion of males and females is the same.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Rejection rate for male applicants",
+          "Overall accuracy",
+          "True positive rate difference between genders",
+          "Acceptance rate difference between genders"
+        ],
+        "baseline": "Baseline model without fairness constraints trained on the same dataset",
+        "success_criteria": "Supporting the hypothesis: Demographic parity leads to higher rejection rate among male applicants compared to equal opportunity when overall accuracy is controlled. Refuting the hypothesis: No significant difference in male rejection rates between the two fairness constraints."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess uci_statlog_german_credit.csv data, converting personal_status_sex to binary indicator and handling missing values. Split into train/test sets (80/20) and normalize numerical features."
+        },
+        {
+          "step": 2,
+          "description": "Train a baseline logistic regression model on the training data without any fairness constraints, optimizing for maximum accuracy."
+        },
+        {
+          "step": 3,
+          "description": "Using the baseline model's predictions, calculate the optimal decision thresholds for both demographic parity and equal opportunity constraints while maintaining the same overall accuracy as the baseline."
+        },
+        {
+          "step": 4,
+          "description": "Apply the demographic parity constraint to create a fairness-constrained model and evaluate its performance on the test set, recording rejection rates for male applicants."
+        },
+        {
+          "step": 5,
+          "description": "Apply the equal opportunity constraint to create another fairness-constrained model and evaluate its performance on the test set, recording rejection rates for male applicants."
+        },
+        {
+          "step": 6,
+          "description": "Compare the rejection rates of male applicants between the two fairness-constrained models and analyze statistical significance using appropriate tests (e.g., t-test or permutation test)."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data to reliably estimate fairness metrics due to dataset size (1000 samples)",
+        "Potential confounding effects from other features in the credit dataset that may influence rejection decisions independently of gender",
+        "Computational overhead from fairness constraint optimization may exceed typical SLURM job limits for larger datasets",
+        "Small sample sizes for male applicants may lead to unstable estimates of rejection rates"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T18:54:43.398327+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

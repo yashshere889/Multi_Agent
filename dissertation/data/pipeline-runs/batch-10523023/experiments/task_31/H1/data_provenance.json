@@ -1,0 +1,16 @@
+{
+  "inputs": [
+    {
+      "name": "uci_credit_approval.csv",
+      "kind": "synthetic_surrogate",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/uci_credit_approval.csv",
+      "reason": "the generated code reports substituting for the data this plan requires: The uci_credit_approval.csv file was not found at the expected location, so a synthetic dataset was created to match the structure and approximate characteristics of the real dataset.; The synthetic dataset maintains the approximate class imbalance (around 60% negative, 40% positive) found in the original dataset.",
+      "credentials": []
+    }
+  ],
+  "methodological_validity": "synthetic surrogate data \u2014 the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+  "all_inputs_real": false,
+  "surrogate_count": 1,
+  "unconfirmed_discovered_inputs": []
+}

@@ -1,0 +1,187 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/run.py\", line 41, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532027/c2ec09e38cf9cd55/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedModel, A after 5 fix attempt(s). Reporting attempt 2, which failed at run_experiment — further than the final attempt, which regressed to resource_limit. The code on disk is attempt 2's.",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1",
+      "assumptions_made": [
+        "The AG News dataset files are not present on the system, so we fall back to creating synthetic datasets that mimic the structure and characteristics of the real data.",
+        "The synthetic training dataset contains 1000 samples with alternating positive and negative sentiment business-related texts.",
+        "The synthetic test dataset contains 200 samples with alternating positive and negative sentiment business-related texts.",
+        "The binary classification task treats all Business category articles as positive sentiment (label 1) and all others as negative (label 0).",
+        "The sparse fine-tuning implementation selects 10% of model parameters randomly to update during training.",
+        "The experiment uses a multilingual BERT model (bert-base-multilingual-cased) for cross-lingual transfer.",
+        "The training process includes early stopping with patience of 2 epochs.",
+        "The evaluation metrics include accuracy and F1-score for both full and sparse fine-tuning approaches."
+      ],
+      "results": null,
+      "fix_attempts": 5,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 5: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead; line 16: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The AG News dataset's Business category is treated as positive sentiment for binary classification",
+            "We use a simple random selection of parameters for sparse fine-tuning rather than implementing the full Composable Sparse Fine-Tuning algorithm",
+            "The model architecture and hyperparameters are chosen to fit within the 2-minute time constraint",
+            "We assume that the 10% subset of training data is sufficient for sparse fine-tuning to learn meaningful representations",
+            "The test set is representative of the overall distribution for fair comparison",
+            "We use weighted F1 score to account for potential class imbalance in the test set",
+            "The experiment assumes that the model will converge within 5 epochs with early stopping",
+            "We treat the entire Business category as positive sentiment and all others as negative for creating a binary task"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/run.py\", line 41, in <module>\n    from transformers import (\n    ...<4 lines>...\n    )\nImportError: cannot import name 'AdamW' from 'transformers' (/tmp/users/sgyshere/coder-venvs-10532027/c2ec09e38cf9cd55/.venv/lib/python3.14/site-packages/transformers/__init__.py) `transformers` does not provide `AdamW`. The installed `transformers` exports: ASTConfig, ASTFeatureExtractor, ASTForAudioClassification, ASTModel, ASTPreTrainedModel, AXK1Config, AXK1ForCausalLM, AXK1ForSequenceClassification, AXK1ForTokenClassification, AXK1Model, AXK1PreTrainedModel, AXK2Config, AXK2ForCausalLM, AXK2ForSequenceClassification, AXK2ForTokenClassification, AXK2Model, AXK2PreTrainedModel, Adafactor, AddedToken, AfmoeConfig, AfmoeForCausalLM, AfmoeModel, AfmoePreTrainedModel, Aimv2Config, Aimv2Model, Aimv2PreTrainedModel, Aimv2TextConfig, Aimv2TextModel, Aimv2VisionConfig, Aimv2VisionModel, AlbertConfig, AlbertForMaskedLM, AlbertForMultipleChoice, AlbertForPreTraining, AlbertForQuestionAnswering, AlbertForSequenceClassification, AlbertForTokenClassification, AlbertModel, AlbertPreTrainedModel, AlbertTokenizer, AlignConfig, AlignModel, AlignPreTrainedModel, AlignProcessor, AlignTextConfig, AlignTextModel, AlignVisionConfig, AlignVisionModel, AltCLIPConfig, AltCLIPModel, AltCLIPPreTrainedModel, AltCLIPProcessor, AltCLIPTextConfig, AltCLIPTextModel, AltCLIPVisionConfig, AltCLIPVisionModel, AlternatingCodebooksLogitsProcessor, AnyToAnyPipeline, ApertusConfig, ApertusForCausalLM, ApertusForTokenClassification, ApertusModel, ApertusPreTrainedModel, AqlmConfig, ArceeConfig, ArceeForCausalLM, ArceeForQuestionAnswering, ArceeForSequenceClassification, ArceeForTokenClassification, ArceeModel, ArceePreTrainedModel, AriaConfig, AriaForConditionalGeneration, AriaImageProcessor, AriaImageProcessorPil, AriaModel, AriaPreTrainedModel, A",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The AG News dataset files are not present on the system, so we fall back to creating synthetic datasets that mimic the structure and characteristics of the real data.",
+            "The synthetic training dataset contains 1000 samples with alternating positive and negative sentiment business-related texts.",
+            "The synthetic test dataset contains 200 samples with alternating positive and negative sentiment business-related texts.",
+            "The binary classification task treats all Business category articles as positive sentiment (label 1) and all others as negative (label 0).",
+            "The sparse fine-tuning implementation selects 10% of model parameters randomly to update during training.",
+            "The experiment uses a multilingual BERT model (bert-base-multilingual-cased) for cross-lingual transfer.",
+            "The training process includes early stopping with patience of 2 epochs.",
+            "The evaluation metrics include accuracy and F1-score for both full and sparse fine-tuning approaches."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The AG News dataset provides sufficient labeled examples for both high-resource and low-resource simulations",
+            "The mBERT model can effectively transfer knowledge across languages for sentiment classification",
+            "Sparse fine-tuning can maintain performance comparable to full fine-tuning when trained on limited data",
+            "The 10% data ratio is sufficient to demonstrate the effectiveness of sparse fine-tuning",
+            "The experiment can be completed within the allocated compute budget",
+            "The transformers library version supports the AdamW optimizer from torch.optim"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 4,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced batch size from 16 to 8 to prevent memory issues on shared GPU nodes",
+            "Reduced number of epochs from 5 to 3 to fit within time constraints",
+            "Used a fixed 10% subset for sparse fine-tuning instead of dynamic selection",
+            "Simplified sparse fine-tuning to focus on parameter freezing rather than complex sparsity patterns",
+            "The Business category in AG News dataset is treated as a positive sentiment for binary classification",
+            "The model is trained with a fixed learning rate and no scheduler to reduce complexity",
+            "Training history is stored for debugging purposes but not used in final evaluation"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 5,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Reduced batch size from 8 to 4 to prevent memory overflow on shared GPU nodes",
+            "Reduced number of epochs from 3 to 2 to meet time constraints",
+            "Reduced patience for early stopping from 2 to 1 to prevent long training times",
+            "Reduced sparse fraction from 0.1 to 0.1 (same value but more conservative approach)",
+            "Reduced minimum samples for 10% subset from 50 to 20 to ensure we can always get a valid subset",
+            "Simplified logging frequency to reduce overhead",
+            "Used a fixed random seed for reproducibility",
+            "Implemented early stopping to prevent unnecessary training iterations",
+            "Applied sparse fine-tuning by freezing parameters rather than using complex sparsity algorithms",
+            "The model will fit in GPU memory with the reduced batch size",
+            "The experiment will complete within the allocated wall-clock budget"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2305.13684",
+          "title": "mPLM-Sim: Better Cross-Lingual Similarity and Transfer in Multilingual Pretrained Language Models",
+          "year": "2023",
+          "citation_count": 1,
+          "tldr": "mPLMSim uses multilingual pretrained language models to measure language similarity, improving zero-shot cross-lingual transfer performance.",
+          "url_abs": "https://arxiv.org/abs/2305.13684v3",
+          "repositories": [
+            {
+              "url": "https://github.com/cisnlp/mplm-sim",
+              "is_official": true,
+              "stars": 11
+            }
+          ],
+          "methods": [
+            "Pre-training"
+          ]
+        },
+        {
+          "paper_id": "1910.14659",
+          "title": "Masked Language Model Scoring",
+          "year": "2019",
+          "citation_count": 0,
+          "tldr": "Pseudo-log-likelihood scores from masked language models outperform autoregressive models in various NLP tasks by rescoring ASR and NMT hypotheses without supervised fine-tuning.",
+          "url_abs": "https://arxiv.org/abs/1910.14659v3",
+          "repositories": [
+            {
+              "url": "https://github.com/awslabs/mlm-scoring",
+              "is_official": true,
+              "stars": 349
+            },
+            {
+              "url": "https://github.com/google-research/electra",
+              "is_official": false,
+              "stars": 2366
+            }
+          ],
+          "methods": [
+            "Adam",
+            "BERT",
+            "BLEU",
+            "BPE",
+            "Cosine Annealing",
+            "Dropout",
+            "GPT-2",
+            "Layer Normalization",
+            "Multi-head attention",
+            "Softmax"
+          ]
+        }
+      ],
+      "reported_attempt": 2
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_25/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T20:38:10.938857+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

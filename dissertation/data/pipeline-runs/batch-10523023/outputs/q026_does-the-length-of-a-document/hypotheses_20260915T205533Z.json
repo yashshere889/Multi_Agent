@@ -1,0 +1,1116 @@
+{
+  "literature_summary": "The literature presents a multifaceted exploration of document classification and textual analysis, with a recurring theme examining how document length and vocabulary richness influence classification accuracy. Studies reveal mixed results regarding whether longer documents inherently improve performance, with some indicating that very short or very long documents may suffer from reduced accuracy due to insufficient information or computational constraints. Vocabulary richness is assessed through various metrics such as Type-Token Ratio, Brunet's W, and lexical diversity indices, often linked to language proficiency or stylistic analysis. Techniques for handling long documents include sentence ranking, chunk-based representations, and specialized transformer models like Longformer and BigBird. Meanwhile, approaches to enhancing classification accuracy involve pre-training strategies, domain-specific models, and integration of semantic knowledge through ontologies and graph-based methods. However, there is a notable lack of direct comparisons between document length and vocabulary richness effects, and inconsistencies remain in how these factors interact with model architecture and domain specificity.",
+  "methods_overview": [
+    {
+      "method": "TF-IDF-based sentence ranking",
+      "papers_using_it": [
+        "7c702a9dccd3ea4b409b705ecaef7e9cc51f9569",
+        "4e99c66489d5ab2bac7029cde1562589e4d67e66"
+      ],
+      "notes": "Commonly used to improve efficiency in long document classification by selecting key sentences, reducing input size without sacrificing accuracy."
+    },
+    {
+      "method": "Autoencoder-based framework for vocabulary quality",
+      "papers_using_it": [
+        "2503.00209v1"
+      ],
+      "notes": "Rare; used to assess vocabulary richness using neural network capacity as a proxy beyond traditional metrics."
+    },
+    {
+      "method": "LayoutLM with custom pre-training tasks",
+      "papers_using_it": [
+        "2309.05429v1"
+      ],
+      "notes": "Rare; introduces new pre-training tasks to improve layout understanding and numeric value handling for business document information extraction."
+    },
+    {
+      "method": "PathWalk model with term graphs",
+      "papers_using_it": [
+        "2001.10338v1"
+      ],
+      "notes": "Rare; combines graph networks with short text classification to overcome feature sparsity by capturing relational information between sentences."
+    },
+    {
+      "method": "LegalBERT and transformer models for legal document processing",
+      "papers_using_it": [
+        "8adae5059a28f531736b4e17aa04565819bea979"
+      ],
+      "notes": "Rare; evaluates domain-specific transformers for summarization and classification of legal documents using SHAP and LIME for interpretability."
+    },
+    {
+      "method": "L3Cube-MahaNews dataset",
+      "papers_using_it": [
+        "2e1de1a8ba0204b733b94698fcd1e73d075d6942"
+      ],
+      "notes": "Rare; provides a large-scale Marathi dataset for both short text and long document classification, supporting comparative analysis of BERT models."
+    },
+    {
+      "method": "Stylo-statistical analysis with Brunet's W index",
+      "papers_using_it": [
+        "a2d8c03fb368ec73aa8d8804ab435aed19c9f919"
+      ],
+      "notes": "Rare; quantifies lexical richness in fictional works using mathematical models to analyze stylistic choices rather than chronological trends."
+    },
+    {
+      "method": "Fine-tuned Small Language Models (SLMs)",
+      "papers_using_it": [
+        "fce28445e798ad8c4361b06fd516dd8a0b802a78"
+      ],
+      "notes": "Rare; utilizes QLoRA for parameter-efficient fine-tuning of Gemma 3 models on legal document classification."
+    },
+    {
+      "method": "RoBERTa and GPT-based models",
+      "papers_using_it": [
+        "b686de7315af7f739da210669118c994f64e0fa1"
+      ],
+      "notes": "Rare; evaluates zero-shot, few-shot, and fine-tuned GPT variants against RoBERTa for SDG text classification."
+    },
+    {
+      "method": "Ontology-based document representation",
+      "papers_using_it": [
+        "333002627"
+      ],
+      "notes": "Rare; uses MeSH ontology to enhance biomedical document retrieval by integrating concept relevance and semantic similarity."
+    },
+    {
+      "method": "Search Term Recommender (STR)",
+      "papers_using_it": [
+        "333201169"
+      ],
+      "notes": "Rare; rephrases natural language search terms into controlled vocabulary suggestions to reduce semantic complexity."
+    },
+    {
+      "method": "Document re-ranking using scientometrics and network analysis",
+      "papers_using_it": [
+        "333201169"
+      ],
+      "notes": "Rare; applies Bradfordizing and author centrality ranking to improve result set presentation in distributed digital libraries."
+    },
+    {
+      "method": "Document length as a feature in text classification",
+      "papers_using_it": [
+        "c288da6173bb9cf342dab9c0f74fddd42465d722"
+      ],
+      "notes": "Rare; examines how varying document lengths affect classification accuracy across different categories."
+    },
+    {
+      "method": "Root-based trigram language models with Good-Turing smoothing",
+      "papers_using_it": [
+        "c1df8a2205fe8389eb87ee0b9b23801b34d8c2a8"
+      ],
+      "notes": "Rare; used to study document length effects on classification performance."
+    },
+    {
+      "method": "Character-level n-gram models",
+      "papers_using_it": [
+        "c1df8a2205fe8389eb87ee0b9b23801b34d8c2a8"
+      ],
+      "notes": "Rare; proposed for future investigation in information retrieval for agglutinative languages."
+    },
+    {
+      "method": "Deep convolutional features combined with n-grams",
+      "papers_using_it": [
+        "0ca9f23d93252c8187d25dd76cf73f11b08f1da0"
+      ],
+      "notes": "Rare; applied for language variety classification."
+    },
+    {
+      "method": "Chunk-level key information representation (ChuLo)",
+      "papers_using_it": [
+        "214cb57deb3bde14cfba6ea1697ae51ae196cfef"
+      ],
+      "notes": "Rare; designed for long document understanding using Longformer and LLMs."
+    },
+    {
+      "method": "Multi-Stage Extraction Network (MEXN)",
+      "papers_using_it": [
+        "f34847447359e625b0430d87c24e25cea578b8f2"
+      ],
+      "notes": "Rare; used for patent document classification with varying paragraph lengths and input sizes."
+    },
+    {
+      "method": "Topic modeling with ordering-sensitive and semantic-aware approach",
+      "papers_using_it": [
+        "b5174be398f6d354bc3eb4b935a87bd19824a5ce"
+      ],
+      "notes": "Rare; evaluated via document classification using multinomial logistic regression and independent logistic regression."
+    },
+    {
+      "method": "Feature selection based on collection term frequency",
+      "papers_using_it": [
+        "af5485bce1aabbbdafbb3bc6a0b3776611f59edd",
+        "a8d21a3b7294f1ed9a3620727c6a07f2f6397ea7"
+      ],
+      "notes": "Common; used to determine vocabulary size by selecting words with frequency above a threshold."
+    },
+    {
+      "method": "Document length normalization",
+      "papers_using_it": [
+        "af5485bce1aabbbdafbb3bc6a0b3776611f59edd",
+        "a8d21a3b7294f1ed9a3620727c6a07f2f6397ea7"
+      ],
+      "notes": "Common; includes 1 normalization and pseudo-document normalization to adjust for varying document lengths."
+    },
+    {
+      "method": "Gamma-Poisson distribution model",
+      "papers_using_it": [
+        "a8d21a3b7294f1ed9a3620727c6a07f2f6397ea7"
+      ],
+      "notes": "Rare; applied for text categorization with normalized document vectors."
+    },
+    {
+      "method": "Corpus-specific vocabularies (CSV)",
+      "papers_using_it": [
+        "1afba00d2e0d6eb045c37bb831f341b7113f8ce6"
+      ],
+      "notes": "Rare; used in retrieval models like uniCOIL and SPLADE to improve performance and reduce latency."
+    },
+    {
+      "method": "Distilling soft labels from language models for topic modeling",
+      "papers_using_it": [
+        "58d8cdbe3e1faa4bfeb3ee97f9ab02fb18e18392"
+      ],
+      "notes": "Rare; uses dense semantic targets from language models to improve topic modeling performance over traditional bag-of-words approaches."
+    },
+    {
+      "method": "Term selection using mutual information for bag-of-words and GloVe representations",
+      "papers_using_it": [
+        "024759f7ce253e52b0e4ab5982ab85fefa0fea66"
+      ],
+      "notes": "Rare; applies mutual information to select top terms for improving classification performance with both sparse and dense vector representations."
+    },
+    {
+      "method": "Longformer with linear attention mechanism",
+      "papers_using_it": [
+        "925ad2897d1b5decbea320d07e99afa9110e09b2"
+      ],
+      "notes": "Rare; introduces Longformer, a transformer variant that supports long sequences via windowed and global attention mechanisms."
+    },
+    {
+      "method": "BigBird with sparse attention",
+      "papers_using_it": [
+        "044e13d7dd4e0655eb76f0bd00b2c1bdb44e2be3"
+      ],
+      "notes": "Rare; proposes BigBird, which uses sparse attention to reduce computational complexity and enable processing of much longer sequences."
+    },
+    {
+      "method": "Hierarchical attention networks for document classification",
+      "papers_using_it": [
+        "455afd748e8834ef521e4b67c7c056d3c33429e2"
+      ],
+      "notes": "Rare; employs hierarchical attention at word and sentence levels to capture document structure and importance."
+    },
+    {
+      "method": "Long Range Arena (LRA) benchmark",
+      "papers_using_it": [
+        "7e9ff94476f41041c75e253e84f487db00e9c861"
+      ],
+      "notes": "Rare; provides a unified benchmark for evaluating long-range transformer models across diverse tasks and sequence lengths."
+    },
+    {
+      "method": "Long-range Transformer Architectures",
+      "papers_using_it": [
+        "2309.05503v1"
+      ],
+      "notes": "Rare; efficient implementations of Transformers for processing long multi-page documents with 2D relative attention bias."
+    },
+    {
+      "method": "Multimodal Classification with Fusion Module",
+      "papers_using_it": [
+        "2207.00748v2"
+      ],
+      "notes": "Rare; combines visual and textual features using ResNet and CNNs, with biLSTM and CRF for sequential modeling."
+    },
+    {
+      "method": "Document Domain Randomization (DDR)",
+      "papers_using_it": [
+        "2105.14931v1"
+      ],
+      "notes": "Rare; uses randomized pseudo-document pages to train CNNs for real-world document segmentation."
+    },
+    {
+      "method": "Semi-Automatic Layout Annotation",
+      "papers_using_it": [
+        "2306.10046v2"
+      ],
+      "notes": "Rare; procedure for annotating document layout with 4 basic blocks and 4 text categories across 37.9K documents."
+    },
+    {
+      "method": "OpenSeeD Framework",
+      "papers_using_it": [
+        "2303.08131v3"
+      ],
+      "notes": "Rare; joint training framework for open-vocabulary segmentation and detection using a shared text encoder and decoupled decoding."
+    },
+    {
+      "method": "Enhanced Effective Convolutional Attention Network (EECAN)",
+      "papers_using_it": [
+        "922fd9100e02a939060faa41683e3546664db48d"
+      ],
+      "notes": "Rare; uses Squeeze-and-Excitation Inception module and multi-layer attention mechanisms for clinical document classification."
+    },
+    {
+      "method": "Large Language Models (LLMs) with reasoning capabilities",
+      "papers_using_it": [
+        "127f39f2d35992ba44b61532c3c5b0a5e46ba2dd"
+      ],
+      "notes": "Rare; evaluates reasoning vs. non-reasoning LLMs for binary clinical document classification using MIMIC-IV dataset."
+    },
+    {
+      "method": "Phrase-based techniques",
+      "papers_using_it": [
+        "7565c98c3535d62ea6a9a5a5cc13733190bc56ec"
+      ],
+      "notes": "Rare; explores document classification using phrase-based methods; abstract not available."
+    },
+    {
+      "method": "AI-supported cataloging tools",
+      "papers_using_it": [
+        "97797b3ffe4e6f1359cf096e11d54756240dfd2e"
+      ],
+      "notes": "Rare; analyzes automatic document classification in library contexts and evaluates tools like Annif and JEX."
+    },
+    {
+      "method": "Transformer models for compliance management",
+      "papers_using_it": [
+        "37d8bc1c268773dc69c92c6f550393c93e9a1f7a"
+      ],
+      "notes": "Rare; applies transformers for regulations compliance in utility companies; abstract not available."
+    },
+    {
+      "method": "Lexical richness measures",
+      "papers_using_it": [
+        "be1d23f10108952ef8696d6c1bbcf8329256ce2b",
+        "bf7eb358ac59abecf4a424aef794ad112208c106"
+      ],
+      "notes": "Common; measures vocabulary richness using lexical diversity, sophistication, and sememe factors in second-language writing."
+    },
+    {
+      "method": "Lexical semantic analysis for disciplinary diversity",
+      "papers_using_it": [
+        "875fad23d948b99b8fe83b3463ba9d4db92c1a03"
+      ],
+      "notes": "Rare; proposes a method to measure disciplinary diversity using semantic spaces and concept distribution."
+    },
+    {
+      "method": "Type Token Ratio (TTR)",
+      "papers_using_it": [
+        "19f61966ed24d59acdffc6a147f3d1d5c4d67ef8",
+        "8340411"
+      ],
+      "notes": "Common; used to measure lexical richness in editorial texts and IELTS essays."
+    },
+    {
+      "method": "Lexical Frequency Profile (LFP)",
+      "papers_using_it": [
+        "19f61966ed24d59acdffc6a147f3d1d5c4d67ef8"
+      ],
+      "notes": "Rare; applied to analyze high-frequency and low-frequency word usage in newspaper editorials."
+    },
+    {
+      "method": "Vocabulary profiling tools",
+      "papers_using_it": [
+        "4ca52130088c852c3410e653a4073eb8d24d55f5"
+      ],
+      "notes": "Rare; used to assess changes in lexical richness over multiple drafts of student writing."
+    },
+    {
+      "method": "Statistical classification algorithms",
+      "papers_using_it": [
+        "340528083"
+      ],
+      "notes": "Rare; evaluated for Arabic text classification across multiple corpora."
+    },
+    {
+      "method": "Feature-based genre classification",
+      "papers_using_it": [
+        "218350",
+        "218356"
+      ],
+      "notes": "Common; examined visual, stylistic, and topical features separately for genre identification."
+    },
+    {
+      "method": "Nonparametric and semi-parametric methods",
+      "papers_using_it": [
+        "2521424"
+      ],
+      "notes": "Rare; used for estimating species richness in ecological studies."
+    },
+    {
+      "method": "Formulaic sequence counting",
+      "papers_using_it": [
+        "8340411"
+      ],
+      "notes": "Rare; applied to assess depth of vocabulary in IELTS writing samples."
+    },
+    {
+      "method": "Vocabulary richness measures",
+      "papers_using_it": [
+        "284579850"
+      ],
+      "notes": "Rare; used to assess lexical diversity in language samples."
+    },
+    {
+      "method": "Cognitive diversity framework",
+      "papers_using_it": [
+        "1110.6589v1"
+      ],
+      "notes": "Rare; applied to radar target classification using angular diversity."
+    },
+    {
+      "method": "Vocabulary transfer",
+      "papers_using_it": [
+        "2402.09977v1"
+      ],
+      "notes": "Rare; used for language model compression to reduce size and inference time."
+    },
+    {
+      "method": "Deep learning models",
+      "papers_using_it": [
+        "2403.11958v1"
+      ],
+      "notes": "Rare; employed to simulate language emergence and study its evolution."
+    },
+    {
+      "method": "Morphological evaluation of subwords",
+      "papers_using_it": [
+        "2410.02283v1"
+      ],
+      "notes": "Rare; assesses the alignment of subword vocabularies with real morphemes."
+    },
+    {
+      "method": "ASR-based language sample analysis",
+      "papers_using_it": [
+        "652146b6e8f602f45be70e8c82fb9c7814741fd6"
+      ],
+      "notes": "Rare; used to automate early language acquisition assessment in children."
+    },
+    {
+      "method": "Convolutional Neural Networks",
+      "papers_using_it": [
+        "8a75bfdf8e42865827a5d24bbf11d936b14edc88"
+      ],
+      "notes": "Rare; used for keystroke dynamics analysis in MCI detection."
+    },
+    {
+      "method": "Natural Language Processing (NLP)",
+      "papers_using_it": [
+        "8a75bfdf8e42865827a5d24bbf11d936b14edc88"
+      ],
+      "notes": "Rare; applied to analyze spontaneous written speech for MCI classification."
+    },
+    {
+      "method": "Linear Discriminant Analysis (LDA)",
+      "papers_using_it": [
+        "750442c13483543fcfb3c1720aa649a3dc93f833"
+      ],
+      "notes": "Rare; used to evaluate separability of speech features between MCI and healthy controls."
+    },
+    {
+      "method": "Support Vector Machine (SVM)",
+      "papers_using_it": [
+        "750442c13483543fcfb3c1720aa649a3dc93f833"
+      ],
+      "notes": "Rare; trained on LDA-projected speech features for MCI classification."
+    },
+    {
+      "method": "Free semantic association task",
+      "papers_using_it": [
+        "1f099827063e923ddc0dfaf194e12185bc713ae9"
+      ],
+      "notes": "Rare; used to measure age-specific semantic network properties."
+    },
+    {
+      "method": "Picture-naming task",
+      "papers_using_it": [
+        "1f099827063e923ddc0dfaf194e12185bc713ae9"
+      ],
+      "notes": "Rare; used to assess word production speed in relation to semantic network properties."
+    },
+    {
+      "method": "Vocabulary dropout",
+      "papers_using_it": [
+        "d4a176a4bfd5e2645307ca191d7dec7a1848a82f"
+      ],
+      "notes": "Rare; intervention to maintain diversity in co-evolving language models."
+    },
+    {
+      "method": "Lexical richness analysis",
+      "papers_using_it": [
+        "85f0d9e61c62a1f91ee9f08e19004c13b076b032"
+      ],
+      "notes": "Rare; used to compare vocabulary and lexical diversity between ChatGPT and humans."
+    },
+    {
+      "method": "lexical decision tasks",
+      "papers_using_it": [
+        "7125178",
+        "259627"
+      ],
+      "notes": "Common; used to assess processing differences between emotional and neutral words, and to model lexical processing with morphological and semantic effects."
+    },
+    {
+      "method": "priming paradigms",
+      "papers_using_it": [
+        "233392"
+      ],
+      "notes": "Rare; employed to investigate integrative priming among unrelated concepts and challenge existing models of lexical priming."
+    },
+    {
+      "method": "time-course tracking of learning effects",
+      "papers_using_it": [
+        "332840645"
+      ],
+      "notes": "Rare; used to examine talker-specificity and lexical competition over immediate and delayed testing periods."
+    },
+    {
+      "method": "Bayesian Information-Theoretical (BIT) modeling",
+      "papers_using_it": [
+        "259627"
+      ],
+      "notes": "Rare; applied to simulate neural assembly-based lexical processing and predict behavioral outcomes in lexical decision tasks."
+    },
+    {
+      "method": "vocabulary tests and assessments",
+      "papers_using_it": [
+        "4381094",
+        "4499817"
+      ],
+      "notes": "Common; utilized to measure vocabulary development and learning outcomes in intensive and student-centered instructional settings."
+    },
+    {
+      "method": "student-centered learning strategies",
+      "papers_using_it": [
+        "4499817"
+      ],
+      "notes": "Rare; implemented through peer tutoring and semantic mapping to enhance vocabulary retention and learner autonomy."
+    },
+    {
+      "method": "document semantic graphs",
+      "papers_using_it": [
+        "2206.07296v2"
+      ],
+      "notes": "Rare; used for knowledge selection in grounded dialogues to preserve sentence-level and concept-level semantics."
+    },
+    {
+      "method": "WL-SPPIM semantic model",
+      "papers_using_it": [
+        "1706.01758v1"
+      ],
+      "notes": "Rare; proposed for text classification, building upon SPPIM to improve scalability and classification performance."
+    },
+    {
+      "method": "deep neural networks and multimedia knowledge graph",
+      "papers_using_it": [
+        "e2344dfaa8587e3cd7938163b48a7105e8389adb"
+      ],
+      "notes": "Rare; applied for document classification using textual and visual topic detection techniques."
+    },
+    {
+      "method": "TF-IDF and Word2Vec",
+      "papers_using_it": [
+        "0c205af3fcd5235d59db43f2f0a211e5d12bea3b"
+      ],
+      "notes": "Rare; used for extracting semantic meaning from crash narratives in injury severity prediction."
+    },
+    {
+      "method": "LLM-assisted parsing and semantic analysis",
+      "papers_using_it": [
+        "4d3b3cab3cfb507f1c1fcde876fe08fdcd6c0c79"
+      ],
+      "notes": "Rare; employed for automated extraction and cross-document analysis of aerospace project requirements."
+    },
+    {
+      "method": "ModernBERT and semi-supervised ensemble learning",
+      "papers_using_it": [
+        "bf4948a4c48d5fa0071e44a2c8dce56cb59c44a6"
+      ],
+      "notes": "Rare; used for detecting and classifying illicit marketplace content across multiple platforms."
+    },
+    {
+      "method": "ontology-driven knowledge graph construction",
+      "papers_using_it": [
+        "ad07d7db8736fd10b3410120e320ad13c0621a79"
+      ],
+      "notes": "Rare; semi-automatic methodology for building knowledge graphs from unstructured texts in Moroccan ICH."
+    },
+    {
+      "method": "Ontology-based document spanning",
+      "papers_using_it": [
+        "4caeaf5babb1c7b728c27d2eb79e0ddc5a257e6b"
+      ],
+      "notes": "Rare; a framework for mapping text documents to ontologies using spanners, enabling conjunctive query answering in a virtual manner."
+    },
+    {
+      "method": "Supervised ontology-based document classification",
+      "papers_using_it": [
+        "ddcf62fd15e99eb6a6af20af23c2c8cac06d014b"
+      ],
+      "notes": "Rare; a supervised learning model for classifying documents based on ontology structures."
+    },
+    {
+      "method": "Cross-concordances for terminology mapping",
+      "papers_using_it": [
+        "607557",
+        "333202858"
+      ],
+      "notes": "Common; techniques for aligning controlled vocabularies through cross-concordances to improve search in digital libraries."
+    },
+    {
+      "method": "Search Term Recommender (STR)",
+      "papers_using_it": [
+        "577460"
+      ],
+      "notes": "Rare; a service that rephrases natural language queries into controlled vocabulary terms to reduce semantic mismatch."
+    },
+    {
+      "method": "Document triage using MeSH ontology",
+      "papers_using_it": [
+        "4765493"
+      ],
+      "notes": "Rare; extending MEDLINE document representations using MeSH ontology relationships for improved classification performance."
+    },
+    {
+      "method": "Ontology-based semantic annotation for content management",
+      "papers_using_it": [
+        "4761905"
+      ],
+      "notes": "Rare; using domain ontologies to annotate diverse content formats for consistent content change management."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited evaluation of vocabulary quality in non-English or low-resource languages",
+      "supporting_evidence": [
+        "2503.00209v1",
+        "2e1de1a8ba0204b733b94698fcd1e73d075d6942"
+      ],
+      "notes": "Most studies focus on English or high-resource languages, leaving vocabulary richness in low-resource settings underexplored."
+    },
+    {
+      "gap": "Lack of explicit comparison between zero-shot and fine-tuned approaches in long document classification",
+      "supporting_evidence": [
+        "4e99c66489d5ab2bac7029cde1562589e4d67e66"
+      ],
+      "notes": "Few studies directly compare zero-shot and fine-tuned models in long document classification tasks."
+    },
+    {
+      "gap": "Absence of detailed discussion on how pre-training tasks generalize across different types of business documents",
+      "supporting_evidence": [
+        "2309.05429v1"
+      ],
+      "notes": "Pre-training strategies are often tailored to specific domains without sufficient generalization analysis."
+    },
+    {
+      "gap": "No clear indication of how the effectiveness of sentence ranking varies with document type or domain specificity",
+      "supporting_evidence": [
+        "7c702a9dccd3ea4b409b705ecaef7e9cc51f9569",
+        "4e99c66489d5ab2bac7029cde1562589e4d67e66"
+      ],
+      "notes": "Sentence ranking methods are tested primarily on generic documents, lacking domain-specific validation."
+    },
+    {
+      "gap": "The relationship between document length and classification accuracy is inconsistent and context-dependent",
+      "supporting_evidence": [
+        "c288da6173bb9cf342dab9c0f74fddd42465d722"
+      ],
+      "notes": "Studies show contradictory results, making it difficult to draw definitive conclusions about document length impact."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively handle the trade-offs between model size, cost, and performance in real-world legal document classification scenarios",
+      "supporting_evidence": [
+        "fce28445e798ad8c4361b06fd516dd8a0b802a78"
+      ],
+      "notes": "Practical considerations for deploying small language models in legal contexts are underexplored."
+    },
+    {
+      "gap": "While GPT-based models show improved performance on SDG classification, the study lacks comparison with other transformer-based architectures beyond RoBERTa",
+      "supporting_evidence": [
+        "b686de7315af7f739da210669118c994f64e0fa1"
+      ],
+      "notes": "Comparative analysis of GPT with other transformer models is missing, limiting understanding of relative strengths."
+    },
+    {
+      "gap": "The effectiveness of ontology-based approaches in improving retrieval in heterogeneous digital libraries has not been fully validated across diverse domains",
+      "supporting_evidence": [
+        "333201169"
+      ],
+      "notes": "Validation of ontology-based retrieval methods is mostly limited to specific domains or datasets."
+    },
+    {
+      "gap": "Shorter documents are harder to classify due to insufficient information, while very long documents may suffer from performance degradation due to insufficient sample sizes or computational constraints",
+      "supporting_evidence": [
+        "c1df8a2205fe8389eb87ee0b9b23801b34d8c2a8",
+        "0ca9f23d93252c8187d25dd76cf73f11b08f1da0"
+      ],
+      "notes": "Both extremes of document length present challenges, but the precise thresholds and mitigations are unclear."
+    },
+    {
+      "gap": "There is a lack of consistent evidence regarding whether longer documents inherently improve classification accuracy; some studies show no significant difference, while others report performance drops for extreme lengths",
+      "supporting_evidence": [
+        "c1df8a2205fe8389eb87ee0b9b23801b34d8c2a8",
+        "214cb57deb3bde14cfba6ea1697ae51ae196cfef"
+      ],
+      "notes": "Inconsistent findings make it hard to establish a universal rule for document length and classification accuracy."
+    },
+    {
+      "gap": "The impact of document structure (e.g., number and length of paragraphs) on classification performance is underexplored, especially in relation to memory and computational efficiency",
+      "supporting_evidence": [
+        "f34847447359e625b0430d87c24e25cea578b8f2"
+      ],
+      "notes": "Structural aspects of documents beyond raw length are rarely considered in classification studies."
+    },
+    {
+      "gap": "Benchmark datasets for long document classification often lack diversity in document length and structure, limiting their usefulness for evaluating model robustness",
+      "supporting_evidence": [
+        "4b573aab1e37909aa604bd4397fbd4b3e2ccd98a"
+      ],
+      "notes": "Current benchmarks do not adequately represent real-world document variability."
+    },
+    {
+      "gap": "The effectiveness of document length normalization varies significantly across different datasets and classifiers, particularly for Poisson, negative binomial, and K-mixture models",
+      "supporting_evidence": [
+        "af5485bce1aabbbdafbb3bc6a0b3776611f59edd"
+      ],
+      "notes": "Normalization techniques are inconsistently effective, requiring more targeted evaluation."
+    },
+    {
+      "gap": "Increasing vocabulary size beyond a certain point (e.g., 100k for MS MARCO v1) does not substantially improve retrieval performance but may increase latency due to larger document sizes",
+      "supporting_evidence": [
+        "1afba00d2e0d6eb045c37bb831f341b7113f8ce6"
+      ],
+      "notes": "There is no consensus on optimal vocabulary size for retrieval systems."
+    },
+    {
+      "gap": "The performance of bag-of-words classifiers degrades with aggressive term selection, whereas GloVe representations are sensitive to term selection regardless of timing",
+      "supporting_evidence": [
+        "024759f7ce253e52b0e4ab5982ab85fefa0fea66"
+      ],
+      "notes": "Term selection strategies have differential impacts on various representation types, requiring nuanced approaches."
+    },
+    {
+      "gap": "Reducing the number of documents while maintaining token count improves retrieval performance, suggesting that multiple documents pose an additional challenge beyond context length alone",
+      "supporting_evidence": [
+        "cb80a034e977aa538269f6efca3968b52a48d505"
+      ],
+      "notes": "The effect of document multiplicity on retrieval is not well understood."
+    },
+    {
+      "gap": "Efficient transformers like Longformer and BigBird are designed to handle long sequences but may still face challenges in balancing accuracy and efficiency",
+      "supporting_evidence": [
+        "925ad2897d1b5decbea320d07e99afa9110e09b2",
+        "044e13d7dd4e0655eb76f0bd00b2c1bdb44e2be3"
+      ],
+      "notes": "Despite advances, efficiency-accuracy trade-offs remain unresolved for long-sequence models."
+    },
+    {
+      "gap": "Limited evaluation of long-range models on diverse document types beyond business documents",
+      "supporting_evidence": [
+        "2309.05503v1"
+      ],
+      "notes": "Long-range models are primarily tested on business documents, with little exploration in other domains."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for open vocabulary learning in document layout analysis",
+      "supporting_evidence": [
+        "2306.10046v2",
+        "2303.08131v3"
+      ],
+      "notes": "No established benchmarks exist for evaluating open vocabulary learning in layout analysis."
+    },
+    {
+      "gap": "Domain randomization may not generalize well to highly variable real-world document styles",
+      "supporting_evidence": [
+        "2105.14931v1"
+      ],
+      "notes": "The robustness of domain randomization to real-world variability is uncertain."
+    },
+    {
+      "gap": "Limited performance comparison of reasoning versus non-reasoning LLMs in multi-label clinical document classification",
+      "supporting_evidence": [
+        "127f39f2d35992ba44b61532c3c5b0a5e46ba2dd"
+      ],
+      "notes": "Multi-label clinical classification comparisons between reasoning and non-reasoning LLMs are lacking."
+    },
+    {
+      "gap": "Lack of detailed evaluation of EECAN's performance on multi-label clinical datasets beyond AUC scores",
+      "supporting_evidence": [
+        "922fd9100e02a939060faa41683e3546664db48d"
+      ],
+      "notes": "EECAN's performance is not thoroughly evaluated beyond standard metrics."
+    },
+    {
+      "gap": "Absence of comparative studies on phrase-based techniques in clinical or regulatory document classification",
+      "supporting_evidence": [
+        "7565c98c3535d62ea6a9a5a5cc13733190bc56ec"
+      ],
+      "notes": "Phrase-based methods are not systematically compared in clinical or regulatory contexts."
+    },
+    {
+      "gap": "Need for more robust evaluation of AI-supported cataloging tools in diverse library environments",
+      "supporting_evidence": [
+        "97797b3ffe4e6f1359cf096e11d54756240dfd2e"
+      ],
+      "notes": "Evaluation of cataloging tools is limited to controlled settings."
+    },
+    {
+      "gap": "Insufficient exploration of how sememe richness impacts lexical diversity in second-language writing",
+      "supporting_evidence": [
+        "bf7eb358ac59abecf4a424aef794ad112208c106"
+      ],
+      "notes": "Sememe-related aspects of lexical diversity are underexplored in second-language contexts."
+    },
+    {
+      "gap": "The effectiveness of ASR systems in preserving linguistic features for language development assessment remains underexplored despite promising correlations",
+      "supporting_evidence": [
+        "652146b6e8f602f45be70e8c82fb9c7814741fd6"
+      ],
+      "notes": "ASR's role in preserving linguistic detail for developmental assessment is not well studied."
+    },
+    {
+      "gap": "Subword tokenization algorithms may produce vocabularies with low morphological quality, potentially affecting model performance",
+      "supporting_evidence": [
+        "2410.02283v1"
+      ],
+      "notes": "Morphological quality of subword vocabularies is often overlooked in model design."
+    },
+    {
+      "gap": "There is limited understanding of how fine motor skills relate to lexical processing in embodied vocabulary, despite hypotheses suggesting a connection",
+      "supporting_evidence": [
+        "1f9f427669d1171b886b1e3d45005b364b4fa4a9"
+      ],
+      "notes": "Embodied vocabulary connections to motor skills are under-researched."
+    },
+    {
+      "gap": "The effectiveness of speech-based MCI detection varies significantly across different linguistic and acoustic features depending on the language corpus used",
+      "supporting_evidence": [
+        "750442c13483543fcfb3c1720aa649a3dc93f833"
+      ],
+      "notes": "Speech-based MCI detection is highly dependent on corpus characteristics, limiting generalizability."
+    },
+    {
+      "gap": "There is limited investigation into how digital biomarkers derived from touchscreen typing and linguistic features interact in real-world settings for MCI detection",
+      "supporting_evidence": [
+        "8a75bfdf8e42865827a5d24bbf11d936b14edc88"
+      ],
+      "notes": "Real-world interaction of digital biomarkers is underexplored."
+    },
+    {
+      "gap": "The impact of AI-generated text on long-term vocabulary evolution and lexical richness remains an open question requiring further empirical study",
+      "supporting_evidence": [
+        "85f0d9e61c62a1f91ee9f08e19004c13b076b032"
+      ],
+      "notes": "Long-term effects of AI-generated text on lexical richness are unknown."
+    },
+    {
+      "gap": "Age-specific effects on lexical-semantic organization are not fully understood in relation to word production in clinical populations such as those with MCI",
+      "supporting_evidence": [
+        "1f099827063e923ddc0dfaf194e12185bc713ae9"
+      ],
+      "notes": "Clinical populations' lexical-semantic development is not well characterized."
+    },
+    {
+      "gap": "The role of emotional content in lexical processing remains inconsistent across studies due to confounding variables like frequency and familiarity",
+      "supporting_evidence": [
+        "7125178"
+      ],
+      "notes": "Emotional processing effects are confounded by other lexical variables."
+    },
+    {
+      "gap": "Integrative priming challenges current theories of lexical processing by showing facilitation between unrelated concepts",
+      "supporting_evidence": [
+        "233392"
+      ],
+      "notes": "Current lexical processing models need revision to account for integrative priming."
+    },
+    {
+      "gap": "The transition from episodic to abstract lexical representations during word learning requires further investigation into the conditions under which each type dominates",
+      "supporting_evidence": [
+        "332840645"
+      ],
+      "notes": "Understanding of lexical representation transitions is incomplete."
+    },
+    {
+      "gap": "The BIT model's application to different languages and contexts needs broader validation to establish generalizability",
+      "supporting_evidence": [
+        "259627"
+      ],
+      "notes": "Generalizability of the BIT model is unproven across languages and contexts."
+    },
+    {
+      "gap": "The effectiveness of student-centered vocabulary instruction in improving long-term retention and motivation requires more longitudinal studies",
+      "supporting_evidence": [
+        "4499817"
+      ],
+      "notes": "Longitudinal evidence for student-centered instruction is lacking."
+    },
+    {
+      "gap": "The effectiveness of semantic graph-based knowledge selection in grounded dialogues may vary depending on the availability of annotated data or the complexity of the domain",
+      "supporting_evidence": [
+        "2206.07296v2"
+      ],
+      "notes": "Semantic graph effectiveness is context-dependent and poorly validated."
+    },
+    {
+      "gap": "There is limited comparison of how different NLP techniques (e.g., TF-IDF vs. Word2Vec) perform in real-world applications beyond controlled benchmarks",
+      "supporting_evidence": [
+        "0c205af3fcd5235d59db43f2f0a211e5d12bea3b"
+      ],
+      "notes": "Real-world performance comparisons are scarce."
+    },
+    {
+      "gap": "The reliance on cloud-hosted LLMs in aerospace requirements analysis raises concerns about deployment constraints and data privacy in sensitive environments",
+      "supporting_evidence": [
+        "4d3b3cab3cfb507f1c1fcde876fe08fdcd6c0c79"
+      ],
+      "notes": "Deployment and privacy implications of LLMs in sensitive domains are underexplored."
+    },
+    {
+      "gap": "The performance of language models in detecting illicit content may be limited by the evolving nature of such language and lack of labeled data",
+      "supporting_evidence": [
+        "bf4948a4c48d5fa0071e44a2c8dce56cb59c44a6"
+      ],
+      "notes": "Illicit content detection is hindered by dynamic language and data scarcity."
+    },
+    {
+      "gap": "The applicability of ontology-driven knowledge graphs built from unstructured texts may be constrained by domain-specific terminology and expert validation needs",
+      "supporting_evidence": [
+        "ad07d7db8736fd10b3410120e320ad13c0621a79"
+      ],
+      "notes": "Ontology-based knowledge graphs face limitations in domain-specific contexts."
+    },
+    {
+      "gap": "How to declaratively couple an ontology with unstructured data sources remains largely unexplored in the context of Ontology-based Data Access (OBDA)",
+      "supporting_evidence": [
+        "4caeaf5babb1c7b728c27d2eb79e0ddc5a257e6b"
+      ],
+      "notes": "Declarative coupling in OBDA is not well developed."
+    },
+    {
+      "gap": "The effectiveness of supervised ontology-based classification models has not been extensively evaluated or compared against other approaches",
+      "supporting_evidence": [
+        "ddcf62fd15e99eb6a6af20af23c2c8cac06d014b"
+      ],
+      "notes": "Supervised ontology models lack comparative validation."
+    },
+    {
+      "gap": "There is limited discussion on scalability and practical implementation challenges of cross-concordance-based terminology networks in large-scale digital libraries",
+      "supporting_evidence": [
+        "607557",
+        "333202858"
+      ],
+      "notes": "Scalability issues in terminology mapping are underexplored."
+    },
+    {
+      "gap": "The impact of semantic heterogeneity on document ranking in distributed digital libraries has not been fully addressed beyond theoretical proposals",
+      "supporting_evidence": [
+        "577460"
+      ],
+      "notes": "Semantic heterogeneity's impact on ranking is largely theoretical."
+    },
+    {
+      "gap": "The integration of MeSH ontology relationships for document extension shows promise but lacks broader validation across different domains",
+      "supporting_evidence": [
+        "4765493"
+      ],
+      "notes": "MeSH integration is validated only in specific domains."
+    },
+    {
+      "gap": "The trace model linking domain ontologies and content units in software applications needs further empirical evaluation",
+      "supporting_evidence": [
+        "4761905"
+      ],
+      "notes": "Trace model validation is lacking in empirical studies."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "In document classification tasks using the 20 Newsgroups dataset, increasing document length beyond 300 words will not significantly improve classification accuracy compared to using vocabulary-rich shorter documents with a Type-Token Ratio (TTR) above 0.75, when both are processed through a standard BERT model.",
+      "rationale": "This hypothesis is grounded in the literature gap regarding inconsistent findings on document length effects and the lack of direct comparison between document length and vocabulary richness. It leverages the 20 Newsgroups dataset which contains documents of varying lengths, allowing for empirical testing of whether vocabulary richness (measured by TTR) has a stronger impact on classification accuracy than document length. The hypothesis is specific enough to be tested on real data and avoids methodological contradictions by focusing on a single model architecture (BERT) and a defined metric for vocabulary richness (TTR).",
+      "related_gaps": [
+        "The relationship between document length and classification accuracy is inconsistent and context-dependent",
+        "There is a lack of explicit comparison between zero-shot and fine-tuned approaches in long document classification"
+      ],
+      "related_methods": [
+        "Type Token Ratio (TTR)",
+        "Document length as a feature in text classification",
+        "TF-IDF-based sentence ranking"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "document_length",
+          "type_token_ratio"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "For legal document classification using the L3Cube-MahaNews dataset, models trained on documents with higher lexical diversity (as measured by Brunet's W index) will achieve higher F1 scores than models trained on documents with lower lexical diversity, even when controlling for document length.",
+      "rationale": "This hypothesis builds on the gap concerning the limited evaluation of vocabulary quality in non-English or low-resource languages and the need for more robust evaluation of lexical richness measures. It specifically references the use of Brunet's W index in literary analysis and applies it to legal document classification. The L3Cube-MahaNews dataset provides a suitable environment for testing this hypothesis because it includes both short and long documents in a Marathi context, allowing for controlled comparisons of lexical diversity effects. This hypothesis can be directly tested using real data from the dataset.",
+      "related_gaps": [
+        "Limited evaluation of vocabulary quality in non-English or low-resource languages",
+        "Insufficient exploration of how sememe richness impacts lexical diversity in second-language writing"
+      ],
+      "related_methods": [
+        "Stylo-statistical analysis with Brunet's W index",
+        "Lexical richness measures",
+        "L3Cube-MahaNews dataset"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "brunets_w_index"
+        ],
+        "dependent": [
+          "f1_score"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "When applying sentence ranking techniques to long documents in the 20 Newsgroups dataset, classification accuracy will be maintained or improved compared to full document processing, provided that the selected sentences maintain a minimum vocabulary richness threshold of 0.65 TTR.",
+      "rationale": "This hypothesis connects to the bridge insight about sentence ranking approaches and builds on the gap concerning the lack of validation of sentence ranking methods across different domains. It specifically uses the 20 Newsgroups dataset which contains long documents, making it ideal for testing sentence ranking effectiveness. The hypothesis is testable because it defines a measurable vocabulary richness threshold (TTR) that can be calculated from the ranked sentences. It also incorporates the method of sentence ranking, which is commonly used in long document classification, and directly addresses the interaction between document length reduction and vocabulary preservation.",
+      "related_gaps": [
+        "No clear indication of how the effectiveness of sentence ranking varies with document type or domain specificity",
+        "The effectiveness of document length normalization varies significantly across different datasets and classifiers"
+      ],
+      "related_methods": [
+        "TF-IDF-based sentence ranking",
+        "Document length normalization",
+        "Type Token Ratio (TTR)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "sentence_ranking_method",
+          "minimum_ttr_threshold"
+        ],
+        "dependent": [
+          "classification_accuracy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses the 20 Newsgroups dataset, which contains long documents (median 86 words, p90 342, max 11765) and is publicly available. It is testable because it makes a specific claim about classification accuracy improvement with document length vs. vocabulary richness, and the outcome could go either way. It is coherent as it focuses on a single model (BERT) and clearly contrasts document length with TTR. The data directly informs the claim through actual document processing and classification metrics. It is well-grounded in the literature gap around inconsistent findings on document length effects and the lack of direct comparison between length and vocabulary richness."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 is moderately feasible since it also uses the 20 Newsgroups dataset, but it introduces sentence ranking techniques which adds complexity. It is testable as it specifies a minimum TTR threshold for maintaining accuracy, though the interaction between sentence ranking and vocabulary preservation is less straightforward. It is somewhat coherent but slightly less focused than H1, as it involves multiple steps (sentence ranking + classification). Its grounding is solid through bridge insights on sentence ranking, but the added methodological layer makes it less direct than H1."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 is least feasible because it relies on the L3Cube-MahaNews dataset, which is not listed among the available datasets, making it impossible to test. While it is testable in principle and coherent in its approach, it fails the feasibility criterion. It is grounded in the literature gap regarding vocabulary quality in low-resource languages, but lacks a real-world dataset to validate the claim. Its reliance on Brunet's W index and F1 score is sound, but the experimental setup cannot be executed with the provided data."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2309.05429v1",
+    "2503.00209v1",
+    "2001.10338v1",
+    "1606.03963v1",
+    "8adae5059a28f531736b4e17aa04565819bea979",
+    "7c702a9dccd3ea4b409b705ecaef7e9cc51f9569",
+    "4e99c66489d5ab2bac7029cde1562589e4d67e66",
+    "2e1de1a8ba0204b733b94698fcd1e73d075d6942",
+    "e7cc4db57137c838a644a97009313219ca5f16fe",
+    "c2f3b13e467df8143a6a44da84eb6c7c43bdca00",
+    "a2d8c03fb368ec73aa8d8804ab435aed19c9f919",
+    "fce28445e798ad8c4361b06fd516dd8a0b802a78",
+    "b686de7315af7f739da210669118c994f64e0fa1",
+    "333201169",
+    "333002627",
+    "c288da6173bb9cf342dab9c0f74fddd42465d722",
+    "c1df8a2205fe8389eb87ee0b9b23801b34d8c2a8",
+    "0ca9f23d93252c8187d25dd76cf73f11b08f1da0",
+    "214cb57deb3bde14cfba6ea1697ae51ae196cfef",
+    "f34847447359e625b0430d87c24e25cea578b8f2",
+    "b5174be398f6d354bc3eb4b935a87bd19824a5ce",
+    "af5485bce1aabbbdafbb3bc6a0b3776611f59edd",
+    "4b573aab1e37909aa604bd4397fbd4b3e2ccd98a",
+    "a8d21a3b7294f1ed9a3620727c6a07f2f6397ea7",
+    "1afba00d2e0d6eb045c37bb831f341b7113f8ce6",
+    "58d8cdbe3e1faa4bfeb3ee97f9ab02fb18e18392",
+    "024759f7ce253e52b0e4ab5982ab85fefa0fea66",
+    "cb80a034e977aa538269f6efca3968b52a48d505",
+    "91859a5f97a12b0946581793571d736139244441",
+    "925ad2897d1b5decbea320d07e99afa9110e09b2",
+    "044e13d7dd4e0655eb76f0bd00b2c1bdb44e2be3",
+    "455afd748e8834ef521e4b67c7c056d3c33429e2",
+    "7e9ff94476f41041c75e253e84f487db00e9c861",
+    "2309.05503v1",
+    "2207.00748v2",
+    "2105.14931v1",
+    "2306.10046v2",
+    "2306.15880v4",
+    "2101.07005v2",
+    "2303.08131v3",
+    "922fd9100e02a939060faa41683e3546664db48d",
+    "127f39f2d35992ba44b61532c3c5b0a5e46ba2dd",
+    "7565c98c3535d62ea6a9a5a5cc13733190bc56ec",
+    "97797b3ffe4e6f1359cf096e11d54756240dfd2e",
+    "37d8bc1c268773dc69c92c6f550393c93e9a1f7a",
+    "be1d23f10108952ef8696d6c1bbcf8329256ce2b",
+    "bf7eb358ac59abecf4a424aef794ad112208c106",
+    "875fad23d948b99b8fe83b3463ba9d4db92c1a03",
+    "4ca52130088c852c3410e653a4073eb8d24d55f5",
+    "19f61966ed24d59acdffc6a147f3d1d5c4d67ef8",
+    "340528083",
+    "62702349",
+    "218350",
+    "218356",
+    "2532054",
+    "2521424",
+    "321114318",
+    "8340411",
+    "284579850",
+    "1002.3035v1",
+    "0901.3028v1",
+    "1801.08829v2",
+    "1110.6589v1",
+    "2402.09977v1",
+    "2403.11958v1",
+    "2410.02283v1",
+    "652146b6e8f602f45be70e8c82fb9c7814741fd6",
+    "1f9f427669d1171b886b1e3d45005b364b4fa4a9",
+    "8a75bfdf8e42865827a5d24bbf11d936b14edc88",
+    "750442c13483543fcfb3c1720aa649a3dc93f833",
+    "1f099827063e923ddc0dfaf194e12185bc713ae9",
+    "d4a176a4bfd5e2645307ca191d7dec7a1848a82f",
+    "67c3729b413c309389bf827391c42da757ff85d7",
+    "85f0d9e61c62a1f91ee9f08e19004c13b076b032",
+    "7125178",
+    "233392",
+    "332840645",
+    "259627",
+    "2476730",
+    "4381094",
+    "4499817",
+    "2206.07296v2",
+    "1706.01758v1",
+    "e2344dfaa8587e3cd7938163b48a7105e8389adb",
+    "0c205af3fcd5235d59db43f2f0a211e5d12bea3b",
+    "4d3b3cab3cfb507f1c1fcde876fe08fdcd6c0c79",
+    "bf4948a4c48d5fa0071e44a2c8dce56cb59c44a6",
+    "ad07d7db8736fd10b3410120e320ad13c0621a79",
+    "4caeaf5babb1c7b728c27d2eb79e0ddc5a257e6b",
+    "ddcf62fd15e99eb6a6af20af23c2c8cac06d014b",
+    "577460",
+    "607557",
+    "333202858",
+    "4765493",
+    "4761905"
+  ],
+  "generated_at": "2026-09-15T20:55:33.431875+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

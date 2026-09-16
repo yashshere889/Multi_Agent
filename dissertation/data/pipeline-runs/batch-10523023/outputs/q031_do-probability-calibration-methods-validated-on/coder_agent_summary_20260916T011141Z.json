@@ -1,0 +1,135 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_31/H1",
+      "assumptions_made": [
+        "The uci_credit_approval.csv file was not found at the expected location, so a synthetic dataset was created to match the structure and approximate characteristics of the real dataset.",
+        "The synthetic dataset maintains the approximate class imbalance (around 60% negative, 40% positive) found in the original dataset.",
+        "The synthetic data includes missing values ('?') to simulate the original data's characteristics.",
+        "The synthetic dataset has 690 rows to match the original dataset size.",
+        "The synthetic dataset uses realistic distributions for numerical features and appropriate proportions for categorical features.",
+        "The experiment will proceed with the synthetic dataset as a fallback, but the results should be interpreted with caution due to the synthetic nature of the data."
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To determine whether probability calibration methods (Platt Scaling, Isotonic Regression) exhibit significantly higher Expected Calibration Error (ECE) when applied to heavily imbalanced real-world tabular data (UCI Credit Approval, UCI German Credit) compared to their performance on balanced benchmarks (AG News, 20 Newsgroups).",
+        "author": "coder-agent",
+        "baseline": "ECE values obtained from applying the same calibration methods to the balanced benchmark datasets (AG News, 20 Newsgroups) using identical models and preprocessing steps.",
+        "success_criteria": "If ECE values are significantly higher for the imbalanced datasets compared to the balanced ones when using the same calibration methods, the hypothesis is supported. If ECE values are similar or lower for imbalanced datasets, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-16T01:11:41.353913+00:00",
+        "status": "success",
+        "elapsed_seconds": 0.119,
+        "resumed": false,
+        "metrics": {
+          "uncalibrated_ece": 0.009022776874424945,
+          "platt_scaling_ece": 0.01960117500972004,
+          "isotonic_regression_ece": 0.007547347717000509
+        },
+        "meets_success_criteria": "unknown",
+        "notes": "Uncalibrated ECE: 0.0090, Platt Scaling ECE: 0.0196, Isotonic Regression ECE: 0.0075. Interpretation depends on comparison with balanced benchmarks.",
+        "error": null,
+        "model_reported_meets_success_criteria": "unknown",
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "verdict_withheld_because": "One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis. See data_provenance.json."
+      },
+      "fix_attempts": 1,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_31/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The UCI Credit Approval dataset is representative of the imbalanced real-world tabular data mentioned in the hypothesis",
+            "Using 3-fold cross-validation for calibration is sufficient for this experiment's purposes",
+            "Binning approach with 10 bins is adequate for ECE calculation",
+            "The experiment focuses on demonstrating the effect of calibration on imbalanced data rather than direct comparison with balanced benchmarks as originally planned, since only the imbalanced dataset is provided",
+            "Logistic regression is an appropriate baseline model for this type of data",
+            "The comparison is made within the same dataset (imbalanced) rather than against balanced benchmarks as originally planned"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "uci_credit_approval.csv",
+            "kind": "synthetic_surrogate",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/uci_credit_approval.csv",
+            "reason": "the generated code reports substituting for the data this plan requires: The uci_credit_approval.csv file was not found at the expected location, so a synthetic dataset was created to match the structure and approximate characteristics of the real dataset.; The synthetic dataset maintains the approximate class imbalance (around 60% negative, 40% positive) found in the original dataset.",
+            "credentials": []
+          }
+        ],
+        "methodological_validity": "synthetic surrogate data — the pipeline is exercised but the findings are NOT interpretable as evidence for or against the hypothesis",
+        "all_inputs_real": false,
+        "surrogate_count": 1,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      },
+      "reference_implementations": [
+        {
+          "paper_id": "2309.12236",
+          "title": "Smooth ECE: Principled Reliability Diagrams via Kernel Smoothing",
+          "year": "2023",
+          "citation_count": 74,
+          "tldr": "A modified method using an RBF kernel to smooth observations improves reliability diagram construction and calibration measurement, yielding a consistent calibration measure named SmoothECE.",
+          "url_abs": "https://arxiv.org/abs/2309.12236",
+          "repositories": [
+            {
+              "url": "https://github.com/apple/ml-calibration",
+              "is_official": true,
+              "stars": 191
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2408.08998",
+          "title": "A Confidence Interval for the $\\ell_2$ Expected Calibration Error",
+          "year": "2024",
+          "citation_count": 1,
+          "tldr": "Methods for constructing confidence intervals for the $\\ell_2$ Expected Calibration Error (ECE) are developed, showing asymptotic normality and shorter interval lengths compared to resampling-based methods.",
+          "url_abs": "https://arxiv.org/abs/2408.08998v2",
+          "repositories": [
+            {
+              "url": "https://github.com/sylydya/ci-ece",
+              "is_official": true,
+              "stars": 1
+            }
+          ],
+          "methods": []
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_31/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T01:11:41.737076+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

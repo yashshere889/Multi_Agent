@@ -1,0 +1,43 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v3.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "309be1479e1cd7b73df8a14be01239bb4ad95e87",
+    "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+    "f950e56014e714025a4120f952a8a37596b77ff3",
+    "af754d8e25ee631eec3233b54fb05de572e765c7",
+    "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+    "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1",
+    "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+    "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+    "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+    "2976605dc3b73377696537291d45f09f1ab1fbf5",
+    "dfe5f15d80cb17d65508ad330e279d899a672d98",
+    "2fae32ed99a821f405e0307960e0538d009df4b2",
+    "2495385",
+    "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+    "0182197c3996d11867ef650b66a2ddf1efa6f631",
+    "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+    "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+  ],
+  "notes_for_review": [],
+  "generated_at": "2026-09-15T06:49:06.034322+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

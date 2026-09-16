@@ -1,0 +1,110 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "failed to provision an isolated environment for ['pandas', 'numpy', 'scikit-learn', 'scikit-optimize', 'pygam', 'numpy', 'pandas', 'pygam', 'sklearn', 'skopt'] via uv: Using Python 3.14.7 environment at: /tmp/users/sgyshere/coder-venvs-10523023/236bfe9c2aab8b27/.build-236bfe9c2aab8b27-1111189\n  × No solution found when resolving dependencies:\n  ╰─▶ Because there are no versions of skopt and you require skopt, we can\n      conclude that your requirements are unsatisfiable.\n",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_35/H1",
+      "assumptions_made": [
+        "The UCI Adult Census Income dataset is available at the specified path.",
+        "The dataset has been preprocessed to remove the 'fnlwgt' column and handle missing values represented by '?'.",
+        "The preprocessing pipeline correctly encodes categorical variables using one-hot encoding.",
+        "The computational budget of 100 iterations for each model is sufficient for meaningful hyperparameter optimization.",
+        "The GAM model is configured with appropriate smooth terms for the numerical features.",
+        "The ensemble methods (Random Forest and Gradient Boosting) are tuned with appropriate hyperparameters.",
+        "The evaluation protocol correctly computes accuracy scores for all models."
+      ],
+      "results": null,
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 7: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_35/H1/fix_attempts/attempt_1/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The UCI Adult Census Income dataset is available at the specified path",
+            "Missing values represented by '?' are handled by dropping those rows",
+            "Categorical variables are encoded using one-hot encoding",
+            "The test set is stratified to maintain class distribution",
+            "Hyperparameter optimization uses Bayesian optimization with 100 iterations for each model",
+            "Models are trained with equal computational budgets",
+            "The dataset is large enough to provide meaningful comparisons between models",
+            "The experiment completes within 2 minutes wall clock time",
+            "No network access is required beyond reading the input file",
+            "No GPU is required for execution",
+            "GAM model is initialized with a single smooth term for simplicity",
+            "Ensemble methods use default settings except for the hyperparameters being optimized",
+            "The evaluation metric is classification accuracy",
+            "The success criteria is based on absolute difference rather than percentage difference"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "invalid_format",
+          "error_summary": "Model did not return this experiment's code in the required delimited section format: Model did not return the required delimited format, even after a repair attempt: Response is missing or malformed for section(s): ['load_data_function', 'helpers', 'requirements_txt', 'assumptions_made']. Raw response: '===BEGIN imports===\\nimport logging\\nimport pandas as pd\\nimport numpy as np\\nfrom sklearn.model_selection import train_test_split\\nfrom sklearn.preprocessing import LabelEncoder, OneHotEncoder\\nfrom sklearn.compose import ColumnTransformer\\nfrom sklearn.pipeline import Pipeline\\nfrom sklearn.impute import SimpleImputer\\nfrom sklearn.metrics import accuracy_score\\nfrom skopt import gp_minimize\\nfrom skopt.space import Real, Categorical, Integer\\nfrom skopt.utils import use_named_args\\nfrom pygam import GAM, '",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_35/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2211.14599",
+          "title": "Condensed Gradient Boosting",
+          "year": "2022",
+          "citation_count": 28,
+          "tldr": "",
+          "url_abs": "https://arxiv.org/abs/2211.14599v2",
+          "repositories": [
+            {
+              "url": "https://github.com/gaa-uam/c-gb",
+              "is_official": true,
+              "stars": 3
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2402.02263",
+          "title": "MixedNUTS: Training-Free Accuracy-Robustness Balance via Nonlinearly Mixed Classifiers",
+          "year": "2024",
+          "citation_count": 19,
+          "tldr": "MixedNUTS, a training-free ensemble method, enhances accuracy and robustness by amplifying the benign confidence property of robust classifiers through nonlinear transformations and parameter optimization.",
+          "url_abs": "https://arxiv.org/abs/2402.02263v5",
+          "repositories": [
+            {
+              "url": "https://github.com/Bai-YT/MixedNUTS",
+              "is_official": true,
+              "stars": 6
+            }
+          ],
+          "methods": [
+            "Knowledge Distillation",
+            "VQ-VAE"
+          ]
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_35/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T04:04:11.123702+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

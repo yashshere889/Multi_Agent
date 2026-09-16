@@ -1,0 +1,102 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The MoleculeNet ESOL dataset is available and contains the necessary molecular descriptors and solubility targets for training Gaussian Process Regression models. The experiment can be designed as a controlled comparison between uncertainty sampling (active learning) and random sampling strategies, with the number of simulations required to reach a stable prediction threshold as the primary metric. The computational requirements align with typical SLURM jobs running on single GPUs for a few hours.",
+      "objective": "To determine whether using active learning with uncertainty sampling based on Gaussian Process Regression reduces the number of required simulations by at least 30% compared to random sampling when mapping materials property landscapes on the MoleculeNet ESOL dataset.",
+      "variables": {
+        "independent": [
+          "sampling_strategy",
+          "number_of_simulations"
+        ],
+        "dependent": [
+          "reduction_in_simulations"
+        ]
+      },
+      "design": "Controlled comparative experiment with two treatment groups: (1) Active learning with uncertainty sampling using Gaussian Process Regression, and (2) Random sampling. Both strategies will be applied iteratively to select molecules for solubility prediction until a convergence criterion is met. The number of simulations required for each approach will be recorded and compared.",
+      "data_requirements": {
+        "source": "moleculenet_esol_delaney_solubility.csv",
+        "description": "The MoleculeNet ESOL dataset provides 1128 compounds with molecular descriptors and measured log solubility values. This dataset is suitable for testing active learning strategies in materials property prediction, with the measured solubility serving as the ground truth target for model evaluation.",
+        "preprocessing_steps": [
+          "Load the CSV file using pandas.read_csv()",
+          "Extract molecular descriptors (excluding 'Compound ID', 'measured log solubility in mols per litre', 'ESOL predicted log solubility in mols per litre', and 'smiles') as features",
+          "Use 'measured log solubility in mols per litre' as the target variable for regression",
+          "Split data into train/validation/test sets (80/10/10) while preserving compound IDs",
+          "Normalize descriptor features to zero mean and unit variance"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Active Learning",
+          "description": "An iterative process where a model is trained on an initial subset of data, then selects the most informative samples for labeling based on uncertainty measures before retraining. This continues until convergence or a maximum number of iterations is reached.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Uncertainty Sampling",
+          "description": "A query strategy within active learning that selects samples with highest prediction uncertainty (e.g., highest variance from Gaussian Process Regression) for labeling. This helps prioritize informative samples that will most improve model performance.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Gaussian Process Regression",
+          "description": "A probabilistic regression model that provides uncertainty estimates along with predictions. In this experiment, it serves as both the predictive model and the basis for uncertainty sampling decisions.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Number of simulations required to reach convergence",
+          "Mean squared error of final predictions",
+          "Reduction percentage in simulations compared to random sampling"
+        ],
+        "baseline": "Random sampling strategy where molecules are selected uniformly at random for each iteration",
+        "success_criteria": "If the active learning approach requires at least 30% fewer simulations than random sampling to achieve equivalent prediction accuracy, the hypothesis is supported. If the reduction is less than 30%, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load and preprocess the moleculenet_esol_delaney_solubility.csv dataset, extracting molecular descriptors as features and measured solubility as the target variable. Normalize features and split into train/validation/test sets."
+        },
+        {
+          "step": 2,
+          "description": "Implement a Gaussian Process Regression model using scikit-learn's GaussianProcessRegressor with appropriate kernel configuration (RBF + WhiteKernel for noise modeling)."
+        },
+        {
+          "step": 3,
+          "description": "Create a random sampling baseline that selects molecules uniformly at random for each iteration of the active learning loop."
+        },
+        {
+          "step": 4,
+          "description": "Implement the active learning protocol with uncertainty sampling: initialize with a small random subset, train GP model, select next molecule based on highest predictive variance, add to training set, retrain, repeat until convergence or max iterations."
+        },
+        {
+          "step": 5,
+          "description": "Run both random sampling and active learning protocols on the same initial data splits, recording the number of simulations required for convergence and final model performance metrics."
+        },
+        {
+          "step": 6,
+          "description": "Calculate the percentage reduction in simulations achieved by active learning compared to random sampling, and compare against the 30% threshold to evaluate hypothesis support."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data to demonstrate meaningful differences between sampling strategies",
+        "Convergence criteria might be too strict or lenient, affecting the number of simulations required",
+        "Computational overhead of GP regression might limit the number of iterations possible within SLURM time limits"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T00:04:18.451692+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

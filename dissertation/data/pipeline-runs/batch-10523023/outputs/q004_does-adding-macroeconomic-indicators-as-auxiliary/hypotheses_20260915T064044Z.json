@@ -1,0 +1,776 @@
+{
+  "literature_summary": "The literature demonstrates a growing interest in integrating macroeconomic indicators into credit risk models, particularly through multi-task learning (MTL) and advanced machine learning techniques. Studies show that incorporating auxiliary tasks—such as predicting default probabilities, stress testing under macroeconomic scenarios, or modeling latent factors—can improve model accuracy and robustness. However, challenges remain in understanding how macroeconomic variables interact with borrower-level data, ensuring theoretical alignment in complex models, and evaluating performance in sparse or real-world regulatory settings. While MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, issues such as negative transfer, task imbalance, and lack of interpretability persist. There is also ongoing debate about the effectiveness of including macroeconomic variables in forecasting models and the best practices for selecting and validating auxiliary tasks.",
+  "methods_overview": [
+    {
+      "method": "Multi-task deep learning",
+      "papers_using_it": [
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+        "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+        "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+        "2976605dc3b73377696537291d45f09f1ab1fbf5",
+        "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+        "0182197c3996d11867ef650b66a2ddf1efa6f631",
+        "1b5b80c8054adfe13092c8a8a4b523e8d6260db9",
+        "89ba7968f68910548ec4275f2943ee2310c76998",
+        "a05e2185d85d23dec245a1bdf24827e56a0de4dc",
+        "8a544c9c4d51783665ecefc11d78655a05ee4a1a",
+        "3115491",
+        "127758368"
+      ],
+      "notes": "Common; used to improve generalization and performance by leveraging shared representations across related tasks in credit risk and financial forecasting."
+    },
+    {
+      "method": "Bayesian optimization",
+      "papers_using_it": [
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7"
+      ],
+      "notes": "Rare; applied specifically to optimize hyperparameters in multi-task models."
+    },
+    {
+      "method": "Deep Neural Networks (DNN)",
+      "papers_using_it": [
+        "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+      ],
+      "notes": "Rare; used primarily for handling nonlinearities and multicollinearity in credit default prediction."
+    },
+    {
+      "method": "Latent-factor models",
+      "papers_using_it": [
+        "3009953",
+        "3010479"
+      ],
+      "notes": "Rare; employed to model default rates and analyze relationships between credit risk and macroeconomic indicators."
+    },
+    {
+      "method": "Logistic regression",
+      "papers_using_it": [
+        "2495385"
+      ],
+      "notes": "Rare; used to model default probabilities as a function of macroeconomic variables."
+    },
+    {
+      "method": "Feature selection techniques",
+      "papers_using_it": [
+        "1ec5bc9921d47d8e20d88567bac9d7a745ec3739"
+      ],
+      "notes": "Rare; compared clustering, feature combination, and correlation-based methods for credit risk modeling."
+    },
+    {
+      "method": "Stress testing",
+      "papers_using_it": [
+        "2687811",
+        "3010479",
+        "af754d8e25ee631eec3233b54fb05de572e765c7",
+        "897655f3fdf51a0472c6f7f8ea4bb626b2a94075"
+      ],
+      "notes": "Common; applied to assess credit risk under adverse macroeconomic scenarios."
+    },
+    {
+      "method": "Macroeconomic scalar adjustment for PD in ECL models",
+      "papers_using_it": [
+        "dfe5f15d80cb17d65508ad330e279d899a672d98"
+      ],
+      "notes": "Rare; incorporates macroeconomic forecasts to dynamically adjust default probabilities."
+    },
+    {
+      "method": "Machine learning models for default probability forecasting",
+      "papers_using_it": [
+        "af754d8e25ee631eec3233b54fb05de572e765c7",
+        "897655f3fdf51a0472c6f7f8ea4bb626b2a94075"
+      ],
+      "notes": "Common; utilizes XGBoost, LightGBM, and ensemble methods to predict default probabilities under macroeconomic scenarios."
+    },
+    {
+      "method": "Regression-based modeling of probability of default (PD) using macroeconomic variables",
+      "papers_using_it": [
+        "1034cc21e4a6108990ec7d6e93b1e70d027a2af9",
+        "2579a5ffb67d08a82be66405c935be07ab68cf9c"
+      ],
+      "notes": "Common; uses linear regression to link PD to macroeconomic indicators such as GDP growth, unemployment, inflation, and interest rates."
+    },
+    {
+      "method": "Machine learning for predicting corporate defaults and constructing leading macroeconomic indicators",
+      "papers_using_it": [
+        "b4e008dea875c4678377af478324db6159540e52"
+      ],
+      "notes": "Rare; employs tree-based methods like random forest and gradient boosting to forecast firm defaults and derive macroeconomic indices."
+    },
+    {
+      "method": "Scenario-based stress testing using macroeconomic forecasts",
+      "papers_using_it": [
+        "1034cc21e4a6108990ec7d6e93b1e70d027a2af9"
+      ],
+      "notes": "Rare; simulates baseline, adverse, and severely adverse economic scenarios to assess credit portfolio risk."
+    },
+    {
+      "method": "Markov models and economic adjustment coefficients for multi-period PD estimation",
+      "papers_using_it": [
+        "d1c92c7920f59db9c70fa03d671a51abaa2458ce"
+      ],
+      "notes": "Rare; utilizes Markov models and forecasts from central banks to estimate multi-period PDs under IFRS 9."
+    },
+    {
+      "method": "Portfolio-level scalar adjustment for incorporating macroeconomic information",
+      "papers_using_it": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87"
+      ],
+      "notes": "Rare; adjusts loan-level PDs using scalar adjustments derived from macroeconomic forecasts."
+    },
+    {
+      "method": "Multi-task learning with auxiliary classification for forecast combination",
+      "papers_using_it": [
+        "f950e56014e714025a4120f952a8a37596b77ff3"
+      ],
+      "notes": "Rare; uses auxiliary tasks to guide regression branches toward diverse and accurate forecast combinations."
+    },
+    {
+      "method": "Auxiliary quantile forecasting with linear networks",
+      "papers_using_it": [
+        "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a"
+      ],
+      "notes": "Rare; learns multiple quantile tasks alongside reconstruction to improve main forecasting task performance."
+    },
+    {
+      "method": "Volatility estimation as auxiliary tasks in momentum strategies",
+      "papers_using_it": [
+        "2fae32ed99a821f405e0307960e0538d009df4b2"
+      ],
+      "notes": "Rare; utilizes multiple volatility estimators as auxiliary tasks to improve time-series momentum portfolio construction."
+    },
+    {
+      "method": "Semi-supervised learning with deep generative models",
+      "papers_using_it": [
+        "66ad2fbc8b73242a889699868611fcf239e3435d"
+      ],
+      "notes": "Rare; employs deep generative models for effective generalization from small labeled datasets to large unlabeled ones."
+    },
+    {
+      "method": "Causal Framework for Credit Default",
+      "papers_using_it": [
+        "2685757"
+      ],
+      "notes": "Rare; introduces dual causal processes of delinquency and insolvency for modeling default."
+    },
+    {
+      "method": "Bayesian Causal Inference",
+      "papers_using_it": [
+        "392966618"
+      ],
+      "notes": "Rare; applies DAGs, d-separation, and Bayesian logistic regression to estimate causal effects of credit limits on default."
+    },
+    {
+      "method": "Non-linear biochemical kinetics for causal network inference",
+      "papers_using_it": [
+        "16175463"
+      ],
+      "notes": "Rare; uses Bayesian inference on chemical reaction graphs to model non-linear dynamics and infer causal relationships."
+    },
+    {
+      "method": "Noncausal autoregressive models",
+      "papers_using_it": [
+        "2552537"
+      ],
+      "notes": "Rare; compares forecasting performance of noncausal versus causal AR models on macroeconomic and financial data."
+    },
+    {
+      "method": "Graph neural networks for multi-task forecasting",
+      "papers_using_it": [
+        "2c922b1c407e83efcbb06881ac2b136efe4a41c2"
+      ],
+      "notes": "Rare; employs adaptive sparse graph structures and graph attention mechanisms to capture local and global dependencies."
+    },
+    {
+      "method": "Shared attention mechanisms in multi-task forecasting",
+      "papers_using_it": [
+        "bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab"
+      ],
+      "notes": "Rare; integrates multi-head attention across tasks to improve joint training and forecasting performance."
+    },
+    {
+      "method": "Unified multi-task time series model (UniTS)",
+      "papers_using_it": [
+        "ff1f1cf9df8c413ec7345da7604ba28597da5b90"
+      ],
+      "notes": "Rare; utilizes task tokenization and modified transformers to handle diverse predictive and generative tasks in a single framework."
+    },
+    {
+      "method": "Pattern disentanglement via energy-aware analysis",
+      "papers_using_it": [
+        "53e949ba1224b9ea1640f6626c2dfdd54a93498e"
+      ],
+      "notes": "Rare; uses time-frequency domain energy analysis to disentangle patterns for multi-task generalization."
+    },
+    {
+      "method": "Auxiliary time series construction (CATS)",
+      "papers_using_it": [
+        "09e098f5bc0a187bea27437a78a0e9ae83cf6a3d"
+      ],
+      "notes": "Rare; generates auxiliary time series to enhance multivariate forecasting through contextual attention."
+    },
+    {
+      "method": "Robust quantile regression with two auxiliary variables",
+      "papers_using_it": [
+        "7b16bc6ae05f5ed66fcb8c8c765f98a9c154dbff"
+      ],
+      "notes": "Rare; proposes mean estimators using quantile regression in the presence of outliers with two auxiliary variables."
+    },
+    {
+      "method": "Quantile Regression Forest",
+      "papers_using_it": [
+        "c11d830fd3de7e840bfc682ce7c81be595bbf351"
+      ],
+      "notes": "Rare; used for probability density forecasting of corn yield with LASSO variable selection."
+    },
+    {
+      "method": "Temporal Aggregation and Forecast Combination",
+      "papers_using_it": [
+        "6832768"
+      ],
+      "notes": "Rare; improves forecasting by constructing multiple aggregated time series and combining their components."
+    },
+    {
+      "method": "Partially Recurrent Neural Network",
+      "papers_using_it": [
+        "15184340"
+      ],
+      "notes": "Rare; designed for multi-step time series forecasting with improved long-term prediction accuracy."
+    },
+    {
+      "method": "Clustering for Time Series Forecasting",
+      "papers_using_it": [
+        "2522724"
+      ],
+      "notes": "Rare; groups similar time series into clusters to improve forecasting efficiency and accuracy."
+    },
+    {
+      "method": "Empirical Information Criterion (EIC)",
+      "papers_using_it": [
+        "2524751"
+      ],
+      "notes": "Rare; used for model selection in time series forecasting, especially for large datasets."
+    },
+    {
+      "method": "Auxiliary Quantile Forecasting with Linear Networks",
+      "papers_using_it": [
+        "391406272"
+      ],
+      "notes": "Rare; uses shared linear layers to improve quantile forecasts by treating multiple quantiles as auxiliary tasks."
+    },
+    {
+      "method": "Bayesian quantile regression with quantile-dependent priors",
+      "papers_using_it": [
+        "333367651"
+      ],
+      "notes": "Rare; proposes extensions of Zellner's prior and normal-exponential priors for quantile regression coefficients."
+    },
+    {
+      "method": "Transfer via Auxiliary Labels (TAL)",
+      "papers_using_it": [
+        "05f7b423fa150412c6706d03553a42324b1bbb59"
+      ],
+      "notes": "Rare; leverages phenological data to predict cold-hardiness in crops without direct cold-hardiness labels."
+    },
+    {
+      "method": "Multi-task learning for sentence embeddings",
+      "papers_using_it": [
+        "f4efccf51d54c1b60823a58bc27eb2092169e675"
+      ],
+      "notes": "Rare; compares multi-task and single-task learning for sentence representations using auxiliary tasks."
+    },
+    {
+      "method": "α-Variable Importance Learning (αVIL)",
+      "papers_using_it": [
+        "d53bb4209c37121f6bbebdb423d93a4a2cfe4e13"
+      ],
+      "notes": "Rare; dynamically adjusts task weights during training based on model parameter updates."
+    },
+    {
+      "method": "Auxiliary tasks for dialectal slot and intent detection",
+      "papers_using_it": [
+        "e758e05975a37bb10b178dad7accc902131f0b7d"
+      ],
+      "notes": "Rare; explores the impact of syntactic tasks, NER, and language modeling as auxiliary tasks for low-resource dialects."
+    },
+    {
+      "method": "Momentum Auxiliary Network++ (MAN++)",
+      "papers_using_it": [
+        "390722ba890274c0bd66bd5bb12b6e9b9eb90120"
+      ],
+      "notes": "Rare; introduces a scalable supervised local learning framework using exponential moving average for parameter transfer."
+    },
+    {
+      "method": "Variance-invariant probabilistic decoding (VIP-MTL)",
+      "papers_using_it": [
+        "1b5b80c8054adfe13092c8a8a4b523e8d6260db9"
+      ],
+      "notes": "Rare; ensures impartial learning by normalizing task-specific probabilistic distributions to a consistent scale."
+    },
+    {
+      "method": "Fisher sparse multi-task learning",
+      "papers_using_it": [
+        "89ba7968f68910548ec4275f2943ee2310c76998"
+      ],
+      "notes": "Rare; uses Fisher information to induce sparsity in shared representations, reducing negative transfer."
+    },
+    {
+      "method": "Adaptive multi-task learning with optimal transport",
+      "papers_using_it": [
+        "a05e2185d85d23dec245a1bdf24827e56a0de4dc"
+      ],
+      "notes": "Rare; dynamically adjusts task weights and aligns speech and text representations using optimal transport."
+    },
+    {
+      "method": "Multi-Task Learning Enhanced Physics-Informed Neural Networks (M-PINN)",
+      "papers_using_it": [
+        "8a544c9c4d51783665ecefc11d78655a05ee4a1a"
+      ],
+      "notes": "Rare; integrates MTL with PINNs to solve fluid-structure interaction equations through soft parameter sharing."
+    },
+    {
+      "method": "Inductive transfer for Bayesian networks",
+      "papers_using_it": [
+        "268462068"
+      ],
+      "notes": "Rare; combines structure and parameter learning from auxiliary tasks using weighted conditional independence tests and linear pooling."
+    },
+    {
+      "method": "Affine manifold constraint in multi-task learning",
+      "papers_using_it": [
+        "3115491"
+      ],
+      "notes": "Rare; forces model parameters to lie on an affine manifold to capture shared domain information for option pricing."
+    },
+    {
+      "method": "Multi-task deep reinforcement learning with representation sharing",
+      "papers_using_it": [
+        "127758368"
+      ],
+      "notes": "Rare; extends approximate value iteration theory to multi-task RL and improves sample efficiency through shared representations."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models.",
+      "supporting_evidence": [
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+        "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+      ],
+      "notes": "Repeated across multiple studies indicating a persistent research gap."
+    },
+    {
+      "gap": "Contradictory findings on the expected signs of macroeconomic variables in credit default prediction models.",
+      "supporting_evidence": [
+        "2495385"
+      ],
+      "notes": "An inconsistency in model interpretation and validation."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies.",
+      "supporting_evidence": [
+        "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+        "2495385"
+      ],
+      "notes": "A methodological limitation affecting cross-economy comparisons."
+    },
+    {
+      "gap": "Limited exploration of multi-task learning in banking churn settings despite its potential for improving robustness and interpretability.",
+      "supporting_evidence": [
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4"
+      ],
+      "notes": "Understudied application area within MTL literature."
+    },
+    {
+      "gap": "Most existing studies on multi-task learning in finance rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification.",
+      "supporting_evidence": [
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4"
+      ],
+      "notes": "Methodological weakness in task selection practices."
+    },
+    {
+      "gap": "While multi-task learning improves performance, there is limited evaluation of alignment between XAI explanations and business-defined rules in multi-task frameworks.",
+      "supporting_evidence": [
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4"
+      ],
+      "notes": "Gap in explainability and business relevance of MTL models."
+    },
+    {
+      "gap": "Limited evaluation of model performance in sparse data environments typical of developing economies.",
+      "supporting_evidence": [
+        "dfe5f15d80cb17d65508ad330e279d899a672d98"
+      ],
+      "notes": "Missing validation in economically diverse contexts."
+    },
+    {
+      "gap": "Need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions.",
+      "supporting_evidence": [
+        "dfe5f15d80cb17d65508ad330e279d899a672d98"
+      ],
+      "notes": "Methodological limitation in forecasting reliability."
+    },
+    {
+      "gap": "Potential overreliance on short historical data samples in stress testing applications.",
+      "supporting_evidence": [
+        "af754d8e25ee631eec3233b54fb05de572e765c7"
+      ],
+      "notes": "Risk of unreliable stress test outcomes due to data constraints."
+    },
+    {
+      "gap": "Lack of direct comparison between machine learning and traditional models in real-world regulatory settings.",
+      "supporting_evidence": [
+        "897655f3fdf51a0472c6f7f8ea4bb626b2a94075"
+      ],
+      "notes": "Missing benchmarking in practical regulatory environments."
+    },
+    {
+      "gap": "Limited documentation of machine learning techniques in incorporating macroeconomic variables into PD models.",
+      "supporting_evidence": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87"
+      ],
+      "notes": "Insufficient reporting of ML integration in PD modeling."
+    },
+    {
+      "gap": "Difficulty in maintaining theoretical relationships between macroeconomic variables and default rates in complex machine learning models.",
+      "supporting_evidence": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87"
+      ],
+      "notes": "Challenges in preserving theoretical consistency in ML models."
+    },
+    {
+      "gap": "Need for forecastable macroeconomic variables that can be used in long-term PD modeling.",
+      "supporting_evidence": [
+        "2579a5ffb67d08a82be66405c935be07ab68cf9c"
+      ],
+      "notes": "Requirement for suitable predictors in long-term risk modeling."
+    },
+    {
+      "gap": "Lack of direct modeling of loan-level PDs incorporating macroeconomic variables in current practices.",
+      "supporting_evidence": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87"
+      ],
+      "notes": "Missing integration of granular risk modeling with macroeconomic data."
+    },
+    {
+      "gap": "Limited discussion on how auxiliary tasks interact with model interpretability in financial forecasting contexts.",
+      "supporting_evidence": [
+        "f950e56014e714025a4120f952a8a37596b77ff3",
+        "2fae32ed99a821f405e0307960e0538d009df4b2",
+        "61842a337c8e1f54874f53102c9217e815505afc"
+      ],
+      "notes": "Interpretability concerns in auxiliary task usage."
+    },
+    {
+      "gap": "Contradictory emphasis on whether including economic indicators improves forecasting accuracy versus when they may be detrimental.",
+      "supporting_evidence": [
+        "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1"
+      ],
+      "notes": "Inconsistent findings regarding economic indicator inclusion."
+    },
+    {
+      "gap": "Lack of explicit evaluation of long-term forecasting stability in multi-task frameworks.",
+      "supporting_evidence": [
+        "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+        "2fae32ed99a821f405e0307960e0538d009df4b2"
+      ],
+      "notes": "Missing long-term performance validation."
+    },
+    {
+      "gap": "Existing credit default theories fail to directly link causes to default and struggle in rapidly changing markets.",
+      "supporting_evidence": [
+        "2685757"
+      ],
+      "notes": "Theoretical gaps in credit risk modeling."
+    },
+    {
+      "gap": "The causal effect of credit limits on default probability remains an open empirical question requiring careful identification of confounders.",
+      "supporting_evidence": [
+        "392966618"
+      ],
+      "notes": "Empirical uncertainty in causal inference."
+    },
+    {
+      "gap": "Many MTL models suffer from negative transfer due to complex task correlations in real-world applications.",
+      "supporting_evidence": [
+        "0182197c3996d11867ef650b66a2ddf1efa6f631"
+      ],
+      "notes": "Performance degradation due to task interference."
+    },
+    {
+      "gap": "MTL models often exhibit a seesaw phenomenon where improving one task hurts others.",
+      "supporting_evidence": [
+        "0182197c3996d11867ef650b66a2ddf1efa6f631"
+      ],
+      "notes": "Trade-off problem in multi-task optimization."
+    },
+    {
+      "gap": "Limited exploration of how noncausal models generalize beyond macroeconomic domains in forecasting tasks.",
+      "supporting_evidence": [
+        "2552537"
+      ],
+      "notes": "Domain-specific applicability of noncausal models."
+    },
+    {
+      "gap": "Lack of comparative studies on the effectiveness of graph-based vs. attention-based methods in multi-task time series forecasting.",
+      "supporting_evidence": [
+        "2c922b1c407e83efcbb06881ac2b136efe4a41c2",
+        "bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab"
+      ],
+      "notes": "Comparative analysis gap in forecasting architectures."
+    },
+    {
+      "gap": "Insufficient discussion on scalability and computational efficiency of unified models like UniTS across large-scale datasets.",
+      "supporting_evidence": [
+        "ff1f1cf9df8c413ec7345da7604ba28597da5b90"
+      ],
+      "notes": "Scalability concerns in advanced MTL frameworks."
+    },
+    {
+      "gap": "The role of auxiliary variables in non-linear or non-causal contexts remains underexplored in statistical estimation.",
+      "supporting_evidence": [
+        "7b16bc6ae05f5ed66fcb8c8c765f98a9c154dbff"
+      ],
+      "notes": "Limited exploration in complex modeling contexts."
+    },
+    {
+      "gap": "Quantile regression neural networks do not outperform traditional quantile regression in the context of corn yield forecasting.",
+      "supporting_evidence": [
+        "c11d830fd3de7e840bfc682ce7c81be595bbf351"
+      ],
+      "notes": "Performance limitation of ML in specific domains."
+    },
+    {
+      "gap": "LASSO does not significantly improve prediction models in the context of quantile-based machine learning for corn yield forecasting.",
+      "supporting_evidence": [
+        "c11d830fd3de7e840bfc682ce7c81be595bbf351"
+      ],
+      "notes": "Feature selection limitations in ML models."
+    },
+    {
+      "gap": "The effectiveness of model selection criteria like AIC and BIC in long-horizon forecasting remains an open question, despite empirical evidence suggesting EIC performs better.",
+      "supporting_evidence": [
+        "2524751"
+      ],
+      "notes": "Uncertainty in model selection validity."
+    },
+    {
+      "gap": "There is limited discussion on how to handle the black-box nature of machine learning models in probabilistic forecasting contexts.",
+      "supporting_evidence": [
+        "c11d830fd3de7e840bfc682ce7c81be595bbf351"
+      ],
+      "notes": "Explainability challenge in probabilistic ML."
+    },
+    {
+      "gap": "Lack of attention to quantile-dependent priors in subset selection for Bayesian quantile regression.",
+      "supporting_evidence": [
+        "333367651"
+      ],
+      "notes": "Methodological oversight in Bayesian approaches."
+    },
+    {
+      "gap": "Limited exploration of how auxiliary tasks affect performance in transfer learning for cold-hardiness prediction.",
+      "supporting_evidence": [
+        "05f7b423fa150412c6706d03553a42324b1bbb59"
+      ],
+      "notes": "Application gap in agricultural transfer learning."
+    },
+    {
+      "gap": "Need for more robust evaluation of auxiliary task effectiveness in low-resource NLP settings.",
+      "supporting_evidence": [
+        "e758e05975a37bb10b178dad7accc902131f0b7d"
+      ],
+      "notes": "Evaluation gap in resource-constrained domains."
+    },
+    {
+      "gap": "Potential limitations in applying momentum-based transfer in vision tasks due to feature mismatch.",
+      "supporting_evidence": [
+        "390722ba890274c0bd66bd5bb12b6e9b9eb90120"
+      ],
+      "notes": "Domain mismatch in transfer learning applications."
+    },
+    {
+      "gap": "Limited evaluation of MTL methods in highly heterogeneous or low-data regimes beyond language and speech domains.",
+      "supporting_evidence": [
+        "1b5b80c8054adfe13092c8a8a4b523e8d6260db9",
+        "a05e2185d85d23dec245a1bdf24827e56a0de4dc"
+      ],
+      "notes": "Generalizability concerns in non-traditional domains."
+    },
+    {
+      "gap": "Lack of direct comparison between variance-invariant decoding and other balancing mechanisms in multi-task settings.",
+      "supporting_evidence": [
+        "1b5b80c8054adfe13092c8a8a4b523e8d6260db9"
+      ],
+      "notes": "Missing comparative validation of balancing strategies."
+    },
+    {
+      "gap": "Theoretical guarantees for adaptive multi-task learning in speech translation are not fully explored.",
+      "supporting_evidence": [
+        "a05e2185d85d23dec245a1bdf24827e56a0de4dc"
+      ],
+      "notes": "Theoretical incompleteness in adaptive MTL."
+    },
+    {
+      "gap": "No explicit discussion on how the affine manifold constraint adapts to non-linear task relationships in financial modeling.",
+      "supporting_evidence": [
+        "3115491"
+      ],
+      "notes": "Applicability gap in financial modeling."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Incorporating Fama-French three-factor returns (Mkt-RF, SMB, HML) as auxiliary prediction targets in a multi-task learning model for credit default prediction will improve out-of-sample AUC performance compared to a single-task model trained only on borrower-level features.",
+      "rationale": "This hypothesis builds on the gap identified regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00]. It leverages the method of multi-task learning (MTL), which is commonly used to improve generalization by leveraging shared representations across related tasks [46649be8dcb3f1b018a9b68c3fc572004d0d50c7]. The real-world dataset 'fama_french_three_factor_daily_returns.csv' provides the necessary macroeconomic indicators to test this claim.",
+      "related_gaps": [
+        "Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models"
+      ],
+      "related_methods": [
+        "Multi-task deep learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Mkt-RF",
+          "SMB",
+          "HML"
+        ],
+        "dependent": [
+          "AUC"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using auxiliary time series construction techniques (CATS) to generate macroeconomic-derived features for inclusion in a multi-task credit risk model will lead to higher predictive accuracy (measured by log-loss) than a baseline single-task model, even when controlling for model complexity.",
+      "rationale": "This hypothesis draws from the cross-disciplinary bridge insight that auxiliary time series construction can enhance multivariate forecasting performance by generating exogenous variables that act like contextual attention mechanisms [09e098f5bc0a187bea27437a78a0e9ae83cf6a3d]. It addresses the gap in the lack of direct modeling of loan-level PDs incorporating macroeconomic variables [309be1479e1cd7b73df8a14be01239bb4ad95e87] and the need for forecastable macroeconomic variables in long-term PD modeling [2579a5ffb67d08a82be66405c935be07ab68cf9c]. The hypothesis is testable using real macroeconomic data from Fama-French factors.",
+      "related_gaps": [
+        "Lack of direct modeling of loan-level PDs incorporating macroeconomic variables",
+        "Need for forecastable macroeconomic variables that can be used in long-term PD modeling"
+      ],
+      "related_methods": [
+        "Auxiliary time series construction (CATS)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Generated auxiliary features"
+        ],
+        "dependent": [
+          "Log-loss"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Including macroeconomic indicators as auxiliary targets in a multi-task model that uses shared attention mechanisms will result in more stable performance across different economic regimes (e.g., pre-2008 vs post-2008) compared to a single-task model, as measured by the coefficient of variation in AUC scores.",
+      "rationale": "This hypothesis is informed by the gap concerning the limited evaluation of model performance in sparse data environments typical of developing economies [dfe5f15d80cb17d65508ad330e279d899a672d98], and the need for robust validation of macroeconomic forecasts beyond mean-reversion assumptions [dfe5f15d80cb17d65508ad330e279d899a672d98]. It also connects to the method of shared attention mechanisms in multi-task forecasting [bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab], which is proposed to improve joint training and forecasting performance. The hypothesis can be evaluated using the historical stock market data and macroeconomic indicators to simulate varying economic conditions.",
+      "related_gaps": [
+        "Limited evaluation of model performance in sparse data environments typical of developing economies",
+        "Need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions"
+      ],
+      "related_methods": [
+        "Shared attention mechanisms in multi-task forecasting"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Economic regime (pre/post 2008)"
+        ],
+        "dependent": [
+          "Coefficient of variation in AUC scores"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is the most feasible as it directly uses the 'fama_french_three_factor_daily_returns.csv' dataset, which contains the required Mkt-RF, SMB, and HML variables. It is testable because it makes a clear, falsifiable claim about improved AUC performance in out-of-sample credit default prediction when using multi-task learning versus single-task learning. The hypothesis is coherent, focusing on a specific system (multi-task model with macroeconomic auxiliary targets) rather than methodology alone. The data directly informs the outcome measure (AUC), making results meaningful and not predetermined by model assumptions. It is strongly grounded in the literature gap regarding limited exploration of macroeconomic-borrower interactions and supported by the cross-disciplinary bridge insight linking multi-task learning to improved forecasting through shared representations."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 is moderately feasible since it references the Fama-French factors but requires additional auxiliary time series construction (CATS) techniques that are not directly supported by the listed datasets. Its testability is somewhat weaker because it depends on generated features rather than direct macroeconomic variables, making the outcome less predictable. The hypothesis is internally consistent but slightly less focused on the core system (credit default prediction) versus the process of feature generation. While it draws on relevant literature and bridge insights, it lacks the direct data linkage of H1 and introduces more speculative elements in its variable construction."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.5,
+      "justification": "H3 is least feasible because it requires simulating different economic regimes (pre/post 2008) and measuring coefficient of variation in AUC scores, which cannot be directly tested using the provided datasets alone. It is also less testable due to its reliance on simulated conditions rather than actual data splits. Although it is coherent and grounded in literature about sparse data environments and robust validation, it does not leverage any of the real datasets effectively. The hypothesis is too abstract and indirect in its measurement approach, making it difficult to produce definitive results that would clearly support or refute the claim."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "7a901ae53ec63c9f3ab113fd3df966fc544b025f",
+    "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+    "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00",
+    "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+    "3009953",
+    "3010479",
+    "2687811",
+    "2495385",
+    "6eac408ea1679ce4ff69cceb642c58f83ece8561",
+    "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+    "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+    "dfe5f15d80cb17d65508ad330e279d899a672d98",
+    "af754d8e25ee631eec3233b54fb05de572e765c7",
+    "897655f3fdf51a0472c6f7f8ea4bb626b2a94075",
+    "1034cc21e4a6108990ec7d6e93b1e70d027a2af9",
+    "b4e008dea875c4678377af478324db6159540e52",
+    "2579a5ffb67d08a82be66405c935be07ab68cf9c",
+    "309be1479e1cd7b73df8a14be01239bb4ad95e87",
+    "d1c92c7920f59db9c70fa03d671a51abaa2458ce",
+    "f950e56014e714025a4120f952a8a37596b77ff3",
+    "a70a860d76ce108eedf7fc86a8bdc5a2d2f1e1d4",
+    "5fdc9b71891aad6b13b21ac3d303d9ad93150120",
+    "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1",
+    "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+    "61842a337c8e1f54874f53102c9217e815505afc",
+    "2fae32ed99a821f405e0307960e0538d009df4b2",
+    "534e1d0882aa209e53a0c6303379c0d519663c60",
+    "66ad2fbc8b73242a889699868611fcf239e3435d",
+    "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+    "2976605dc3b73377696537291d45f09f1ab1fbf5",
+    "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+    "0182197c3996d11867ef650b66a2ddf1efa6f631",
+    "2685757",
+    "169447337",
+    "322516454",
+    "392966618",
+    "16175463",
+    "2552537",
+    "2c922b1c407e83efcbb06881ac2b136efe4a41c2",
+    "1563b5a5c5010dad129ab98ae078370b72bb86c7",
+    "bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab",
+    "ff1f1cf9df8c413ec7345da7604ba28597da5b90",
+    "53e949ba1224b9ea1640f6626c2dfdd54a93498e",
+    "09e098f5bc0a187bea27437a78a0e9ae83cf6a3d",
+    "7b16bc6ae05f5ed66fcb8c8c765f98a9c154dbff",
+    "4e684b67a498e9412179ee56da9b5d9a761a9168",
+    "c11d830fd3de7e840bfc682ce7c81be595bbf351",
+    "6832768",
+    "2522449",
+    "15184340",
+    "2522724",
+    "2524751",
+    "391406272",
+    "333367651",
+    "4378249",
+    "05f7b423fa150412c6706d03553a42324b1bbb59",
+    "f4efccf51d54c1b60823a58bc27eb2092169e675",
+    "d53bb4209c37121f6bbebdb423d93a4a2cfe4e13",
+    "e758e05975a37bb10b178dad7accc902131f0b7d",
+    "390722ba890274c0bd66bd5bb12b6e9b9eb90120",
+    "1b5b80c8054adfe13092c8a8a4b523e8d6260db9",
+    "89ba7968f68910548ec4275f2943ee2310c76998",
+    "a05e2185d85d23dec245a1bdf24827e56a0de4dc",
+    "8a544c9c4d51783665ecefc11d78655a05ee4a1a",
+    "268462068",
+    "3115491",
+    "127758368",
+    "146732820"
+  ],
+  "generated_at": "2026-09-15T06:40:44.203834+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,99 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The uci_credit_approval.csv dataset is suitable for testing the hypothesis because it is imbalanced (with a minority class of '-' approvals), and the experiment can be conducted using standard ML methods on a single GPU node within a few hours. The dataset is already available locally, and the experiment focuses on comparing three methods (SMOTE, class-weighted models, and threshold tuning) in terms of recall at a fixed false-positive rate, which is measurable and interpretable.",
+      "objective": "To determine whether applying SMOTE oversampling reduces fraud-detection recall at a fixed false-positive budget compared to using class-weighted models or decision-threshold tuning in a credit approval dataset with class imbalance.",
+      "variables": {
+        "independent": [
+          "method_used"
+        ],
+        "dependent": [
+          "recall_at_fixed_fpr"
+        ]
+      },
+      "design": "A comparative benchmark experiment where three methods are applied to the same imbalanced credit approval dataset: 1) SMOTE oversampling, 2) class-weighted Random Forest, and 3) decision threshold tuning. For each method, we compute recall at a fixed false-positive rate (e.g., 10%) using a held-out test set. The comparison is made across these three methods to assess which performs best in terms of recall under the constraint of a fixed false-positive rate.",
+      "data_requirements": {
+        "source": "uci_credit_approval.csv",
+        "description": "A credit approval dataset with class imbalance (approved = '+' or '-'). The target variable 'approved' is binary, with '-' being the minority class. This dataset is ideal for testing the hypothesis because it simulates a fraud detection scenario where the minority class (rejected applications) is of primary interest.",
+        "preprocessing_steps": [
+          "Load the dataset from uci_credit_approval.csv",
+          "Handle missing values ('?' entries) by dropping rows with missing data",
+          "Encode categorical features using one-hot encoding",
+          "Split the dataset into train (80%) and test (20%) sets",
+          "Ensure that the test set maintains the original class imbalance ratio"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Synthetic Minority Oversampling Technique (SMOTE)",
+          "description": "Generates synthetic samples for the minority class to balance the dataset before training a classifier. In this experiment, SMOTE is applied to the training set to increase the representation of the minority class ('-') prior to fitting a Random Forest model.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Class-weighted Random Forests (CWRF)",
+          "description": "Trains a Random Forest classifier with class weights inversely proportional to class frequencies to penalize misclassification of the minority class more heavily. This method avoids resampling and directly adjusts the learning process to account for class imbalance.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Decision threshold tuning",
+          "description": "Trains a base classifier (e.g., Random Forest) and then adjusts the decision threshold to achieve a desired false-positive rate (e.g., 10%). This method preserves the original class distribution and modifies only the classification boundary to optimize recall at the specified FPR.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "recall_at_fixed_fpr"
+        ],
+        "baseline": "The recall achieved by a standard Random Forest trained without any imbalance correction (i.e., no SMOTE, no class weights, no threshold tuning).",
+        "success_criteria": "If SMOTE results in lower recall at a fixed false-positive rate compared to CWRF or threshold tuning, the hypothesis is supported. Conversely, if SMOTE achieves equal or higher recall, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_credit_approval.csv and preprocess the data by removing rows with missing values and encoding categorical variables using one-hot encoding."
+        },
+        {
+          "step": 2,
+          "description": "Split the preprocessed dataset into 80% training and 20% testing sets, ensuring class distribution is preserved in both."
+        },
+        {
+          "step": 3,
+          "description": "Train a Random Forest model on the training set using SMOTE to oversample the minority class, then evaluate its recall at a fixed false-positive rate (e.g., 10%) on the test set."
+        },
+        {
+          "step": 4,
+          "description": "Train a second Random Forest model using class weights to correct for imbalance, and evaluate its recall at the same fixed false-positive rate."
+        },
+        {
+          "step": 5,
+          "description": "Train a third Random Forest model without resampling or class weighting, then tune the decision threshold to achieve the fixed false-positive rate and record the resulting recall."
+        },
+        {
+          "step": 6,
+          "description": "Compare the recall values obtained from the three methods at the fixed false-positive rate and determine whether SMOTE yields lower recall than the other two methods."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient minority class samples after SMOTE might lead to overfitting or unstable performance estimates.",
+        "Threshold tuning may not generalize well if the classifier's probability outputs are poorly calibrated.",
+        "The fixed false-positive rate chosen may not reflect realistic operational constraints in credit approval systems."
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T06:02:26.597351+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,104 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given available data and compute resources. We will use the Fama-French three-factor data and a synthetic news headline dataset (from AG News) to simulate sentiment analysis. Since we don't have a real financial news dataset with labeled sentiment, we will generate synthetic sentiment labels based on the AG News headlines using a pre-trained BERT model. This allows us to test the core idea without requiring access to a large, labeled financial news dataset.",
+      "objective": "To determine whether a BERT-based financial sentiment model trained on news headlines improves next-day directional prediction of S&P 500 returns compared to a model using only Fama-French three-factor risk premiums, using Granger causality tests.",
+      "variables": {
+        "independent": [
+          "BERT-based sentiment scores from news headlines",
+          "Fama-French three-factor risk premiums"
+        ],
+        "dependent": [
+          "Next-day directional prediction of S&P 500 returns"
+        ]
+      },
+      "design": "Comparative benchmark experiment using Granger causality tests to evaluate the predictive power of two models: one based on BERT sentiment scores and another based on Fama-French factors. Both models predict the direction of next-day S&P 500 returns.",
+      "data_requirements": {
+        "source": "ag_news_document_text_category_classification_train.csv",
+        "description": "AG News dataset containing real news headlines and descriptions. We will use this to generate synthetic financial sentiment labels for news headlines, simulating a financial news dataset. The dataset provides 120,000 short news articles categorized by topic.",
+        "preprocessing_steps": [
+          "Load the AG News train dataset",
+          "Extract text column for headline generation",
+          "Apply BERT-based sentiment analysis to generate synthetic sentiment scores",
+          "Merge sentiment scores with Fama-French factor data",
+          "Align dates to create time series for Granger causality testing"
+        ]
+      },
+      "methods": [
+        {
+          "name": "BERT-based models",
+          "description": "Use a pre-trained BERT model fine-tuned for financial sentiment analysis to score news headlines. In this case, we'll apply a general-purpose BERT model to generate sentiment scores for the AG News headlines, treating them as if they were financial news. The model outputs a sentiment score for each headline that represents the degree of positive/negative sentiment.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Granger causality analysis",
+          "description": "Apply Granger causality tests to determine whether past values of one variable (sentiment scores or Fama-French factors) help predict future values of another variable (next-day S&P 500 return direction). This involves fitting autoregressive models and testing statistical significance of lagged predictors.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Granger causality F-statistic",
+          "Directional accuracy of predictions"
+        ],
+        "baseline": "Model using only Fama-French three-factor risk premiums",
+        "success_criteria": "If the BERT-based sentiment model shows higher Granger causality F-statistics or greater directional prediction accuracy than the Fama-French model, the hypothesis is supported. If not, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the AG News train dataset (ag_news_document_text_category_classification_train.csv) and extract the text column for headline generation."
+        },
+        {
+          "step": 2,
+          "description": "Download and initialize a pre-trained BERT model for sentiment analysis (e.g., bert-base-uncased with a sentiment classification head)."
+        },
+        {
+          "step": 3,
+          "description": "Generate synthetic sentiment scores for all AG News headlines using the BERT model, treating them as financial news."
+        },
+        {
+          "step": 4,
+          "description": "Load the Fama-French three-factor daily returns dataset (fama_french_three_factor_daily_returns.csv) and convert percentage returns to decimal form."
+        },
+        {
+          "step": 5,
+          "description": "Align the sentiment scores and Fama-French factors by date to create a unified time series dataset for analysis."
+        },
+        {
+          "step": 6,
+          "description": "Create a binary indicator for next-day S&P 500 return direction (positive/negative) from the historical stock market data."
+        },
+        {
+          "step": 7,
+          "description": "Implement Granger causality tests for both models: one using BERT sentiment scores and one using Fama-French factors to predict next-day return direction."
+        },
+        {
+          "step": 8,
+          "description": "Compare the F-statistics from the Granger causality tests to determine which model has stronger predictive power."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Synthetic sentiment labels may not accurately reflect real financial sentiment",
+        "The alignment of dates between sentiment data and financial data might introduce timing mismatches",
+        "Granger causality tests assume linear relationships, which may not hold for financial data"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T04:58:18.684248+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

@@ -1,0 +1,974 @@
+{
+  "literature_summary": "The literature consistently highlights the critical importance of feature selection stability in ensuring reliable and reproducible machine learning models, particularly in high-dimensional and small-sample settings. While numerous methods have been proposed to enhance stability—such as ensemble approaches, resampling techniques, and novel optimization frameworks—there remains a significant gap in understanding the direct correlation between stability and downstream generalization performance. Existing studies often treat stability as a secondary diagnostic tool rather than a core design principle, and empirical evidence linking stability metrics to classification accuracy is inconclusive. Furthermore, challenges persist in applying these methods effectively across domains like bioinformatics, NLP, and materials science, where data characteristics vary widely and interpretability is crucial.",
+  "methods_overview": [
+    {
+      "method": "Ensemble feature selection",
+      "papers_using_it": [
+        "CorpusId:71143771",
+        "CorpusId:284040629"
+      ],
+      "notes": "Commonly used to improve robustness by aggregating results from multiple resampled datasets."
+    },
+    {
+      "method": "Stability selection schemes",
+      "papers_using_it": [
+        "CorpusId:284040629"
+      ],
+      "notes": "Rare; based on sample perturbation to enhance feature selection reliability."
+    },
+    {
+      "method": "Rank aggregation",
+      "papers_using_it": [
+        "CorpusId:284040629"
+      ],
+      "notes": "Rare; used to reduce randomness in feature selection outputs."
+    },
+    {
+      "method": "Bootstrap aggregation framework",
+      "papers_using_it": [
+        "CorpusId:248422993"
+      ],
+      "notes": "Moderately common; employed for assessing stability via bootstrapping."
+    },
+    {
+      "method": "Cross-validation",
+      "papers_using_it": [
+        "CorpusId:248422993"
+      ],
+      "notes": "Common; alternative method for generating varied training sets."
+    },
+    {
+      "method": "Feature selection stability analysis",
+      "papers_using_it": [
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:238248092",
+        "CorpusId:257613898"
+      ],
+      "notes": "Common; used to assess consistency of feature selection across training sets."
+    },
+    {
+      "method": "Pearson Product-Moment Correlation Coefficient",
+      "papers_using_it": [
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:265362507"
+      ],
+      "notes": "Moderately common; applied to evaluate relationships between stability and performance."
+    },
+    {
+      "method": "Continuous Embedding Space Optimization",
+      "papers_using_it": [
+        "2302.13221v4"
+      ],
+      "notes": "Rare; reformulates feature selection as a differentiable optimization task."
+    },
+    {
+      "method": "Simultaneous Perturbation Stochastic Approximation for Feature Selection and Ranking (SPSA-FSR)",
+      "papers_using_it": [
+        "1804.05589v1"
+      ],
+      "notes": "Rare; improves binary SPSA for feature selection and ranking."
+    },
+    {
+      "method": "Single-set Spectral Sparsification",
+      "papers_using_it": [
+        "1506.05173v2"
+      ],
+      "notes": "Rare; deterministic sampling technique for ridge regression."
+    },
+    {
+      "method": "Leverage-score Sampling",
+      "papers_using_it": [
+        "1506.05173v2"
+      ],
+      "notes": "Rare; randomized feature selection method for ridge regression."
+    },
+    {
+      "method": "Delta Test Bar",
+      "papers_using_it": [
+        "518ddb1d1e6df24f7069b22fac6d0cb3a33c2545"
+      ],
+      "notes": "Rare; improved version of the delta test for regression."
+    },
+    {
+      "method": "Margin-based instance weighting",
+      "papers_using_it": [
+        "CorpusId:198331470"
+      ],
+      "notes": "Rare; weights samples based on influence to improve bias-variance trade-off."
+    },
+    {
+      "method": "Consistency index",
+      "papers_using_it": [
+        "CorpusId:71143771"
+      ],
+      "notes": "Rare; quantifies similarity between feature subsets from different training sets."
+    },
+    {
+      "method": "Nogueira's stability measure",
+      "papers_using_it": [
+        "CorpusId:227239334"
+      ],
+      "notes": "Rare; satisfies five desirable properties for consistent evaluation."
+    },
+    {
+      "method": "U-statistic estimator for variance of resampling-based error estimators",
+      "papers_using_it": [
+        "7165962"
+      ],
+      "notes": "Rare; used for assessing error rate estimators in binary classification."
+    },
+    {
+      "method": "Ensemble of Averages (EoA)",
+      "papers_using_it": [
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92"
+      ],
+      "notes": "Rare; improves domain generalization by averaging models."
+    },
+    {
+      "method": "Generalization metrics for model selection in NLP",
+      "papers_using_it": [
+        "a0df2e634e4fcac23bb161323ecac5ab8b714220"
+      ],
+      "notes": "Rare; explores metrics predicting test error without access to data."
+    },
+    {
+      "method": "Reshuffling data prior to splitting",
+      "papers_using_it": [
+        "CorpusId:270045192"
+      ],
+      "notes": "Rare; suggested practice to improve generalization."
+    },
+    {
+      "method": "Diffusion equilibrium phase",
+      "papers_using_it": [
+        "2403.18494v2"
+      ],
+      "notes": "Rare; training phase in PINNs with ordered gradients."
+    },
+    {
+      "method": "Unitary matrix models with theta term",
+      "papers_using_it": [
+        "hep-th/9705121v2"
+      ],
+      "notes": "Rare; used to study phase transitions in theoretical physics."
+    },
+    {
+      "method": "Shannon entropy",
+      "papers_using_it": [
+        "2211.01485v1"
+      ],
+      "notes": "Rare; analyzes information compression at phase transitions."
+    },
+    {
+      "method": "Machine learning global potential energy surface",
+      "papers_using_it": [
+        "a020c64d19653bfa6bbefdec2d485e508d4ff04e"
+      ],
+      "notes": "Rare; applied to explore global potential surfaces."
+    },
+    {
+      "method": "Equivariant message-passing neural-network potential",
+      "papers_using_it": [
+        "a2683d672665fb3dc24e0994229d986415985323"
+      ],
+      "notes": "Rare; used in molecular dynamics simulations."
+    },
+    {
+      "method": "Stochastic surface walking global optimization",
+      "papers_using_it": [
+        "a020c64d19653bfa6bbefdec2d485e508d4ff04e"
+      ],
+      "notes": "Rare; combined with neural network potential for optimization."
+    },
+    {
+      "method": "Energy landscape methods",
+      "papers_using_it": [
+        "2304.02381v2"
+      ],
+      "notes": "Rare; inspired by physical sciences to identify features."
+    },
+    {
+      "method": "Dissimilarity-based ensembles",
+      "papers_using_it": [
+        "1402.1349v1"
+      ],
+      "notes": "Rare; used for representing bags in multiple instance learning."
+    },
+    {
+      "method": "PDynA analysis toolkit",
+      "papers_using_it": [
+        "a2683d672665fb3dc24e0994229d986415985323"
+      ],
+      "notes": "Rare; integrated with molecular dynamics for structural evolution."
+    },
+    {
+      "method": "Ensemble Learning",
+      "papers_using_it": [
+        "02a14ed4f51d2aa011a817556742d19d913d60b6",
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+        "d899aa0c8f806b73fe3b98066d91d0bbe7a022b1"
+      ],
+      "notes": "Common; used for improving prediction accuracy and robustness."
+    },
+    {
+      "method": "Physics-Informed Feature Engineering",
+      "papers_using_it": [
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+        "14f95c39774086cfddb036334032c696f05e5d5f",
+        "d899aa0c8f806b73fe3b98066d91d0bbe7a022b1"
+      ],
+      "notes": "Moderately common; incorporates physical laws into feature representation."
+    },
+    {
+      "method": "Deep Potential Models",
+      "papers_using_it": [
+        "d3594bb2ad060064709ede5d2b4ec91206bd8476"
+      ],
+      "notes": "Rare; developed for simulating atomic-scale behaviors."
+    },
+    {
+      "method": "Spectral Gating Mechanism",
+      "papers_using_it": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23"
+      ],
+      "notes": "Rare; describes variance-limited phase transition in neural networks."
+    },
+    {
+      "method": "Community Detection Using Statistical Physics and ML",
+      "papers_using_it": [
+        "809391d59e4114d4c0f15ed64ace66840fb85a21"
+      ],
+      "notes": "Rare; integrates node similarities with mesoscopic structures."
+    },
+    {
+      "method": "Machine learning force fields",
+      "papers_using_it": [
+        "159453260"
+      ],
+      "notes": "Rare; investigates superionic phase transitions."
+    },
+    {
+      "method": "First principles calculations",
+      "papers_using_it": [
+        "6796831"
+      ],
+      "notes": "Rare; applied to study phase transitions in materials."
+    },
+    {
+      "method": "Ensemble learning strategies",
+      "papers_using_it": [
+        "15108914",
+        "15110183"
+      ],
+      "notes": "Moderately common; includes bagging and random projections."
+    },
+    {
+      "method": "Feature selection algorithms",
+      "papers_using_it": [
+        "1607.01327v8"
+      ],
+      "notes": "Common; provides filter, embedded, and wrapper methods."
+    },
+    {
+      "method": "Controlled experiments",
+      "papers_using_it": [
+        "17387074"
+      ],
+      "notes": "Rare; conducted to observe phase transitions in markets."
+    },
+    {
+      "method": "Handcrafted Feature Selection Techniques",
+      "papers_using_it": [
+        "2209.02746v1"
+      ],
+      "notes": "Common; categorizes methods into Filters, Wrappers, and Embeds."
+    },
+    {
+      "method": "Deep Learning in Bioinformatics",
+      "papers_using_it": [
+        "1603.06430v5"
+      ],
+      "notes": "Common; reviews CNNs and RNNs in bioinformatics."
+    },
+    {
+      "method": "Hybrid Ensemble Feature Selection (hEFS)",
+      "papers_using_it": [
+        "7bf2a2347e89898dce640d528168222210da5fb7"
+      ],
+      "notes": "Rare; integrates subsampling with Pareto optimization."
+    },
+    {
+      "method": "Causal Graph Neural Network (Causal-GNN)",
+      "papers_using_it": [
+        "79fc74f23a19869493e03015088293a2a98e4d60"
+      ],
+      "notes": "Rare; combines causal inference with GNNs."
+    },
+    {
+      "method": "Graph Convolutional Neural Network + Layer-wise Relevance Propagation (GCNN+LRP)",
+      "papers_using_it": [
+        "b5d49459c51f8239baa4846e62eccede05eb33a6"
+      ],
+      "notes": "Rare; used for stable feature selection in breast cancer."
+    },
+    {
+      "method": "Embedded Feature Selection with SVM, LR, and Lasso",
+      "papers_using_it": [
+        "e13c12433b150c84a893cbfe3c18e23d7f48169b"
+      ],
+      "notes": "Rare; evaluates stability using L1-regularized classifiers."
+    },
+    {
+      "method": "Multi-Objective Feature Selection Benchmarking",
+      "papers_using_it": [
+        "0592c062af5c19555cef09dfa017ecb09c720a91"
+      ],
+      "notes": "Rare; proposes framework for evaluating performance, diversity, and stability."
+    },
+    {
+      "method": "Resampling-based ensemble sLDA",
+      "papers_using_it": [
+        "b00668cc0ce67479dfc31698335ddbaac874af5e"
+      ],
+      "notes": "Rare; improves stability in ordinal outcome data."
+    },
+    {
+      "method": "Comprior benchmark tool",
+      "papers_using_it": [
+        "2a24ee17aa956eaca0892a00428e6fbdf3dcbddf"
+      ],
+      "notes": "Rare; facilitates benchmarking of prior knowledge-based methods."
+    },
+    {
+      "method": "MeTime R package",
+      "papers_using_it": [
+        "1daecc4362cb42d7824810deee1cd285a9863cfd"
+      ],
+      "notes": "Rare; provides workflow for longitudinal metabolomics."
+    },
+    {
+      "method": "BreastSubtypeR package",
+      "papers_using_it": [
+        "83e6d16da4b1f423233166600e1d5a971e844c7c"
+      ],
+      "notes": "Rare; unifies molecular subtyping methods in breast cancer."
+    },
+    {
+      "method": "Incremental MSE-based feature selection",
+      "papers_using_it": [
+        "332650274"
+      ],
+      "notes": "Rare; uses minimum squared error ranking for neural networks."
+    },
+    {
+      "method": "Weka machine learning workbench",
+      "papers_using_it": [
+        "15105632"
+      ],
+      "notes": "Rare; general-purpose environment for data mining."
+    },
+    {
+      "method": "Wrapper-based Decision Trees (WDT)",
+      "papers_using_it": [
+        "345900"
+      ],
+      "notes": "Rare; combines classifiers for feature selection."
+    },
+    {
+      "method": "Infinitesimal Jackknife (IJ)",
+      "papers_using_it": [
+        "1706.06150v2"
+      ],
+      "notes": "Rare; estimates prediction variance in random forests."
+    },
+    {
+      "method": "Queue-based resampling",
+      "papers_using_it": [
+        "1809.10388v2"
+      ],
+      "notes": "Rare; addresses class imbalance and concept drift."
+    },
+    {
+      "method": "Within-cluster resampling (WCR) and Modified Within-cluster Resampling (MWCR)",
+      "papers_using_it": [
+        "1911.12882v1"
+      ],
+      "notes": "Rare; for longitudinal data analysis."
+    },
+    {
+      "method": "Resampling Forcing",
+      "papers_using_it": [
+        "2512.15702v2"
+      ],
+      "notes": "Rare; teacher-free framework for video diffusion models."
+    },
+    {
+      "method": "Multiscale bootstrap",
+      "papers_using_it": [
+        "1905.10573v5"
+      ],
+      "notes": "Rare; used for selective inference after feature selection."
+    },
+    {
+      "method": "Smooth bootstrap of residuals",
+      "papers_using_it": [
+        "1610.08663v4"
+      ],
+      "notes": "Rare; applied for regularization in indirect regression."
+    },
+    {
+      "method": "Bootstrap estimator of error of prediction",
+      "papers_using_it": [
+        "1612.04126v1"
+      ],
+      "notes": "Rare; used in hierarchical models for loss reserves."
+    },
+    {
+      "method": "Perturbation Bootstrap Method",
+      "papers_using_it": [
+        "1605.01440v2"
+      ],
+      "notes": "Rare; approximates distribution of M-estimators."
+    },
+    {
+      "method": "Model Selection Criteria",
+      "papers_using_it": [
+        "1508.00281v1"
+      ],
+      "notes": "Rare; compares asymptotic properties in dose-finding."
+    },
+    {
+      "method": "Balanced Repeated Replication",
+      "papers_using_it": [
+        "df7f1715276d74c136c22fb23d8c42b0728e3232"
+      ],
+      "notes": "Rare; used for variance estimation in survey data."
+    },
+    {
+      "method": "Wild Bootstrap",
+      "papers_using_it": [
+        "dac6a4cfbb72125ee895a213656090ca739891f3"
+      ],
+      "notes": "Rare; estimates variance for treatment effects."
+    },
+    {
+      "method": "Bootstrap Model Averaging",
+      "papers_using_it": [
+        "7c902b4c70b5bc8932c7e5739e3911e51c0f50b2"
+      ],
+      "notes": "Rare; accounts for model selection uncertainty."
+    },
+    {
+      "method": "Model Specification Test (MoST)",
+      "papers_using_it": [
+        "493d6c29d64d8cbf05848f6d8b9caf2fc4efbab2"
+      ],
+      "notes": "Rare; assesses model specification via stability."
+    },
+    {
+      "method": "Double Bootstrap",
+      "papers_using_it": [
+        "2618552"
+      ],
+      "notes": "Rare; computes bootstrap p-values in econometrics."
+    },
+    {
+      "method": "m Out of n Bootstrap",
+      "papers_using_it": [
+        "2890034"
+      ],
+      "notes": "Rare; analyzed for confidence intervals in moment inequality models."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of substantial evidence supporting a linear relationship between feature selection stability and classification accuracy",
+      "supporting_evidence": [
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:265362507"
+      ],
+      "notes": "Repeated across multiple studies indicating a persistent research gap."
+    },
+    {
+      "gap": "Need for more robust generalization metrics specifically tailored for NLP tasks",
+      "supporting_evidence": [
+        "a0df2e634e4fcac23bb161323ecac5ab8b714220"
+      ],
+      "notes": "Identified as a limitation in NLP-specific model selection."
+    },
+    {
+      "gap": "Limited research on which resampling method to use in practice for model selection beyond specific domains",
+      "supporting_evidence": [
+        "CorpusId:270045192"
+      ],
+      "notes": "Points to a lack of generalizable guidance for practitioners."
+    },
+    {
+      "gap": "Theoretical works exist comparing holdout and CV for estimating generalization error, but fewer focus on correctly identifying a single solution that generalizes well",
+      "supporting_evidence": [
+        "CorpusId:270045192"
+      ],
+      "notes": "Highlights a gap in understanding how to select the best single model."
+    },
+    {
+      "gap": "Lack of standardized evaluation frameworks for multimedia learning tools in quantum physics education",
+      "supporting_evidence": [
+        "333776538"
+      ],
+      "notes": "Points to a gap in educational technology evaluation."
+    },
+    {
+      "gap": "Limited empirical evidence for the robot phase transition in financial markets under controlled conditions",
+      "supporting_evidence": [
+        "17387074"
+      ],
+      "notes": "Indicates a gap in behavioral economics research."
+    },
+    {
+      "gap": "Need for more comprehensive studies on the impact of phase transitions on astrophysical systems",
+      "supporting_evidence": [
+        "6105890"
+      ],
+      "notes": "Points to a gap in astrophysics research."
+    },
+    {
+      "gap": "Insufficient understanding of the physics behind type-II superionic transitions in materials",
+      "supporting_evidence": [
+        "159453260"
+      ],
+      "notes": "Highlights a gap in materials science."
+    },
+    {
+      "gap": "There is limited discussion on the validity of hypothesis tests and model selection on bootstrap samples in biometrical applications",
+      "supporting_evidence": [
+        "64dc8c76f8094fa635f5c84474d2ddc6185f5830"
+      ],
+      "notes": "Points to a gap in biostatistics methodology."
+    },
+    {
+      "gap": "Comprehensive benchmarking systems for prior knowledge-based feature selection approaches are lacking",
+      "supporting_evidence": [
+        "2a24ee17aa956eaca0892a00428e6fbdf3dcbddf"
+      ],
+      "notes": "Indicates a gap in reproducible research practices."
+    },
+    {
+      "gap": "Integration of biological interpretability and reproducibility in feature selection methods for high-dimensional biomedical data is underdeveloped",
+      "supporting_evidence": [
+        "b00668cc0ce67479dfc31698335ddbaac874af5e",
+        "1daecc4362cb42d7824810deee1cd285a9863cfd"
+      ],
+      "notes": "Points to a gap in translational bioinformatics."
+    },
+    {
+      "gap": "Need for more standardized and accessible tools for intrinsic molecular subtyping in breast cancer research",
+      "supporting_evidence": [
+        "83e6d16da4b1f423233166600e1d5a971e844c7c"
+      ],
+      "notes": "Highlights a gap in clinical informatics."
+    },
+    {
+      "gap": "Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance",
+      "supporting_evidence": [
+        "CorpusId:284040629"
+      ],
+      "notes": "Points to a conceptual gap in algorithmic design."
+    },
+    {
+      "gap": "Feature selection stability is not always directly correlated with classification performance",
+      "supporting_evidence": [
+        "CorpusId:198331470"
+      ],
+      "notes": "Indicates inconsistency in the relationship between stability and performance."
+    },
+    {
+      "gap": "Chaotic performance in domain generalization due to stochasticity in optimization",
+      "supporting_evidence": [
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92"
+      ],
+      "notes": "Points to a contradiction in reproducibility of domain adaptation."
+    },
+    {
+      "gap": "High correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods",
+      "supporting_evidence": [
+        "3bccf31bb0cada2e7b24fab7d60abf921f940a6d"
+      ],
+      "notes": "Highlights a fundamental challenge in feature selection."
+    },
+    {
+      "gap": "Role of anisotropic noise injection in inducing grokking remains underexplored",
+      "supporting_evidence": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23"
+      ],
+      "notes": "Points to a gap in understanding neural network training dynamics."
+    },
+    {
+      "gap": "Limited understanding of the physics behind type-II superionic transitions in materials",
+      "supporting_evidence": [
+        "159453260"
+      ],
+      "notes": "Points to a gap in materials science."
+    },
+    {
+      "gap": "Need for more comprehensive studies on the impact of phase transitions on astrophysical systems",
+      "supporting_evidence": [
+        "6105890"
+      ],
+      "notes": "Points to a gap in astrophysics research."
+    },
+    {
+      "gap": "Lack of standardized evaluation frameworks for multimedia learning tools in quantum physics education",
+      "supporting_evidence": [
+        "333776538"
+      ],
+      "notes": "Points to a gap in educational technology evaluation."
+    },
+    {
+      "gap": "Limited empirical evidence for the robot phase transition in financial markets under controlled conditions",
+      "supporting_evidence": [
+        "17387074"
+      ],
+      "notes": "Indicates a gap in behavioral economics research."
+    },
+    {
+      "gap": "Insufficient understanding of the physics behind type-II superionic transitions in materials",
+      "supporting_evidence": [
+        "159453260"
+      ],
+      "notes": "Highlights a gap in materials science."
+    },
+    {
+      "gap": "There is limited discussion on the validity of hypothesis tests and model selection on bootstrap samples in biometrical applications",
+      "supporting_evidence": [
+        "64dc8c76f8094fa635f5c84474d2ddc6185f5830"
+      ],
+      "notes": "Points to a gap in biostatistics methodology."
+    },
+    {
+      "gap": "Comprehensive benchmarking systems for prior knowledge-based feature selection approaches are lacking",
+      "supporting_evidence": [
+        "2a24ee17aa956eaca0892a00428e6fbdf3dcbddf"
+      ],
+      "notes": "Indicates a gap in reproducible research practices."
+    },
+    {
+      "gap": "Integration of biological interpretability and reproducibility in feature selection methods for high-dimensional biomedical data is underdeveloped",
+      "supporting_evidence": [
+        "b00668cc0ce67479dfc31698335ddbaac874af5e",
+        "1daecc4362cb42d7824810deee1cd285a9863cfd"
+      ],
+      "notes": "Points to a gap in translational bioinformatics."
+    },
+    {
+      "gap": "Need for more standardized and accessible tools for intrinsic molecular subtyping in breast cancer research",
+      "supporting_evidence": [
+        "83e6d16da4b1f423233166600e1d5a971e844c7c"
+      ],
+      "notes": "Highlights a gap in clinical informatics."
+    },
+    {
+      "gap": "Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance",
+      "supporting_evidence": [
+        "CorpusId:284040629"
+      ],
+      "notes": "Points to a conceptual gap in algorithmic design."
+    },
+    {
+      "gap": "Feature selection stability is not always directly correlated with classification performance",
+      "supporting_evidence": [
+        "CorpusId:198331470"
+      ],
+      "notes": "Indicates inconsistency in the relationship between stability and performance."
+    },
+    {
+      "gap": "Chaotic performance in domain generalization due to stochasticity in optimization",
+      "supporting_evidence": [
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92"
+      ],
+      "notes": "Points to a contradiction in reproducibility of domain adaptation."
+    },
+    {
+      "gap": "High correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods",
+      "supporting_evidence": [
+        "3bccf31bb0cada2e7b24fab7d60abf921f940a6d"
+      ],
+      "notes": "Highlights a fundamental challenge in feature selection."
+    },
+    {
+      "gap": "Role of anisotropic noise injection in inducing grokking remains underexplored",
+      "supporting_evidence": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23"
+      ],
+      "notes": "Points to a gap in understanding neural network training dynamics."
+    },
+    {
+      "gap": "There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium",
+      "supporting_evidence": [
+        "d3594bb2ad060064709ede5d2b4ec91206bd8476"
+      ],
+      "notes": "Points to a gap in materials science."
+    },
+    {
+      "gap": "Most studies on EV energy consumption rely on simplified data splitting techniques that may lead to overfitting or unrealistic performance estimates",
+      "supporting_evidence": [
+        "02a14ed4f51d2aa011a817556742d19d913d60b6"
+      ],
+      "notes": "Points to a gap in real-world application validation."
+    },
+    {
+      "gap": "Short-term dissolved oxygen prediction models lack comprehensive comparison against state-of-the-art architectures at longer horizons",
+      "supporting_evidence": [
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96"
+      ],
+      "notes": "Points to a gap in environmental modeling."
+    },
+    {
+      "gap": "The assumption that optimizing graphs are global maxima of entropy density in complex networks may not hold universally",
+      "supporting_evidence": [
+        "1301.1256v4"
+      ],
+      "notes": "Points to a contradiction in network theory."
+    },
+    {
+      "gap": "Interpretability of machine learning models through energy landscape methods is still an emerging area with limited practical validation",
+      "supporting_evidence": [
+        "2304.02381v2"
+      ],
+      "notes": "Points to a gap in applied ML research."
+    },
+    {
+      "gap": "The relationship between information compression and phase transitions in physical systems is not fully understood beyond specific cases like cold atom gases",
+      "supporting_evidence": [
+        "2211.01485v1"
+      ],
+      "notes": "Points to a gap in interdisciplinary physics."
+    },
+    {
+      "gap": "There is limited exploration of how changing data sources in machine learning affect the integrity and continuity of official statistics",
+      "supporting_evidence": [
+        "2306.04338v1"
+      ],
+      "notes": "Points to a gap in statistical methodology."
+    },
+    {
+      "gap": "Existing methods for selective inference often suffer from over-conditioning or difficulty handling complex feature selection algorithms",
+      "supporting_evidence": [
+        "1905.10573v5"
+      ],
+      "notes": "Points to a gap in statistical inference."
+    },
+    {
+      "gap": "Class imbalance and concept drift in online learning settings require better resampling strategies",
+      "supporting_evidence": [
+        "1809.10388v2"
+      ],
+      "notes": "Points to a gap in adaptive learning methodologies."
+    },
+    {
+      "gap": "Bootstrap and m out of n bootstrap methods are not generally valid for constructing confidence interval endpoints in moment inequality models",
+      "supporting_evidence": [
+        "2890034"
+      ],
+      "notes": "Points to a gap in statistical validity."
+    },
+    {
+      "gap": "The classical studentized version of the bootstrapped estimator fails to be second order correct in M-estimation",
+      "supporting_evidence": [
+        "1605.01440v2"
+      ],
+      "notes": "Points to a gap in bootstrap accuracy."
+    },
+    {
+      "gap": "Ignoring model uncertainty in bootstrap procedures can severely undermine coverage accuracy of confidence intervals",
+      "supporting_evidence": [
+        "333760396"
+      ],
+      "notes": "Points to a gap in robust inference."
+    },
+    {
+      "gap": "Some bootstrap methods may produce replicates that violate the positivity assumption even when the original data does not",
+      "supporting_evidence": [
+        "dac6a4cfbb72125ee895a213656090ca739891f3"
+      ],
+      "notes": "Points to a gap in bootstrap validity."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "In NLP text classification tasks using the AG News dataset, feature selection stability measured via the Consistency Index will positively correlate with downstream test accuracy, such that models trained with more stable feature sets achieve higher average classification performance across multiple resampled training sets.",
+      "rationale": "This hypothesis builds on the identified gap that 'feature selection stability is not always directly correlated with classification performance' [CorpusId:198331470] and the need for clearer empirical evidence linking stability metrics to performance. It also leverages the Consistency Index method [CorpusId:71143771], which is used to quantify similarity between feature subsets from different training sets. The AG News dataset provides a real-world setting with sufficient textual data to evaluate both stability and classification accuracy.",
+      "related_gaps": [
+        "Feature selection stability is not always directly correlated with classification performance"
+      ],
+      "related_methods": [
+        "Consistency index",
+        "Feature selection stability analysis",
+        "Ensemble feature selection"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Consistency Index scores across resampled datasets"
+        ],
+        "dependent": [
+          "Test accuracy of classifiers trained on stable vs unstable feature sets"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "In financial time series forecasting using the Fama-French three-factor model with the Fama-French dataset, feature selection methods that operate during a 'diffusion equilibrium phase' in training (as defined in PINNs) will show greater stability in selected features compared to those operating outside this phase, leading to more consistent out-of-sample predictive performance.",
+      "rationale": "This hypothesis draws upon the cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability. It connects to the gap regarding the lack of understanding of how specific physical mechanisms drive phase transitions in complex systems [d3594bb2ad060064709ede5d2b4ec91206bd8476]. By focusing on a known financial dataset, we can empirically test whether the temporal regime of feature selection influences its stability and thus predictive power.",
+      "related_gaps": [
+        "There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium"
+      ],
+      "related_methods": [
+        "Diffusion equilibrium phase",
+        "Feature selection stability analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Temporal phase of feature selection (during/after diffusion equilibrium)"
+        ],
+        "dependent": [
+          "Stability of selected features (measured via correlation or consistency index)",
+          "Out-of-sample prediction accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "In high-dimensional biomedical data such as the UCI Adult Census Income dataset, feature selection methods incorporating ensemble learning strategies will demonstrate stronger correlation between feature selection stability and generalization performance than single-method approaches, particularly when dealing with categorical features and class imbalance.",
+      "rationale": "This hypothesis addresses the gap that 'most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' [CorpusId:284040629]. It also reflects the common usage of ensemble methods [CorpusId:71143771, CorpusId:284040629] and the need for robust generalization metrics in domains like healthcare and finance. The UCI Adult dataset contains mixed-type features and class imbalance, making it suitable for testing this claim.",
+      "related_gaps": [
+        "Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance"
+      ],
+      "related_methods": [
+        "Ensemble feature selection",
+        "Ensemble Learning",
+        "Feature selection stability analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Type of feature selection method (ensemble vs single-method)"
+        ],
+        "dependent": [
+          "Generalization performance (accuracy, AUC) and stability metric (consistency index or Pearson correlation coefficient)"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is most feasible as it uses the AG News dataset, which is real, publicly available, and already on disk with sufficient textual data for both stability analysis and classification accuracy measurement. It is highly testable because the Consistency Index can be directly computed from resampled training sets, and test accuracy is a clear, measurable outcome. The claim is coherent, focusing on a specific system (NLP text classification) rather than analysis methods, and is well-grounded in the literature gap regarding the lack of direct correlation between stability and performance. The data itself decides the outcome, not fixed model assumptions."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 7.5,
+      "justification": "H3 is feasible using the UCI Adult Census Income dataset, which is real and available. However, it is less testable because ensemble methods are inherently complex and may obscure the direct relationship between stability and performance. It is somewhat coherent but introduces additional variables (ensemble vs single-method) that complicate interpretation. The grounding is solid, addressing the gap around treating stability as a secondary index, but the complexity of ensemble learning makes it harder to isolate the effect of stability alone."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 5.5,
+      "justification": "H2 is least feasible because it references a cross-disciplinary concept ('diffusion equilibrium phase') from PINNs that is not directly applicable or testable with the Fama-French dataset without significant theoretical extension. It is also less testable because the temporal phase of feature selection is difficult to define and measure precisely in financial data. The claim is less coherent due to the forced integration of a physics concept into a financial domain without clear operationalization. While grounded in the bridge insight, the connection is tenuous and not easily validated with the available data."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2302.13221v4",
+    "1804.05589v1",
+    "1506.05173v2",
+    "4aa7c9511fe3fcb72e1655eced45b115b00b1904",
+    "dbc13acf3c75697bac4027b594024a9b5e9b4dc8",
+    "4bb365834ba03be1987e50e1466e4ec38446e3ed",
+    "518ddb1d1e6df24f7069b22fac6d0cb3a33c2545",
+    "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+    "a0df2e634e4fcac23bb161323ecac5ab8b714220",
+    "a131c44951b7ace0892dd830dd0a040b99ed0803",
+    "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92",
+    "7165962",
+    "CorpusId:268151633",
+    "CorpusId:238248092",
+    "CorpusId:257613898",
+    "CorpusId:198331470",
+    "CorpusId:67830007",
+    "CorpusId:265362507",
+    "CorpusId:71143771",
+    "CorpusId:2671553",
+    "CorpusId:284040629",
+    "CorpusId:248422993",
+    "CorpusId:227239334",
+    "CorpusId:270045192",
+    "3bccf31bb0cada2e7b24fab7d60abf921f940a6d",
+    "c8c81577859d16c1b943846d0792b6af879b1c70",
+    "2403.18494v2",
+    "hep-th/9705121v2",
+    "2211.01485v1",
+    "1301.1256v4",
+    "1910.11775v2",
+    "hep-ex/9605011v1",
+    "2304.02381v2",
+    "1402.1349v1",
+    "2306.04338v1",
+    "a020c64d19653bfa6bbefdec2d485e508d4ff04e",
+    "a2683d672665fb3dc24e0994229d986415985323",
+    "c2147631e18b304b30b4738b72dc4fb946058f23",
+    "d3594bb2ad060064709ede5d2b4ec91206bd8476",
+    "b45f79387a1d0d61d38ba84b09e8e1a5bf9f69fb",
+    "809391d59e4114d4c0f15ed64ace66840fb85a21",
+    "02a14ed4f51d2aa011a817556742d19d913d60b6",
+    "14f95c39774086cfddb036334032c696f05e5d5f",
+    "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+    "d899aa0c8f806b73fe3b98066d91d0bbe7a022b1",
+    "6105890",
+    "17387074",
+    "295997622",
+    "159453260",
+    "6796831",
+    "333776538",
+    "15108914",
+    "15110183",
+    "388979065",
+    "1607.01327v8",
+    "2209.02746v1",
+    "1603.06430v5",
+    "7bf2a2347e89898dce640d528168222210da5fb7",
+    "79fc74f23a19869493e03015088293a2a98e4d60",
+    "b5d49459c51f8239baa4846e62eccede05eb33a6",
+    "e13c12433b150c84a893cbfe3c18e23d7f48169b",
+    "0592c062af5c19555cef09dfa017ecb09c720a91",
+    "b00668cc0ce67479dfc31698335ddbaac874af5e",
+    "2a24ee17aa956eaca0892a00428e6fbdf3dcbddf",
+    "1daecc4362cb42d7824810deee1cd285a9863cfd",
+    "83e6d16da4b1f423233166600e1d5a971e844c7c",
+    "332650274",
+    "15105632",
+    "345900",
+    "1706.06150v2",
+    "1809.10388v2",
+    "1911.12882v1",
+    "2512.15702v2",
+    "1905.10573v5",
+    "1610.08663v4",
+    "1612.04126v1",
+    "1605.01440v2",
+    "1508.00281v1",
+    "df7f1715276d74c136c22fb23d8c42b0728e3232",
+    "dac6a4cfbb72125ee895a213656090ca739891f3",
+    "7c902b4c70b5bc8932c7e5739e3911e51c0f50b2",
+    "90e8e75411aa7ea979ee669f1d149b4f575d3b1e",
+    "6c0344c73ed7b9099aa26a37656f941b5bc65f1a",
+    "493d6c29d64d8cbf05848f6d8b9caf2fc4efbab2",
+    "64dc8c76f8094fa635f5c84474d2ddc6185f5830",
+    "333760396",
+    "2618552",
+    "2890034"
+  ],
+  "generated_at": "2026-09-16T01:42:43.725046+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

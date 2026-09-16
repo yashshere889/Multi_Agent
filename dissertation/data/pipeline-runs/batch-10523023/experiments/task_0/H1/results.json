@@ -1,0 +1,53 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To empirically determine whether transformer-based sequence models (PatchTST-lite and Informer) outperform ARIMA models in forecasting daily volatility of equity index returns when transaction costs are explicitly incorporated into the performance metric using a Sharpe ratio adjusted for turnover and proportional transaction costs.",
+  "author": "coder-agent",
+  "baseline": "Performance of ARIMA models on the same dataset and task, serving as the standard against which transformer models are compared.",
+  "success_criteria": "If the transformer models (PatchTST-lite and Informer) achieve significantly higher adjusted Sharpe ratios and/or lower MSE in volatility forecasts compared to ARIMA models, the hypothesis is supported. Conversely, if ARIMA models perform better or similarly, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T04:20:35.596105+00:00",
+  "status": "success",
+  "elapsed_seconds": 66.2984,
+  "resumed": false,
+  "metrics": {
+    "patchtst_mse": 1.8053953255152048e-05,
+    "informer_mse": 1.6401543747929198e-05,
+    "arima_mse": 0.0,
+    "patchtst_sharpe": -0.03812410116927107,
+    "informer_sharpe": -0.012417193082266353,
+    "arima_sharpe": -0.01435444613100057,
+    "training_history": {
+      "patchtst": [
+        9.60183426981737e-05,
+        5.401211621677995e-05,
+        2.1610137232195617e-05,
+        3.983093487166604e-05,
+        1.6340003178707937e-05,
+        1.8431255479691476e-05,
+        1.2586237640027867e-05,
+        2.1746896349642654e-05,
+        1.5108352948477031e-05,
+        2.7304783693247505e-05,
+        1.7065615663999396e-05,
+        1.3903213986917008e-05
+      ],
+      "informer": [
+        2.4656749776401805e-05,
+        2.954055470973703e-05,
+        1.4492223287812906e-05,
+        4.550837213646742e-05,
+        1.3545560650102307e-05,
+        1.3047216590273717e-05,
+        1.536217743753555e-05,
+        1.3952102811685094e-05,
+        2.1676004479562894e-05,
+        1.3069738824194386e-05,
+        2.2496274979628622e-05,
+        1.3115154893177635e-05
+      ]
+    }
+  },
+  "meets_success_criteria": "unknown",
+  "notes": "Mixed results between transformer and ARIMA models in terms of adjusted Sharpe ratio.",
+  "error": null
+}

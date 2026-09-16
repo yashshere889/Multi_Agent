@@ -1,0 +1,20 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether quantile regression models estimated using the asymmetric Laplace distribution provide more accurate Value-at-Risk (VaR) estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss.",
+  "author": "coder-agent",
+  "baseline": "Gaussian error model VaR estimates",
+  "success_criteria": "If the Bayesian quantile regression model achieves lower pinball loss than the Gaussian model, the hypothesis is supported. If the Gaussian model performs better or similarly, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T08:25:53.179118+00:00",
+  "status": "success",
+  "elapsed_seconds": 5.0083,
+  "resumed": false,
+  "metrics": {
+    "bayesian_avg_pinball_loss": 0.0008934851870241566,
+    "gaussian_avg_pinball_loss": 0.0007195363514234043,
+    "difference": 0.00017394883560075238
+  },
+  "meets_success_criteria": false,
+  "notes": "Gaussian error model achieved lower average pinball loss (0.000720) than Bayesian quantile regression (0.000893). Hypothesis refuted.",
+  "error": null
+}

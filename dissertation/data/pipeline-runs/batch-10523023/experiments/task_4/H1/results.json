@@ -1,0 +1,39 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether incorporating Fama-French three-factor returns (Mkt-RF, SMB, HML) as auxiliary prediction targets in a multi-task learning model for credit default prediction improves out-of-sample AUC performance compared to a single-task model trained only on borrower-level features.",
+  "author": "coder-agent",
+  "baseline": "Single-task model trained only on borrower-level features without auxiliary macroeconomic targets",
+  "success_criteria": "If the multi-task model achieves higher AUC than the single-task model on out-of-sample test data, the hypothesis is supported. If the AUC is equal or lower, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T06:43:10.341593+00:00",
+  "status": "success",
+  "elapsed_seconds": 1.9497,
+  "resumed": false,
+  "metrics": {
+    "auc": 0.8323809523809523,
+    "training_history": {
+      "multi_task": [
+        1.363425997170535,
+        1.2431736642664128,
+        1.1695518493652344,
+        1.0946588164026088,
+        1.0317133827642961,
+        0.9670678864825856,
+        0.9300697879357771,
+        0.8925879868594083,
+        0.8576502962545915,
+        0.8251464448191903,
+        0.7689443637024272,
+        0.7490371736613187,
+        0.7247589162804864,
+        0.6638465781103481,
+        0.6392828903414987,
+        0.5900178524580869
+      ],
+      "single_task": []
+    }
+  },
+  "meets_success_criteria": "unknown",
+  "notes": "Multi-task model achieved AUC of 0.8324. To determine if this supports the hypothesis, a single-task model would need to be trained and compared.",
+  "error": null
+}

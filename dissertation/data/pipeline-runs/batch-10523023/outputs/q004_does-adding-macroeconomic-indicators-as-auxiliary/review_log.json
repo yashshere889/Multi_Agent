@@ -1,0 +1,831 @@
+[
+  {
+    "iteration": 1,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v1.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v1.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87",
+        "bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab",
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+        "f950e56014e714025a4120f952a8a37596b77ff3",
+        "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+        "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1",
+        "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+        "6eac408ea1679ce4ff69cceb642c58f83ece8561",
+        "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+        "09e098f5bc0a187bea27437a78a0e9ae83cf6a3d",
+        "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+        "2976605dc3b73377696537291d45f09f1ab1fbf5",
+        "dfe5f15d80cb17d65508ad330e279d899a672d98",
+        "2fae32ed99a821f405e0307960e0538d009df4b2",
+        "2495385",
+        "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+        "2579a5ffb67d08a82be66405c935be07ab68cf9c",
+        "0182197c3996d11867ef650b66a2ddf1efa6f631",
+        "897655f3fdf51a0472c6f7f8ea4bb626b2a94075",
+        "a70a860d76ce108eedf7fc86a8bdc5a2d2f1e1d4",
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+        "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+      ],
+      "notes_for_review": [
+        "Dropped a citation to unknown paper id 'H1' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H2' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H3' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T06:44:32.418957+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 1,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Multi-task learning (MTL) frameworks, such as MMoE, MTAN, and PLE, have shown promise in leveraging auxiliary tasks—including default probability forecasting, stress testing, and latent factor modeling—to improve generalization and shared representation learning (Dang and Vu, 2026).",
+          "issue": "The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not specify that these frameworks leverage auxiliary tasks including 'default probability forecasting, stress testing, and latent factor modeling'. This specific characterization of the types of auxiliary tasks is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026)",
+          "issue": "The ground truth supports the existence of a gap regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models, citing Wu (2024) and Zhang (2026) as supporting evidence. However, the section text attributes this limitation specifically to 'dynamic credit risk models', which is not explicitly mentioned in the ground truth's description of the gap. The ground truth refers to the interaction in general terms without specifying 'dynamic' models."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Furthermore, the lack of standardized benchmarks for assessing macroeconomic indicator relevance across economies hampers cross-context comparisons (Sierra et al., 2024; Orsolya et al., n.d.).",
+          "issue": "The ground truth confirms that there is a lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies, citing Sierra et al. (2024) and Orsolya et al. (n.d.) as supporting evidence. However, the section text implies that this lack of standardization specifically 'hampers cross-context comparisons', which is not stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another significant concern lies in the underutilization of MTL in banking churn settings, despite its potential to improve both robustness and interpretability (Dang and Vu, 2026).",
+          "issue": "The ground truth mentions that there is a gap regarding limited exploration of multi-task learning in banking churn settings, but it does not state that this is a 'significant concern' or that it is 'underutilized'. Additionally, while the ground truth notes that MTL has potential for improving robustness and interpretability, it does not attribute this directly to 'banking churn settings'."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical grounding, which undermines the reliability of these models (Dang and Vu, 2026).",
+          "issue": "The ground truth confirms that most existing studies on multi-task learning in finance rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification, but it does not mention anything about undermining the reliability of these models. This added judgment about reliability is not grounded in the provided information."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, while MTL frameworks offer improved performance, few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules, raising questions about their practical applicability (Dang and Vu, 2026).",
+          "issue": "The ground truth states that there is a gap in evaluating alignment between XAI explanations and business-defined rules in multi-task frameworks, but it does not state that this leads to 'questions about their practical applicability'. This inference is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025), and many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025).",
+          "issue": "The ground truth confirms that there is limited evaluation of model performance in sparse data environments typical of developing economies and that there is a need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions, both citing Moodley et al. (2025). However, the section text adds that 'many existing models fail to adequately validate' these forecasts, which is not stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "For instance, while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025).",
+          "issue": "The ground truth indicates that there are contradictory findings regarding whether including economic indicators improves forecasting accuracy versus when they may be detrimental, citing Krawczyk et al. (2025). However, it does not specify that 'some studies suggest that including macroeconomic variables enhances forecasting accuracy' or that 'others find that such inclusion may be detrimental under certain conditions'. These specific claims are not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023), and the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023).",
+          "issue": "The ground truth confirms that there is a lack of direct evaluation of long-term forecasting stability in multi-task frameworks and that theoretical relationships between macroeconomic variables and default rates in complex models are difficult to maintain. However, it does not state that the long-term forecasting stability has received 'insufficient attention' or that the theoretical consistency is 'often compromised'. These evaluative phrases are not grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "By addressing these hypotheses, our study contributes to closing several important gaps in the literature, including the interaction between macroeconomic and borrower-level data, the reliability of macroeconomic forecasts, and the interpretability of multi-task models in financial contexts.",
+          "issue": "While the ground truth lists several gaps, including those related to interaction between macroeconomic and borrower-level data, reliability of macroeconomic forecasts, and interpretability of multi-task models in financial contexts, the section text attributes these as contributions of the study rather than stating them as unresolved issues. This shifts the framing from a literature review to a contribution statement, which is not grounded in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "which leverage shared representations across related tasks to improve generalization and performance (Wu, 2024)",
+          "issue": "The ground truth abstract for Wu (2024) states that the study investigates a novel technique for evaluating credit risk using multi-task deep learning, but does not mention anything about 'shared representations across related tasks' being a core mechanism for improving generalization and performance. The abstract mentions 'enhance the loss function for various tasks all at once' and 'improve the model's generalization ability', but does not specify 'shared representations across related tasks'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In financial contexts, MTL has been applied to address issues such as selection bias in credit scoring Liu et al. (2022)",
+          "issue": "The ground truth abstract for Liu et al. (2022) discusses how the default/non-default task and the rejection/approval task are highly correlated, and that modeling biased credit scoring data with multi-task learning is appropriate. However, it does not state that MTL is applied to 'address issues such as selection bias in credit scoring'. The paper focuses on modeling the correlation between tasks rather than addressing selection bias as a problem to be solved."
+        },
+        {
+          "location": "Related Work",
+          "claim": "early churn detection Dang and Vu (2026)",
+          "issue": "The ground truth abstract for Dang and Vu (2026) discusses early churn detection and mentions that 'Multi-task DNN achieves the highest accuracy for churn (0.82)', but it does not state that MTL is applied to 'early churn detection'. The paper focuses on multitask learning for churn detection, but the claim implies a broader application of MTL to early churn detection which is not explicitly stated."
+        },
+        {
+          "location": "Related Work",
+          "claim": "risk management Liu and Xu (2024)",
+          "issue": "The ground truth abstract for Liu and Xu (2024) discusses comprehensive risk non-linear relationship mining algorithm for commercial banks based on multi task learning, but it does not state that MTL is applied to 'risk management'. The paper focuses on mining non-linear relationships rather than applying MTL to risk management as a distinct domain."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies demonstrating that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026)",
+          "issue": "The ground truth abstract for Zhang (2026) discusses macroeconomic impact on credit default prediction using machine learning and neural networks, and mentions that DNN models are introduced to optimize performance. However, it does not state that 'studies demonstrating that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions' is a recent development. The abstract does not make claims about the enhancement of predictive performance specifically with deep learning models."
+        },
+        {
+          "location": "Related Work",
+          "claim": "However, the effectiveness of macroeconomic integration remains contingent on careful feature selection and model validation (Sierra et al., 2024)",
+          "issue": "The ground truth abstract for Sierra et al. (2024) discusses a comparative analysis of macroeconomic indicators applied to linear regression analysis for credit risk modeling, and mentions that 'feature selection is critical in developing robust and interpretable credit risk models'. However, it does not state that 'the effectiveness of macroeconomic integration remains contingent on careful feature selection and model validation'. The paper emphasizes the importance of feature selection but does not frame it as a condition for the effectiveness of macroeconomic integration."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Beyond regression-based methods, machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models outperforming traditional approaches in certain settings Wang and Xiao (2025)",
+          "issue": "The ground truth abstract for Wang and Xiao (2025) discusses credit risk forecasting in consumer finance using logistic regression, XGBoost, and LightGBM, and mentions that XGBoost achieves an AUC of 0.82. However, it does not state that 'ensemble methods and tree-based models outperform traditional approaches in certain settings'. The abstract reports the performance of XGBoost but does not compare it to other ensemble or tree-based methods in terms of outperformance."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Works such as Felici and Sudoso (2023) and Ong and Herremans (2023) demonstrate how auxiliary tasks can guide model learning toward more robust representations by promoting diversity and incorporating forward-looking information",
+          "issue": "The ground truth abstract for Felici and Sudoso (2023) discusses auxiliary classification tasks providing supervision by identifying subsets of forecasting methods that are jointly accurate and diverse, and that these subsets are obtained by solving an auxiliary optimization problem. However, it does not state that 'auxiliary tasks can guide model learning toward more robust representations by promoting diversity and incorporating forward-looking information'. The abstract focuses on the optimization problem and subset identification but does not frame it in terms of guiding model learning toward robust representations or incorporating forward-looking information."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In the context of quantile forecasting, methods like Jawed and Schmidt-Thieme (2022) and Wu et al. (2020) show that joint learning of multiple quantiles improves forecasting accuracy by exploiting correlations among different forecast horizons",
+          "issue": "The ground truth abstract for Jawed and Schmidt-Thieme (2022) discusses auxiliary quantile forecasting with linear networks and proposes a novel multi-task learning method that learns auxiliary quantile estimation tasks per forecast horizon with shared Linear layers. However, it does not state that 'joint learning of multiple quantiles improves forecasting accuracy by exploiting correlations among different forecast horizons'. The abstract describes the method but does not explicitly claim that this leads to improved forecasting accuracy through exploitation of correlations."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Furthermore, the integration of macroeconomic indicators into financial forecasting has been explored through both regression-based and machine learning approaches, with studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance Krawczyk et al. (2025)",
+          "issue": "The ground truth abstract for Krawczyk et al. (2025) discusses financial indicator features and their impact on prediction quality, stating that 'In this case, the financial indicator features could be detrimental to the prediction quality' and that 'the inclusion of both the F and E facets improves the prediction quality'. However, it does not state that 'studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance'. The abstract discusses both detrimental and beneficial effects but does not emphasize the importance of selecting appropriate auxiliary variables to avoid detrimental effects."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) offer flexible mechanisms for balancing shared and task-specific learning, thereby mitigating issues such as negative transfer",
+          "issue": "The ground truth abstract for Ma et al. (2018) discusses MMoE and its ability to explicitly learn to model task relationships from data, showing it performs better when tasks are less related. However, it does not state that MMoE offers 'flexible mechanisms for balancing shared and task-specific learning, thereby mitigating issues such as negative transfer'. The abstract focuses on modeling task relationships and performance with less related tasks but does not frame it in terms of balancing shared and task-specific learning or mitigating negative transfer."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Attention-based architectures, including MTAN Liu et al. (2018) and Transformer-based models Chen et al. (2020), further enhance the ability to capture temporal dependencies and cross-task relationships",
+          "issue": "The ground truth abstract for Liu et al. (2018) discusses MTAN and its ability to learn task-specific feature-level attention, allowing for learning of task-specific features from global features while sharing features across tasks. However, it does not state that MTAN 'further enhances the ability to capture temporal dependencies and cross-task relationships'. The abstract focuses on attention mechanisms and feature sharing but does not explicitly claim enhanced temporal dependency capture."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These advances have paved the way for more sophisticated applications of MTL in areas such as financial forecasting, where the interplay between multiple risk factors and time-varying economic conditions demands nuanced modeling approaches",
+          "issue": "The ground truth abstract for Chen et al. (2020) discusses multi-task time series forecasting with shared attention and mentions that 'our proposed architectures can not only outperform the state-of-the-art single-task forecasting baselines but also outperform the RNN-based multi-task forecasting method'. However, it does not state that 'these advances have paved the way for more sophisticated applications of MTL in areas such as financial forecasting, where the interplay between multiple risk factors and time-varying economic conditions demands nuanced modeling approaches'. The abstract focuses on performance improvements but does not discuss paving the way for sophisticated applications or the demand for nuanced modeling approaches."
+        },
+        {
+          "location": "Related Work",
+          "claim": "This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes",
+          "issue": "The ground truth does not contain any information about Fama-French three-factor returns, CATS, or shared attention mechanisms in MTL models being evaluated in the context of credit risk modeling. These hypotheses are entirely novel claims not supported by the ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim stems from the recognized gap in understanding how macroeconomic factors interact with borrower-level data within dynamic credit risk models Wu (2024); Zhang (2026).",
+          "issue": "The ground truth states that the rationale builds on the gap identified regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00], but does not mention specific citations Wu (2024); Zhang (2026)."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "By leveraging multi-task learning, which is known to enhance generalization through shared representations across related tasks Wu (2024), this approach aims to exploit the relationship between macroeconomic indicators and credit outcomes.",
+          "issue": "The ground truth mentions that the method of multi-task learning (MTL) is commonly used to improve generalization by leveraging shared representations across related tasks [46649be8dcb3f1b018a9b68c3fc572004d0d50c7], but does not attribute this knowledge or citation to Wu (2024)."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This idea is rooted in the cross-disciplinary observation that auxiliary time series construction can enhance multivariate forecasting performance by creating exogenous variables that function similarly to contextual attention mechanisms Lu et al. (2024).",
+          "issue": "The ground truth states that the rationale draws from the cross-disciplinary bridge insight that auxiliary time series construction can enhance multivariate forecasting performance by generating exogenous variables that act like contextual attention mechanisms [09e098f5bc0a187bea27437a78a0e9ae83cf6a3d], but does not cite Lu et al. (2024)."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It seeks to address the lack of direct modeling of loan-level probabilities of default (PDs) incorporating macroeconomic variables Breed et al. (2023) and the necessity of forecastable macroeconomic variables for long-term PD modeling Szabó (2022).",
+          "issue": "The ground truth lists related gaps as 'Lack of direct modeling of loan-level PDs incorporating macroeconomic variables' and 'Need for forecastable macroeconomic variables that can be used in long-term PD modeling', but does not attribute these to Breed et al. (2023) and Szabó (2022)."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This proposition is informed by the limited evaluation of model performance under sparse data conditions typical of developing economies Moodley et al. (2025) and the need for robust validation of macroeconomic forecasts beyond simple mean-reversion assumptions Moodley et al. (2025).",
+          "issue": "The ground truth mentions related gaps as 'Limited evaluation of model performance in sparse data environments typical of developing economies' and 'Need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions', but does not cite Moodley et al. (2025)."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Furthermore, it connects to the method of shared attention mechanisms in multi-task forecasting Chen et al. (2020), which is expected to improve joint training and forecasting performance.",
+          "issue": "The ground truth states that the method of shared attention mechanisms in multi-task forecasting [bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab] is proposed to improve joint training and forecasting performance, but does not cite Chen et al. (2020)."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The experimental design also relies on several critical assumptions made during implementation that could impact reproducibility and robustness.",
+          "issue": "This sentence introduces a general characterization of the assumptions without specifying any particular assumption, whereas the ground truth lists five specific assumptions (e.g., sklearn version compatibility, Fama-French data alignment, memory availability, model architecture suitability, synthetic data realism). The claim is too broad and lacks specificity to be traced back to the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These dependencies introduce potential sources of error that may affect the reliability of results if not carefully managed.",
+          "issue": "This statement makes a qualitative judgment about the consequences of the assumptions (i.e., 'potential sources of error' and 'affect the reliability of results') which is not mentioned in the ground truth. The ground truth only lists the assumptions themselves but does not discuss their implications or consequences."
+        },
+        {
+          "location": "Limitations",
+          "claim": "While no experiments were officially skipped or left unexecuted, the possibility of computational bottlenecks suggests that some configurations or model variants may not have been fully explored due to resource limitations.",
+          "issue": "This sentence attributes a reason for unexplored configurations ('computational bottlenecks') and implies that certain model variants were not tested, which is not stated in the ground truth. The ground truth explicitly states that there are no reasons why experiments were not run, and thus this claim contradicts the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the first hypothesis, which posits that incorporating Fama-French three-factor returns as auxiliary targets in a multi-task learning framework improves out-of-sample AUC performance for credit default prediction",
+          "issue": "The ground truth states that the hypothesis is 'inconclusive' because the experiment did not converge and the metrics describe pipeline behavior on generated data, not real-world performance. The section text incorrectly implies that the hypothesis was tested and found to potentially improve performance, when in fact no such conclusion was drawn from the experiment according to the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the lack of convergence in training prevents a definitive assessment of the model’s ability to leverage macroeconomic signals effectively",
+          "issue": "While the ground truth mentions that training did not converge and that the verdict is withheld due to this, it does not support the claim that this prevents an assessment of the model's ability to leverage macroeconomic signals. This is an interpretive leap not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "subsequent investigations should consider using real-world macroeconomic datasets to validate the proposed approach",
+          "issue": "The ground truth does not mention any suggestion or recommendation to use real-world datasets. It only notes that the input data was synthetic and that the results are limited in interpretability, but makes no statement about future validation using real-world data."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing this gap would require designing experiments that incorporate both types of data in a way that captures evolving market conditions and their influence on individual defaults",
+          "issue": "Although the ground truth identifies the gap of limited exploration of macroeconomic factors interacting with borrower-level data, it does not suggest specific experimental designs or requirements such as capturing evolving market conditions or their influence on individual defaults. This is speculative addition not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the inconsistent findings regarding the expected signs of macroeconomic variables in credit models, which suggests a need for more rigorous empirical validation and theoretical grounding in model design",
+          "issue": "The ground truth lists this as a gap but does not state that it 'suggests a need for more rigorous empirical validation and theoretical grounding'. This interpretation is added beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the absence of standardized benchmarks for evaluating macroeconomic indicators across different economies highlights the necessity of establishing such frameworks to enable meaningful cross-regional comparisons",
+          "issue": "While the ground truth identifies the lack of standardized benchmarks as a gap, it does not explicitly state that this highlights the 'necessity of establishing such frameworks'. This is an inferred implication not directly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the limited evaluation of model performance in sparse data environments typical of developing economies calls for targeted studies in those contexts",
+          "issue": "The ground truth identifies this as a gap, but does not state that 'targeted studies in those contexts' are called for. This is an extrapolation not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the lack of direct comparison between machine learning and traditional models in real-world regulatory settings indicates a critical gap in practical applicability",
+          "issue": "The ground truth identifies this as a gap, but does not characterize it as a 'critical gap in practical applicability'. This is a subjective characterization not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Investigating these areas would enhance the generalizability and robustness of multi-task learning approaches in financial applications",
+          "issue": "The ground truth does not make any claims about enhancing generalizability or robustness through investigation of these areas. This is a speculative benefit not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These directions align closely with the identified research gaps and offer concrete next steps for advancing the field",
+          "issue": "The ground truth lists various gaps but does not assert that the suggested future work 'aligns closely' with these gaps or offers 'concrete next steps'. These are evaluative statements not present in the ground truth."
+        },
+        {
+          "location": "Discussion",
+          "claim": "The rationale behind this approach draws upon the recognized potential of multi-task learning to improve generalization by leveraging shared representations across related tasks (Wu, 2024).",
+          "issue": "The ground truth does not mention Wu (2024) as a reference for the rationale of multi-task learning. This citation is fabricated and not supported by the provided ground truth."
+        },
+        {
+          "location": "Discussion",
+          "claim": "the absence of convergence and reliance on synthetic data prevent meaningful evaluation of the proposed approach",
+          "issue": "While the ground truth states that training did not converge and that inputs are synthetic surrogates, the discussion incorrectly implies that these issues together prevent any meaningful evaluation. The ground truth explicitly says the verdict is withheld because the models did not converge, not because they were meaningless."
+        },
+        {
+          "location": "Discussion",
+          "claim": "Zhang (2026)",
+          "issue": "The ground truth mentions a reference to Zhang (2026) in the rationale, but the citation is not part of the actual ground truth content provided. This appears to be a fabricated citation."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by stating 'Therefore, while the methodology aligns with existing literature on multi-task learning and credit risk modeling, the current findings remain inconclusive due to limitations in both data quality and model stability.' This phrasing implies that the hypothesis was tested and found to be inconclusive based on the experimental evidence, when in fact the ground truth indicates that the verdict is 'inconclusive' because the experiment did not meet success criteria ('meets_success_criteria=\"unknown\"'), not because of the findings themselves. The framing suggests a stronger conclusion than what the ground truth supports."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Multi-task learning (MTL) frameworks, such as MMoE, MTAN, and PLE, have shown promise in leveraging auxiliary tasks—including default probability forecasting, stress testing, and latent factor modeling—to improve generalization and shared representation learning (Dang and Vu, 2026).\" — The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not specify that these frameworks leverage auxiliary tasks including 'default probability forecasting, stress testing, and latent factor modeling'. This specific characterization of the types of auxiliary tasks is not supported by the ground truth.\n- Introduction: \"Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026)\" — The ground truth supports the existence of a gap regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models, citing Wu (2024) and Zhang (2026) as supporting evidence. However, the section text attributes this limitation specifically to 'dynamic credit risk models', which is not explicitly mentioned in the ground truth's description of the gap. The ground truth refers to the interaction in general terms without specifying 'dynamic' models.\n- Introduction: \"Furthermore, the lack of standardized benchmarks for assessing macroeconomic indicator relevance across economies hampers cross-context comparisons (Sierra et al., 2024; Orsolya et al., n.d.).\" — The ground truth confirms that there is a lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies, citing Sierra et al. (2024) and Orsolya et al. (n.d.) as supporting evidence. However, the section text implies that this lack of standardization specifically 'hampers cross-context comparisons', which is not stated in the ground truth.\n- Introduction: \"Another significant concern lies in the underutilization of MTL in banking churn settings, despite its potential to improve both robustness and interpretability (Dang and Vu, 2026).\" — The ground truth mentions that there is a gap regarding limited exploration of multi-task learning in banking churn settings, but it does not state that this is a 'significant concern' or that it is 'underutilized'. Additionally, while the ground truth notes that MTL has potential for improving robustness and interpretability, it does not attribute this directly to 'banking churn settings'.\n- Introduction: \"Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical grounding, which undermines the reliability of these models (Dang and Vu, 2026).\" — The ground truth confirms that most existing studies on multi-task learning in finance rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification, but it does not mention anything about undermining the reliability of these models. This added judgment about reliability is not grounded in the provided information.\n- Introduction: \"Additionally, while MTL frameworks offer improved performance, few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules, raising questions about their practical applicability (Dang and Vu, 2026).\" — The ground truth states that there is a gap in evaluating alignment between XAI explanations and business-defined rules in multi-task frameworks, but it does not state that this leads to 'questions about their practical applicability'. This inference is not supported by the ground truth.\n- Introduction: \"The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025), and many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025).\" — The ground truth confirms that there is limited evaluation of model performance in sparse data environments typical of developing economies and that there is a need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions, both citing Moodley et al. (2025). However, the section text adds that 'many existing models fail to adequately validate' these forecasts, which is not stated in the ground truth.\n- Introduction: \"For instance, while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025).\" — The ground truth indicates that there are contradictory findings regarding whether including economic indicators improves forecasting accuracy versus when they may be detrimental, citing Krawczyk et al. (2025). However, it does not specify that 'some studies suggest that including macroeconomic variables enhances forecasting accuracy' or that 'others find that such inclusion may be detrimental under certain conditions'. These specific claims are not grounded in the ground truth.\n- Introduction: \"Moreover, the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023), and the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023).\" — The ground truth confirms that there is a lack of direct evaluation of long-term forecasting stability in multi-task frameworks and that theoretical relationships between macroeconomic variables and default rates in complex models are difficult to maintain. However, it does not state that the long-term forecasting stability has received 'insufficient attention' or that the theoretical consistency is 'often compromised'. These evaluative phrases are not grounded in the provided text.\n- Introduction: \"By addressing these hypotheses, our study contributes to closing several important gaps in the literature, including the interaction between macroeconomic and borrower-level data, the reliability of macroeconomic forecasts, and the interpretability of multi-task models in financial contexts.\" — While the ground truth lists several gaps, including those related to interaction between macroeconomic and borrower-level data, reliability of macroeconomic forecasts, and interpretability of multi-task models in financial contexts, the section text attributes these as contributions of the study rather than stating them as unresolved issues. This shifts the framing from a literature review to a contribution statement, which is not grounded in the ground truth.\n- Related Work: \"which leverage shared representations across related tasks to improve generalization and performance (Wu, 2024)\" — The ground truth abstract for Wu (2024) states that the study investigates a novel technique for evaluating credit risk using multi-task deep learning, but does not mention anything about 'shared representations across related tasks' being a core mechanism for improving generalization and performance. The abstract mentions 'enhance the loss function for various tasks all at once' and 'improve the model's generalization ability', but does not specify 'shared representations across related tasks'.\n- Related Work: \"In financial contexts, MTL has been applied to address issues such as selection bias in credit scoring Liu et al. (2022)\" — The ground truth abstract for Liu et al. (2022) discusses how the default/non-default task and the rejection/approval task are highly correlated, and that modeling biased credit scoring data with multi-task learning is appropriate. However, it does not state that MTL is applied to 'address issues such as selection bias in credit scoring'. The paper focuses on modeling the correlation between tasks rather than addressing selection bias as a problem to be solved.\n- Related Work: \"early churn detection Dang and Vu (2026)\" — The ground truth abstract for Dang and Vu (2026) discusses early churn detection and mentions that 'Multi-task DNN achieves the highest accuracy for churn (0.82)', but it does not state that MTL is applied to 'early churn detection'. The paper focuses on multitask learning for churn detection, but the claim implies a broader application of MTL to early churn detection which is not explicitly stated.\n- Related Work: \"risk management Liu and Xu (2024)\" — The ground truth abstract for Liu and Xu (2024) discusses comprehensive risk non-linear relationship mining algorithm for commercial banks based on multi task learning, but it does not state that MTL is applied to 'risk management'. The paper focuses on mining non-linear relationships rather than applying MTL to risk management as a distinct domain.\n- Related Work: \"Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies demonstrating that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026)\" — The ground truth abstract for Zhang (2026) discusses macroeconomic impact on credit default prediction using machine learning and neural networks, and mentions that DNN models are introduced to optimize performance. However, it does not state that 'studies demonstrating that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions' is a recent development. The abstract does not make claims about the enhancement of predictive performance specifically with deep learning models.\n- Related Work: \"However, the effectiveness of macroeconomic integration remains contingent on careful feature selection and model validation (Sierra et al., 2024)\" — The ground truth abstract for Sierra et al. (2024) discusses a comparative analysis of macroeconomic indicators applied to linear regression analysis for credit risk modeling, and mentions that 'feature selection is critical in developing robust and interpretable credit risk models'. However, it does not state that 'the effectiveness of macroeconomic integration remains contingent on careful feature selection and model validation'. The paper emphasizes the importance of feature selection but does not frame it as a condition for the effectiveness of macroeconomic integration.\n- Related Work: \"Beyond regression-based methods, machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models outperforming traditional approaches in certain settings Wang and Xiao (2025)\" — The ground truth abstract for Wang and Xiao (2025) discusses credit risk forecasting in consumer finance using logistic regression, XGBoost, and LightGBM, and mentions that XGBoost achieves an AUC of 0.82. However, it does not state that 'ensemble methods and tree-based models outperform traditional approaches in certain settings'. The abstract reports the performance of XGBoost but does not compare it to other ensemble or tree-based methods in terms of outperformance.\n- Related Work: \"Works such as Felici and Sudoso (2023) and Ong and Herremans (2023) demonstrate how auxiliary tasks can guide model learning toward more robust representations by promoting diversity and incorporating forward-looking information\" — The ground truth abstract for Felici and Sudoso (2023) discusses auxiliary classification tasks providing supervision by identifying subsets of forecasting methods that are jointly accurate and diverse, and that these subsets are obtained by solving an auxiliary optimization problem. However, it does not state that 'auxiliary tasks can guide model learning toward more robust representations by promoting diversity and incorporating forward-looking information'. The abstract focuses on the optimization problem and subset identification but does not frame it in terms of guiding model learning toward robust representations or incorporating forward-looking information.\n- Related Work: \"In the context of quantile forecasting, methods like Jawed and Schmidt-Thieme (2022) and Wu et al. (2020) show that joint learning of multiple quantiles improves forecasting accuracy by exploiting correlations among different forecast horizons\" — The ground truth abstract for Jawed and Schmidt-Thieme (2022) discusses auxiliary quantile forecasting with linear networks and proposes a novel multi-task learning method that learns auxiliary quantile estimation tasks per forecast horizon with shared Linear layers. However, it does not state that 'joint learning of multiple quantiles improves forecasting accuracy by exploiting correlations among different forecast horizons'. The abstract describes the method but does not explicitly claim that this leads to improved forecasting accuracy through exploitation of correlations.\n- Related Work: \"Furthermore, the integration of macroeconomic indicators into financial forecasting has been explored through both regression-based and machine learning approaches, with studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance Krawczyk et al. (2025)\" — The ground truth abstract for Krawczyk et al. (2025) discusses financial indicator features and their impact on prediction quality, stating that 'In this case, the financial indicator features could be detrimental to the prediction quality' and that 'the inclusion of both the F and E facets improves the prediction quality'. However, it does not state that 'studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance'. The abstract discusses both detrimental and beneficial effects but does not emphasize the importance of selecting appropriate auxiliary variables to avoid detrimental effects.\n- Related Work: \"Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) offer flexible mechanisms for balancing shared and task-specific learning, thereby mitigating issues such as negative transfer\" — The ground truth abstract for Ma et al. (2018) discusses MMoE and its ability to explicitly learn to model task relationships from data, showing it performs better when tasks are less related. However, it does not state that MMoE offers 'flexible mechanisms for balancing shared and task-specific learning, thereby mitigating issues such as negative transfer'. The abstract focuses on modeling task relationships and performance with less related tasks but does not frame it in terms of balancing shared and task-specific learning or mitigating negative transfer.\n- Related Work: \"Attention-based architectures, including MTAN Liu et al. (2018) and Transformer-based models Chen et al. (2020), further enhance the ability to capture temporal dependencies and cross-task relationships\" — The ground truth abstract for Liu et al. (2018) discusses MTAN and its ability to learn task-specific feature-level attention, allowing for learning of task-specific features from global features while sharing features across tasks. However, it does not state that MTAN 'further enhances the ability to capture temporal dependencies and cross-task relationships'. The abstract focuses on attention mechanisms and feature sharing but does not explicitly claim enhanced temporal dependency capture.\n- Related Work: \"These advances have paved the way for more sophisticated applications of MTL in areas such as financial forecasting, where the interplay between multiple risk factors and time-varying economic conditions demands nuanced modeling approaches\" — The ground truth abstract for Chen et al. (2020) discusses multi-task time series forecasting with shared attention and mentions that 'our proposed architectures can not only outperform the state-of-the-art single-task forecasting baselines but also outperform the RNN-based multi-task forecasting method'. However, it does not state that 'these advances have paved the way for more sophisticated applications of MTL in areas such as financial forecasting, where the interplay between multiple risk factors and time-varying economic conditions demands nuanced modeling approaches'. The abstract focuses on performance improvements but does not discuss paving the way for sophisticated applications or the demand for nuanced modeling approaches.\n- Related Work: \"This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes\" — The ground truth does not contain any information about Fama-French three-factor returns, CATS, or shared attention mechanisms in MTL models being evaluated in the context of credit risk modeling. These hypotheses are entirely novel claims not supported by the ground truth.\n- Hypotheses: \"The rationale for this claim stems from the recognized gap in understanding how macroeconomic factors interact with borrower-level data within dynamic credit risk models Wu (2024); Zhang (2026).\" — The ground truth states that the rationale builds on the gap identified regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00], but does not mention specific citations Wu (2024); Zhang (2026).\n- Hypotheses: \"By leveraging multi-task learning, which is known to enhance generalization through shared representations across related tasks Wu (2024), this approach aims to exploit the relationship between macroeconomic indicators and credit outcomes.\" — The ground truth mentions that the method of multi-task learning (MTL) is commonly used to improve generalization by leveraging shared representations across related tasks [46649be8dcb3f1b018a9b68c3fc572004d0d50c7], but does not attribute this knowledge or citation to Wu (2024).\n- Hypotheses: \"This idea is rooted in the cross-disciplinary observation that auxiliary time series construction can enhance multivariate forecasting performance by creating exogenous variables that function similarly to contextual attention mechanisms Lu et al. (2024).\" — The ground truth states that the rationale draws from the cross-disciplinary bridge insight that auxiliary time series construction can enhance multivariate forecasting performance by generating exogenous variables that act like contextual attention mechanisms [09e098f5bc0a187bea27437a78a0e9ae83cf6a3d], but does not cite Lu et al. (2024).\n- Hypotheses: \"It seeks to address the lack of direct modeling of loan-level probabilities of default (PDs) incorporating macroeconomic variables Breed et al. (2023) and the necessity of forecastable macroeconomic variables for long-term PD modeling Szabó (2022).\" — The ground truth lists related gaps as 'Lack of direct modeling of loan-level PDs incorporating macroeconomic variables' and 'Need for forecastable macroeconomic variables that can be used in long-term PD modeling', but does not attribute these to Breed et al. (2023) and Szabó (2022).\n- Hypotheses: \"This proposition is informed by the limited evaluation of model performance under sparse data conditions typical of developing economies Moodley et al. (2025) and the need for robust validation of macroeconomic forecasts beyond simple mean-reversion assumptions Moodley et al. (2025).\" — The ground truth mentions related gaps as 'Limited evaluation of model performance in sparse data environments typical of developing economies' and 'Need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions', but does not cite Moodley et al. (2025).\n- Hypotheses: \"Furthermore, it connects to the method of shared attention mechanisms in multi-task forecasting Chen et al. (2020), which is expected to improve joint training and forecasting performance.\" — The ground truth states that the method of shared attention mechanisms in multi-task forecasting [bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab] is proposed to improve joint training and forecasting performance, but does not cite Chen et al. (2020).\n- Limitations: \"The experimental design also relies on several critical assumptions made during implementation that could impact reproducibility and robustness.\" — This sentence introduces a general characterization of the assumptions without specifying any particular assumption, whereas the ground truth lists five specific assumptions (e.g., sklearn version compatibility, Fama-French data alignment, memory availability, model architecture suitability, synthetic data realism). The claim is too broad and lacks specificity to be traced back to the ground truth.\n- Limitations: \"These dependencies introduce potential sources of error that may affect the reliability of results if not carefully managed.\" — This statement makes a qualitative judgment about the consequences of the assumptions (i.e., 'potential sources of error' and 'affect the reliability of results') which is not mentioned in the ground truth. The ground truth only lists the assumptions themselves but does not discuss their implications or consequences.\n- Limitations: \"While no experiments were officially skipped or left unexecuted, the possibility of computational bottlenecks suggests that some configurations or model variants may not have been fully explored due to resource limitations.\" — This sentence attributes a reason for unexplored configurations ('computational bottlenecks') and implies that certain model variants were not tested, which is not stated in the ground truth. The ground truth explicitly states that there are no reasons why experiments were not run, and thus this claim contradicts the provided information.\n- Future Work: \"the first hypothesis, which posits that incorporating Fama-French three-factor returns as auxiliary targets in a multi-task learning framework improves out-of-sample AUC performance for credit default prediction\" — The ground truth states that the hypothesis is 'inconclusive' because the experiment did not converge and the metrics describe pipeline behavior on generated data, not real-world performance. The section text incorrectly implies that the hypothesis was tested and found to potentially improve performance, when in fact no such conclusion was drawn from the experiment according to the ground truth.\n- Future Work: \"the lack of convergence in training prevents a definitive assessment of the model’s ability to leverage macroeconomic signals effectively\" — While the ground truth mentions that training did not converge and that the verdict is withheld due to this, it does not support the claim that this prevents an assessment of the model's ability to leverage macroeconomic signals. This is an interpretive leap not supported by the ground truth.\n- Future Work: \"subsequent investigations should consider using real-world macroeconomic datasets to validate the proposed approach\" — The ground truth does not mention any suggestion or recommendation to use real-world datasets. It only notes that the input data was synthetic and that the results are limited in interpretability, but makes no statement about future validation using real-world data.\n- Future Work: \"Addressing this gap would require designing experiments that incorporate both types of data in a way that captures evolving market conditions and their influence on individual defaults\" — Although the ground truth identifies the gap of limited exploration of macroeconomic factors interacting with borrower-level data, it does not suggest specific experimental designs or requirements such as capturing evolving market conditions or their influence on individual defaults. This is speculative addition not found in the ground truth.\n- Future Work: \"the inconsistent findings regarding the expected signs of macroeconomic variables in credit models, which suggests a need for more rigorous empirical validation and theoretical grounding in model design\" — The ground truth lists this as a gap but does not state that it 'suggests a need for more rigorous empirical validation and theoretical grounding'. This interpretation is added beyond what is stated in the ground truth.\n- Future Work: \"the absence of standardized benchmarks for evaluating macroeconomic indicators across different economies highlights the necessity of establishing such frameworks to enable meaningful cross-regional comparisons\" — While the ground truth identifies the lack of standardized benchmarks as a gap, it does not explicitly state that this highlights the 'necessity of establishing such frameworks'. This is an inferred implication not directly stated in the ground truth.\n- Future Work: \"the limited evaluation of model performance in sparse data environments typical of developing economies calls for targeted studies in those contexts\" — The ground truth identifies this as a gap, but does not state that 'targeted studies in those contexts' are called for. This is an extrapolation not supported by the ground truth.\n- Future Work: \"the lack of direct comparison between machine learning and traditional models in real-world regulatory settings indicates a critical gap in practical applicability\" — The ground truth identifies this as a gap, but does not characterize it as a 'critical gap in practical applicability'. This is a subjective characterization not present in the ground truth.\n- Future Work: \"Investigating these areas would enhance the generalizability and robustness of multi-task learning approaches in financial applications\" — The ground truth does not make any claims about enhancing generalizability or robustness through investigation of these areas. This is a speculative benefit not grounded in the provided information.\n- Future Work: \"These directions align closely with the identified research gaps and offer concrete next steps for advancing the field\" — The ground truth lists various gaps but does not assert that the suggested future work 'aligns closely' with these gaps or offers 'concrete next steps'. These are evaluative statements not present in the ground truth.\n- Discussion: \"The rationale behind this approach draws upon the recognized potential of multi-task learning to improve generalization by leveraging shared representations across related tasks (Wu, 2024).\" — The ground truth does not mention Wu (2024) as a reference for the rationale of multi-task learning. This citation is fabricated and not supported by the provided ground truth.\n- Discussion: \"the absence of convergence and reliance on synthetic data prevent meaningful evaluation of the proposed approach\" — While the ground truth states that training did not converge and that inputs are synthetic surrogates, the discussion incorrectly implies that these issues together prevent any meaningful evaluation. The ground truth explicitly says the verdict is withheld because the models did not converge, not because they were meaningless.\n- Discussion: \"Zhang (2026)\" — The ground truth mentions a reference to Zhang (2026) in the rationale, but the citation is not part of the actual ground truth content provided. This appears to be a fabricated citation.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by stating 'Therefore, while the methodology aligns with existing literature on multi-task learning and credit risk modeling, the current findings remain inconclusive due to limitations in both data quality and model stability.' This phrasing implies that the hypothesis was tested and found to be inconclusive based on the experimental evidence, when in fact the ground truth indicates that the verdict is 'inconclusive' because the experiment did not meet success criteria ('meets_success_criteria=\"unknown\"'), not because of the findings themselves. The framing suggests a stronger conclusion than what the ground truth supports.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections feel abrupt; some subsections lack smooth connections, particularly between related work and hypotheses.",
+      "generated_at": "2026-09-15T06:45:31.642507+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 2,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v2.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v2.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87",
+        "bbf2ac68e06c49e67b1d21bec4ecb89849afd0ab",
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+        "2c922b1c407e83efcbb06881ac2b136efe4a41c2",
+        "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+        "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1",
+        "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+        "6eac408ea1679ce4ff69cceb642c58f83ece8561",
+        "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+        "09e098f5bc0a187bea27437a78a0e9ae83cf6a3d",
+        "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+        "2976605dc3b73377696537291d45f09f1ab1fbf5",
+        "dfe5f15d80cb17d65508ad330e279d899a672d98",
+        "2fae32ed99a821f405e0307960e0538d009df4b2",
+        "2495385",
+        "391406272",
+        "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+        "2579a5ffb67d08a82be66405c935be07ab68cf9c",
+        "0182197c3996d11867ef650b66a2ddf1efa6f631",
+        "897655f3fdf51a0472c6f7f8ea4bb626b2a94075",
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+        "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+      ],
+      "notes_for_review": [],
+      "generated_at": "2026-09-15T06:46:58.272436+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 2,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Multi-task learning (MTL) frameworks have shown promise in leveraging auxiliary tasks to improve generalization and shared representation learning (Dang and Vu, 2026).",
+          "issue": "The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not explicitly state that these frameworks 'have shown promise' in this specific way. The citation to Dang and Vu (2026) is for a paper on early churn detection, which is outside the scope of credit risk modeling mentioned here. This claim attributes a general statement about MTL to a specific paper that does not support it in this context."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in credit risk models (Wu, 2024; Zhang, 2026)",
+          "issue": "The ground truth supports the existence of a gap regarding interaction between macroeconomic factors and borrower-level data in dynamic credit risk models (as per supporting evidence 46649be8dcb3f1b018a9b68c3fc572004d0d50c7 and 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00), but it does not specify that this is limited in 'credit risk models' per se, nor does it confirm that Wu (2024) and Zhang (2026) are the papers making this claim. The citation is misleading because the cited authors' works are not explicitly tied to the specific gap mentioned."
+        },
+        {
+          "location": "Introduction",
+          "claim": "and contradictory findings exist regarding the expected signs of macroeconomic variables in credit default prediction models (Orsolya et al., n.d.).",
+          "issue": "The ground truth confirms that there are contradictory findings on the expected signs of macroeconomic variables in credit default prediction models (supporting evidence 2495385), but it does not mention Orsolya et al. (n.d.) as the source of this contradiction. The citation is fabricated since the ground truth does not list this paper as relevant to this particular issue."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Furthermore, the lack of standardized benchmarks for assessing macroeconomic indicator relevance across different economies hampers cross-economy comparisons (Sierra et al., 2024; Orsolya et al., n.d.).",
+          "issue": "The ground truth identifies a lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies (supporting evidence 1ec5bc9921d47d8e20d88567bac9d7a745ec3739 and 2495385), but it does not cite Sierra et al. (2024) or Orsolya et al. (n.d.) as sources for this issue. Both citations are fabricated as they are not listed among the cited papers or supporting evidence for this specific gap."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another significant concern lies in the limited exploration of multi-task learning in banking churn settings, despite its potential for improving robustness and interpretability (Dang and Vu, 2026).",
+          "issue": "The ground truth mentions that there is a limited exploration of multi-task learning in banking churn settings (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The cited paper is about early churn detection, not specifically banking churn settings, and the ground truth does not associate this gap with that particular authorship."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (Dang and Vu, 2026).",
+          "issue": "The ground truth states that most existing studies on multi-task learning in finance rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The citation is incorrect because the cited paper is not identified as being responsible for this methodological weakness in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "while MTL frameworks offer improved performance, few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules (Dang and Vu, 2026).",
+          "issue": "The ground truth mentions that there is limited evaluation of alignment between XAI explanations and business-defined rules in multi-task frameworks (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The citation is fabricated because the cited paper is not associated with this specific gap in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025), and many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025).",
+          "issue": "The ground truth confirms that there is limited evaluation of model performance in sparse data environments typical of developing economies (supporting evidence dfe5f15d80cb17d65508ad330e279d899a672d98) and that there is a need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions (supporting evidence dfe5f15d80cb17d65508ad330e279d899a672d98), but it does not cite Moodley et al. (2025) as the source for either of these claims. The citation is fabricated."
+        },
+        {
+          "location": "Introduction",
+          "claim": "For instance, while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025).",
+          "issue": "The ground truth acknowledges contradictory emphasis on whether including economic indicators improves forecasting accuracy versus when they may be detrimental (supporting evidence 9cdb9fe24275a9d4de27087cf5b4dcab235d43c1), but it does not identify Krawczyk et al. (2025) as the source of this contradiction. The citation is fabricated."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023),",
+          "issue": "The ground truth identifies a lack of direct evaluation of long-term forecasting stability in multi-task frameworks (supporting evidence 97e3a57aea37bfe2c617b2cc2893e7baaa91d78a and 2fae32ed99a821f405e0307960e0538d009df4b2), but it does not cite Jawed and Schmidt-Thieme (2022) or Ong and Herremans (2023) as sources for this issue. These citations are fabricated."
+        },
+        {
+          "location": "Introduction",
+          "claim": "and the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023).",
+          "issue": "The ground truth confirms that it is difficult to maintain theoretical relationships between macroeconomic variables and default rates in complex machine learning models (supporting evidence 309be1479e1cd7b73df8a14be01239bb4ad95e87), but it does not attribute this to Breed et al. (2023). The citation is fabricated."
+        },
+        {
+          "location": "Related Work",
+          "claim": "which leverage shared representations across related tasks to improve generalization and performance Wu (2024)",
+          "issue": "The ground truth states that multi-task deep learning is used in Wu (2024) to improve generalization and performance, but it does not specify that this is done 'across related tasks' in the way described. The abstract of Wu (2024) mentions multi-task learning for credit risk assessment but does not explicitly state that it leverages shared representations across 'related tasks' as a defining characteristic."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In financial contexts, MTL has been applied to credit scoring Liu et al. (2022), early churn detection Dang and Vu (2026), and risk management Liu and Xu (2024)",
+          "issue": "The ground truth confirms that Liu et al. (2022) applied MTL to credit scoring, and Liu and Xu (2024) to risk management. However, it does not confirm that Dang and Vu (2026) applied MTL to early churn detection. The abstract of Dang and Vu (2026) discusses early churn detection but does not mention MTL being used for this purpose."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies showing that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026)",
+          "issue": "The ground truth confirms Zhang (2026) explores macroeconomic factors in credit default prediction and mentions that deep neural networks are used to optimize performance. However, it does not state that this is specifically about enhancing predictive performance in credit risk models or that it's particularly effective with deep learning models for capturing complex, nonlinear interactions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models performing well in certain settings Wang and Xiao (2025)",
+          "issue": "The ground truth confirms Wang and Xiao (2025) use machine learning models like XGBoost and LightGBM for credit risk forecasting under macroeconomic scenarios. However, it does not specify that ensemble methods and tree-based models perform well 'in certain settings', nor does it describe them as showing 'promise' in modeling default probabilities under macroeconomic stress."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Works such as Jawed and Schmidt-Thieme (2022) and Schmidt-Thieme and Jawed (2022) demonstrate how auxiliary tasks can be incorporated into forecasting pipelines to improve model accuracy and robustness",
+          "issue": "The ground truth confirms that Jawed and Schmidt-Thieme (2022) and Schmidt-Thieme and Jawed (2022) both propose methods involving auxiliary tasks in forecasting pipelines. However, it does not explicitly state that these works demonstrate how auxiliary tasks can be incorporated to improve model accuracy and robustness."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In the context of quantile forecasting, methods like Schmidt-Thieme and Jawed (2022) show that joint learning of multiple quantiles can be effective, while Jawed and Schmidt-Thieme (2022) propose a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task",
+          "issue": "The ground truth confirms that both papers involve auxiliary quantile forecasting and joint learning of multiple quantiles. However, it does not specify that one proposes a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task, nor does it explicitly state that joint learning of multiple quantiles is effective in the context described."
+        },
+        {
+          "location": "Related Work",
+          "claim": "studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance Krawczyk et al. (2025)",
+          "issue": "The ground truth confirms Krawczyk et al. (2025) discuss the inclusion of both economic context and technical indicators improving financial forecasting performance. However, it does not state that studies emphasize the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) offer flexible mechanisms for balancing shared and task-specific learning",
+          "issue": "The ground truth confirms that Ma et al. (2018), Misra et al. (2016), and Tang et al. (2020) propose MMoE, Cross-Stitch Networks, and PLE respectively. However, it does not explicitly state that these models offer flexible mechanisms for balancing shared and task-specific learning."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Attention-based architectures, including MTAN Liu et al. (2018) and Transformer-based models Han et al. (2023), further enhance the ability to capture temporal dependencies and cross-task relationships",
+          "issue": "The ground truth confirms Liu et al. (2018) proposed MTAN and Han et al. (2023) proposed a graph neural network model for multi-task time series forecasting. However, it does not state that these architectures enhance the ability to capture temporal dependencies and cross-task relationships."
+        },
+        {
+          "location": "Related Work",
+          "claim": "This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes",
+          "issue": "The ground truth does not contain any information about Fama-French three-factor returns, CATS techniques, or shared attention mechanisms being evaluated in the context of MTL for credit risk modeling. These hypotheses are introduced as part of the paper's own research agenda rather than being grounded in the provided references."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim builds on the identified gap regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026).",
+          "issue": "The ground truth states the rationale builds on the gap 'Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models' but does not cite Wu, 2024; Zhang, 2026. The specific citations are fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "By leveraging the method of multi-task learning (MTL), which is commonly used to improve generalization by leveraging shared representations across related tasks (Wu, 2024),",
+          "issue": "The ground truth mentions MTL as a related method but does not attribute this specific description or citation to Wu, 2024. The citation and the exact phrasing are fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This idea draws from the cross-disciplinary bridge insight that auxiliary time series construction can enhance multivariate forecasting performance by generating exogenous variables that act like contextual attention mechanisms (Lu et al., 2024).",
+          "issue": "The ground truth mentions the cross-disciplinary insight but does not cite Lu et al., 2024. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It addresses the gap in the lack of direct modeling of loan-level PDs incorporating macroeconomic variables (Breed et al., 2023) and the need for forecastable macroeconomic variables in long-term PD modeling (Szabó, 2022).",
+          "issue": "The ground truth lists these gaps but does not cite Breed et al., 2023 or Szabó, 2022. These citations are fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This proposition is informed by the gap concerning the limited evaluation of model performance in sparse data environments typical of developing economies (Moodley et al., 2025) and the need for robust validation of macroeconomic forecasts beyond mean-reversion assumptions (Moodley et al., 2025).",
+          "issue": "The ground truth mentions these gaps but does not cite Moodley et al., 2025. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Furthermore, it connects to the method of shared attention mechanisms in multi-task forecasting (Chen et al., 2020), which is proposed to improve joint training and forecasting performance.",
+          "issue": "The ground truth mentions shared attention mechanisms as a related method but does not cite Chen et al., 2020. The citation is fabricated."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The implementation of the experiments relied on a number of specific assumptions made by the coding agent",
+          "issue": "The ground truth lists assumptions but does not mention any 'coding agent' making them. The assumptions are attributed to the experimental setup, not a separate coding agent."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These assumptions, while necessary for execution, introduce potential points of failure or deviation from intended behavior if not met precisely in the operational environment",
+          "issue": "While the ground truth acknowledges the assumptions, it does not discuss potential 'points of failure or deviation from intended behavior'. This added interpretation is not present in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "However, no experiments were officially skipped or left unexecuted due to these or any other reasons",
+          "issue": "The ground truth explicitly states that the field 'not_run_reasons' is empty, meaning no experiments were skipped or left unexecuted. This claim is consistent with the ground truth, so it is not a hallucination. However, since the instruction asks to flag only claims that do NOT trace back to the ground truth, and this one does, it should not be flagged. Revisiting the instruction: the claim is actually grounded in the ground truth, so it's not a hallucination."
+        },
+        {
+          "location": "Discussion",
+          "claim": "The motivation for this approach stems from the limited exploration of how macroeconomic factors interact with individual credit outcomes in dynamic risk models Wu (2024); Zhang (2026).",
+          "issue": "The ground truth states the rationale is based on prior work [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00], but cites specific years (Wu 2024; Zhang 2026) which are not present in the provided ground truth and appear to be fabricated."
+        },
+        {
+          "location": "Discussion",
+          "claim": "The experiment's outcome is inconclusive due to the failure of the models to converge within the allocated computational budget, despite attempts to increase training epochs.",
+          "issue": "While the ground truth says the models did not converge and increasing epochs didn't help, it does not specify that the failure was due to the 'allocated computational budget'—this framing introduces a detail not found in the ground truth."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Hypotheses",
+          "issue": "citation-like text \"(Moodley et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by claiming that 'no definitive statement can be made regarding the effectiveness of the proposed multi-task architecture under the given conditions,' when the ground truth explicitly states the verdict is 'inconclusive' because the experiment met success criteria as unknown, not because of a definitive refutation or support. The paper implies a stronger negative conclusion than warranted by the ground truth."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 4,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 3
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Multi-task learning (MTL) frameworks have shown promise in leveraging auxiliary tasks to improve generalization and shared representation learning (Dang and Vu, 2026).\" — The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not explicitly state that these frameworks 'have shown promise' in this specific way. The citation to Dang and Vu (2026) is for a paper on early churn detection, which is outside the scope of credit risk modeling mentioned here. This claim attributes a general statement about MTL to a specific paper that does not support it in this context.\n- Introduction: \"Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in credit risk models (Wu, 2024; Zhang, 2026)\" — The ground truth supports the existence of a gap regarding interaction between macroeconomic factors and borrower-level data in dynamic credit risk models (as per supporting evidence 46649be8dcb3f1b018a9b68c3fc572004d0d50c7 and 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00), but it does not specify that this is limited in 'credit risk models' per se, nor does it confirm that Wu (2024) and Zhang (2026) are the papers making this claim. The citation is misleading because the cited authors' works are not explicitly tied to the specific gap mentioned.\n- Introduction: \"and contradictory findings exist regarding the expected signs of macroeconomic variables in credit default prediction models (Orsolya et al., n.d.).\" — The ground truth confirms that there are contradictory findings on the expected signs of macroeconomic variables in credit default prediction models (supporting evidence 2495385), but it does not mention Orsolya et al. (n.d.) as the source of this contradiction. The citation is fabricated since the ground truth does not list this paper as relevant to this particular issue.\n- Introduction: \"Furthermore, the lack of standardized benchmarks for assessing macroeconomic indicator relevance across different economies hampers cross-economy comparisons (Sierra et al., 2024; Orsolya et al., n.d.).\" — The ground truth identifies a lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies (supporting evidence 1ec5bc9921d47d8e20d88567bac9d7a745ec3739 and 2495385), but it does not cite Sierra et al. (2024) or Orsolya et al. (n.d.) as sources for this issue. Both citations are fabricated as they are not listed among the cited papers or supporting evidence for this specific gap.\n- Introduction: \"Another significant concern lies in the limited exploration of multi-task learning in banking churn settings, despite its potential for improving robustness and interpretability (Dang and Vu, 2026).\" — The ground truth mentions that there is a limited exploration of multi-task learning in banking churn settings (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The cited paper is about early churn detection, not specifically banking churn settings, and the ground truth does not associate this gap with that particular authorship.\n- Introduction: \"Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (Dang and Vu, 2026).\" — The ground truth states that most existing studies on multi-task learning in finance rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The citation is incorrect because the cited paper is not identified as being responsible for this methodological weakness in the ground truth.\n- Introduction: \"while MTL frameworks offer improved performance, few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules (Dang and Vu, 2026).\" — The ground truth mentions that there is limited evaluation of alignment between XAI explanations and business-defined rules in multi-task frameworks (supporting evidence 1f5e91fb24856a712892a1efafc5b3d28a20b7b4), but it does not attribute this to Dang and Vu (2026). The citation is fabricated because the cited paper is not associated with this specific gap in the ground truth.\n- Introduction: \"The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025), and many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025).\" — The ground truth confirms that there is limited evaluation of model performance in sparse data environments typical of developing economies (supporting evidence dfe5f15d80cb17d65508ad330e279d899a672d98) and that there is a need for more robust validation of macroeconomic forecasts beyond mean-reversion assumptions (supporting evidence dfe5f15d80cb17d65508ad330e279d899a672d98), but it does not cite Moodley et al. (2025) as the source for either of these claims. The citation is fabricated.\n- Introduction: \"For instance, while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025).\" — The ground truth acknowledges contradictory emphasis on whether including economic indicators improves forecasting accuracy versus when they may be detrimental (supporting evidence 9cdb9fe24275a9d4de27087cf5b4dcab235d43c1), but it does not identify Krawczyk et al. (2025) as the source of this contradiction. The citation is fabricated.\n- Introduction: \"Moreover, the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023),\" — The ground truth identifies a lack of direct evaluation of long-term forecasting stability in multi-task frameworks (supporting evidence 97e3a57aea37bfe2c617b2cc2893e7baaa91d78a and 2fae32ed99a821f405e0307960e0538d009df4b2), but it does not cite Jawed and Schmidt-Thieme (2022) or Ong and Herremans (2023) as sources for this issue. These citations are fabricated.\n- Introduction: \"and the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023).\" — The ground truth confirms that it is difficult to maintain theoretical relationships between macroeconomic variables and default rates in complex machine learning models (supporting evidence 309be1479e1cd7b73df8a14be01239bb4ad95e87), but it does not attribute this to Breed et al. (2023). The citation is fabricated.\n- Related Work: \"which leverage shared representations across related tasks to improve generalization and performance Wu (2024)\" — The ground truth states that multi-task deep learning is used in Wu (2024) to improve generalization and performance, but it does not specify that this is done 'across related tasks' in the way described. The abstract of Wu (2024) mentions multi-task learning for credit risk assessment but does not explicitly state that it leverages shared representations across 'related tasks' as a defining characteristic.\n- Related Work: \"In financial contexts, MTL has been applied to credit scoring Liu et al. (2022), early churn detection Dang and Vu (2026), and risk management Liu and Xu (2024)\" — The ground truth confirms that Liu et al. (2022) applied MTL to credit scoring, and Liu and Xu (2024) to risk management. However, it does not confirm that Dang and Vu (2026) applied MTL to early churn detection. The abstract of Dang and Vu (2026) discusses early churn detection but does not mention MTL being used for this purpose.\n- Related Work: \"Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies showing that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026)\" — The ground truth confirms Zhang (2026) explores macroeconomic factors in credit default prediction and mentions that deep neural networks are used to optimize performance. However, it does not state that this is specifically about enhancing predictive performance in credit risk models or that it's particularly effective with deep learning models for capturing complex, nonlinear interactions.\n- Related Work: \"machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models performing well in certain settings Wang and Xiao (2025)\" — The ground truth confirms Wang and Xiao (2025) use machine learning models like XGBoost and LightGBM for credit risk forecasting under macroeconomic scenarios. However, it does not specify that ensemble methods and tree-based models perform well 'in certain settings', nor does it describe them as showing 'promise' in modeling default probabilities under macroeconomic stress.\n- Related Work: \"Works such as Jawed and Schmidt-Thieme (2022) and Schmidt-Thieme and Jawed (2022) demonstrate how auxiliary tasks can be incorporated into forecasting pipelines to improve model accuracy and robustness\" — The ground truth confirms that Jawed and Schmidt-Thieme (2022) and Schmidt-Thieme and Jawed (2022) both propose methods involving auxiliary tasks in forecasting pipelines. However, it does not explicitly state that these works demonstrate how auxiliary tasks can be incorporated to improve model accuracy and robustness.\n- Related Work: \"In the context of quantile forecasting, methods like Schmidt-Thieme and Jawed (2022) show that joint learning of multiple quantiles can be effective, while Jawed and Schmidt-Thieme (2022) propose a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task\" — The ground truth confirms that both papers involve auxiliary quantile forecasting and joint learning of multiple quantiles. However, it does not specify that one proposes a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task, nor does it explicitly state that joint learning of multiple quantiles is effective in the context described.\n- Related Work: \"studies emphasizing the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance Krawczyk et al. (2025)\" — The ground truth confirms Krawczyk et al. (2025) discuss the inclusion of both economic context and technical indicators improving financial forecasting performance. However, it does not state that studies emphasize the importance of selecting appropriate auxiliary variables to avoid detrimental effects on model performance.\n- Related Work: \"Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) offer flexible mechanisms for balancing shared and task-specific learning\" — The ground truth confirms that Ma et al. (2018), Misra et al. (2016), and Tang et al. (2020) propose MMoE, Cross-Stitch Networks, and PLE respectively. However, it does not explicitly state that these models offer flexible mechanisms for balancing shared and task-specific learning.\n- Related Work: \"Attention-based architectures, including MTAN Liu et al. (2018) and Transformer-based models Han et al. (2023), further enhance the ability to capture temporal dependencies and cross-task relationships\" — The ground truth confirms Liu et al. (2018) proposed MTAN and Han et al. (2023) proposed a graph neural network model for multi-task time series forecasting. However, it does not state that these architectures enhance the ability to capture temporal dependencies and cross-task relationships.\n- Related Work: \"This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes\" — The ground truth does not contain any information about Fama-French three-factor returns, CATS techniques, or shared attention mechanisms being evaluated in the context of MTL for credit risk modeling. These hypotheses are introduced as part of the paper's own research agenda rather than being grounded in the provided references.\n- Hypotheses: \"The rationale for this claim builds on the identified gap regarding limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026).\" — The ground truth states the rationale builds on the gap 'Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models' but does not cite Wu, 2024; Zhang, 2026. The specific citations are fabricated.\n- Hypotheses: \"By leveraging the method of multi-task learning (MTL), which is commonly used to improve generalization by leveraging shared representations across related tasks (Wu, 2024),\" — The ground truth mentions MTL as a related method but does not attribute this specific description or citation to Wu, 2024. The citation and the exact phrasing are fabricated.\n- Hypotheses: \"This idea draws from the cross-disciplinary bridge insight that auxiliary time series construction can enhance multivariate forecasting performance by generating exogenous variables that act like contextual attention mechanisms (Lu et al., 2024).\" — The ground truth mentions the cross-disciplinary insight but does not cite Lu et al., 2024. The citation is fabricated.\n- Hypotheses: \"It addresses the gap in the lack of direct modeling of loan-level PDs incorporating macroeconomic variables (Breed et al., 2023) and the need for forecastable macroeconomic variables in long-term PD modeling (Szabó, 2022).\" — The ground truth lists these gaps but does not cite Breed et al., 2023 or Szabó, 2022. These citations are fabricated.\n- Hypotheses: \"This proposition is informed by the gap concerning the limited evaluation of model performance in sparse data environments typical of developing economies (Moodley et al., 2025) and the need for robust validation of macroeconomic forecasts beyond mean-reversion assumptions (Moodley et al., 2025).\" — The ground truth mentions these gaps but does not cite Moodley et al., 2025. The citation is fabricated.\n- Hypotheses: \"Furthermore, it connects to the method of shared attention mechanisms in multi-task forecasting (Chen et al., 2020), which is proposed to improve joint training and forecasting performance.\" — The ground truth mentions shared attention mechanisms as a related method but does not cite Chen et al., 2020. The citation is fabricated.\n- Limitations: \"The implementation of the experiments relied on a number of specific assumptions made by the coding agent\" — The ground truth lists assumptions but does not mention any 'coding agent' making them. The assumptions are attributed to the experimental setup, not a separate coding agent.\n- Limitations: \"These assumptions, while necessary for execution, introduce potential points of failure or deviation from intended behavior if not met precisely in the operational environment\" — While the ground truth acknowledges the assumptions, it does not discuss potential 'points of failure or deviation from intended behavior'. This added interpretation is not present in the ground truth.\n- Limitations: \"However, no experiments were officially skipped or left unexecuted due to these or any other reasons\" — The ground truth explicitly states that the field 'not_run_reasons' is empty, meaning no experiments were skipped or left unexecuted. This claim is consistent with the ground truth, so it is not a hallucination. However, since the instruction asks to flag only claims that do NOT trace back to the ground truth, and this one does, it should not be flagged. Revisiting the instruction: the claim is actually grounded in the ground truth, so it's not a hallucination.\n- Discussion: \"The motivation for this approach stems from the limited exploration of how macroeconomic factors interact with individual credit outcomes in dynamic risk models Wu (2024); Zhang (2026).\" — The ground truth states the rationale is based on prior work [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00], but cites specific years (Wu 2024; Zhang 2026) which are not present in the provided ground truth and appear to be fabricated.\n- Discussion: \"The experiment's outcome is inconclusive due to the failure of the models to converge within the allocated computational budget, despite attempts to increase training epochs.\" — While the ground truth says the models did not converge and increasing epochs didn't help, it does not specify that the failure was due to the 'allocated computational budget'—this framing introduces a detail not found in the ground truth.\nCitation issues:\n- Hypotheses: citation-like text \"(Moodley et\nal., 2025)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by claiming that 'no definitive statement can be made regarding the effectiveness of the proposed multi-task architecture under the given conditions,' when the ground truth explicitly states the verdict is 'inconclusive' because the experiment met success criteria as unknown, not because of a definitive refutation or support. The paper implies a stronger negative conclusion than warranted by the ground truth.\nQuality scores below the 4/5 threshold:\n- limitations_honesty: 3/5 — The paper acknowledges several limitations but does not fully engage with the specific risks and assumptions outlined in the ground truth. For example, it mentions 'temporal alignment' and 'overfitting' but omits the detailed risks like 'computational cost exceeding SLURM allocation limits' or the assumption about sklearn version compatibility. It also fails to mention that no experiments were officially skipped, which is a key point from the ground truth.",
+      "generated_at": "2026-09-15T06:47:44.235250+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 3,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v3.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q004_does-adding-macroeconomic-indicators-as-auxiliary/v3.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "309be1479e1cd7b73df8a14be01239bb4ad95e87",
+        "1f5e91fb24856a712892a1efafc5b3d28a20b7b4",
+        "f950e56014e714025a4120f952a8a37596b77ff3",
+        "af754d8e25ee631eec3233b54fb05de572e765c7",
+        "97e3a57aea37bfe2c617b2cc2893e7baaa91d78a",
+        "9cdb9fe24275a9d4de27087cf5b4dcab235d43c1",
+        "619cf9d39abb93fe1ab17921c163fc5734ac1e70",
+        "8a14d51925b066cb95fc287abdda1020ee2dcb54",
+        "af8a8dcb74561d52d904f7bc4afcc747e079b702",
+        "2976605dc3b73377696537291d45f09f1ab1fbf5",
+        "dfe5f15d80cb17d65508ad330e279d899a672d98",
+        "2fae32ed99a821f405e0307960e0538d009df4b2",
+        "2495385",
+        "1ec5bc9921d47d8e20d88567bac9d7a745ec3739",
+        "0182197c3996d11867ef650b66a2ddf1efa6f631",
+        "46649be8dcb3f1b018a9b68c3fc572004d0d50c7",
+        "4741349d2c55a4a4f7161882c3bd8a87ab9f9e00"
+      ],
+      "notes_for_review": [],
+      "generated_at": "2026-09-15T06:49:06.034322+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 3,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Multi-task learning (MTL) frameworks have shown promise in leveraging auxiliary tasks to improve generalization and shared representation learning (Dang and Vu, 2026).",
+          "issue": "The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not explicitly state that these frameworks 'have shown promise' in this specific way. The citation to Dang and Vu (2026) is for a paper on early churn detection, which is outside the scope of credit risk modeling mentioned here. This claim attributes a general conclusion to a specific paper that does not support it in the context of credit risk."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026)",
+          "issue": "While the ground truth lists this as a gap, it does not confirm that Wu (2024) and Zhang (2026) specifically addressed or failed to address this issue. The cited papers are listed in the ground truth, but their content is not detailed enough to verify that they indeed lack exploration of this interaction. Therefore, attributing this specific limitation to these authors is a hallucination."
+        },
+        {
+          "location": "Introduction",
+          "claim": "contradictory findings exist regarding the expected signs of macroeconomic variables in credit default prediction models (Orsolya et al., n.d.)",
+          "issue": "The ground truth confirms that there is a gap regarding contradictory findings on the expected signs of macroeconomic variables, but it does not attribute this to a specific paper titled 'THE RELATIONSHIP BETWEEN MACROECONOMIC VARIABLES AND ROMANIAN CORPORATE DEFAULT RATES BETWEEN 2002-2008' by Orsolya et al. (n.d.). The ground truth only mentions the existence of such a contradiction without linking it to this particular paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "the lack of standardized benchmarks for assessing macroeconomic indicator relevance across different economies hampers cross-economy comparisons (Sierra et al., 2024; Orsolya et al., n.d.)",
+          "issue": "The ground truth identifies this as a gap, but it does not specify that Sierra et al. (2024) or Orsolya et al. (n.d.) are the sources of this lack of standardization. It only lists them among cited works and notes that the gap involves lack of standardized benchmarks, without confirming that these two papers are directly responsible for or discuss this issue."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another significant concern lies in the limited exploration of multi-task learning in banking churn settings, despite its potential for improving robustness and interpretability (Dang and Vu, 2026)",
+          "issue": "The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) specifically discuss or acknowledge this limitation in their work on early churn detection. The paper cited is about churn detection, not necessarily about multi-task learning in banking contexts, so the claim incorrectly attributes this limitation to the cited paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (Dang and Vu, 2026)",
+          "issue": "The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) are the ones who make this claim or that they discuss heuristic selection in their work. The ground truth does not provide sufficient information to verify that this is a stated limitation of their paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules (Dang and Vu, 2026)",
+          "issue": "The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) are the ones who identify or discuss this issue. The cited paper is about churn detection, not about alignment between XAI and business rules in credit risk models, making this attribution incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025)",
+          "issue": "The ground truth confirms that there is a gap regarding limited evaluation of model performance in sparse data environments typical of developing economies, but it does not confirm that Moodley et al. (2025) are the ones who identified or discussed this issue. The citation is made without verifying that the paper addresses this specific concern."
+        },
+        {
+          "location": "Introduction",
+          "claim": "many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025)",
+          "issue": "The ground truth lists this as a gap, but it does not confirm that Moodley et al. (2025) are the ones who identify or discuss this limitation. The paper cited is about macroeconomic default risk adjustment, not specifically about validating forecasts beyond mean-reversion assumptions."
+        },
+        {
+          "location": "Introduction",
+          "claim": "while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025)",
+          "issue": "The ground truth confirms that there is a contradictory emphasis on whether including economic indicators improves forecasting accuracy versus when they may be detrimental, but it does not confirm that Krawczyk et al. (2025) are the ones who make this distinction. The cited paper is about consumer cyclicals and tokenization, not about contrasting effects of macroeconomic inclusion in forecasting."
+        },
+        {
+          "location": "Introduction",
+          "claim": "the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023)",
+          "issue": "The ground truth confirms that there is a gap regarding lack of direct evaluation of long-term forecasting stability in multi-task frameworks, but it does not confirm that Jawed and Schmidt-Thieme (2022) or Ong and Herremans (2023) are the ones who identify or discuss this issue. The cited papers are not explicitly linked to this specific concern in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023)",
+          "issue": "The ground truth lists this as a gap, but it does not confirm that Breed et al. (2023) are the ones who identify or discuss this issue. The cited paper is about incorporating macroeconomic information into expected credit loss calculation, not specifically about compromising theoretical consistency in ML models."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In financial contexts, MTL has been applied to credit scoring Wu (2024), risk management Liu and Xu (2024), and early churn detection Dang and Vu (2026).",
+          "issue": "The ground truth indicates that Wu (2024) focuses on dynamic credit risk assessment using multi-task deep learning and Bayesian optimization, Liu and Xu (2024) propose a comprehensive risk nonlinear relationship mining algorithm for commercial banks based on multi-task learning, and Dang and Vu (2026) work on early churn detection with risk-aware and explainable recommendations. However, none of these papers explicitly state that MTL has been applied to 'risk management' or 'early churn detection' in the way described. The claim misrepresents the scope of application of MTL in these specific papers."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies showing that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026).",
+          "issue": "The ground truth shows that Zhang (2026) explores the impact of macroeconomic factors on credit default prediction using machine learning and neural network methods. However, it does not mention that this study specifically shows that incorporating macroeconomic variables enhances predictive performance 'particularly when using deep learning models capable of capturing complex, nonlinear interactions'. The claim adds a specific characterization of the enhancement mechanism that is not supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Beyond regression-based methods, machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models being used in certain settings Guth (2022).",
+          "issue": "The ground truth for Guth (2022) discusses comparing regression models to find the best performing credit risk model, and mentions that machine learning models perform better. However, it does not specify that 'ensemble methods and tree-based models' were used in 'certain settings' for modeling default probabilities under macroeconomic stress. The claim introduces specific model types and usage contexts not mentioned in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Studies such as Felici and Sudoso (2023) and Jawed and Schmidt-Thieme (2022) demonstrate how auxiliary tasks can be incorporated into forecasting pipelines.",
+          "issue": "The ground truth confirms that Felici and Sudoso (2023) and Jawed and Schmidt-Thieme (2022) both propose multi-task learning methods for forecasting. However, it does not explicitly state that these studies 'demonstrate how auxiliary tasks can be incorporated into forecasting pipelines.' The claim makes a specific interpretive assertion about their work that goes beyond what is stated in the abstracts."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In the context of quantile forecasting, methods such as Felici and Sudoso (2023) show that joint learning of multiple quantiles can be effective, while Jawed and Schmidt-Thieme (2022) propose a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task.",
+          "issue": "The ground truth for Felici and Sudoso (2023) discusses a meta-learning approach for forecast combinations involving accuracy and diversity, but does not specifically state that they show 'joint learning of multiple quantiles can be effective.' Similarly, Jawed and Schmidt-Thieme (2022) propose auxiliary quantile forecasting with linear networks, but the claim adds a specific interpretation ('learns auxiliary quantile estimation tasks alongside a primary forecasting task') that is not directly supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Furthermore, the integration of macroeconomic indicators into financial forecasting has been explored through both regression-based and machine learning approaches, with studies emphasizing the inclusion of economic context and technical indicators to improve forecasting performance Zhang (2026).",
+          "issue": "While Zhang (2026) explores macroeconomic impacts on credit default prediction, the ground truth does not support the claim that this study emphasizes 'the inclusion of economic context and technical indicators to improve forecasting performance.' The abstract does not mention 'technical indicators' or explicitly emphasize 'economic context' in the specified manner."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) have been proposed to enable flexible mechanisms for balancing shared and task-specific learning.",
+          "issue": "The ground truth confirms that Ma et al. (2018), Misra et al. (2016), and Tang et al. (2020) have proposed MMoE, Cross-Stitch Networks, and PLE respectively. However, it does not state that these models were proposed 'to enable flexible mechanisms for balancing shared and task-specific learning.' The claim adds a specific functional characterization not explicitly stated in the abstracts."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Attention-based architectures, including MTAN Liu et al. (2018), have also been developed to enhance the ability to capture temporal dependencies and cross-task relationships.",
+          "issue": "The ground truth confirms that Liu et al. (2018) proposed MTAN, a multi-task attention network. However, it does not state that this architecture was 'developed to enhance the ability to capture temporal dependencies and cross-task relationships.' The claim adds a specific functional purpose not directly supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes.",
+          "issue": "The ground truth does not contain any information about the specific hypotheses (H1, H2, H3) proposed in this paper. These hypotheses are entirely new claims introduced in the section text and are not traceable to the provided ground truth."
+        },
+        {
+          "location": "Methods",
+          "claim": "The study utilized the UCI Statlog (German Credit) dataset, which comprises 1000 borrower-level records with 20 features and a binary credit risk outcome",
+          "issue": "The ground truth states that the dataset contains '1000 German credit records with 20 borrower-level features and a binary credit risk outcome', but the section text incorrectly refers to it as '1000 borrower-level records with 20 features'—omitting the specificity of 'borrower-level' and 'credit risk outcome'."
+        },
+        {
+          "location": "Methods",
+          "claim": "Data preprocessing involved one-hot encoding of categorical variables, normalization of numerical features, and temporal alignment of the datasets through date matching to ensure consistency in time-series modeling",
+          "issue": "While the ground truth lists these steps under 'preprocessing_steps', it does not explicitly state that they are all part of a single unified preprocessing pipeline. The section text implies a cohesive process that is not directly confirmed in the ground truth."
+        },
+        {
+          "location": "Methods",
+          "claim": "A multi-task deep learning architecture was employed, featuring shared layers for common representation learning and task-specific heads for both credit default prediction and the three Fama-French factors, in contrast to a single-task model trained exclusively on borrower-level features",
+          "issue": "This is a faithful summary of the methods described in the ground truth, so it is not a hallucination. However, the phrase 'in contrast to a single-task model trained exclusively on borrower-level features' introduces a subtle implication about exclusivity that is not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Methods",
+          "claim": "Key assumptions made during implementation included compatibility of the scikit-learn library’s OneHotEncoder with specified parameters",
+          "issue": "The ground truth mentions 'sklearn version on the system supports either `sparse=False` or `sparse_output=False` for OneHotEncoder' but does not mention 'specified parameters' as a key assumption. This addition is not grounded."
+        },
+        {
+          "location": "Methods",
+          "claim": "These assumptions were critical for ensuring reproducibility and validity of the results",
+          "issue": "The ground truth lists assumptions but does not explicitly state that these assumptions are 'critical for ensuring reproducibility and validity of the results'. This evaluative statement is not grounded."
+        },
+        {
+          "location": "Methods",
+          "claim": "Due to the limited sample size of the German Credit dataset, potential overfitting remains a concern, particularly given the complexity of the multi-task model architecture",
+          "issue": "While the ground truth lists 'Overfitting due to limited sample size (1000 observations) in the credit dataset' as a risk, it does not mention anything about 'complexity of the multi-task model architecture' being a contributing factor to overfitting concerns. This is an added assumption."
+        },
+        {
+          "location": "Methods",
+          "claim": "Additionally, the temporal alignment of borrower-level data with macroeconomic factors may introduce noise or bias if the time lag between financial events and credit outcomes is not precisely captured",
+          "issue": "The ground truth mentions risks such as 'Insufficient temporal alignment between borrower data and macroeconomic factors' but does not specify that this leads to 'noise or bias' or that it depends on 'time lag between financial events and credit outcomes'. These details are not grounded."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Future work in this research direction should prioritize addressing the inconclusive outcome of the primary hypothesis, which investigated whether incorporating Fama-French three-factor returns as auxiliary targets in a multi-task learning framework improves out-of-sample AUC performance for credit default prediction.",
+          "issue": "The ground truth states that the hypothesis is 'inconclusive' because the experiment did not converge and the inputs were synthetic surrogates, but it does not specify that the primary hypothesis itself was about 'improving out-of-sample AUC performance'. The ground truth only mentions the hypothesis investigates whether incorporating Fama-French three-factor returns as auxiliary prediction targets will improve out-of-sample AUC performance, without confirming that this specific aspect was the focus of the primary hypothesis in the paper."
+        },
+        {
+          "location": "Future Work",
+          "claim": "As training did not reach convergence even with increased computational resources, further investigation is required to determine whether improved training strategies or architectural modifications might yield stable results.",
+          "issue": "While the ground truth confirms that training did not converge and that increasing the epoch budget did not help, it does not mention anything about 'improved training strategies or architectural modifications' being a suggested path forward. This addition is speculative and not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The use of synthetic surrogate inputs also limits the interpretability of the findings, and future studies should explore the application of real-world macroeconomic data to assess the practical viability of the approach.",
+          "issue": "Although the ground truth confirms that one or more inputs are synthetic surrogates and that the metrics describe behavior on generated data, it does not explicitly state that this limits interpretability or suggest that future studies should explore real-world macroeconomic data. These are speculative recommendations not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Several unresolved gaps from prior literature remain relevant to the scope of this work and warrant further exploration.",
+          "issue": "This is a general statement that is consistent with the ground truth's listing of gaps, but the ground truth does not provide any indication that these gaps are specifically 'unresolved' or 'relevant to the scope of this work' in the way implied here. The phrase 'warrant further exploration' is a reasonable inference but not directly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "One such gap concerns the limited understanding of how macroeconomic factors interact with borrower-level features in dynamic credit risk models.",
+          "issue": "This is a paraphrased version of the first gap listed in the ground truth ('Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models'), which is acceptable. However, the paper's section text implies that this is a new or distinct gap introduced by the current work, whereas the ground truth simply lists it as a pre-existing gap. Therefore, the implication that this is a gap specifically relevant to the current work is not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Another involves contradictory findings regarding the expected signs of macroeconomic variables in credit default models, highlighting inconsistencies in empirical validation and theoretical grounding.",
+          "issue": "This is a paraphrased version of the second gap in the ground truth ('Contradictory findings on the expected signs of macroeconomic variables in credit default prediction models'), which is acceptable. However, the paper implies that this is a new finding or observation made in the current work, which is not supported by the ground truth. The ground truth only lists this as a known issue in prior literature, not as a novel finding from the current study."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Additionally, there is a lack of standardized benchmarks for evaluating macroeconomic indicators across different economies, which hinders cross-regional comparisons.",
+          "issue": "This is a paraphrased version of the third gap in the ground truth ('Lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies'), which is acceptable. However, again, the paper implies that this is a gap identified or emphasized by the current work, which is not substantiated by the ground truth. The ground truth treats this as a pre-existing limitation, not a new insight from the current study."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Further research should also consider the broader implications of multi-task learning in financial modeling, particularly in underexplored domains.",
+          "issue": "The ground truth lists several gaps related to MTL in financial modeling, but it does not indicate that the current study has identified or emphasized 'broader implications' of MTL in financial modeling. This is a generalization that goes beyond what is explicitly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "For instance, the limited evaluation of model performance in sparse data environments typical of developing economies points to a need for targeted studies in such contexts.",
+          "issue": "The ground truth includes a gap about 'Limited evaluation of model performance in sparse data environments typical of developing economies', but it does not state that this is a conclusion or implication drawn from the current study. The paper implies that this is a new insight or direction from the current work, which is not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Similarly, the absence of direct comparisons between machine learning and traditional models in real-world regulatory settings indicates a gap in assessing practical applicability.",
+          "issue": "The ground truth includes a gap about 'Lack of direct comparison between machine learning and traditional models in real-world regulatory settings', but it does not indicate that this is a conclusion or implication drawn from the current study. Again, the paper implies that this is a new finding or direction from the current work, which is not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Moreover, while this study focused on credit risk, other aspects such as the alignment between explainability insights and business-defined rules in multi-task frameworks remain underexplored.",
+          "issue": "The ground truth includes a gap about 'Limited evaluation of alignment between XAI explanations and business-defined rules in multi-task frameworks', but it does not state that this is a new direction or aspect highlighted by the current study. The paper implies that this is a new area of interest from the current work, which is not supported by the ground truth."
+        },
+        {
+          "location": "Discussion",
+          "claim": "Wu (2024); Zhang (2026)",
+          "issue": "The cited references 'Wu (2024)' and 'Zhang (2026)' are not present in the provided ground truth rationale for H1, which instead references [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00]. These years and authors are fabricated and not traceable to the ground truth."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text understates the outcome by saying 'no verdict can be drawn' when the ground truth explicitly states the verdict is 'inconclusive'. The ground truth clarifies that the experiment was completed and metrics were reported, but the verdict is withheld due to non-convergence and synthetic data issues. The phrasing 'no verdict can be drawn' downplays the actual state of the experiment, which is that it was inconclusive due to technical limitations rather than a lack of attempt or failure to produce results."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 4,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Multi-task learning (MTL) frameworks have shown promise in leveraging auxiliary tasks to improve generalization and shared representation learning (Dang and Vu, 2026).\" — The ground truth states that MTL frameworks like MMoE, MTAN, and PLE offer promising improvements in generalization and shared representation learning, but it does not explicitly state that these frameworks 'have shown promise' in this specific way. The citation to Dang and Vu (2026) is for a paper on early churn detection, which is outside the scope of credit risk modeling mentioned here. This claim attributes a general conclusion to a specific paper that does not support it in the context of credit risk.\n- Introduction: \"Notably, there is limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models (Wu, 2024; Zhang, 2026)\" — While the ground truth lists this as a gap, it does not confirm that Wu (2024) and Zhang (2026) specifically addressed or failed to address this issue. The cited papers are listed in the ground truth, but their content is not detailed enough to verify that they indeed lack exploration of this interaction. Therefore, attributing this specific limitation to these authors is a hallucination.\n- Introduction: \"contradictory findings exist regarding the expected signs of macroeconomic variables in credit default prediction models (Orsolya et al., n.d.)\" — The ground truth confirms that there is a gap regarding contradictory findings on the expected signs of macroeconomic variables, but it does not attribute this to a specific paper titled 'THE RELATIONSHIP BETWEEN MACROECONOMIC VARIABLES AND ROMANIAN CORPORATE DEFAULT RATES BETWEEN 2002-2008' by Orsolya et al. (n.d.). The ground truth only mentions the existence of such a contradiction without linking it to this particular paper.\n- Introduction: \"the lack of standardized benchmarks for assessing macroeconomic indicator relevance across different economies hampers cross-economy comparisons (Sierra et al., 2024; Orsolya et al., n.d.)\" — The ground truth identifies this as a gap, but it does not specify that Sierra et al. (2024) or Orsolya et al. (n.d.) are the sources of this lack of standardization. It only lists them among cited works and notes that the gap involves lack of standardized benchmarks, without confirming that these two papers are directly responsible for or discuss this issue.\n- Introduction: \"Another significant concern lies in the limited exploration of multi-task learning in banking churn settings, despite its potential for improving robustness and interpretability (Dang and Vu, 2026)\" — The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) specifically discuss or acknowledge this limitation in their work on early churn detection. The paper cited is about churn detection, not necessarily about multi-task learning in banking contexts, so the claim incorrectly attributes this limitation to the cited paper.\n- Introduction: \"Existing studies often rely on heuristic selection of auxiliary tasks without strong empirical or theoretical justification (Dang and Vu, 2026)\" — The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) are the ones who make this claim or that they discuss heuristic selection in their work. The ground truth does not provide sufficient information to verify that this is a stated limitation of their paper.\n- Introduction: \"few evaluate the alignment between explainable AI (XAI) interpretations and business-defined rules (Dang and Vu, 2026)\" — The ground truth lists this as a gap, but it does not confirm that Dang and Vu (2026) are the ones who identify or discuss this issue. The cited paper is about churn detection, not about alignment between XAI and business rules in credit risk models, making this attribution incorrect.\n- Introduction: \"The performance of such models in sparse data environments, particularly in developing economies, also remains largely unexamined (Moodley et al., 2025)\" — The ground truth confirms that there is a gap regarding limited evaluation of model performance in sparse data environments typical of developing economies, but it does not confirm that Moodley et al. (2025) are the ones who identified or discussed this issue. The citation is made without verifying that the paper addresses this specific concern.\n- Introduction: \"many existing models fail to adequately validate macroeconomic forecasts beyond simple mean-reversion assumptions (Moodley et al., 2025)\" — The ground truth lists this as a gap, but it does not confirm that Moodley et al. (2025) are the ones who identify or discuss this limitation. The paper cited is about macroeconomic default risk adjustment, not specifically about validating forecasts beyond mean-reversion assumptions.\n- Introduction: \"while some studies suggest that including macroeconomic variables enhances forecasting accuracy, others find that such inclusion may be detrimental under certain conditions (Krawczyk et al., 2025)\" — The ground truth confirms that there is a contradictory emphasis on whether including economic indicators improves forecasting accuracy versus when they may be detrimental, but it does not confirm that Krawczyk et al. (2025) are the ones who make this distinction. The cited paper is about consumer cyclicals and tokenization, not about contrasting effects of macroeconomic inclusion in forecasting.\n- Introduction: \"the long-term forecasting stability of MTL models has received insufficient attention (Jawed and Schmidt-Thieme, 2022; Ong and Herremans, 2023)\" — The ground truth confirms that there is a gap regarding lack of direct evaluation of long-term forecasting stability in multi-task frameworks, but it does not confirm that Jawed and Schmidt-Thieme (2022) or Ong and Herremans (2023) are the ones who identify or discuss this issue. The cited papers are not explicitly linked to this specific concern in the ground truth.\n- Introduction: \"the theoretical consistency between macroeconomic variables and default rates in complex machine learning models is often compromised (Breed et al., 2023)\" — The ground truth lists this as a gap, but it does not confirm that Breed et al. (2023) are the ones who identify or discuss this issue. The cited paper is about incorporating macroeconomic information into expected credit loss calculation, not specifically about compromising theoretical consistency in ML models.\n- Related Work: \"In financial contexts, MTL has been applied to credit scoring Wu (2024), risk management Liu and Xu (2024), and early churn detection Dang and Vu (2026).\" — The ground truth indicates that Wu (2024) focuses on dynamic credit risk assessment using multi-task deep learning and Bayesian optimization, Liu and Xu (2024) propose a comprehensive risk nonlinear relationship mining algorithm for commercial banks based on multi-task learning, and Dang and Vu (2026) work on early churn detection with risk-aware and explainable recommendations. However, none of these papers explicitly state that MTL has been applied to 'risk management' or 'early churn detection' in the way described. The claim misrepresents the scope of application of MTL in these specific papers.\n- Related Work: \"Recent work has further explored the integration of macroeconomic factors into credit risk models, with studies showing that incorporating such variables can enhance predictive performance, particularly when using deep learning models capable of capturing complex, nonlinear interactions Zhang (2026).\" — The ground truth shows that Zhang (2026) explores the impact of macroeconomic factors on credit default prediction using machine learning and neural network methods. However, it does not mention that this study specifically shows that incorporating macroeconomic variables enhances predictive performance 'particularly when using deep learning models capable of capturing complex, nonlinear interactions'. The claim adds a specific characterization of the enhancement mechanism that is not supported by the abstract.\n- Related Work: \"Beyond regression-based methods, machine learning techniques have shown promise in modeling default probabilities under macroeconomic stress, with ensemble methods and tree-based models being used in certain settings Guth (2022).\" — The ground truth for Guth (2022) discusses comparing regression models to find the best performing credit risk model, and mentions that machine learning models perform better. However, it does not specify that 'ensemble methods and tree-based models' were used in 'certain settings' for modeling default probabilities under macroeconomic stress. The claim introduces specific model types and usage contexts not mentioned in the abstract.\n- Related Work: \"Studies such as Felici and Sudoso (2023) and Jawed and Schmidt-Thieme (2022) demonstrate how auxiliary tasks can be incorporated into forecasting pipelines.\" — The ground truth confirms that Felici and Sudoso (2023) and Jawed and Schmidt-Thieme (2022) both propose multi-task learning methods for forecasting. However, it does not explicitly state that these studies 'demonstrate how auxiliary tasks can be incorporated into forecasting pipelines.' The claim makes a specific interpretive assertion about their work that goes beyond what is stated in the abstracts.\n- Related Work: \"In the context of quantile forecasting, methods such as Felici and Sudoso (2023) show that joint learning of multiple quantiles can be effective, while Jawed and Schmidt-Thieme (2022) propose a method that learns auxiliary quantile estimation tasks alongside a primary forecasting task.\" — The ground truth for Felici and Sudoso (2023) discusses a meta-learning approach for forecast combinations involving accuracy and diversity, but does not specifically state that they show 'joint learning of multiple quantiles can be effective.' Similarly, Jawed and Schmidt-Thieme (2022) propose auxiliary quantile forecasting with linear networks, but the claim adds a specific interpretation ('learns auxiliary quantile estimation tasks alongside a primary forecasting task') that is not directly supported by the abstract.\n- Related Work: \"Furthermore, the integration of macroeconomic indicators into financial forecasting has been explored through both regression-based and machine learning approaches, with studies emphasizing the inclusion of economic context and technical indicators to improve forecasting performance Zhang (2026).\" — While Zhang (2026) explores macroeconomic impacts on credit default prediction, the ground truth does not support the claim that this study emphasizes 'the inclusion of economic context and technical indicators to improve forecasting performance.' The abstract does not mention 'technical indicators' or explicitly emphasize 'economic context' in the specified manner.\n- Related Work: \"Models such as Multi-gate Mixture-of-Experts (MMoE) Ma et al. (2018), Cross-Stitch Networks Misra et al. (2016), and Progressive Layered Extraction (PLE) Tang et al. (2020) have been proposed to enable flexible mechanisms for balancing shared and task-specific learning.\" — The ground truth confirms that Ma et al. (2018), Misra et al. (2016), and Tang et al. (2020) have proposed MMoE, Cross-Stitch Networks, and PLE respectively. However, it does not state that these models were proposed 'to enable flexible mechanisms for balancing shared and task-specific learning.' The claim adds a specific functional characterization not explicitly stated in the abstracts.\n- Related Work: \"Attention-based architectures, including MTAN Liu et al. (2018), have also been developed to enhance the ability to capture temporal dependencies and cross-task relationships.\" — The ground truth confirms that Liu et al. (2018) proposed MTAN, a multi-task attention network. However, it does not state that this architecture was 'developed to enhance the ability to capture temporal dependencies and cross-task relationships.' The claim adds a specific functional purpose not directly supported by the abstract.\n- Related Work: \"This paper seeks to address these gaps by evaluating three hypotheses concerning the effectiveness of MTL in credit risk modeling: (H1) that Fama-French three-factor returns can improve out-of-sample AUC performance when used as auxiliary targets; (H2) that auxiliary time series construction techniques (CATS) can enhance predictive accuracy when generating macroeconomic-derived features; and (H3) that shared attention mechanisms in MTL models can lead to more stable performance across economic regimes.\" — The ground truth does not contain any information about the specific hypotheses (H1, H2, H3) proposed in this paper. These hypotheses are entirely new claims introduced in the section text and are not traceable to the provided ground truth.\n- Methods: \"The study utilized the UCI Statlog (German Credit) dataset, which comprises 1000 borrower-level records with 20 features and a binary credit risk outcome\" — The ground truth states that the dataset contains '1000 German credit records with 20 borrower-level features and a binary credit risk outcome', but the section text incorrectly refers to it as '1000 borrower-level records with 20 features'—omitting the specificity of 'borrower-level' and 'credit risk outcome'.\n- Methods: \"Data preprocessing involved one-hot encoding of categorical variables, normalization of numerical features, and temporal alignment of the datasets through date matching to ensure consistency in time-series modeling\" — While the ground truth lists these steps under 'preprocessing_steps', it does not explicitly state that they are all part of a single unified preprocessing pipeline. The section text implies a cohesive process that is not directly confirmed in the ground truth.\n- Methods: \"A multi-task deep learning architecture was employed, featuring shared layers for common representation learning and task-specific heads for both credit default prediction and the three Fama-French factors, in contrast to a single-task model trained exclusively on borrower-level features\" — This is a faithful summary of the methods described in the ground truth, so it is not a hallucination. However, the phrase 'in contrast to a single-task model trained exclusively on borrower-level features' introduces a subtle implication about exclusivity that is not explicitly stated in the ground truth.\n- Methods: \"Key assumptions made during implementation included compatibility of the scikit-learn library’s OneHotEncoder with specified parameters\" — The ground truth mentions 'sklearn version on the system supports either `sparse=False` or `sparse_output=False` for OneHotEncoder' but does not mention 'specified parameters' as a key assumption. This addition is not grounded.\n- Methods: \"These assumptions were critical for ensuring reproducibility and validity of the results\" — The ground truth lists assumptions but does not explicitly state that these assumptions are 'critical for ensuring reproducibility and validity of the results'. This evaluative statement is not grounded.\n- Methods: \"Due to the limited sample size of the German Credit dataset, potential overfitting remains a concern, particularly given the complexity of the multi-task model architecture\" — While the ground truth lists 'Overfitting due to limited sample size (1000 observations) in the credit dataset' as a risk, it does not mention anything about 'complexity of the multi-task model architecture' being a contributing factor to overfitting concerns. This is an added assumption.\n- Methods: \"Additionally, the temporal alignment of borrower-level data with macroeconomic factors may introduce noise or bias if the time lag between financial events and credit outcomes is not precisely captured\" — The ground truth mentions risks such as 'Insufficient temporal alignment between borrower data and macroeconomic factors' but does not specify that this leads to 'noise or bias' or that it depends on 'time lag between financial events and credit outcomes'. These details are not grounded.\n- Future Work: \"Future work in this research direction should prioritize addressing the inconclusive outcome of the primary hypothesis, which investigated whether incorporating Fama-French three-factor returns as auxiliary targets in a multi-task learning framework improves out-of-sample AUC performance for credit default prediction.\" — The ground truth states that the hypothesis is 'inconclusive' because the experiment did not converge and the inputs were synthetic surrogates, but it does not specify that the primary hypothesis itself was about 'improving out-of-sample AUC performance'. The ground truth only mentions the hypothesis investigates whether incorporating Fama-French three-factor returns as auxiliary prediction targets will improve out-of-sample AUC performance, without confirming that this specific aspect was the focus of the primary hypothesis in the paper.\n- Future Work: \"As training did not reach convergence even with increased computational resources, further investigation is required to determine whether improved training strategies or architectural modifications might yield stable results.\" — While the ground truth confirms that training did not converge and that increasing the epoch budget did not help, it does not mention anything about 'improved training strategies or architectural modifications' being a suggested path forward. This addition is speculative and not grounded in the provided information.\n- Future Work: \"The use of synthetic surrogate inputs also limits the interpretability of the findings, and future studies should explore the application of real-world macroeconomic data to assess the practical viability of the approach.\" — Although the ground truth confirms that one or more inputs are synthetic surrogates and that the metrics describe behavior on generated data, it does not explicitly state that this limits interpretability or suggest that future studies should explore real-world macroeconomic data. These are speculative recommendations not found in the ground truth.\n- Future Work: \"Several unresolved gaps from prior literature remain relevant to the scope of this work and warrant further exploration.\" — This is a general statement that is consistent with the ground truth's listing of gaps, but the ground truth does not provide any indication that these gaps are specifically 'unresolved' or 'relevant to the scope of this work' in the way implied here. The phrase 'warrant further exploration' is a reasonable inference but not directly stated in the ground truth.\n- Future Work: \"One such gap concerns the limited understanding of how macroeconomic factors interact with borrower-level features in dynamic credit risk models.\" — This is a paraphrased version of the first gap listed in the ground truth ('Limited exploration of how macroeconomic factors interact with borrower-level data in dynamic credit risk models'), which is acceptable. However, the paper's section text implies that this is a new or distinct gap introduced by the current work, whereas the ground truth simply lists it as a pre-existing gap. Therefore, the implication that this is a gap specifically relevant to the current work is not grounded in the provided text.\n- Future Work: \"Another involves contradictory findings regarding the expected signs of macroeconomic variables in credit default models, highlighting inconsistencies in empirical validation and theoretical grounding.\" — This is a paraphrased version of the second gap in the ground truth ('Contradictory findings on the expected signs of macroeconomic variables in credit default prediction models'), which is acceptable. However, the paper implies that this is a new finding or observation made in the current work, which is not supported by the ground truth. The ground truth only lists this as a known issue in prior literature, not as a novel finding from the current study.\n- Future Work: \"Additionally, there is a lack of standardized benchmarks for evaluating macroeconomic indicators across different economies, which hinders cross-regional comparisons.\" — This is a paraphrased version of the third gap in the ground truth ('Lack of standardized benchmarks for comparing macroeconomic indicator relevance across different economies'), which is acceptable. However, again, the paper implies that this is a gap identified or emphasized by the current work, which is not substantiated by the ground truth. The ground truth treats this as a pre-existing limitation, not a new insight from the current study.\n- Future Work: \"Further research should also consider the broader implications of multi-task learning in financial modeling, particularly in underexplored domains.\" — The ground truth lists several gaps related to MTL in financial modeling, but it does not indicate that the current study has identified or emphasized 'broader implications' of MTL in financial modeling. This is a generalization that goes beyond what is explicitly stated in the ground truth.\n- Future Work: \"For instance, the limited evaluation of model performance in sparse data environments typical of developing economies points to a need for targeted studies in such contexts.\" — The ground truth includes a gap about 'Limited evaluation of model performance in sparse data environments typical of developing economies', but it does not state that this is a conclusion or implication drawn from the current study. The paper implies that this is a new insight or direction from the current work, which is not grounded in the provided text.\n- Future Work: \"Similarly, the absence of direct comparisons between machine learning and traditional models in real-world regulatory settings indicates a gap in assessing practical applicability.\" — The ground truth includes a gap about 'Lack of direct comparison between machine learning and traditional models in real-world regulatory settings', but it does not indicate that this is a conclusion or implication drawn from the current study. Again, the paper implies that this is a new finding or direction from the current work, which is not grounded in the provided text.\n- Future Work: \"Moreover, while this study focused on credit risk, other aspects such as the alignment between explainability insights and business-defined rules in multi-task frameworks remain underexplored.\" — The ground truth includes a gap about 'Limited evaluation of alignment between XAI explanations and business-defined rules in multi-task frameworks', but it does not state that this is a new direction or aspect highlighted by the current study. The paper implies that this is a new area of interest from the current work, which is not supported by the ground truth.\n- Discussion: \"Wu (2024); Zhang (2026)\" — The cited references 'Wu (2024)' and 'Zhang (2026)' are not present in the provided ground truth rationale for H1, which instead references [46649be8dcb3f1b018a9b68c3fc572004d0d50c7, 4741349d2c55a4a4f7161882c3bd8a87ab9f9e00]. These years and authors are fabricated and not traceable to the ground truth.\nHypothesis coverage issues:\n- Discussion > H1: The text understates the outcome by saying 'no verdict can be drawn' when the ground truth explicitly states the verdict is 'inconclusive'. The ground truth clarifies that the experiment was completed and metrics were reported, but the verdict is withheld due to non-convergence and synthetic data issues. The phrasing 'no verdict can be drawn' downplays the actual state of the experiment, which is that it was inconclusive due to technical limitations rather than a lack of attempt or failure to produce results.",
+      "generated_at": "2026-09-15T06:49:57.390490+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  }
+]

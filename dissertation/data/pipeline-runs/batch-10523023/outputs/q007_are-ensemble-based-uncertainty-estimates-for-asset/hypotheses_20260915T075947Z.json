@@ -1,0 +1,545 @@
+{
+  "literature_summary": "The literature explores a wide range of methods for uncertainty quantification (UQ) and ensemble forecasting across domains including finance, meteorology, engineering, and healthcare. Central themes revolve around the challenge of accurately capturing and predicting forecast uncertainty, particularly in complex, non-linear systems like financial markets and weather prediction. Ensemble-based approaches are frequently employed to improve forecast reliability and reduce computational overhead, often combined with Bayesian methods, deep learning, and model calibration techniques. However, significant gaps remain in understanding how ensemble uncertainty estimates relate to actual forecast error versus input variance, especially in high-dimensional or non-stationary environments. Many studies highlight limitations such as small sample sizes, poor identifiability of uncertainty sources, and the difficulty of generalizing results across different contexts.",
+  "methods_overview": [
+    {
+      "method": "Ensemble-based uncertainty estimation",
+      "papers_using_it": [
+        "2511.13766v1",
+        "2410.23296v2",
+        "c396a27d72748e25baf08df5e1f87be31662d26f",
+        "787cf5a8fce34c6897e08fd5ce227cd5b705dcb5",
+        "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+        "c35e8169813cc0b43dc4e6b1541c8b50ced503a1",
+        "3677307ea5999e39858a88fb7880e40842ad0f12",
+        "e3350ddf6c18fcd89cf0aa0e7fb527774261bfa0",
+        "3fd3f192bb3a0e239d20da818e924f4356884251",
+        "bced12420fe7bcc3dc13313611f9889b5fbfd222",
+        "34fa15d2889b27ef823900c41da2f1563ce98288",
+        "3acae64795cc081ba5557260b4c7a6fefe4022af",
+        "a8ac482c84cafbf236155608122b322e26d5283a",
+        "7f1d7d0f05b213e3a7f0e80efe427952b52c32bd",
+        "ea1e4492c13ab3a0cadc23a803446bcb156d4195",
+        "4866fa67da711eaa8103bc3772d752291b6869cc",
+        "d7d777335b06bc3c83d9ae5425fe11fcfd64f7ef",
+        "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+        "bae3097cae5247471d659a266b8286398e384526",
+        "a02c68281ae7efecddc4a9faeb9dc494ec8094b9",
+        "3852b20287a63d2d7162f512a490ba0fcac691ca",
+        "69fb270cef4f58bb636c0594aadd157fed24cd87",
+        "311410080928fb828a4c469b7f5068ce1a891abc",
+        "8f16ef0e3c92bed953d1afdbd283a6c6fb5102a3",
+        "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6",
+        "e27e6742dd7d564203f67eb6a5f6cc8929d7fb6c",
+        "f9221ac26a914eb71b2b7f045f7c9fef612efcc6",
+        "9a93947b28f339381f04feea81918a00fdbd3e95",
+        "f049756b3ac96cfe738c5119a853d5a1d3c37bdc",
+        "fa5da7f7a89ce73126b09b6ff27f08055830e7dc",
+        "f93694246b979a49535d114ac6f6b76ac1874449",
+        "29447860",
+        "15108914",
+        "48221719",
+        "48220912",
+        "7d9445513a7434e96165aa877a5c762fbea84932",
+        "d1778d4774e8c9c3681e3746a676703d8f9d7183",
+        "9f258b4af0456d4200dfe151f64c375e4cbde4cf",
+        "10490a360d4b72d396fd6bef93aa03c0f64ac0fe",
+        "4b3ba55c1cc1674352d6a662557307985148033a",
+        "4a748efe556c6cc0dae0eb940a9805e95672dd74",
+        "9f98b45d0cab1a3b7fe4235e5f6ab87e99751543",
+        "cd260d3d1a92367fc8f110058e95a9edbce7f554",
+        "10f1b3bdeb14c098c6ac428d60ea014026805717",
+        "7422142",
+        "359212668",
+        "2385892",
+        "72916",
+        "5413521",
+        "15109359",
+        "2507575",
+        "12027951",
+        "5233939",
+        "8a7e2024ad15212877ae1d99908322bdc4ff2faa",
+        "6144ddbad32d1dc151b8ec6ee77870f30e2e63ca",
+        "e0208f21a4d349c270b00430b504d9b84b1a8a05",
+        "eba4b5f8b45b85d564bd54922d6e0ba6bfc6b4e4",
+        "af49a035ec62408f66eef020744b75968f540bb8",
+        "4fa6d7e3b17d549ee449447fd1f9ffcfa3323964",
+        "c6ae33747ccefff4722c437bc340f3170e5fc8b1",
+        "7078918",
+        "6091386",
+        "366380004",
+        "2916186",
+        "6089789",
+        "333738537"
+      ],
+      "notes": "Common. Used extensively across domains to improve forecast reliability and quantify uncertainty through model averaging or sampling."
+    },
+    {
+      "method": "Bayesian methods",
+      "papers_using_it": [
+        "787cf5a8fce34c6897e08fd5ce227cd5b705dcb5",
+        "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+        "e3350ddf6c18fcd89cf0aa0e7fb527774261bfa0",
+        "3fd3f192bb3a0e239d20da818e924f4356884251",
+        "bced12420fe7bcc3dc13313611f9889b5fbfd222",
+        "ea1e4492c13ab3a0cadc23a803446bcb156d4195",
+        "10490a360d4b72d396fd6bef93aa03c0f64ac0fe",
+        "4b3ba55c1cc1674352d6a662557307985148033a",
+        "4a748efe556c6cc0dae0eb940a9805e95672dd74",
+        "9f98b45d0cab1a3b7fe4235e5f6ab87e99751543",
+        "cd260d3d1a92367fc8f110058e95a9edbce7f554",
+        "10f1b3bdeb14c098c6ac428d60ea014026805717",
+        "2507575"
+      ],
+      "notes": "Common. Applied for deriving predictive distributions and incorporating prior knowledge, especially in financial and meteorological forecasting."
+    },
+    {
+      "method": "Bootstrap resampling",
+      "papers_using_it": [
+        "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+        "c35e8169813cc0b43dc4e6b1541c8b50ced503a1",
+        "3677307ea5999e39858a88fb7880e40842ad0f12",
+        "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+        "bae3097cae5247471d659a266b8286398e384526",
+        "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6",
+        "f049756b3ac96cfe738c5119a853d5a1d3c37bdc",
+        "fa5da7f7a89ce73126b09b6ff27f08055830e7dc"
+      ],
+      "notes": "Moderately common. Used for estimating uncertainties in forecast reliability and signal-to-noise metrics, particularly in ensemble contexts."
+    },
+    {
+      "method": "Spread-skill relationships",
+      "papers_using_it": [
+        "c35e8169813cc0b43dc4e6b1541c8b50ced503a1",
+        "3677307ea5999e39858a88fb7880e40842ad0f12",
+        "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+        "bae3097cae5247471d659a266b8286398e384526",
+        "311410080928fb828a4c469b7f5068ce1a891abc"
+      ],
+      "notes": "Moderately common. Used to assess the correlation between ensemble spread and forecast error variance, especially in meteorological forecasting."
+    },
+    {
+      "method": "Quantile-based modeling",
+      "papers_using_it": [
+        "2410.23296v2"
+      ],
+      "notes": "Rare. Specifically used for predicting quantiles of asset returns and reconstructing full distributions via kernel density estimation."
+    },
+    {
+      "method": "Gaussian Mixture Distribution",
+      "papers_using_it": [
+        "c396a27d72748e25baf08df5e1f87be31662d26f"
+      ],
+      "notes": "Rare. Applied to model return distributions with skewness, heavy tails, and non-traditional features of stock returns."
+    },
+    {
+      "method": "Credal Ensemble Distillation",
+      "papers_using_it": [
+        "2511.13766v1"
+      ],
+      "notes": "Rare. Compresses deep ensembles into a single model that outputs probability intervals for uncertainty quantification."
+    },
+    {
+      "method": "Monte Carlo Dropout",
+      "papers_using_it": [
+        "10490a360d4b72d396fd6bef93aa03c0f64ac0fe",
+        "359212668"
+      ],
+      "notes": "Moderately common. Used as a Bayesian approximation for uncertainty estimation in deep learning models."
+    },
+    {
+      "method": "Deep Ensembles",
+      "papers_using_it": [
+        "cd260d3d1a92367fc8f110058e95a9edbce7f554",
+        "10f1b3bdeb14c098c6ac428d60ea014026805717",
+        "359212668",
+        "4a748efe556c6cc0dae0eb940a9805e95672dd74",
+        "9f98b45d0cab1a3b7fe4235e5f6ab87e99751543",
+        "c6ae33747ccefff4722c437bc340f3170e5fc8b1"
+      ],
+      "notes": "Common. Used for uncertainty quantification in deep learning models, especially in NDE and system safety applications."
+    },
+    {
+      "method": "Conformal Prediction",
+      "papers_using_it": [
+        "10490a360d4b72d396fd6bef93aa03c0f64ac0fe",
+        "4b3ba55c1cc1674352d6a662557307985148033a"
+      ],
+      "notes": "Moderately common. Applied for generating reliable probabilistic predictions in clinical and infection focus prediction tasks."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The true dynamic distribution of asset returns is unknown and difficult to capture accurately, limiting the evaluation of predictive models.",
+      "supporting_evidence": [
+        "c396a27d72748e25baf08df5e1f87be31662d26f"
+      ],
+      "notes": "Repeated across multiple financial modeling studies highlighting the fundamental challenge in capturing true return dynamics."
+    },
+    {
+      "gap": "Limited exploration of how ensemble uncertainty estimates relate to actual forecast error versus input variance.",
+      "supporting_evidence": [
+        "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+        "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+        "bae3097cae5247471d659a266b8286398e384526"
+      ],
+      "notes": "A recurring issue in both financial and meteorological forecasting where the predictive power of ensemble spread is questioned."
+    },
+    {
+      "gap": "Need for better handling of covariance matrices in forecast combination when dealing with highly correlated forecasts.",
+      "supporting_evidence": [
+        "366380004"
+      ],
+      "notes": "Identified in revenue management and forecasting contexts where forecast correlations complicate combination strategies."
+    },
+    {
+      "gap": "Insufficient attention to the impact of model biases in simulating regional climate variability on seasonal forecast skill.",
+      "supporting_evidence": [
+        "333738537"
+      ],
+      "notes": "A key limitation in climate modeling and seasonal forecasting where biases affect overall performance."
+    },
+    {
+      "gap": "The relationship between epistemic uncertainty and out-of-distribution data remains underexplored despite observed correlations.",
+      "supporting_evidence": [
+        "bced12420fe7bcc3dc13313611f9889b5fbfd222"
+      ],
+      "notes": "An emerging area in reinforcement learning and portfolio optimization where uncertainty outside training data is poorly understood."
+    },
+    {
+      "gap": "Limited research on uncertainty quantification in deep learning for nondestructive evaluation despite its importance for inspection reliability.",
+      "supporting_evidence": [
+        "359212668"
+      ],
+      "notes": "A domain-specific gap in engineering applications where UQ is critical but under-researched."
+    },
+    {
+      "gap": "The impact of incorporating natural language processing and sentiment analysis into portfolio models is not yet fully realized or studied.",
+      "supporting_evidence": [
+        "3acae64795cc081ba5557260b4c7a6fefe4022af"
+      ],
+      "notes": "An underexplored frontier in financial modeling where alternative data sources could enhance predictive power."
+    },
+    {
+      "gap": "There is a lack of integration between biomechanical and training methodologies in handball skill development.",
+      "supporting_evidence": [
+        "f93694246b979a49535d114ac6f6b76ac1874449"
+      ],
+      "notes": "A domain-specific gap in sports science where interdisciplinary approaches are needed."
+    },
+    {
+      "gap": "Limited practical application of statistical ensembles in real-world physical systems beyond theoretical models.",
+      "supporting_evidence": [
+        "29447860"
+      ],
+      "notes": "A gap in physics where theoretical ensembles are well-developed but less applied in practice."
+    },
+    {
+      "gap": "Need for more robust validation techniques in machine learning UQ beyond average calibration.",
+      "supporting_evidence": [
+        "7d9445513a7434e96165aa877a5c762fbea84932"
+      ],
+      "notes": "A general concern in ML where standard calibration metrics may not suffice for real-world deployment."
+    },
+    {
+      "gap": "Uncertainty propagation in sensor networks without reference data remains underexplored.",
+      "supporting_evidence": [
+        "d1778d4774e8c9c3681e3746a676703d8f9d7183"
+      ],
+      "notes": "A gap in environmental monitoring where sensor data lacks ground truth for validation."
+    },
+    {
+      "gap": "In out-of-distribution settings, uncertainty estimates from ensemble methods may not reliably reflect model accuracy.",
+      "supporting_evidence": [
+        "9f98b45d0cab1a3b7fe4235e5f6ab87e99751543"
+      ],
+      "notes": "A critical limitation in ML where predictive precision does not always align with reliability."
+    },
+    {
+      "gap": "Limited exploration of long-term forecast accuracy in hydrometeorological systems beyond short-term case studies.",
+      "supporting_evidence": [
+        "6091386"
+      ],
+      "notes": "A temporal limitation in hydrological forecasting where long-term performance is understudied."
+    },
+    {
+      "gap": "The effectiveness of qualitative versus quantitative views in portfolio optimization remains underexplored.",
+      "supporting_evidence": [
+        "4866fa67da711eaa8103bc3772d752291b6869cc"
+      ],
+      "notes": "A gap in portfolio theory regarding the use of ordinal vs. numerical inputs."
+    },
+    {
+      "gap": "Limited exploration of how model uncertainty affects portfolio decisions beyond mean-variance frameworks.",
+      "supporting_evidence": [
+        "ea1e4492c13ab3a0cadc23a803446bcb156d4195"
+      ],
+      "notes": "A conceptual gap in financial modeling where uncertainty beyond traditional risk measures is underexplored."
+    },
+    {
+      "gap": "There is insufficient discussion on the robustness of ensemble spread-error relationships in non-stationary or high-dimensional forecasting environments.",
+      "supporting_evidence": [
+        "d1fd74b00d9abfd0045fa85705efa16d821c0796"
+      ],
+      "notes": "A methodological gap in ensemble forecasting where assumptions may not hold in complex or evolving systems."
+    },
+    {
+      "gap": "The applicability of Bayesian methods in convective initiation nowcasting varies depending on the level of uncertainty, suggesting potential limitations in generalizability.",
+      "supporting_evidence": [
+        "bae3097cae5247471d659a266b8286398e384526"
+      ],
+      "notes": "A domain-specific limitation in meteorology where Bayesian methods' performance depends on data characteristics."
+    },
+    {
+      "gap": "There is limited discussion on how ensemble spread relates to forecast error in deep learning contexts beyond dropout approximation.",
+      "supporting_evidence": [
+        "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6"
+      ],
+      "notes": "A technical gap in deep learning where ensemble spread is not fully understood beyond simple approximations."
+    },
+    {
+      "gap": "The effectiveness of ensemble methods in capturing uncertainty in high-dimensional, nonlinear geoscience data remains underexplored.",
+      "supporting_evidence": [
+        "f9221ac26a914eb71b2b7f045f7c9fef612efcc6"
+      ],
+      "notes": "A domain-specific gap in geoscience where high-dimensional data presents unique challenges for uncertainty modeling."
+    },
+    {
+      "gap": "Post-processing methods for ensemble weather forecasts lack detailed empirical validation in many cases.",
+      "supporting_evidence": [
+        "f049756b3ac96cfe738c5119a853d5a1d3c37bdc"
+      ],
+      "notes": "A practical gap in meteorological forecasting where post-processing techniques are not rigorously validated."
+    },
+    {
+      "gap": "The signal-to-noise ratio in seasonal forecasting systems may be insufficient to explain observed forecast skill.",
+      "supporting_evidence": [
+        "fa5da7f7a89ce73126b09b6ff27f08055830e7dc"
+      ],
+      "notes": "A systemic gap in seasonal forecasting where underlying mechanisms are not fully understood."
+    },
+    {
+      "gap": "There is a need for more accurate model error estimation to improve forecast reliability, especially in data assimilation settings.",
+      "supporting_evidence": [
+        "3852b20287a63d2d7162f512a490ba0fcac691ca"
+      ],
+      "notes": "A methodological gap in forecasting where error estimation directly impacts reliability."
+    },
+    {
+      "gap": "Poor identifiability in decomposing total uncertainty into input and structural components in hydrologic modeling.",
+      "supporting_evidence": [
+        "5413521"
+      ],
+      "notes": "A conceptual and methodological gap in hydrology where uncertainty sources are hard to disentangle."
+    },
+    {
+      "gap": "Inherent limitations in inferring inaccurate hydrologic models using rainfall-runoff data with large unknown errors.",
+      "supporting_evidence": [
+        "5413521"
+      ],
+      "notes": "A fundamental limitation in hydrological modeling where data quality constraints hinder model accuracy."
+    },
+    {
+      "gap": "Evaluation of ensemble forecasts with observation-based ensembles shows substantial evaluation uncertainties even in areas with dense observational networks.",
+      "supporting_evidence": [
+        "12027951"
+      ],
+      "notes": "A methodological gap in ensemble evaluation where even rich data sets cannot eliminate uncertainty."
+    },
+    {
+      "gap": "Independent descriptions of uncertainties in input and output data for reliable uncertainty decomposition are lacking.",
+      "supporting_evidence": [
+        "5413521"
+      ],
+      "notes": "A foundational gap in uncertainty analysis where separate treatment of input/output errors is required."
+    },
+    {
+      "gap": "There is limited understanding of how climate change affects storm surge levels despite high-resolution modeling efforts.",
+      "supporting_evidence": [
+        "7078918"
+      ],
+      "notes": "A domain-specific gap in climate and ocean modeling where future impacts are not well captured."
+    },
+    {
+      "gap": "The impact of stochastic physics perturbations on ensemble performance remains understudied, particularly in mountainous regions.",
+      "supporting_evidence": [
+        "eba4b5f8b45b85d564bd54922d6e0ba6bfc6b4e4"
+      ],
+      "notes": "A gap in meteorological modeling where physical perturbations are not thoroughly investigated."
+    },
+    {
+      "gap": "Neural network ensemble forecasts, while improving over deterministic models, still lag behind traditional numerical weather prediction models in skill.",
+      "supporting_evidence": [
+        "c6ae33747ccefff4722c437bc340f3170e5fc8b1"
+      ],
+      "notes": "A comparative gap in forecasting where deep learning methods have not yet matched established numerical models."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Ensemble-based uncertainty estimates from financial models using deep ensembles or bootstrap resampling will show a stronger correlation with realized forecast error than with input variance, particularly when evaluated on daily stock return data from the Fama-French factors dataset.",
+      "rationale": "This hypothesis builds on the identified gap regarding the limited exploration of how ensemble uncertainty estimates relate to actual forecast error versus input variance [c479bc766d1f7c6010000016dfd321ea16a7a1ff, d1fd74b00d9abfd0045fa85705efa16d821c0796, bae3097cae5247471d659a266b8286398e384526]. It leverages the widespread use of ensemble methods in financial modeling [2410.23296v2, c479bc766d1f7c6010000016dfd321ea16a7a1ff] and applies them to a real financial dataset where both forecast errors and input variances can be measured. The hypothesis is testable because the Fama-French dataset contains daily returns and factors that allow for direct computation of forecast errors and input variance.",
+      "related_gaps": [
+        "Limited exploration of how ensemble uncertainty estimates relate to actual forecast error versus input variance"
+      ],
+      "related_methods": [
+        "Ensemble-based uncertainty estimation",
+        "Bootstrap resampling",
+        "Deep Ensembles"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "ensemble spread",
+          "input variance"
+        ],
+        "dependent": [
+          "realized forecast error"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "In the context of asset return forecasting, ensemble spread-error relationships derived from Bayesian methods will demonstrate predictive validity for realized forecast error only when calibrated using conditional calibration techniques, indicating that naive ensemble spread is insufficient for reliable uncertainty quantification.",
+      "rationale": "This hypothesis stems from the gap concerning the need for better validation techniques in machine learning uncertainty quantification beyond average calibration [7d9445513a7434e96165aa877a5c762fbea84932], and the related gap in understanding how ensemble uncertainty estimates relate to actual forecast error [c479bc766d1f7c6010000016dfd321ea16a7a1ff]. It connects to the frequent use of Bayesian methods in financial forecasting [787cf5a8fce34c6897e08fd5ce227cd5b705dcb5, c479bc766d1f7c6010000016dfd321ea16a7a1ff] and proposes that calibration improves the predictive power of ensemble uncertainty estimates. The hypothesis is grounded in the bridge insight from machine learning that conditional calibration enhances reliability of uncertainty estimates [7d9445513a7434e96165aa877a5c762fbea84932].",
+      "related_gaps": [
+        "Need for better handling of covariance matrices in forecast combination",
+        "Limited exploration of how ensemble uncertainty estimates relate to actual forecast error versus input variance",
+        "Need for more robust validation techniques in machine learning UQ beyond average calibration"
+      ],
+      "related_methods": [
+        "Bayesian methods",
+        "Ensemble-based uncertainty estimation",
+        "Calibration techniques"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "ensemble spread",
+          "calibration status"
+        ],
+        "dependent": [
+          "realized forecast error"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Ensemble-based uncertainty estimates from models trained on the Shiller S&P 500 dataset will exhibit a stronger association with realized forecast error compared to input variance when using a signal-to-noise ratio framework, suggesting that ensemble spread captures meaningful forecast uncertainty rather than just noise.",
+      "rationale": "This hypothesis is informed by the cross-disciplinary bridge insight from statistical physics that the signal-to-noise paradox in ensemble weather forecasting implies that ensemble spread may not always reflect true uncertainty [fa5da7f7a89ce73126b09b6ff27f08055830e7dc]. It also addresses the gap in understanding how ensemble spread relates to forecast error in high-dimensional, nonlinear geoscience data [f9221ac26a914eb71b2b7f045f7c9fef612efcc6]. Using the historical stock market dataset allows for testing this idea empirically, as it provides long time-series data suitable for computing both signal and noise components. The hypothesis tests whether ensemble uncertainty in financial models behaves similarly to the signal-to-noise paradox observed in meteorology.",
+      "related_gaps": [
+        "The signal-to-noise ratio in seasonal forecasting systems may be insufficient to explain observed forecast skill",
+        "The effectiveness of ensemble methods in capturing uncertainty in high-dimensional, nonlinear geoscience data remains underexplored"
+      ],
+      "related_methods": [
+        "Ensemble-based uncertainty estimation",
+        "Signal-to-noise analysis"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "ensemble spread",
+          "signal-to-noise ratio"
+        ],
+        "dependent": [
+          "realized forecast error"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 9.0,
+      "justification": "H1 is the most feasible as it directly uses the Fama-French three-factor daily returns dataset, which contains both the necessary dependent variable (realized forecast error) and independent variables (ensemble spread and input variance) for testing. It is highly testable due to its clear operationalization of ensemble spread and forecast error, allowing for a concrete correlation analysis. The hypothesis is coherent, focusing on the relationship between ensemble uncertainty and actual forecast error in financial models, rather than methodological details. The data is sufficient to make a definitive judgment on whether ensemble spread correlates more strongly with realized error than input variance. It is well-grounded in the literature gap regarding ensemble uncertainty and forecast error, and builds directly on the widespread use of ensemble methods in financial modeling."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.5,
+      "justification": "H2 introduces Bayesian methods and calibration techniques, which are more complex to implement and require careful specification of calibration procedures. While it is testable in principle, it requires more sophisticated experimental design and potentially custom implementations of calibration methods. It is somewhat coherent but introduces additional complexity through the calibration aspect, which may obscure the core question. The hypothesis is grounded in the literature but leans heavily on conditional calibration techniques that are not directly supported by the available datasets without additional modeling assumptions. Feasibility is moderate as it requires more specialized tools and potentially more computational resources than H1."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 5.0,
+      "justification": "H3 draws on the signal-to-noise paradox from statistical physics, which is a compelling bridge insight, but its application to financial forecasting is less direct and more speculative. The hypothesis requires a signal-to-noise ratio framework that is not easily computable from the available datasets without significant additional assumptions or transformations. While it is testable in concept, the operationalization is less straightforward than H1. The data available (historical stock market data) does not naturally support the signal-to-noise analysis without substantial preprocessing or model assumptions. The hypothesis is somewhat coherent but introduces a more abstract concept that is harder to validate directly from the data. It is less grounded in the immediate literature gaps compared to H1, which directly addresses the core issue of ensemble uncertainty vs. forecast error."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2511.13766v1",
+    "2410.23296v2",
+    "c396a27d72748e25baf08df5e1f87be31662d26f",
+    "787cf5a8fce34c6897e08fd5ce227cd5b705dcb5",
+    "c479bc766d1f7c6010000016dfd321ea16a7a1ff",
+    "c35e8169813cc0b43dc4e6b1541c8b50ced503a1",
+    "3677307ea5999e39858a88fb7880e40842ad0f12",
+    "e3350ddf6c18fcd89cf0aa0e7fb527774261bfa0",
+    "3fd3f192bb3a0e239d20da818e924f4356884251",
+    "bced12420fe7bcc3dc13313611f9889b5fbfd222",
+    "9f3aa45c9d4c44ed16d46d3d03f132920c0e8b49",
+    "34fa15d2889b27ef823900c41da2f1563ce98288",
+    "3acae64795cc081ba5557260b4c7a6fefe4022af",
+    "a8ac482c84cafbf236155608122b322e26d5283a",
+    "7f1d7d0f05b213e3a7f0e80efe427952b52c32bd",
+    "ea1e4492c13ab3a0cadc23a803446bcb156d4195",
+    "4866fa67da711eaa8103bc3772d752291b6869cc",
+    "cf88f3e904d6a040ff40e0c2e29a64a199731ffe",
+    "d7d777335b06bc3c83d9ae5425fe11fcfd64f7ef",
+    "d1fd74b00d9abfd0045fa85705efa16d821c0796",
+    "bae3097cae5247471d659a266b8286398e384526",
+    "a02c68281ae7efecddc4a9faeb9dc494ec8094b9",
+    "3852b20287a63d2d7162f512a490ba0fcac691ca",
+    "69fb270cef4f58bb636c0594aadd157fed24cd87",
+    "311410080928fb828a4c469b7f5068ce1a891abc",
+    "8f16ef0e3c92bed953d1afdbd283a6c6fb5102a3",
+    "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6",
+    "e27e6742dd7d564203f67eb6a5f6cc8929d7fb6c",
+    "f9221ac26a914eb71b2b7f045f7c9fef612efcc6",
+    "9a93947b28f339381f04feea81918a00fdbd3e95",
+    "f049756b3ac96cfe738c5119a853d5a1d3c37bdc",
+    "fa5da7f7a89ce73126b09b6ff27f08055830e7dc",
+    "f93694246b979a49535d114ac6f6b76ac1874449",
+    "29447860",
+    "4662298",
+    "15108914",
+    "48221719",
+    "48220912",
+    "7d9445513a7434e96165aa877a5c762fbea84932",
+    "d1778d4774e8c9c3681e3746a676703d8f9d7183",
+    "9f258b4af0456d4200dfe151f64c375e4cbde4cf",
+    "10490a360d4b72d396fd6bef93aa03c0f64ac0fe",
+    "4b3ba55c1cc1674352d6a662557307985148033a",
+    "4a748efe556c6cc0dae0eb940a9805e95672dd74",
+    "9f98b45d0cab1a3b7fe4235e5f6ab87e99751543",
+    "cd260d3d1a92367fc8f110058e95a9edbce7f554",
+    "165f642f2cf0103eaf549c65a8e26714914292ed",
+    "10f1b3bdeb14c098c6ac428d60ea014026805717",
+    "7422142",
+    "359212668",
+    "2385892",
+    "72916",
+    "5413521",
+    "15109359",
+    "2507575",
+    "12027951",
+    "5233939",
+    "8a7e2024ad15212877ae1d99908322bdc4ff2faa",
+    "6144ddbad32d1dc151b8ec6ee77870f30e2e63ca",
+    "e0208f21a4d349c270b00430b504d9b84b1a8a05",
+    "eba4b5f8b45b85d564bd54922d6e0ba6bfc6b4e4",
+    "af49a035ec62408f66eef020744b75968f540bb8",
+    "4fa6d7e3b17d549ee449447fd1f9ffcfa3323964",
+    "90da454b4a06010ad5be61f997fdd829f62bdf08",
+    "22cfa3fa5bc80e51ade7ff3889571e472a230cb1",
+    "c6ae33747ccefff4722c437bc340f3170e5fc8b1",
+    "be8e368d628e10a4d1ca9479443ff042f2601508",
+    "7078918",
+    "6091386",
+    "366380004",
+    "2916186",
+    "6089789",
+    "333738537"
+  ],
+  "generated_at": "2026-09-15T07:59:47.074279+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

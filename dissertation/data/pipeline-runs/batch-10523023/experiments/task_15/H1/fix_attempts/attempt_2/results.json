@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether incorporating a spatial lag model into a machine learning framework for predicting PM2.5 concentrations improves prediction accuracy compared to models using only temporal features, as measured by reduced mean absolute error on the UCI Air Quality dataset.",
+  "author": "coder-agent",
+  "baseline": "Performance of a Random Forest model trained exclusively on temporal features",
+  "success_criteria": "If the MAE of the model incorporating spatial lag is lower than that of the temporal-only model, the hypothesis is supported. Conversely, if the MAE is higher or similar, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T13:29:02.472502+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.0355,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_15/H1/run.py\", line 585, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_15/H1/run.py\", line 253, in load_data\n    X_spatial = df_clean[spatial_features].values\n                ~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10529360/d8a4d445e826a261/.venv/lib/python3.14/site-packages/pandas/core/frame.py\", line 4384, in __getitem__\n    indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10529360/d8a4d445e826a261/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 6302, in _get_indexer_strict\n    self._raise_if_missing(keyarr, indexer, axis_name)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10529360/d8a4d445e826a261/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py\", line 6352, in _raise_if_missing\n    raise KeyError(f\"None of [{key}] are in the [{axis_name}]\")\nKeyError: \"None of [Index(['latitude', 'longitude'], dtype='str')] are in the [columns]\"\n"
+}

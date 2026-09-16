@@ -1,0 +1,25 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "skipped",
+      "reason": "Marked infeasible by the Experiment Planner: The hypothesis requires time-to-event data with censoring and evaluation using time-dependent AUC, which cannot be meaningfully tested on the provided datasets. None of the listed datasets contain survival time data with censoring indicators or patient follow-up times that vary between individuals. The closest match is the 'historical_stock_market_daily_closing_price_financial_data.csv', but it lacks patient-level survival outcomes and censoring. To make this feasible, we simplify the hypothesis to test whether survival models (using Cox regression) perform better than binary classifiers (logistic regression) on a synthetic survival dataset generated to mimic hospital readmission patterns, while varying time horizons for evaluation. This allows us to test the core idea without requiring real-world readmission data.",
+      "code_path": null,
+      "assumptions_made": [],
+      "results": null,
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": []
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_12/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T11:05:59.178623+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

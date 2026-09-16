@@ -1,0 +1,25 @@
+{
+  "downscaled": true,
+  "changes": [
+    "epochs: 20 -> 10",
+    "batch_size: 32 -> 16",
+    "epochs: 10 -> 5",
+    "batch_size: 16 -> 8"
+  ],
+  "converged": false,
+  "convergence_findings": [
+    "'hourly' trained for only 5 epoch(s), too few to show convergence",
+    "'15min' trained for only 5 epoch(s), too few to show convergence",
+    "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+  ],
+  "measurement_changes": [
+    "epochs: 20 -> 10",
+    "batch_size: 32 -> 16",
+    "epochs: 10 -> 5",
+    "batch_size: 16 -> 8"
+  ],
+  "precision_changes": [],
+  "timeout_seconds": 120,
+  "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it \u2014 the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+  "ran_at_full_size": false
+}

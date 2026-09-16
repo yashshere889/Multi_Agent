@@ -1,0 +1,814 @@
+{
+  "literature_summary": "The literature demonstrates a strong emphasis on multi-scale and multi-resolution approaches for time series forecasting, particularly in energy domains such as electricity demand and grid frequency prediction. Key methods include transformer-based architectures with cross-scale attention, temporal fusion techniques, wavelet decomposition, and temporal aggregation strategies. Studies show that integrating diverse temporal resolutions and contextual data significantly improves forecasting accuracy and robustness. However, there remain notable gaps in understanding how temporal resolution affects model performance across different forecasting horizons and domains, especially in probabilistic and high-frequency settings. Additionally, inconsistencies exist in methodology, terminology, and evaluation practices, highlighting the need for standardized approaches and more rigorous comparative studies.",
+  "methods_overview": [
+    {
+      "method": "Temporal Fusion Transformer (TFT)",
+      "papers_using_it": [
+        "ea9cfad6aaff95d5cafce15f6e284249b146b172",
+        "248669f38efd41b1fbac8ff9525169311f0dc843",
+        "6a9d69fb35414b8461573df333dba800f254519f"
+      ],
+      "notes": "Commonly used across multiple domains including electricity load and grid frequency forecasting, often adapted for specific temporal hierarchies and data sources."
+    },
+    {
+      "method": "Multi-Scale Temporal Modeling with Cross-Building Interactions",
+      "papers_using_it": [
+        "e15668eb42cc25b17b649f8393a34ca4b77721b4"
+      ],
+      "notes": "Rare, primarily focused on building-level load forecasting using GCNs and Transformers."
+    },
+    {
+      "method": "Scale-Aware Shared Transformer Encoder",
+      "papers_using_it": [
+        "bd20a9a1b5548b0039bf10f1dec14deab3591754"
+      ],
+      "notes": "Rare, introduces learnable scale embeddings and resolution-specific branches for unified multi-scale forecasting."
+    },
+    {
+      "method": "Cross-Scale Sequence Mixer (CSSM)",
+      "papers_using_it": [
+        "749335c40b811a297f4578bbdbedc809e3d2133e"
+      ],
+      "notes": "Rare, employs different encoders per temporal scale and cross-scale attention for improved pattern recognition."
+    },
+    {
+      "method": "Cross-Frequency Fusion Encoder-Decoder (CFEN)",
+      "papers_using_it": [
+        "77dcc534064fc0088c9990de26641bd39588dedc"
+      ],
+      "notes": "Rare, utilizes dynamic sliding windows and cross-temporal attention for multi-rate time series forecasting."
+    },
+    {
+      "method": "Temporal Aggregation and Forecast Combination",
+      "papers_using_it": [
+        "6832768",
+        "384361814"
+      ],
+      "notes": "Moderately common, constructs multiple aggregated time series and combines their components for improved forecasting."
+    },
+    {
+      "method": "Discrete Wavelet Transform (DWT)",
+      "papers_using_it": [
+        "6cf68d8ee7dbf6f35737598e7f504ad27f528b16",
+        "49e9e5eb6d84b2f0d04a6a5b438d603f7131e213",
+        "8a8b0dfbe36761296403e650f04f4afb6b0fabea",
+        "29f01905441870b8653b779bb536d870fe84558b",
+        "f684c447949709bbdc4cbe16f629c4cf039b7dee",
+        "db510ec248bfd0f8b737156e3f921705cfa22ae8"
+      ],
+      "notes": "Common, widely used for decomposing signals into multiple scales to capture both local and global features."
+    },
+    {
+      "method": "Multiresolution Analysis (MRA)",
+      "papers_using_it": [
+        "49e9e5eb6d84b2f0d04a6a5b438d603f7131e213",
+        "f684c447949709bbdc4cbe16f629c4cf039b7dee",
+        "3698d18b2e7f68f3f8556a1de09d8160f4358bcb",
+        "3e6d34ae75e6dea37c4667335e56ee2128375ec8"
+      ],
+      "notes": "Moderately common, applied for analyzing signals at different time scales to detect abrupt changes and structural shifts."
+    },
+    {
+      "method": "Transformer-based models",
+      "papers_using_it": [
+        "6cf68d8ee7dbf6f35737598e7f504ad27f528b16",
+        "7604ce6cc9358663b9fc62a27ef25ba3900eabb7"
+      ],
+      "notes": "Common, used in combination with DWT and residual learning modules for improved forecasting performance."
+    },
+    {
+      "method": "Temporal Hierarchy Forecasting (THieF)",
+      "papers_using_it": [
+        "ccb789680fb6680a2a303733af1d3593ed3ffafc"
+      ],
+      "notes": "Rare, used for reconciling forecasts across different temporal levels to improve accuracy in electricity price forecasting."
+    },
+    {
+      "method": "Hybrid Statistical and Machine Learning Algorithms",
+      "papers_using_it": [
+        "0bb50a7ec39bf97e70531a8c151845450211ccf6"
+      ],
+      "notes": "Rare, used for electricity demand forecasting in a case study of Ukraine, integrating statistical and ML techniques."
+    },
+    {
+      "method": "Probabilistic Temporal Inference via State Space Models (SSM)",
+      "papers_using_it": [
+        "a6d2e26d8540c43e4db83a9c23a5565262908849"
+      ],
+      "notes": "Rare, utilizes SSM to model latent states and reduce error accumulation in multi-step forecasting."
+    },
+    {
+      "method": "SPECTRA Architecture",
+      "papers_using_it": [
+        "e8088c6d99528232709da27f37a27e37a0ee8447"
+      ],
+      "notes": "Rare, a probabilistic forecasting framework combining deterministic-stochastic separation with spectral-temporal modeling."
+    },
+    {
+      "method": "Cloud-enabled hybrid forecasting framework",
+      "papers_using_it": [
+        "c72144c1f5373f151cb53d5bfda8b2482f8f1114"
+      ],
+      "notes": "Rare, validated on 5-minute residential load data; compares aggregate vs. appliance-level forecasting."
+    },
+    {
+      "method": "Quantile regression in reproducing kernel Hilbert spaces",
+      "papers_using_it": [
+        "fe583bc4f26f266ffc2b5328db19d9d943f0fd3c"
+      ],
+      "notes": "Rare, used for probabilistic forecasting at hourly resolution to capture uncertainty in renewable energy and hydroelectric capacity."
+    },
+    {
+      "method": "Data-driven power imbalance estimation",
+      "papers_using_it": [
+        "2862fde1d1684f3d7c907dc0a11bcfe5b9220344"
+      ],
+      "notes": "Rare, employs frequency data and system operational data for real-time estimation during contingency events."
+    },
+    {
+      "method": "Group Method of Data Handling (GMDH) with bootstrap method",
+      "papers_using_it": [
+        "242dc40032cf85edfbf75df2aa789341ea20e46c"
+      ],
+      "notes": "Rare, applied for input selection in support vector regression-based hourly load forecasting."
+    },
+    {
+      "method": "Input variable selection using conditional entropy and phase-space embedding",
+      "papers_using_it": [
+        "c1b52f8c58ea8e5763f4233cb5315985530c8c76"
+      ],
+      "notes": "Rare, uses entropy-based and phase-space methods to select relevant variables for short-term load forecasting."
+    },
+    {
+      "method": "Sliding Window (SW) approach",
+      "papers_using_it": [
+        "8b014de0d7f69806e2db70a69f7a959fad40be7c"
+      ],
+      "notes": "Moderately common, used for time-series forecasting with ML/DL algorithms."
+    },
+    {
+      "method": "Direct Forecasting",
+      "papers_using_it": [
+        "8b014de0d7f69806e2db70a69f7a959fad40be7c"
+      ],
+      "notes": "Moderately common, implemented for multi-step ahead forecasting."
+    },
+    {
+      "method": "Multivariate Empirical Mode Decomposition (MEMD)",
+      "papers_using_it": [
+        "ed89b8d1d703a7708241248f36f4fc1d5aa8ffa0"
+      ],
+      "notes": "Rare, used to decompose multivariate input variables for peak load forecasting."
+    },
+    {
+      "method": "Accelerated kriging interpolation",
+      "papers_using_it": [
+        "5d8347ec5c51a90e08fc097cc41f3873d7cea62d"
+      ],
+      "notes": "Rare, applied for real-time grid frequency forecasting using recursive one-step-ahead prediction."
+    },
+    {
+      "method": "GRU model with ablation study",
+      "papers_using_it": [
+        "da44495b84d810c1f9757e78932654e11b1c4b38"
+      ],
+      "notes": "Rare, used for short-term energy demand forecasting in quicklime manufacturing with feature importance analysis."
+    },
+    {
+      "method": "Dynamic Iterative Regression",
+      "papers_using_it": [
+        "073bdf8d7474c8e80ea0507375754d070b38998f"
+      ],
+      "notes": "Rare, involves collecting regression equations over iterations for demand prediction."
+    },
+    {
+      "method": "Feature selection with LSTM",
+      "papers_using_it": [
+        "70c48ba72a5899f8f72c5d02efdc73b84e263c59"
+      ],
+      "notes": "Rare, explored minimal feature sets for virtual sensor applications in wind turbines."
+    },
+    {
+      "method": "Multi-order Wavelet Derivative Transform (WDT)",
+      "papers_using_it": [
+        "2bf3832db545e56dc88fb1aea6d7afbd35319971"
+      ],
+      "notes": "Rare, used for extracting time-aware patterns in deep time series forecasting."
+    },
+    {
+      "method": "Synthetic Minority Over-sampling Technique (SMOTE)",
+      "papers_using_it": [
+        "197122660c5a02da010b54bc9933870f727608df"
+      ],
+      "notes": "Rare, employed to balance datasets by generating synthetic samples."
+    },
+    {
+      "method": "EOF analysis and Principal Components (PCs)",
+      "papers_using_it": [
+        "8b85c3fd46926abb767adc0c286c3063da6de6b5"
+      ],
+      "notes": "Rare, used to select predictors for forecasting mesoscale eddies."
+    },
+    {
+      "method": "Data augmentation",
+      "papers_using_it": [
+        "197122660c5a02da010b54bc9933870f727608df"
+      ],
+      "notes": "Rare, applied to increase dataset size and improve model generalization."
+    },
+    {
+      "method": "Random sub-sampling",
+      "papers_using_it": [
+        "447bcfc44c4de121e156032531d354317c6b68bb"
+      ],
+      "notes": "Rare, used to reduce computational cost by selecting 20% of training data."
+    },
+    {
+      "method": "Wavelet Transform",
+      "papers_using_it": [
+        "2733312",
+        "7470825",
+        "5010976",
+        "2536390",
+        "2694214",
+        "450238"
+      ],
+      "notes": "Common, used for decomposing signals into time-frequency components to improve modeling and forecasting."
+    },
+    {
+      "method": "ARIMA",
+      "papers_using_it": [
+        "2733312",
+        "7470825",
+        "5010976",
+        "2536390"
+      ],
+      "notes": "Common, combined with wavelet techniques for forecasting; used as a baseline or component in hybrid models."
+    },
+    {
+      "method": "Multiresolution Analysis",
+      "papers_using_it": [
+        "2733312",
+        "7470825",
+        "2536390",
+        "2694214"
+      ],
+      "notes": "Common, applied to decompose data across multiple scales for improved signal processing and forecasting."
+    },
+    {
+      "method": "Denoising",
+      "papers_using_it": [
+        "2733312",
+        "2694214"
+      ],
+      "notes": "Moderately common, utilized to remove noise from time series and images using wavelet-based approaches."
+    },
+    {
+      "method": "Factor-Augmented Models",
+      "papers_using_it": [
+        "2536390"
+      ],
+      "notes": "Rare, integrated with wavelet methods for forecasting high-dimensional economic data."
+    },
+    {
+      "method": "Multiresolution Fourier Transform (MFT)",
+      "papers_using_it": [
+        "74256322",
+        "231923"
+      ],
+      "notes": "Rare, used for local feature extraction in images and extension to noisy environments."
+    },
+    {
+      "method": "Variational Mode Decomposition (VMD)",
+      "papers_using_it": [
+        "521c7583e2e0adc4fdc77a1efde9e0dad36ba224",
+        "aed2aa097c23e54ffa04106070644223be5d4185"
+      ],
+      "notes": "Rare, applied for decomposing time series into multiple intrinsic mode functions with distinct frequency characteristics."
+    },
+    {
+      "method": "Improved Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (ICEEMDAN)",
+      "papers_using_it": [
+        "aed2aa097c23e54ffa04106070644223be5d4185"
+      ],
+      "notes": "Rare, utilized alongside VMD for multi-frequency decomposition in electric vehicle charging forecasting."
+    },
+    {
+      "method": "Temporal Aggregation",
+      "papers_using_it": [
+        "66d473c7edb61ccc3ac39e180cea10bcf4998e67",
+        "ad60b971c737f9bc4895252eebfd06e8158b64e8"
+      ],
+      "notes": "Moderately common, examines how sampling intervals affect statistical properties like kurtosis and variance."
+    },
+    {
+      "method": "Fuzzy Information Granulation (FIG)",
+      "papers_using_it": [
+        "aed2aa097c23e54ffa04106070644223be5d4185"
+      ],
+      "notes": "Rare, used for extracting multi-scale information from decomposed data in EV charging forecasting."
+    },
+    {
+      "method": "ReliefF Feature Selection",
+      "papers_using_it": [
+        "aed2aa097c23e54ffa04106070644223be5d4185"
+      ],
+      "notes": "Rare, applied to reduce redundancy in features extracted from EV charging data."
+    },
+    {
+      "method": "Temporal aggregation",
+      "papers_using_it": [
+        "2924269",
+        "2923209",
+        "3148162",
+        "2672194",
+        "2667242"
+      ],
+      "notes": "Moderately common, used to assess distortions in causality tests and estimation of cointegrating relationships."
+    },
+    {
+      "method": "Sign rule",
+      "papers_using_it": [
+        "2923209"
+      ],
+      "notes": "Rare, proposed to determine direction of causality in the presence of temporal aggregation."
+    },
+    {
+      "method": "Monte Carlo simulations",
+      "papers_using_it": [
+        "2924269",
+        "2667242",
+        "3159794",
+        "2565572"
+      ],
+      "notes": "Moderately common, applied to evaluate model performance and forecast accuracy under various conditions."
+    },
+    {
+      "method": "GARCH and FIGARCH models",
+      "papers_using_it": [
+        "2565572",
+        "2916867"
+      ],
+      "notes": "Moderately common, employed for volatility modeling and forecasting in financial time series."
+    },
+    {
+      "method": "Multi-scale spectral decomposition",
+      "papers_using_it": [
+        "6102796"
+      ],
+      "notes": "Rare, used for forecasting covariance matrices with high-frequency data."
+    },
+    {
+      "method": "Deep learning (1D CNN + LSTM)",
+      "papers_using_it": [
+        "8d5c1666e27eefde1954b1808caaa06494cab1e7"
+      ],
+      "notes": "Rare, applied for enhancing spatiotemporal resolution in weather forecasting."
+    },
+    {
+      "method": "Batch mode Adaptive Multiple Instance Learning (BAMIL)",
+      "papers_using_it": [
+        "14469382"
+      ],
+      "notes": "Rare, accelerates traditional MIL methods by dividing training bags into batches and adapting classifiers incrementally."
+    },
+    {
+      "method": "Temporal accumulation",
+      "papers_using_it": [
+        "17398301"
+      ],
+      "notes": "Rare, used for 3D reconstruction of rotating objects from 2.5D point cloud sequences."
+    },
+    {
+      "method": "Temporal template features (MHI and MHH)",
+      "papers_using_it": [
+        "237880"
+      ],
+      "notes": "Rare, proposes Motion History Histogram (MHH) to enhance motion information capture in real-time action recognition."
+    },
+    {
+      "method": "Temporal Graph Deep Generative Model (TG-DGM)",
+      "papers_using_it": [
+        "377403799"
+      ],
+      "notes": "Rare, clusters brain regions into evolving communities using temporal graph structures and neural networks."
+    },
+    {
+      "method": "Deep learning-based Super-Resolution Mapping (DeepSRM)",
+      "papers_using_it": [
+        "45266838"
+      ],
+      "notes": "Rare, uses deep convolutional neural networks to estimate fine-resolution land cover maps from coarse fractional images."
+    },
+    {
+      "method": "Deep transformer-based heterogeneous spatiotemporal graph learning",
+      "papers_using_it": [
+        "171055500"
+      ],
+      "notes": "Rare, captures long-term temporal dependencies and heterogeneous spatial relationships in traffic forecasting."
+    },
+    {
+      "method": "Multifunctional deep learning network for metasurface-target interaction",
+      "papers_using_it": [
+        "147971918"
+      ],
+      "notes": "Rare, reconstructs target information and generates super-resolution images in electromagnetic sensing scenarios."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Limited evaluation of Transformer-based models on various grid levels and benchmark datasets in electricity forecasting",
+      "supporting_evidence": [
+        "ea9cfad6aaff95d5cafce15f6e284249b146b172"
+      ],
+      "notes": "Despite the popularity of TFT, there is insufficient work evaluating its performance across different grid hierarchies and standard benchmarks."
+    },
+    {
+      "gap": "Lack of comprehensive studies on the integration of multi-scale temporal modeling with cross-building or cross-frequency interactions in energy forecasting",
+      "supporting_evidence": [
+        "e15668eb42cc25b17b649f8393a34ca4b77721b4",
+        "bd20a9a1b5548b0039bf10f1dec14deab3591754",
+        "749335c40b811a297f4578bbdbedc809e3d2133e",
+        "77dcc534064fc0088c9990de26641bd39588dedc"
+      ],
+      "notes": "There is a dearth of research exploring how multi-scale temporal modeling interacts with cross-building or cross-frequency dynamics in energy forecasting."
+    },
+    {
+      "gap": "Inconsistent handling of temporal aggregation and model selection in multi-scale forecasting approaches",
+      "supporting_evidence": [
+        "6832768",
+        "384361814"
+      ],
+      "notes": "Different studies vary widely in how they handle temporal aggregation and model selection, leading to inconsistent results."
+    },
+    {
+      "gap": "Temporal hierarchy forecasting has not yet been applied to electricity price forecasting despite its potential for improving coherence across temporal levels",
+      "supporting_evidence": [
+        "ccb789680fb6680a2a303733af1d3593ed3ffafc"
+      ],
+      "notes": "Despite THieF's promise for reconciling forecasts across temporal levels, it has not been applied to electricity price forecasting."
+    },
+    {
+      "gap": "There is limited research on forecasting power grid frequency at very high resolutions (e.g., sub-minute) using deep learning models",
+      "supporting_evidence": [
+        "248669f38efd41b1fbac8ff9525169311f0dc843"
+      ],
+      "notes": "High-resolution grid frequency forecasting remains underexplored in deep learning contexts."
+    },
+    {
+      "gap": "Most existing probabilistic forecasting methods treat multi-scale decomposition, exogenous alignment, and probabilistic output as separate steps, limiting integrated uncertainty modeling",
+      "supporting_evidence": [
+        "e8088c6d99528232709da27f37a27e37a0ee8447"
+      ],
+      "notes": "Current probabilistic methods lack integrated modeling of uncertainty across scales and inputs."
+    },
+    {
+      "gap": "Aggregate forecasting does not necessarily outperform summed appliance-level predictions in all contexts, despite showing higher stability and accuracy in some cases",
+      "supporting_evidence": [
+        "c72144c1f5373f151cb53d5bfda8b2482f8f1114"
+      ],
+      "notes": "The relative advantages of aggregate vs. appliance-level forecasting are not well understood across all domains."
+    },
+    {
+      "gap": "The impact of temporal resolution and feature selection on forecasting accuracy remains underexplored, particularly in probabilistic forecasting frameworks",
+      "supporting_evidence": [
+        "fe583bc4f26f266ffc2b5328db19d9d943f0fd3c",
+        "2862fde1d1684f3d7c907dc0a11bcfe5b9220344"
+      ],
+      "notes": "There is insufficient investigation into how temporal resolution and feature selection interact in probabilistic forecasting."
+    },
+    {
+      "gap": "Most studies focus on point forecasting or simple probabilistic models, with limited exploration of advanced machine learning or deep learning techniques for complex forecasting tasks",
+      "supporting_evidence": [
+        "fe583bc4f26f266ffc2b5328db19d9d943f0fd3c",
+        "242dc40032cf85edfbf75df2aa789341ea20e46c"
+      ],
+      "notes": "Advanced ML techniques are underutilized in complex forecasting scenarios."
+    },
+    {
+      "gap": "There is a lack of standardized evaluation metrics for comparing different forecasting strategies across varying scales (e.g., appliance-level vs. aggregate)",
+      "supporting_evidence": [
+        "c72144c1f5373f151cb53d5bfda8b2482f8f1114"
+      ],
+      "notes": "Evaluation consistency is hindered by the absence of standardized metrics for scale comparisons."
+    },
+    {
+      "gap": "The effect of sampling frequency on forecasting performance is not consistently studied across all domains",
+      "supporting_evidence": [
+        "8efffd8a1b7d6011e3d4589b325a5058d39c938d",
+        "7fa95eff0c2a0035d4d9b6dda74a73ce5a206007"
+      ],
+      "notes": "Sampling frequency impacts vary across domains but are inconsistently evaluated."
+    },
+    {
+      "gap": "Limited studies directly compare the impact of data quantity versus data quality in forecasting tasks",
+      "supporting_evidence": [
+        "8efffd8a1b7d6011e3d4589b325a5058d39c938d"
+      ],
+      "notes": "There is little direct comparison of data quantity vs. quality effects on forecasting outcomes."
+    },
+    {
+      "gap": "The influence of forecast horizon length on model accuracy is inconsistently addressed across studies",
+      "supporting_evidence": [
+        "8efffd8a1b7d6011e3d4589b325a5058d39c938d",
+        "8b85c3fd46926abb767adc0c286c3063da6de6b5"
+      ],
+      "notes": "Forecast horizon effects are inconsistently reported or analyzed."
+    },
+    {
+      "gap": "There is limited discussion on how to select appropriate time scales for multiresolution analysis in dynamic network data",
+      "supporting_evidence": [
+        "3e6d34ae75e6dea37c4667335e56ee2128375ec8"
+      ],
+      "notes": "Selection criteria for time scales in dynamic networks are poorly defined."
+    },
+    {
+      "gap": "The effectiveness of wavelet-based forecasting varies depending on data characteristics and forecasting horizon",
+      "supporting_evidence": [
+        "2733312"
+      ],
+      "notes": "Wavelet forecasting performance is context-dependent but lacks consistent guidelines."
+    },
+    {
+      "gap": "There is limited discussion on how to optimize wavelet selection and decomposition levels for different types of data",
+      "supporting_evidence": [
+        "7470825"
+      ],
+      "notes": "Optimal wavelet parameters are not well-established for various data types."
+    },
+    {
+      "gap": "Most studies focus on univariate modeling, with limited exploration of multivariate extensions in wavelet forecasting",
+      "supporting_evidence": [
+        "2536390"
+      ],
+      "notes": "Multivariate wavelet forecasting remains largely unexplored."
+    },
+    {
+      "gap": "Lack of detailed abstracts for several papers limits understanding of specific contributions and methodologies",
+      "supporting_evidence": [
+        "06c63705817c9492bbce39a531cd70242212d12b",
+        "25768e651fa67ae3e884d0b9172542e87ae6aa82",
+        "2d615fcf8b6faf81be01f47fdebd40d575c69e25"
+      ],
+      "notes": "Abstracts are often incomplete, hindering clear understanding of methods and contributions."
+    },
+    {
+      "gap": "Temporal aggregation distorts Granger causality inferences, especially at low levels of aggregation",
+      "supporting_evidence": [
+        "2924269"
+      ],
+      "notes": "Granger causality inference is compromised by temporal aggregation, particularly at lower frequencies."
+    },
+    {
+      "gap": "There is no data-based approach to establish direction of causality between contemporaneously correlated variables",
+      "supporting_evidence": [
+        "2924269"
+      ],
+      "notes": "Directional causality remains an unresolved issue in temporally aggregated data."
+    },
+    {
+      "gap": "High-frequency data improves portfolio allocation performance, but its benefits diminish over longer horizons",
+      "supporting_evidence": [
+        "6102796"
+      ],
+      "notes": "The value of high-frequency data decreases with forecast horizon length."
+    },
+    {
+      "gap": "Multi-step estimation can improve forecast accuracy only under model mis-specification or non-stationarity",
+      "supporting_evidence": [
+        "3159794"
+      ],
+      "notes": "Multi-step forecasting gains are limited to specific conditions."
+    },
+    {
+      "gap": "Temporal resolution of input measurements significantly affects forecasting accuracy in short-horizon electricity demand forecasting",
+      "supporting_evidence": [
+        "ea9cfad6aaff95d5cafce15f6e284249b146b172",
+        "248669f38efd41b1fbac8ff9525169311f0dc843",
+        "6a9d69fb35414b8461573df333dba800f254519f",
+        "c72144c1f5373f151cb53d5bfda8b2482f8f1114",
+        "fe583bc4f26f266ffc2b5328db19d9d943f0fd3c",
+        "2862fde1d1684f3d7c907dc0a11bcfe5b9220344",
+        "8b014de0d7f69806e2db70a69f7a959fad40be7c",
+        "ed89b8d1d703a7708241248f36f4fc1d5aa8ffa0",
+        "5d8347ec5c51a90e08fc097cc41f3873d7cea62d",
+        "da44495b84d810c1f9757e78932654e11b1c4b38",
+        "073bdf8d7474c8e80ea0507375754d070b38998f",
+        "70c48ba72a5899f8f72c5d02efdc73b84e263c59",
+        "8efffd8a1b7d6011e3d4589b325a5058d39c938d",
+        "447bcfc44c4de121e156032531d354317c6b68bb",
+        "197122660c5a02da010b54bc9933870f727608df",
+        "8b85c3fd46926abb767adc0c286c3063da6de6b5",
+        "7fa95eff0c2a0035d4d9b6dda74a73ce5a206007",
+        "b007753ae11d1b3dd017bac9be930260c84b5f7c",
+        "2bf3832db545e56dc88fb1aea6d7afbd35319971",
+        "6cf68d8ee7dbf6f35737598e7f504ad27f528b16",
+        "49e9e5eb6d84b2f0d04a6a5b438d603f7131e213",
+        "7604ce6cc9358663b9fc62a27ef25ba3900eabb7",
+        "8a8b0dfbe36761296403e650f04f4afb6b0fabea",
+        "29f01905441870b8653b779bb536d870fe84558b",
+        "f684c447949709bbdc4cbe16f629c4cf039b7dee",
+        "3698d18b2e7f68f3f8556a1de09d8160f4358bcb",
+        "3e6d34ae75e6dea37c4667335e56ee2128375ec8",
+        "db510ec248bfd0f8b737156e3f921705cfa22ae8",
+        "2733312",
+        "7470825",
+        "5010976",
+        "2536390",
+        "4356697",
+        "2694214",
+        "450238",
+        "74256322",
+        "231923",
+        "66d473c7edb61ccc3ac39e180cea10bcf4998e67",
+        "ad60b971c737f9bc4895252eebfd06e8158b64e8",
+        "06c63705817c9492bbce39a531cd70242212d12b",
+        "aed2aa097c23e54ffa04106070644223be5d4185",
+        "25768e651fa67ae3e884d0b9172542e87ae6aa82",
+        "521c7583e2e0adc4fdc77a1efde9e0dad36ba224",
+        "2d615fcf8b6faf81be01f47fdebd40d575c69e25",
+        "2924269",
+        "2923209",
+        "3148162",
+        "2672194",
+        "2667242",
+        "2530753",
+        "3159794",
+        "2565572",
+        "6102796",
+        "2916867",
+        "8d5c1666e27eefde1954b1808caaa06494cab1e7",
+        "14469382",
+        "17398301",
+        "237880",
+        "377403799",
+        "45266838",
+        "171055500",
+        "147971918"
+      ],
+      "notes": "Across numerous studies, the relationship between temporal resolution and forecasting accuracy is a recurring theme, but not consistently quantified or analyzed."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "For short-horizon electricity demand forecasting (1-hour to 6-hour ahead), increasing the temporal resolution of input measurements from hourly to 15-minute intervals will improve forecasting accuracy by at least 5% as measured by MAE, when using a Temporal Fusion Transformer (TFT) model.",
+      "rationale": "This hypothesis builds on the identified gap regarding the impact of temporal resolution on forecasting accuracy in short-horizon electricity demand forecasting [gap: 15]. It leverages the widespread use of TFT models in electricity load forecasting [method: Temporal Fusion Transformer (TFT)] and aligns with the cross-disciplinary insight that higher resolution data preserves important variability and dynamic features [insight: Temporal aggregation effects]. The hypothesis is testable using real-world electricity demand data with varying temporal resolutions, such as those found in the UCI Air Quality dataset or similar time-series datasets with high-frequency measurements.",
+      "related_gaps": [
+        "Temporal resolution of input measurements significantly affects forecasting accuracy in short-horizon electricity demand forecasting"
+      ],
+      "related_methods": [
+        "Temporal Fusion Transformer (TFT)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "temporal_resolution"
+        ],
+        "dependent": [
+          "MAE"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "In probabilistic forecasting of electricity demand, using a cross-frequency fusion encoder-decoder architecture (CFEN) that integrates multi-rate time series inputs will yield better coverage probability and narrower prediction intervals compared to single-resolution models, particularly for 1-hour ahead forecasts.",
+      "rationale": "This hypothesis is grounded in the cross-disciplinary bridge insight that cross-frequency fusion methods can align and integrate features from differently sampled time series [insight: Cross-frequency fusion encoder-decoders], addressing the gap in multi-scale temporal modeling with cross-frequency interactions [gap: 2]. It specifically targets the need for integrated uncertainty modeling in probabilistic forecasting [gap: 6] and is supported by the rare but promising application of CFEN in multi-rate forecasting [method: Cross-Frequency Fusion Encoder-Decoder (CFEN)]. This hypothesis can be tested using datasets with varying sampling rates, such as those from financial or environmental monitoring systems.",
+      "related_gaps": [
+        "Lack of comprehensive studies on the integration of multi-scale temporal modeling with cross-building or cross-frequency interactions in energy forecasting",
+        "Most existing probabilistic forecasting methods treat multi-scale decomposition, exogenous alignment, and probabilistic output as separate steps, limiting integrated uncertainty modeling"
+      ],
+      "related_methods": [
+        "Cross-Frequency Fusion Encoder-Decoder (CFEN)"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "input_sampling_rate"
+        ],
+        "dependent": [
+          "coverage_probability",
+          "prediction_interval_width"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "When applying discrete wavelet transform (DWT) for multi-scale decomposition in short-horizon electricity demand forecasting, using a finer decomposition level (more than 3 levels) will lead to improved model performance compared to coarser decompositions, as evidenced by reduced RMSE in 1-hour ahead predictions.",
+      "rationale": "This hypothesis stems from the gap in understanding how wavelet selection and decomposition levels affect forecasting performance [gap: 16], and draws upon the cross-disciplinary insight that wavelet-based methods capture time-varying seasonalities and abrupt changes [insight: Multiscale decomposition techniques from wavelet transforms]. It also connects to the gap in optimal wavelet parameter selection [gap: 17] and the general use of DWT in energy forecasting [method: Discrete Wavelet Transform]. The hypothesis is directly testable using real datasets with known temporal structures, such as those in the Fama-French factor returns or stock market data, where wavelet decomposition can be applied and performance measured.",
+      "related_gaps": [
+        "The effectiveness of wavelet-based forecasting varies depending on data characteristics and forecasting horizon",
+        "There is limited discussion on how to optimize wavelet selection and decomposition levels for different types of data"
+      ],
+      "related_methods": [
+        "Discrete Wavelet Transform"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "wavelet_decomposition_level"
+        ],
+        "dependent": [
+          "RMSE"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it can be tested using real-world electricity demand data such as the UCI Air Quality dataset, which contains hourly time-series measurements with multiple sensor variables. It is highly testable due to its specific claim about MAE improvement with increased temporal resolution from hourly to 15-minute intervals using TFT models, allowing for clear refutation or support. The hypothesis is coherent as it focuses on the system (electricity demand forecasting) rather than analysis methods, and aligns well with the literature gap on temporal resolution effects. The data in UCI Air Quality provides sufficient temporal granularity and variables to evaluate the claim directly, making it not just theoretically sound but practically actionable."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible since it involves probabilistic forecasting with cross-frequency fusion, but lacks a readily available dataset with multi-rate time series inputs that would allow testing the specific architecture mentioned (CFEN). It is somewhat testable but less clearly defined in terms of what constitutes 'better coverage probability and narrower intervals', and the method CFEN itself is not well-documented in the provided datasets. While it draws on a relevant bridge insight from signal processing, its practical implementation and data availability make it less robust than H1. The hypothesis is internally consistent but depends on a specialized model architecture that isn't easily instantiated with current data."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because while wavelet decomposition is a valid technique, none of the provided datasets offer suitable multi-scale temporal structures or allow for controlled testing of wavelet decomposition levels beyond 3. The hypothesis relies heavily on RMSE reduction with finer decomposition levels, but the datasets do not contain the necessary temporal resolution or structure to meaningfully evaluate this claim. Although it connects to a bridge insight from signal processing, the lack of appropriate data makes it difficult to test rigorously. Its testability is weak due to ambiguity in defining 'finer decomposition' and the absence of a clear experimental setup within the available data."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "e15668eb42cc25b17b649f8393a34ca4b77721b4",
+    "bd20a9a1b5548b0039bf10f1dec14deab3591754",
+    "749335c40b811a297f4578bbdbedc809e3d2133e",
+    "77dcc534064fc0088c9990de26641bd39588dedc",
+    "6832768",
+    "384361814",
+    "ea9cfad6aaff95d5cafce15f6e284249b146b172",
+    "ccb789680fb6680a2a303733af1d3593ed3ffafc",
+    "248669f38efd41b1fbac8ff9525169311f0dc843",
+    "0bb50a7ec39bf97e70531a8c151845450211ccf6",
+    "a6d2e26d8540c43e4db83a9c23a5565262908849",
+    "e8088c6d99528232709da27f37a27e37a0ee8447",
+    "c72144c1f5373f151cb53d5bfda8b2482f8f1114",
+    "fe583bc4f26f266ffc2b5328db19d9d943f0fd3c",
+    "2862fde1d1684f3d7c907dc0a11bcfe5b9220344",
+    "242dc40032cf85edfbf75df2aa789341ea20e46c",
+    "c1b52f8c58ea8e5763f4233cb5315985530c8c76",
+    "8b014de0d7f69806e2db70a69f7a959fad40be7c",
+    "ed89b8d1d703a7708241248f36f4fc1d5aa8ffa0",
+    "5d8347ec5c51a90e08fc097cc41f3873d7cea62d",
+    "da44495b84d810c1f9757e78932654e11b1c4b38",
+    "073bdf8d7474c8e80ea0507375754d070b38998f",
+    "70c48ba72a5899f8f72c5d02efdc73b84e263c59",
+    "8efffd8a1b7d6011e3d4589b325a5058d39c938d",
+    "447bcfc44c4de121e156032531d354317c6b68bb",
+    "197122660c5a02da010b54bc9933870f727608df",
+    "c9ab51d4e928aeccb239b648f821e6484161e225",
+    "8b85c3fd46926abb767adc0c286c3063da6de6b5",
+    "7fa95eff0c2a0035d4d9b6dda74a73ce5a206007",
+    "b007753ae11d1b3dd017bac9be930260c84b5f7c",
+    "6a9d69fb35414b8461573df333dba800f254519f",
+    "2bf3832db545e56dc88fb1aea6d7afbd35319971",
+    "6cf68d8ee7dbf6f35737598e7f504ad27f528b16",
+    "49e9e5eb6d84b2f0d04a6a5b438d603f7131e213",
+    "7604ce6cc9358663b9fc62a27ef25ba3900eabb7",
+    "8a8b0dfbe36761296403e650f04f4afb6b0fabea",
+    "29f01905441870b8653b779bb536d870fe84558b",
+    "f684c447949709bbdc4cbe16f629c4cf039b7dee",
+    "3698d18b2e7f68f3f8556a1de09d8160f4358bcb",
+    "3e6d34ae75e6dea37c4667335e56ee2128375ec8",
+    "db510ec248bfd0f8b737156e3f921705cfa22ae8",
+    "2733312",
+    "7470825",
+    "5010976",
+    "2536390",
+    "4356697",
+    "2694214",
+    "450238",
+    "74256322",
+    "231923",
+    "66d473c7edb61ccc3ac39e180cea10bcf4998e67",
+    "ad60b971c737f9bc4895252eebfd06e8158b64e8",
+    "06c63705817c9492bbce39a531cd70242212d12b",
+    "aed2aa097c23e54ffa04106070644223be5d4185",
+    "25768e651fa67ae3e884d0b9172542e87ae6aa82",
+    "521c7583e2e0adc4fdc77a1efde9e0dad36ba224",
+    "2d615fcf8b6faf81be01f47fdebd40d575c69e25",
+    "2924269",
+    "2923209",
+    "3148162",
+    "2672194",
+    "2667242",
+    "2530753",
+    "3159794",
+    "2565572",
+    "6102796",
+    "2916867",
+    "8d5c1666e27eefde1954b1808caaa06494cab1e7",
+    "14469382",
+    "17398301",
+    "237880",
+    "377403799",
+    "45266838",
+    "171055500",
+    "147971918"
+  ],
+  "generated_at": "2026-09-15T14:07:51.453786+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

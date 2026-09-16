@@ -1,0 +1,986 @@
+[
+  {
+    "iteration": 1,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v1.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v1.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "2bb92e8c07958f2f936456f8103d70dedc2a8175",
+        "976f537d1b84de682351fba6f2600272acf825ae",
+        "2423905453ea1bbae03727fd81890007cccedd43",
+        "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+        "623f6d9184e470def8fcf13806cf9c40c1f5f0e3",
+        "2310.05276v1",
+        "82bf6de32ec47745ac6866246de6798808d91c80",
+        "02eb3ff713ac33eb0fb43d32ca5bce2663c95943",
+        "1909.02620v1",
+        "2109.15121v1",
+        "03aa38229a6c853d96430edfc8f1542598f2116e",
+        "2112.10474v1",
+        "2311.08890v1",
+        "327c84ba20f01bd118f019b3e4aa71d03d1824bc",
+        "6e7830b0a04e483901bdaaf321c4f13f45977618",
+        "59c0c6b62e33850cda08663d4c9ecabcf5d21596",
+        "50825767c31d4a069cb8bc550e262d5efad9dd6a",
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+        "2112.01836v2",
+        "5fcd5bb3a227f3faaaebd43c2685bc80b57a36cc",
+        "d7acf190030b1cdf001a456277698a9cf76a31e9",
+        "10133f50939dac23fbb1f5f6f289f4aec9c85f3f",
+        "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+        "1910.03548v2",
+        "9248c0feed0cf4caac561a11291551eb2747bf3f",
+        "875612e795d76e37ddc6c2cb45680f80197a41e7",
+        "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+        "1908.10261v1",
+        "74f6823b44ff0072f0170fe6cbfb0ee560220c7f",
+        "4760823",
+        "2104.10376v1",
+        "4c7804f4bd1abc018a077495ac7192e226d51d6f",
+        "7e0abaa3120ea717c8b29530827cf8764394bd44",
+        "2308.13515v5",
+        "841ef68839ee5a29f06c4f539a7c7824bea22e60"
+      ],
+      "notes_for_review": [
+        "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T19:28:07.982347+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 1,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Recent studies have demonstrated that general-purpose language models exhibit suboptimal performance on legal documents due to significant lexical and structural disparities between these models and domain-specific content (Jayakumar et al., 2023).",
+          "issue": "The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not specify that this is due to 'significant lexical and structural disparities' or attribute this directly to 'recent studies' in the way the claim frames it. The citation to Jayakumar et al. (2023) supports the idea that general-purpose models underperform legal-domain models, but the framing of 'disparities' is not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "One major limitation lies in the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Jayakumar et al., 2023; Au et al., 2022).",
+          "issue": "The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods.' However, it does not explicitly cite Jayakumar et al. (2023) or Au et al. (2022) in relation to this specific point about lack of systematic comparisons. The citation here appears to be an addition not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, while general-purpose large language models continue to advance, they still fall short of domain-specific models in tasks such as contract provision classification (Jayakumar et al., 2023), underscoring the need for more powerful legal-domain LLMs.",
+          "issue": "The ground truth mentions that 'General-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification,' but it does not mention that this is because general-purpose models 'continue to advance' or that this underscores a 'need for more powerful legal-domain LLMs.' These additions are not grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Furthermore, training data limitations restrict the applicability of legal information retrieval and question answering systems to broader legal domains (Pham et al., 2024).",
+          "issue": "The ground truth states that 'Training data limitations affect performance in legal information retrieval and question answering,' but it does not specify that these limitations 'restrict the applicability of legal information retrieval and question answering systems to broader legal domains.' This is a new claim not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Inconsistencies in entity classification schemes across systems further complicate cross-study comparisons (Pais et al., 2023; Yang and Agrawal, 2023).",
+          "issue": "The ground truth lists 'Inconsistent entity types and classification schemes across legal NER systems' as a gap and cites the relevant papers (9bc1c0956bf72207ee73204138c9d5066dce8c4e and 4c7804f4bd1abc018a077495ac7192e226d51d6f), but it does not explicitly state that these inconsistencies 'further complicate cross-study comparisons.' This is an interpretation not grounded in the provided text."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Belfathi et al. (2023) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions, showing that such positional awareness can improve performance while reducing model complexity.",
+          "issue": "The ground truth lists the paper 'Enhancing Pre-Trained Language Models with Sentence Position Embeddings for Rhetorical Roles Recognition in Legal Opinions' by Belfathi et al. (2023) as published in 2023, but it does not mention anything about improving performance or reducing model complexity through sentence position embeddings for rhetorical roles recognition. The actual abstract states that their approach requires fewer parameters, resulting in lower computational costs, and achieves great performance, but does not specify improvements in performance or reduction in complexity in the way claimed."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Ciga et al. (2019) present a multi-layer domain adaptation method for deep convolutional networks, integrating gradient reversal layers and Squeeze-and-Excite modules to stabilize training and improve classification accuracy in clinical imaging scenarios.",
+          "issue": "The ground truth confirms that Ciga et al. (2019) proposed a multi-layer domain adaptation method using gradient reversal layers and Squeeze-and-Excite modules, but it states that the method was applied to histopathology and chest X-ray databases, not specifically clinical imaging scenarios. The claim incorrectly narrows the application scope to 'clinical imaging scenarios' without justification from the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Pan et al. (2019) examine multi-source and semi-supervised domain adaptation strategies in the context of the VisDA-2019 challenge, proposing methods for feature-level adaptation and pseudo-label generation, which, although developed for visual tasks, suggest potential directions for extending domain adaptation to other modalities such as legal text.",
+          "issue": "The ground truth confirms that Pan et al. (2019) worked on multi-source and semi-supervised domain adaptation in the VisDA-2019 challenge, but it does not mention anything about suggesting potential directions for extending domain adaptation to other modalities such as legal text. The claim adds speculative implications not supported by the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving over 99% F1 score for entity recognition.",
+          "issue": "The ground truth confirms that Karamitsos et al. (2025) introduced LegNER, trained on a corpus of 1,542 court cases, and that it achieves an F1 score of over 99%. However, the claim adds the specific detail that the model achieves 'over 99% F1 score', which is not explicitly stated in the ground truth abstract. The abstract mentions 'F1 score (over 99%)' but does not specify that this applies to entity recognition directly."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Au et al. (2022) introduces the E-NER dataset derived from SEC filings, demonstrating that models trained on general English corpora suffer substantial performance drops when applied to legal texts.",
+          "issue": "The ground truth confirms that Au et al. (2022) introduced the E-NER dataset derived from SEC filings, but it does not state that models trained on general English corpora suffer 'substantial performance drops'. It only reports that there is a significant degradation in performance when NER methods trained on a general English dataset are applied to legal text, with a measured F1-score degradation between 29.4% and 60.4%."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Naik and Rahalkar (2025) proposes a rule-based and clustering-enhanced method for legal NER, showing improved efficiency and accuracy in entity extraction.",
+          "issue": "The ground truth confirms that Naik and Rahalkar (2025) propose a resource-efficient method for extracting and classifying named entities in legal documents using rule-based learning and regular expressions, and that they implement a modified K-Means algorithm for clustering. However, it does not mention anything about 'improved efficiency and accuracy' in entity extraction, nor does it quantify these improvements."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hong et al. (2021) propose AVocaDo, a method that adapts pretrained vocabularies by expanding them with domain-specific terms drawn solely from downstream datasets, without requiring additional domain-specific corpora.",
+          "issue": "The ground truth confirms that Hong et al. (2021) propose AVocaDo, which updates the pretrained vocabulary by expanding it with words from the downstream data without requiring additional domain-specific corpus. However, it does not state that the method draws domain-specific terms 'solely from downstream datasets'—the ground truth indicates that the method considers the relative importance of words in determining the size of the added vocabulary, implying a more nuanced selection process than just drawing from downstream datasets."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Balde et al. (2026) introduce a more nuanced strategy that prioritizes token replacement over expansion, leveraging frequency and coverage statistics to guide vocabulary selection.",
+          "issue": "The ground truth confirms that Balde et al. (2026) propose a vocabulary adaptation method that strategically replaces under-trained and unreachable tokens with domain-specific vocabulary before resorting to expansion. However, it does not mention that this method 'prioritizes token replacement over expansion' or that it 'leverages frequency and coverage statistics to guide vocabulary selection'. These details are not present in the ground truth abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Pavlova and Makhlouf (2025) explore domain adaptation through a contrastive learning lens, proposing MOSAIC—a method that combines masked language modeling (MLM) and contrastive objectives to jointly optimize both token-level and sentence-level representations.",
+          "issue": "The ground truth confirms that Pavlova and Makhlouf (2025) propose MOSAIC, a method that combines MLM and contrastive objectives. However, it does not state that the method 'jointly optimizes both token-level and sentence-level representations'. The ground truth describes the method as enabling both token-level and sentence-level supervision, but does not explicitly state that it jointly optimizes them."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Huang et al. (2021) introduce Reciprocal Normalization (RN), a normalization method designed to better align features across domains in unsupervised domain adaptation tasks.",
+          "issue": "The ground truth confirms that Huang et al. (2021) introduce Reciprocal Normalization (RN), a normalization method for unsupervised domain adaptation. However, it does not state that RN is 'designed to better align features across domains'. The abstract mentions that RN exploits cross-domain relations and proposes a Reciprocal Compensation and Reciprocal Aggregation module, but does not explicitly frame it as being 'designed to better align features across domains'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Yu et al. (2023) propose a robust core-periphery constrained transformer (RCCT) for unsupervised domain adaptation.",
+          "issue": "The ground truth confirms that Yu et al. (2023) propose a robust core-periphery constrained transformer (RCCT) for unsupervised domain adaptation. However, it does not state that RCCT is 'robust' or that it is specifically for 'unsupervised domain adaptation'. The abstract mentions that RCCT improves UDA performance and is designed for UDA, but does not explicitly label it as 'robust'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Xu et al. (2021) explore the task of corruption-agnostic robust domain adaptation (CRDA), proposing a Domain Discrepancy Generator (DDG) and a teacher-student framework with contrastive loss to enhance robustness against corruptions in target domains.",
+          "issue": "The ground truth confirms that Xu et al. (2021) propose a new approach for Corruption-agnostic Robust Domain Adaptation (CRDA), including a Domain Discrepancy Generator (DDG) and a teacher-student scheme with contrastive loss. However, it does not state that this approach is specifically aimed at 'enhancing robustness against corruptions in target domains'. The abstract mentions that the task is non-trivial due to large domain discrepancy and unsupervised target domains, and that the approach aims to be accurate on original data and robust against unavailable-for-training corruptions, but does not explicitly frame it as enhancing robustness against corruptions in target domains."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Alarfaj (2026) explore the use of sentence embeddings and LSTM networks for classifying legal documents, showing that such models can achieve high accuracy on complex and nuanced legal texts.",
+          "issue": "The ground truth confirms that Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification, achieving desired accuracy. However, it does not state that the model 'can achieve high accuracy on complex and nuanced legal texts'. The abstract mentions that the model offers legal experts a tool to automate document scrutiny and reviewing, decreasing time and effort, but does not quantify the accuracy or describe the complexity of the texts."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Chen (2025) examine the application of BiLSTM models for legal text extraction, incorporating attention mechanisms to better capture contextual dependencies.",
+          "issue": "The ground truth confirms that Chen (2025) proposes a BiLSTM-enhanced legal text extraction model using fuzzy logic and metaphor recognition, incorporating attention mechanisms. However, it does not state that the model is used for 'legal text extraction' or that it 'incorporates attention mechanisms to better capture contextual dependencies'. The abstract discusses the application of BiLSTM and attention mechanisms but does not specify the exact purpose or outcome of these mechanisms in the context of legal text extraction."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.",
+          "issue": "The ground truth confirms that Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs. However, it does not state that the approach 'better aligns with a target domain'. The abstract mentions that the method enhances efficiency without compromising performance and that it reduces latency and computational costs, but does not explicitly state that it aligns better with a target domain."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.",
+          "issue": "The ground truth confirms that Balde et al. (2024) introduce AdaptBPE, a method that modifies BPE tokenization initialization to better integrate domain-specific vocabulary. However, it does not state that this method shows 'improvements in classification and summarization tasks'. The abstract mentions that AdaptBPE improves accuracy and Rouge-L scores, but does not specify that these improvements are in classification and summarization tasks."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve NER F1-score by at least 3% compared to a general-purpose tokenizer, even when model size remains constant.",
+          "issue": "The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.",
+          "issue": "The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.",
+          "issue": "The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this hypothesis draws upon the identified gap in limited research on specialized tokenizers for legal and financial texts",
+          "issue": "The ground truth states the related gap is 'Limited research on specialized tokenizers for legal texts' but does not mention financial texts."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It further connects to the methodological approach of vocabulary expansion and adaptation, aimed at mitigating out-of-vocabulary issues in legal NER",
+          "issue": "The ground truth mentions 'vocabulary expansion and adaptation' as a related method but does not specify that it is aimed at mitigating out-of-vocabulary issues in legal NER."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The hypothesis is grounded in the premise that tailored tokenization can significantly influence model performance",
+          "issue": "While the ground truth discusses the rationale involving domain-specific term representation, it does not explicitly state that tailored tokenization 'can significantly influence model performance'."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "using real legal document datasets or simulated domain-specific tokenization effects on existing benchmarks (Georgiev et al., 2021; Huang et al., 2021)",
+          "issue": "The ground truth mentions that the hypothesis is testable using real legal document datasets or simulated domain-specific tokenization effects on existing legal NER benchmarks, but does not cite Georgiev et al., 2021 or Huang et al., 2021."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This hypothesis directly addresses the core research question by contrasting domain-specific vocabulary adaptation against general model scaling",
+          "issue": "The ground truth states that H2 addresses the core research question comparing domain-specific vocabulary adaptation versus model size increase, but does not describe it as contrasting 'general model scaling'."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It is supported by prior literature indicating the consistent superiority of targeted vocabulary adaptation over broad scaling approaches",
+          "issue": "The ground truth supports the idea that vocabulary adaptation is superior but does not use the phrase 'consistent superiority of targeted vocabulary adaptation over broad scaling approaches'."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The underlying methods include domain-adapted transformers and vocabulary expansion techniques, and the hypothesis seeks to fill the gap in direct comparative studies between these adaptation strategies (Yu et al., 2023; Xu et al., 2021)",
+          "issue": "The ground truth lists 'Domain-adapted transformers for NER' and 'Vocabulary expansion and adaptation' as related methods, but does not mention Yu et al., 2023 or Xu et al., 2021, nor does it state that the hypothesis fills a gap in direct comparative studies."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This hypothesis arises from the recognized need for more robust methods capable of handling both domain shifts and corruptions simultaneously",
+          "issue": "The ground truth states the related gap is 'Need for more robust methods that handle both domain shifts and corruptions simultaneously', so this claim is actually grounded. However, the claim itself is a restatement rather than an addition, and thus acceptable."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It is informed by cross-disciplinary insights suggesting that refining tokenization during training helps prevent under-trained tokens and improves compression",
+          "issue": "The ground truth mentions the cross-disciplinary insight about adaptive tokenizer frameworks enhancing domain-specific term representation but does not mention anything about preventing under-trained tokens or improving compression."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The proposed approach aligns with domain-adapted transformers and vocabulary customization techniques",
+          "issue": "The ground truth refers to 'Domain-adapted transformers for NER' and 'Vocabulary customization techniques' as related methods, but does not explicitly state that the proposed approach aligns with them."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "and the hypothesis can be evaluated using legal texts subjected to controlled lexical variations to measure performance degradation (Simeonova et al., 2019; Malik et al., 2021)",
+          "issue": "The ground truth confirms that the hypothesis is testable using legal texts with controlled lexical variations, but does not cite Simeonova et al., 2019 or Malik et al., 2021."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The primary limitation of this work stems from the fundamental challenge of evaluating domain-specific tokenization in legal text processing.",
+          "issue": "This claim introduces a broad characterization of the work's limitation that is not explicitly stated in the ground truth. The ground truth specifies risks and assumptions related to H1 but does not frame the overall limitation as 'evaluating domain-specific tokenization in legal text processing' as a singular, primary limitation."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The hypothesis that domain-specific tokenizers can improve legal NER performance relies on a simulated tokenizer that adapts Byte-Pair Encoding (BPE) to prioritize legal terminology.",
+          "issue": "While the ground truth mentions a simulated domain-specific tokenizer adapting BPE, it does not explicitly state that the hypothesis 'relies on' such a tokenizer. The ground truth lists risks associated with the tokenizer but does not describe the hypothesis itself as relying on it in this way."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The available benchmarks such as AG News and 20 Newsgroups are not representative of legal document complexity and variability, making direct evaluation impractical.",
+          "issue": "This statement is more specific than what is grounded in the ground truth. The ground truth states that these datasets are not legal documents and do not contain the necessary domain-specific vocabulary, but it does not explicitly state they are 'not representative of legal document complexity and variability' or that this makes 'direct evaluation impractical'."
+        },
+        {
+          "location": "Limitations",
+          "claim": "constructing a domain-specific tokenizer from scratch would require substantial computational resources and time, exceeding typical high-performance computing job durations.",
+          "issue": "The ground truth mentions that creating a domain-specific tokenizer would require 'substantial computational resources and time to train on a large legal corpus', but it does not specify that this exceeds 'typical high-performance computing job durations'. This added specificity is not grounded."
+        },
+        {
+          "location": "Limitations",
+          "claim": "As a result, the proposed methodology could not be executed as originally designed, limiting our ability to validate the core assumption regarding the effectiveness of domain-specific tokenization in legal contexts.",
+          "issue": "The ground truth indicates the experiment was marked infeasible and describes a simplification approach, but it does not state that the 'proposed methodology could not be executed as originally designed' or that this 'limits our ability to validate the core assumption'. These conclusions go beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Legal documents exhibit unique complexities including specialized jargon, nested structures, and domain-specific formatting conventions that may not be adequately captured in synthetic representations.",
+          "issue": "While the ground truth notes that synthetic data may not reflect real-world legal document complexity, it does not list or elaborate on 'specialized jargon, nested structures, and domain-specific formatting conventions' as specific types of complexity that may not be captured. This is an addition not found in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "This discrepancy raises questions about the generalizability of any findings to practical legal NER applications, where the fidelity of input representation directly impacts model performance and reliability.",
+          "issue": "The ground truth does not mention anything about 'generalizability of any findings to practical legal NER applications' or the impact of 'fidelity of input representation' on 'model performance and reliability'. These are new claims not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "When models are trained on limited synthetic data, there exists a risk of convergence issues or overfitting, particularly when attempting to learn domain-specific patterns from insufficient examples.",
+          "issue": "Although the ground truth lists 'Model convergence or overfitting during training due to limited synthetic data size' as one of the risks, it does not include the elaboration about 'convergence issues or overfitting, particularly when attempting to learn domain-specific patterns from insufficient examples'. This is a more detailed version not grounded in the original."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These concerns are compounded by the fact that the evaluation methodology was ultimately abandoned, leaving open the question of whether the proposed approach would have been robust enough to handle the challenges associated with training on potentially noisy or incomplete synthetic legal corpora.",
+          "issue": "The ground truth does not mention that the 'evaluation methodology was ultimately abandoned' or that it leaves open the question of whether the approach would be 'robust enough to handle the challenges associated with training on potentially noisy or incomplete synthetic legal corpora'. These are speculative additions not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The combination of these factors suggests that while the theoretical motivation for domain-specific tokenization remains compelling, the current implementation constraints prevent meaningful empirical validation of this approach.",
+          "issue": "The ground truth does not state that the 'theoretical motivation for domain-specific tokenization remains compelling' or that the 'current implementation constraints prevent meaningful empirical validation'. These are interpretive conclusions not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "First, there is a pressing need for standardized benchmarks and datasets specifically tailored for legal named-entity recognition.",
+          "issue": "While the ground truth identifies a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not describe the need as 'pressing' or assert that future work should prioritize this. The claim adds a normative judgment ('pressing need') not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The absence of such resources hinders reproducibility and comparative analysis across studies, as noted by prior work.",
+          "issue": "The ground truth mentions the lack of standardized benchmarks but does not explicitly state that this absence 'hinders reproducibility and comparative analysis across studies'. This specific causal claim about consequences is not grounded in the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Future efforts should focus on developing and curating high-quality, publicly available legal NER datasets that span various domains and languages.",
+          "issue": "Although the ground truth lists gaps related to lack of standardized benchmarks, lack of multilingual coverage, and lack of diverse legal domains, it does not specify that future efforts should involve 'developing and curating' such datasets. This prescriptive action is not stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Additionally, expanding legal NER research to non-English languages is essential, given the limited availability of annotated corpora in these contexts.",
+          "issue": "The ground truth states that 'Limited availability of annotated corpora for legal NER in non-English languages' is a gap, but it does not assert that expanding research to non-English languages is 'essential', nor does it link this necessity directly to the limited availability of annotated corpora in those languages."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Therefore, designing and training domain-specific models that leverage legal knowledge and terminology is crucial.",
+          "issue": "The ground truth notes that 'Need for more powerful legal-domain LLMs despite progress in general LLMs' is a gap, but it does not state that 'designing and training domain-specific models that leverage legal knowledge and terminology is crucial'. This conclusion about the importance of such actions is not grounded in the provided facts."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Furthermore, investigations into how sentence position influences legal rhetorical role prediction warrant deeper exploration.",
+          "issue": "The ground truth identifies 'Insufficient investigation into how sentence position affects legal rhetorical role prediction' as a gap, but it does not say that such investigations 'warrant deeper exploration'. The claim introduces a normative recommendation not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, the lack of comprehensive datasets covering diverse legal domains highlights the necessity for broader data collection efforts.",
+          "issue": "The ground truth identifies 'Lack of comprehensive datasets covering diverse legal domains' as a gap, but it does not assert that this situation 'highlights the necessity for broader data collection efforts'. The claim adds a prescriptive statement not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Training models on varied legal content—such as case law, statutes, and regulatory documents—will enhance their robustness and applicability across different areas of law.",
+          "issue": "While the ground truth mentions the lack of diverse legal domains, it does not make claims about enhancing robustness or applicability through training on specific types of legal content like case law, statutes, or regulatory documents. This predictive claim is not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Establishing consistent entity types and classification schemes across legal NER systems would facilitate better comparison and integration of results from different studies.",
+          "issue": "The ground truth identifies 'Inconsistent entity types and classification schemes across legal NER systems' as a gap, but it does not state that establishing consistency would 'facilitate better comparison and integration'. This functional benefit is not mentioned in the ground truth."
+        },
+        {
+          "location": "Discussion",
+          "claim": "The hypothesis that domain-specific tokenizer adaptation would improve named-entity recognition F1-score by at least 3% remains inconclusive due to the experiment being marked as infeasible by the Experiment Planner.",
+          "issue": "The paper claims the hypothesis concerns a 3% improvement threshold, but this specific numerical requirement (at least 3%) is not mentioned in the ground truth rationale or verdict. The ground truth only states that the hypothesis is about improving F1-score 'by at least 3%' without specifying that this is part of the core hypothesis statement itself, and thus the claim introduces a fabricated detail."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Huang et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by implying that the hypothesis was evaluated and found to be unsupported or unfounded, when in fact the experiment was skipped due to infeasibility. The phrase 'remains inconclusive due to the experiment being marked as infeasible' incorrectly implies a conclusion was drawn from experimental results rather than a lack of ability to run the experiment. The correct framing should acknowledge that no empirical evidence could be gathered because the experiment was not executed, not that the hypothesis was disproven."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Recent studies have demonstrated that general-purpose language models exhibit suboptimal performance on legal documents due to significant lexical and structural disparities between these models and domain-specific content (Jayakumar et al., 2023).\" — The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not specify that this is due to 'significant lexical and structural disparities' or attribute this directly to 'recent studies' in the way the claim frames it. The citation to Jayakumar et al. (2023) supports the idea that general-purpose models underperform legal-domain models, but the framing of 'disparities' is not explicitly stated in the ground truth.\n- Introduction: \"One major limitation lies in the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Jayakumar et al., 2023; Au et al., 2022).\" — The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods.' However, it does not explicitly cite Jayakumar et al. (2023) or Au et al. (2022) in relation to this specific point about lack of systematic comparisons. The citation here appears to be an addition not supported by the ground truth.\n- Introduction: \"Moreover, while general-purpose large language models continue to advance, they still fall short of domain-specific models in tasks such as contract provision classification (Jayakumar et al., 2023), underscoring the need for more powerful legal-domain LLMs.\" — The ground truth mentions that 'General-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification,' but it does not mention that this is because general-purpose models 'continue to advance' or that this underscores a 'need for more powerful legal-domain LLMs.' These additions are not grounded in the provided text.\n- Introduction: \"Furthermore, training data limitations restrict the applicability of legal information retrieval and question answering systems to broader legal domains (Pham et al., 2024).\" — The ground truth states that 'Training data limitations affect performance in legal information retrieval and question answering,' but it does not specify that these limitations 'restrict the applicability of legal information retrieval and question answering systems to broader legal domains.' This is a new claim not found in the ground truth.\n- Introduction: \"Inconsistencies in entity classification schemes across systems further complicate cross-study comparisons (Pais et al., 2023; Yang and Agrawal, 2023).\" — The ground truth lists 'Inconsistent entity types and classification schemes across legal NER systems' as a gap and cites the relevant papers (9bc1c0956bf72207ee73204138c9d5066dce8c4e and 4c7804f4bd1abc018a077495ac7192e226d51d6f), but it does not explicitly state that these inconsistencies 'further complicate cross-study comparisons.' This is an interpretation not grounded in the provided text.\n- Related Work: \"Belfathi et al. (2023) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions, showing that such positional awareness can improve performance while reducing model complexity.\" — The ground truth lists the paper 'Enhancing Pre-Trained Language Models with Sentence Position Embeddings for Rhetorical Roles Recognition in Legal Opinions' by Belfathi et al. (2023) as published in 2023, but it does not mention anything about improving performance or reducing model complexity through sentence position embeddings for rhetorical roles recognition. The actual abstract states that their approach requires fewer parameters, resulting in lower computational costs, and achieves great performance, but does not specify improvements in performance or reduction in complexity in the way claimed.\n- Related Work: \"Ciga et al. (2019) present a multi-layer domain adaptation method for deep convolutional networks, integrating gradient reversal layers and Squeeze-and-Excite modules to stabilize training and improve classification accuracy in clinical imaging scenarios.\" — The ground truth confirms that Ciga et al. (2019) proposed a multi-layer domain adaptation method using gradient reversal layers and Squeeze-and-Excite modules, but it states that the method was applied to histopathology and chest X-ray databases, not specifically clinical imaging scenarios. The claim incorrectly narrows the application scope to 'clinical imaging scenarios' without justification from the ground truth.\n- Related Work: \"Pan et al. (2019) examine multi-source and semi-supervised domain adaptation strategies in the context of the VisDA-2019 challenge, proposing methods for feature-level adaptation and pseudo-label generation, which, although developed for visual tasks, suggest potential directions for extending domain adaptation to other modalities such as legal text.\" — The ground truth confirms that Pan et al. (2019) worked on multi-source and semi-supervised domain adaptation in the VisDA-2019 challenge, but it does not mention anything about suggesting potential directions for extending domain adaptation to other modalities such as legal text. The claim adds speculative implications not supported by the ground truth.\n- Related Work: \"Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving over 99% F1 score for entity recognition.\" — The ground truth confirms that Karamitsos et al. (2025) introduced LegNER, trained on a corpus of 1,542 court cases, and that it achieves an F1 score of over 99%. However, the claim adds the specific detail that the model achieves 'over 99% F1 score', which is not explicitly stated in the ground truth abstract. The abstract mentions 'F1 score (over 99%)' but does not specify that this applies to entity recognition directly.\n- Related Work: \"Au et al. (2022) introduces the E-NER dataset derived from SEC filings, demonstrating that models trained on general English corpora suffer substantial performance drops when applied to legal texts.\" — The ground truth confirms that Au et al. (2022) introduced the E-NER dataset derived from SEC filings, but it does not state that models trained on general English corpora suffer 'substantial performance drops'. It only reports that there is a significant degradation in performance when NER methods trained on a general English dataset are applied to legal text, with a measured F1-score degradation between 29.4% and 60.4%.\n- Related Work: \"Naik and Rahalkar (2025) proposes a rule-based and clustering-enhanced method for legal NER, showing improved efficiency and accuracy in entity extraction.\" — The ground truth confirms that Naik and Rahalkar (2025) propose a resource-efficient method for extracting and classifying named entities in legal documents using rule-based learning and regular expressions, and that they implement a modified K-Means algorithm for clustering. However, it does not mention anything about 'improved efficiency and accuracy' in entity extraction, nor does it quantify these improvements.\n- Related Work: \"Hong et al. (2021) propose AVocaDo, a method that adapts pretrained vocabularies by expanding them with domain-specific terms drawn solely from downstream datasets, without requiring additional domain-specific corpora.\" — The ground truth confirms that Hong et al. (2021) propose AVocaDo, which updates the pretrained vocabulary by expanding it with words from the downstream data without requiring additional domain-specific corpus. However, it does not state that the method draws domain-specific terms 'solely from downstream datasets'—the ground truth indicates that the method considers the relative importance of words in determining the size of the added vocabulary, implying a more nuanced selection process than just drawing from downstream datasets.\n- Related Work: \"Balde et al. (2026) introduce a more nuanced strategy that prioritizes token replacement over expansion, leveraging frequency and coverage statistics to guide vocabulary selection.\" — The ground truth confirms that Balde et al. (2026) propose a vocabulary adaptation method that strategically replaces under-trained and unreachable tokens with domain-specific vocabulary before resorting to expansion. However, it does not mention that this method 'prioritizes token replacement over expansion' or that it 'leverages frequency and coverage statistics to guide vocabulary selection'. These details are not present in the ground truth abstract.\n- Related Work: \"Pavlova and Makhlouf (2025) explore domain adaptation through a contrastive learning lens, proposing MOSAIC—a method that combines masked language modeling (MLM) and contrastive objectives to jointly optimize both token-level and sentence-level representations.\" — The ground truth confirms that Pavlova and Makhlouf (2025) propose MOSAIC, a method that combines MLM and contrastive objectives. However, it does not state that the method 'jointly optimizes both token-level and sentence-level representations'. The ground truth describes the method as enabling both token-level and sentence-level supervision, but does not explicitly state that it jointly optimizes them.\n- Related Work: \"Huang et al. (2021) introduce Reciprocal Normalization (RN), a normalization method designed to better align features across domains in unsupervised domain adaptation tasks.\" — The ground truth confirms that Huang et al. (2021) introduce Reciprocal Normalization (RN), a normalization method for unsupervised domain adaptation. However, it does not state that RN is 'designed to better align features across domains'. The abstract mentions that RN exploits cross-domain relations and proposes a Reciprocal Compensation and Reciprocal Aggregation module, but does not explicitly frame it as being 'designed to better align features across domains'.\n- Related Work: \"Yu et al. (2023) propose a robust core-periphery constrained transformer (RCCT) for unsupervised domain adaptation.\" — The ground truth confirms that Yu et al. (2023) propose a robust core-periphery constrained transformer (RCCT) for unsupervised domain adaptation. However, it does not state that RCCT is 'robust' or that it is specifically for 'unsupervised domain adaptation'. The abstract mentions that RCCT improves UDA performance and is designed for UDA, but does not explicitly label it as 'robust'.\n- Related Work: \"Xu et al. (2021) explore the task of corruption-agnostic robust domain adaptation (CRDA), proposing a Domain Discrepancy Generator (DDG) and a teacher-student framework with contrastive loss to enhance robustness against corruptions in target domains.\" — The ground truth confirms that Xu et al. (2021) propose a new approach for Corruption-agnostic Robust Domain Adaptation (CRDA), including a Domain Discrepancy Generator (DDG) and a teacher-student scheme with contrastive loss. However, it does not state that this approach is specifically aimed at 'enhancing robustness against corruptions in target domains'. The abstract mentions that the task is non-trivial due to large domain discrepancy and unsupervised target domains, and that the approach aims to be accurate on original data and robust against unavailable-for-training corruptions, but does not explicitly frame it as enhancing robustness against corruptions in target domains.\n- Related Work: \"Alarfaj (2026) explore the use of sentence embeddings and LSTM networks for classifying legal documents, showing that such models can achieve high accuracy on complex and nuanced legal texts.\" — The ground truth confirms that Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification, achieving desired accuracy. However, it does not state that the model 'can achieve high accuracy on complex and nuanced legal texts'. The abstract mentions that the model offers legal experts a tool to automate document scrutiny and reviewing, decreasing time and effort, but does not quantify the accuracy or describe the complexity of the texts.\n- Related Work: \"Chen (2025) examine the application of BiLSTM models for legal text extraction, incorporating attention mechanisms to better capture contextual dependencies.\" — The ground truth confirms that Chen (2025) proposes a BiLSTM-enhanced legal text extraction model using fuzzy logic and metaphor recognition, incorporating attention mechanisms. However, it does not state that the model is used for 'legal text extraction' or that it 'incorporates attention mechanisms to better capture contextual dependencies'. The abstract discusses the application of BiLSTM and attention mechanisms but does not specify the exact purpose or outcome of these mechanisms in the context of legal text extraction.\n- Related Work: \"Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.\" — The ground truth confirms that Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs. However, it does not state that the approach 'better aligns with a target domain'. The abstract mentions that the method enhances efficiency without compromising performance and that it reduces latency and computational costs, but does not explicitly state that it aligns better with a target domain.\n- Related Work: \"Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.\" — The ground truth confirms that Balde et al. (2024) introduce AdaptBPE, a method that modifies BPE tokenization initialization to better integrate domain-specific vocabulary. However, it does not state that this method shows 'improvements in classification and summarization tasks'. The abstract mentions that AdaptBPE improves accuracy and Rouge-L scores, but does not specify that these improvements are in classification and summarization tasks.\n- Related Work: \"Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve NER F1-score by at least 3% compared to a general-purpose tokenizer, even when model size remains constant.\" — The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided.\n- Related Work: \"Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.\" — The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided.\n- Related Work: \"Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.\" — The ground truth does not contain any information about hypotheses H1, H2, or H3. These are specific claims made by the paper itself, not part of the ground truth provided.\n- Hypotheses: \"The rationale for this hypothesis draws upon the identified gap in limited research on specialized tokenizers for legal and financial texts\" — The ground truth states the related gap is 'Limited research on specialized tokenizers for legal texts' but does not mention financial texts.\n- Hypotheses: \"It further connects to the methodological approach of vocabulary expansion and adaptation, aimed at mitigating out-of-vocabulary issues in legal NER\" — The ground truth mentions 'vocabulary expansion and adaptation' as a related method but does not specify that it is aimed at mitigating out-of-vocabulary issues in legal NER.\n- Hypotheses: \"The hypothesis is grounded in the premise that tailored tokenization can significantly influence model performance\" — While the ground truth discusses the rationale involving domain-specific term representation, it does not explicitly state that tailored tokenization 'can significantly influence model performance'.\n- Hypotheses: \"using real legal document datasets or simulated domain-specific tokenization effects on existing benchmarks (Georgiev et al., 2021; Huang et al., 2021)\" — The ground truth mentions that the hypothesis is testable using real legal document datasets or simulated domain-specific tokenization effects on existing legal NER benchmarks, but does not cite Georgiev et al., 2021 or Huang et al., 2021.\n- Hypotheses: \"This hypothesis directly addresses the core research question by contrasting domain-specific vocabulary adaptation against general model scaling\" — The ground truth states that H2 addresses the core research question comparing domain-specific vocabulary adaptation versus model size increase, but does not describe it as contrasting 'general model scaling'.\n- Hypotheses: \"It is supported by prior literature indicating the consistent superiority of targeted vocabulary adaptation over broad scaling approaches\" — The ground truth supports the idea that vocabulary adaptation is superior but does not use the phrase 'consistent superiority of targeted vocabulary adaptation over broad scaling approaches'.\n- Hypotheses: \"The underlying methods include domain-adapted transformers and vocabulary expansion techniques, and the hypothesis seeks to fill the gap in direct comparative studies between these adaptation strategies (Yu et al., 2023; Xu et al., 2021)\" — The ground truth lists 'Domain-adapted transformers for NER' and 'Vocabulary expansion and adaptation' as related methods, but does not mention Yu et al., 2023 or Xu et al., 2021, nor does it state that the hypothesis fills a gap in direct comparative studies.\n- Hypotheses: \"This hypothesis arises from the recognized need for more robust methods capable of handling both domain shifts and corruptions simultaneously\" — The ground truth states the related gap is 'Need for more robust methods that handle both domain shifts and corruptions simultaneously', so this claim is actually grounded. However, the claim itself is a restatement rather than an addition, and thus acceptable.\n- Hypotheses: \"It is informed by cross-disciplinary insights suggesting that refining tokenization during training helps prevent under-trained tokens and improves compression\" — The ground truth mentions the cross-disciplinary insight about adaptive tokenizer frameworks enhancing domain-specific term representation but does not mention anything about preventing under-trained tokens or improving compression.\n- Hypotheses: \"The proposed approach aligns with domain-adapted transformers and vocabulary customization techniques\" — The ground truth refers to 'Domain-adapted transformers for NER' and 'Vocabulary customization techniques' as related methods, but does not explicitly state that the proposed approach aligns with them.\n- Hypotheses: \"and the hypothesis can be evaluated using legal texts subjected to controlled lexical variations to measure performance degradation (Simeonova et al., 2019; Malik et al., 2021)\" — The ground truth confirms that the hypothesis is testable using legal texts with controlled lexical variations, but does not cite Simeonova et al., 2019 or Malik et al., 2021.\n- Limitations: \"The primary limitation of this work stems from the fundamental challenge of evaluating domain-specific tokenization in legal text processing.\" — This claim introduces a broad characterization of the work's limitation that is not explicitly stated in the ground truth. The ground truth specifies risks and assumptions related to H1 but does not frame the overall limitation as 'evaluating domain-specific tokenization in legal text processing' as a singular, primary limitation.\n- Limitations: \"The hypothesis that domain-specific tokenizers can improve legal NER performance relies on a simulated tokenizer that adapts Byte-Pair Encoding (BPE) to prioritize legal terminology.\" — While the ground truth mentions a simulated domain-specific tokenizer adapting BPE, it does not explicitly state that the hypothesis 'relies on' such a tokenizer. The ground truth lists risks associated with the tokenizer but does not describe the hypothesis itself as relying on it in this way.\n- Limitations: \"The available benchmarks such as AG News and 20 Newsgroups are not representative of legal document complexity and variability, making direct evaluation impractical.\" — This statement is more specific than what is grounded in the ground truth. The ground truth states that these datasets are not legal documents and do not contain the necessary domain-specific vocabulary, but it does not explicitly state they are 'not representative of legal document complexity and variability' or that this makes 'direct evaluation impractical'.\n- Limitations: \"constructing a domain-specific tokenizer from scratch would require substantial computational resources and time, exceeding typical high-performance computing job durations.\" — The ground truth mentions that creating a domain-specific tokenizer would require 'substantial computational resources and time to train on a large legal corpus', but it does not specify that this exceeds 'typical high-performance computing job durations'. This added specificity is not grounded.\n- Limitations: \"As a result, the proposed methodology could not be executed as originally designed, limiting our ability to validate the core assumption regarding the effectiveness of domain-specific tokenization in legal contexts.\" — The ground truth indicates the experiment was marked infeasible and describes a simplification approach, but it does not state that the 'proposed methodology could not be executed as originally designed' or that this 'limits our ability to validate the core assumption'. These conclusions go beyond what is stated in the ground truth.\n- Limitations: \"Legal documents exhibit unique complexities including specialized jargon, nested structures, and domain-specific formatting conventions that may not be adequately captured in synthetic representations.\" — While the ground truth notes that synthetic data may not reflect real-world legal document complexity, it does not list or elaborate on 'specialized jargon, nested structures, and domain-specific formatting conventions' as specific types of complexity that may not be captured. This is an addition not found in the ground truth.\n- Limitations: \"This discrepancy raises questions about the generalizability of any findings to practical legal NER applications, where the fidelity of input representation directly impacts model performance and reliability.\" — The ground truth does not mention anything about 'generalizability of any findings to practical legal NER applications' or the impact of 'fidelity of input representation' on 'model performance and reliability'. These are new claims not supported by the ground truth.\n- Limitations: \"When models are trained on limited synthetic data, there exists a risk of convergence issues or overfitting, particularly when attempting to learn domain-specific patterns from insufficient examples.\" — Although the ground truth lists 'Model convergence or overfitting during training due to limited synthetic data size' as one of the risks, it does not include the elaboration about 'convergence issues or overfitting, particularly when attempting to learn domain-specific patterns from insufficient examples'. This is a more detailed version not grounded in the original.\n- Limitations: \"These concerns are compounded by the fact that the evaluation methodology was ultimately abandoned, leaving open the question of whether the proposed approach would have been robust enough to handle the challenges associated with training on potentially noisy or incomplete synthetic legal corpora.\" — The ground truth does not mention that the 'evaluation methodology was ultimately abandoned' or that it leaves open the question of whether the approach would be 'robust enough to handle the challenges associated with training on potentially noisy or incomplete synthetic legal corpora'. These are speculative additions not grounded in the provided information.\n- Limitations: \"The combination of these factors suggests that while the theoretical motivation for domain-specific tokenization remains compelling, the current implementation constraints prevent meaningful empirical validation of this approach.\" — The ground truth does not state that the 'theoretical motivation for domain-specific tokenization remains compelling' or that the 'current implementation constraints prevent meaningful empirical validation'. These are interpretive conclusions not present in the ground truth.\n- Future Work: \"First, there is a pressing need for standardized benchmarks and datasets specifically tailored for legal named-entity recognition.\" — While the ground truth identifies a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not describe the need as 'pressing' or assert that future work should prioritize this. The claim adds a normative judgment ('pressing need') not present in the ground truth.\n- Future Work: \"The absence of such resources hinders reproducibility and comparative analysis across studies, as noted by prior work.\" — The ground truth mentions the lack of standardized benchmarks but does not explicitly state that this absence 'hinders reproducibility and comparative analysis across studies'. This specific causal claim about consequences is not grounded in the provided evidence.\n- Future Work: \"Future efforts should focus on developing and curating high-quality, publicly available legal NER datasets that span various domains and languages.\" — Although the ground truth lists gaps related to lack of standardized benchmarks, lack of multilingual coverage, and lack of diverse legal domains, it does not specify that future efforts should involve 'developing and curating' such datasets. This prescriptive action is not stated in the ground truth.\n- Future Work: \"Additionally, expanding legal NER research to non-English languages is essential, given the limited availability of annotated corpora in these contexts.\" — The ground truth states that 'Limited availability of annotated corpora for legal NER in non-English languages' is a gap, but it does not assert that expanding research to non-English languages is 'essential', nor does it link this necessity directly to the limited availability of annotated corpora in those languages.\n- Future Work: \"Therefore, designing and training domain-specific models that leverage legal knowledge and terminology is crucial.\" — The ground truth notes that 'Need for more powerful legal-domain LLMs despite progress in general LLMs' is a gap, but it does not state that 'designing and training domain-specific models that leverage legal knowledge and terminology is crucial'. This conclusion about the importance of such actions is not grounded in the provided facts.\n- Future Work: \"Furthermore, investigations into how sentence position influences legal rhetorical role prediction warrant deeper exploration.\" — The ground truth identifies 'Insufficient investigation into how sentence position affects legal rhetorical role prediction' as a gap, but it does not say that such investigations 'warrant deeper exploration'. The claim introduces a normative recommendation not found in the ground truth.\n- Future Work: \"Finally, the lack of comprehensive datasets covering diverse legal domains highlights the necessity for broader data collection efforts.\" — The ground truth identifies 'Lack of comprehensive datasets covering diverse legal domains' as a gap, but it does not assert that this situation 'highlights the necessity for broader data collection efforts'. The claim adds a prescriptive statement not supported by the ground truth.\n- Future Work: \"Training models on varied legal content—such as case law, statutes, and regulatory documents—will enhance their robustness and applicability across different areas of law.\" — While the ground truth mentions the lack of diverse legal domains, it does not make claims about enhancing robustness or applicability through training on specific types of legal content like case law, statutes, or regulatory documents. This predictive claim is not grounded in the provided information.\n- Future Work: \"Establishing consistent entity types and classification schemes across legal NER systems would facilitate better comparison and integration of results from different studies.\" — The ground truth identifies 'Inconsistent entity types and classification schemes across legal NER systems' as a gap, but it does not state that establishing consistency would 'facilitate better comparison and integration'. This functional benefit is not mentioned in the ground truth.\n- Discussion: \"The hypothesis that domain-specific tokenizer adaptation would improve named-entity recognition F1-score by at least 3% remains inconclusive due to the experiment being marked as infeasible by the Experiment Planner.\" — The paper claims the hypothesis concerns a 3% improvement threshold, but this specific numerical requirement (at least 3%) is not mentioned in the ground truth rationale or verdict. The ground truth only states that the hypothesis is about improving F1-score 'by at least 3%' without specifying that this is part of the core hypothesis statement itself, and thus the claim introduces a fabricated detail.\nCitation issues:\n- Related Work: citation-like text \"(Huang et\nal., 2021)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by implying that the hypothesis was evaluated and found to be unsupported or unfounded, when in fact the experiment was skipped due to infeasibility. The phrase 'remains inconclusive due to the experiment being marked as infeasible' incorrectly implies a conclusion was drawn from experimental results rather than a lack of ability to run the experiment. The correct framing should acknowledge that no empirical evidence could be gathered because the experiment was not executed, not that the hypothesis was disproven.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections feel somewhat abrupt, particularly between related work and hypotheses, and between methods and results.",
+      "generated_at": "2026-09-15T19:29:11.077124+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 2,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v2.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v2.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "2bb92e8c07958f2f936456f8103d70dedc2a8175",
+        "976f537d1b84de682351fba6f2600272acf825ae",
+        "2423905453ea1bbae03727fd81890007cccedd43",
+        "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+        "623f6d9184e470def8fcf13806cf9c40c1f5f0e3",
+        "2310.05276v1",
+        "82bf6de32ec47745ac6866246de6798808d91c80",
+        "02eb3ff713ac33eb0fb43d32ca5bce2663c95943",
+        "03aa38229a6c853d96430edfc8f1542598f2116e",
+        "2112.10474v1",
+        "2311.08890v1",
+        "6e7830b0a04e483901bdaaf321c4f13f45977618",
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+        "d7acf190030b1cdf001a456277698a9cf76a31e9",
+        "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+        "875612e795d76e37ddc6c2cb45680f80197a41e7",
+        "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+        "74f6823b44ff0072f0170fe6cbfb0ee560220c7f",
+        "ba1aa518fd69d34da6a0eb23251a275681bba9c6",
+        "2104.10376v1",
+        "2308.13515v5"
+      ],
+      "notes_for_review": [
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T19:30:50.827313+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 2,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Studies have consistently shown that general-purpose language models perform poorly on legal documents, largely attributed to domain-specific terminology and structural differences (Jayakumar et al., 2023).",
+          "issue": "The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not attribute this observation specifically to Jayakumar et al., 2023. The cited paper 'Large Language Models are legal but they are not: Making the case for a powerful LegalLLM' supports the idea that general-purpose LLMs underperform legal-domain models, but the ground truth does not link this directly to the 'structural differences' aspect or to Jayakumar et al.'s findings in this specific way."
+        },
+        {
+          "location": "Introduction",
+          "claim": "These methods aim to mitigate issues such as out-of-vocabulary terms, semantic shifts, and lexical mismatches that are particularly prevalent in legal contexts.",
+          "issue": "While the ground truth mentions that vocabulary adaptation methods aim to address issues like 'out-of-vocabulary words, semantic shifts, and lexical mismatches,' it does not specify that these issues are 'particularly prevalent in legal contexts.' This added characterization is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A key limitation is the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Au et al., 2022).",
+          "issue": "The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods,' but it does not explicitly cite Au et al., 2022 as the source for this limitation. The citation is incorrect or misleading based on the provided evidence."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, there is a notable absence of standardized benchmarks and datasets specifically designed for legal NER, which impedes reproducible and comparable research (Ramesh and Eswara, 2023).",
+          "issue": "The ground truth confirms the lack of standardized benchmarks and datasets for legal NER, but attributes this to papers such as '2e5091e8007f024e0469b51da27c5d867cf5e5ae' and '841ef68839ee5a29f06c4f539a7c7824bea22e60', not to Ramesh and Eswara, 2023. Therefore, citing Ramesh and Eswara is a hallucination."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This scarcity is further compounded by limited annotated corpora for legal NER in non-English languages, with most efforts concentrated on English and German (Araujo et al., 2018).",
+          "issue": "The ground truth lists '976f537d1b84de682351fba6f2600272acf825ae' and '59c0c6b62e33850cda08663d4c9ecabcf5d21596' as supporting evidence for the lack of annotated corpora in non-English languages, but does not mention Araujo et al., 2018 as a source for this claim. The citation is incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Furthermore, while general-purpose large language models continue to advance, they still exhibit inferior performance compared to legal-domain models in tasks such as contract provision classification (Jayakumar et al., 2023), highlighting the continued relevance of domain-specific modeling approaches.",
+          "issue": "The ground truth supports that general-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification, but it does not explicitly state that this is the reason for the continued relevance of domain-specific modeling approaches. The causal inference here ('highlighting the continued relevance') is not grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another area requiring deeper investigation concerns the influence of sentence position on legal rhetorical role prediction, where existing approaches propose positional embeddings but do not thoroughly evaluate their impact on understanding legal texts (Belfathi et al., 2023).",
+          "issue": "The ground truth mentions that 'positional embeddings are proposed' and that 'their impact on legal text understanding remains underexplored,' but it does not attribute this specific statement to Belfathi et al., 2023. The citation is inaccurate."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Training data limitations also affect performance in legal information retrieval and question answering, restricting the applicability of such systems to broader legal domains (Pham et al., 2024).",
+          "issue": "The ground truth mentions training data limitations affecting performance in legal IR and QA, but it cites '875612e795d76e37ddc6c2cb45680f80197a41e7' as the supporting paper, not Pham et al., 2024. The citation is incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The inadequate support for specialized tokenizers in professional domains poses another challenge, as general-purpose tokenizers often fail to adequately represent domain-specific terminology (Bommarito et al., 2025).",
+          "issue": "The ground truth confirms that general-purpose tokenizers fail to capture domain-specific vocabulary and references '82bf6de32ec47745ac6866246de6798808d91c80' as the relevant paper, but it does not list Bommarito et al., 2025 as the source for this claim. The citation is incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Inconsistencies in entity classification schemes across systems further complicate cross-system comparisons (Pais et al., 2023).",
+          "issue": "The ground truth lists '9bc1c0956bf72207ee73204138c9d5066dce8c4e' as supporting evidence for inconsistent entity types and classification schemes, but does not cite Pais et al., 2023 for this point. The citation is incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Finally, the relationship between domain similarity and adaptation effectiveness remains poorly understood, and current methods struggle to handle simultaneous domain shifts and corruptions (Xu et al., 2021).",
+          "issue": "The ground truth confirms that the relationship between domain similarity and adaptation effectiveness is unclear and that current methods struggle with simultaneous domain shifts and corruptions, but it cites '10133f50939dac23fbb1f5f6f289f4aec9c85f3f' and '2104.10376v1' respectively, not Xu et al., 2021. The citations are incorrect."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Belfathi et al. (2023) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions, demonstrating that their approach reduces computational costs while maintaining strong performance.",
+          "issue": "The ground truth for Belfathi et al. (2023) states that they propose a model enhancing PLMs with sentence position information, but does not mention anything about reducing computational costs or achieving strong performance in the context of rhetorical role prediction. The claim about 'reducing computational costs' is not supported by the abstract or any other part of the provided ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving high accuracy in recognizing legal entities.",
+          "issue": "The ground truth confirms that LegNER was trained on 1,542 court cases and uses an extended legal vocabulary, but it reports accuracy of 99% and F1 score over 99%, not just 'high accuracy'. The claim omits the specific performance metrics mentioned in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Lu and Peng (2022) propose a method for Chinese legal NER based on BERT, incorporating domain pre-training and data augmentation techniques to improve performance.",
+          "issue": "The ground truth confirms that Lu and Peng (2022) propose a method for Chinese legal NER based on BERT, and mentions domain pre-training and data augmentation techniques. However, it does not specify that these techniques are used to 'improve performance', which is a subjective claim not explicitly stated in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Au et al. (2022) introduce the E-NER dataset derived from SEC filings, demonstrating that applying general English NER models to legal text leads to significant performance degradation.",
+          "issue": "The ground truth confirms that Au et al. (2022) introduce the E-NER dataset based on SEC filings and report significant degradation in performance when applying general English NER models to legal text. However, it specifies the degradation as being between 29.4% and 60.4% in F1-score, which is not mentioned in the claim."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification, demonstrating the feasibility of automating document scrutiny and reviewing processes.",
+          "issue": "The ground truth for Alarfaj (2026) mentions that the model uses sentence embeddings and LSTM networks for legal document classification, and notes that it offers legal experts a tool to automate document scrutiny and reviewing. However, it does not explicitly state that the model 'demonstrates the feasibility' of such automation, which is a stronger claim than what is substantiated."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Chen (2025) propose a BiLSTM-enhanced legal text extraction model that incorporates attention mechanisms, aiming to capture sequential dependencies and key sections within legal documents.",
+          "issue": "The ground truth for Chen (2025) confirms that the model uses BiLSTM and attention mechanisms to analyze sequential dependencies and key sections in legal documents. However, it does not explicitly state that the model 'aims to capture sequential dependencies and key sections', which is a purpose statement not directly supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Wang (2026) introduce a hierarchical attention network (HAN) for predicting and explaining legal case decisions, emphasizing the importance of both word-level and sentence-level semantics in understanding legal judgments.",
+          "issue": "The ground truth for Wang (2026) confirms that the model is a hierarchical attention network (HAN) used for predicting and explaining legal case decisions, and discusses the retention of word-level and sentence-level semantics. However, it does not explicitly state that the model 'emphasizes the importance of both word-level and sentence-level semantics', which is a subjective interpretation not directly stated."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Thanh et al. (2022) explore neural network architectures combining CNNs and attention mechanisms for legal document retrieval, noting that the integration of semantic vectors and lexical features can enhance system performance.",
+          "issue": "The ground truth for Thanh et al. (2022) confirms that they explore neural architectures combining CNNs and attention mechanisms for legal document retrieval and that the combination of semantic vectors and lexical features boosts performance. However, it does not explicitly state that they 'note' this, which is a minor attribution issue but still a deviation from the exact wording of the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.",
+          "issue": "The ground truth confirms that Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach for LLMs. It also mentions that the method modifies tokenization and embedding layers. However, it does not explicitly state that the goal is to 'better align with a target domain', which is a specific interpretation not directly supported by the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.",
+          "issue": "The ground truth confirms that Balde et al. (2024) introduce AdaptBPE, which modifies BPE initialization to integrate domain-specific vocabulary. It also reports improvements in classification and summarization tasks. However, it does not explicitly state that the method shows 'improvements in classification and summarization tasks', which is a conclusion not directly stated in the abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve named-entity recognition F1-score on legal documents by at least 3% compared to a general-purpose tokenizer, even when model size remains constant.",
+          "issue": "This hypothesis is not part of the ground truth provided. The ground truth contains only factual information about papers and their methods, but does not include any hypotheses or claims made by the paper being reviewed. Therefore, this claim is entirely fabricated and not grounded in the provided data."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.",
+          "issue": "This hypothesis is not part of the ground truth provided. Like H1, it is a claim made by the paper under review and not present in the ground truth data."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.",
+          "issue": "This hypothesis is not part of the ground truth provided. Again, it is a claim made by the paper under review and not included in the ground truth."
+        },
+        {
+          "location": "Methods",
+          "claim": "The experimental design for hypothesis H1 was planned to evaluate whether a domain-specific tokenizer, adapted to prioritize legal terminology, could improve named-entity recognition (NER) F1-scores on legal documents compared to a general-purpose tokenizer, while maintaining constant model size.",
+          "issue": "This claim is grounded in the ground truth, but the section text omits key details from the ground truth such as the specific methods used (e.g., 'Vocabulary expansion and adaptation' and 'Named-entity recognition with BERT') and the precise evaluation criteria (e.g., 'If the domain-specific tokenizer achieves an F1-score at least 3% higher than the general-purpose tokenizer, the hypothesis is supported'). These omissions make the claim incomplete and potentially misleading in context."
+        },
+        {
+          "location": "Methods",
+          "claim": "Due to the infeasibility of accessing real legal document datasets, the plan proposed simulating the effect of domain-specific tokenization using synthetic legal-like text with known entities.",
+          "issue": "While this aligns with the ground truth's statement about using synthetic generation, the section text does not specify that the synthetic data must include 'common legal entities such as parties, dates, and case numbers' or that it will be annotated using 'predefined templates'. These specifics are part of the ground truth and are missing from the claim."
+        },
+        {
+          "location": "Methods",
+          "claim": "Two tokenizers were to be employed: a standard BERT tokenizer and a simulated domain-specific variant that expands vocabulary with legal terms derived from a legal lexicon or corpus.",
+          "issue": "This is partially grounded but lacks specificity. The ground truth explicitly states that the method involves 'Vocabulary expansion and adaptation' and references reuse from literature, which is not mentioned here. Also, the ground truth specifies that the domain-specific tokenizer is simulated rather than a real one, which is implied but not clearly stated."
+        },
+        {
+          "location": "Methods",
+          "claim": "The evaluation focused on NER F1-score as the primary metric, with a success criterion defined as achieving at least a 3% improvement over the general-purpose tokenizer.",
+          "issue": "This is accurate according to the ground truth, but the section text fails to mention that the baseline comparison is based on 'Performance of a general-purpose tokenizer on the same dataset and model setup', nor does it clarify that the success criterion is tied to a specific threshold (i.e., 3%) in the context of the hypothesis being tested."
+        },
+        {
+          "location": "Methods",
+          "claim": "However, due to the infeasibility of the original design — specifically, the lack of access to domain-specific legal corpora and the computational cost of training a custom tokenizer — no implementation was carried out, and thus no actual results or performance metrics are available for analysis.",
+          "issue": "This claim contradicts the ground truth, which indicates that the coder status for H1 is 'skipped', implying that the plan was not executed due to feasibility issues, but does not state that 'no implementation was carried out' or that 'no actual results or performance metrics are available for analysis'. The latter part introduces new information not present in the ground truth."
+        },
+        {
+          "location": "Methods",
+          "claim": "Readers should note that this experimental setup remains theoretical, as no code was generated or executed to test the hypothesis.",
+          "issue": "This assertion is not found in the ground truth. While the ground truth notes that the plan was skipped and mentions risks associated with synthetic data and simulation, it does not state anything about whether 'code was generated or executed' or label the setup as 'theoretical' in this way."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The main constraint of this study arises from the infeasibility of directly evaluating the proposed domain-specific tokenizer approach due to dataset limitations.",
+          "issue": "This claim introduces a framing that the 'main constraint' is about 'directly evaluating' the tokenizer, which is not stated in the ground truth. The ground truth only mentions that the experiment was marked infeasible and gives reasons, without asserting that this constitutes the 'main constraint' or that the issue is specifically about direct evaluation."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The experiment designated to test Hypothesis 1 was marked as infeasible by the Experiment Planner because the required domain-specific tokenizer, which would adapt Byte-Pair Encoding (BPE) to prioritize legal terminology, cannot be effectively tested using the available non-legal datasets such as AG News or 20 Newsgroups.",
+          "issue": "While the ground truth states that the tokenizer cannot be tested using non-legal datasets like AG News or 20 Newsgroups, it does not specify that the tokenizer 'would adapt Byte-Pair Encoding (BPE) to prioritize legal terminology'. This added detail about the mechanism of adaptation is not found in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These datasets lack the necessary domain-specific vocabulary for such an evaluation.",
+          "issue": "This is a reasonable inference but not explicitly stated in the ground truth. The ground truth says they are not legal documents and do not contain the necessary vocabulary, but does not use the phrase 'domain-specific vocabulary for such an evaluation'. While close, this phrasing implies a more specific reason than what is grounded."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Furthermore, constructing the tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, which exceeds typical high-performance computing job durations.",
+          "issue": "The ground truth mentions that creating a tokenizer from scratch would require substantial computational resources and time, and that it would exceed typical HPC job durations, but it does not explicitly state that it would require training on a 'large legal corpus'. This addition is not grounded."
+        },
+        {
+          "location": "Limitations",
+          "claim": "A secondary concern relates to the fidelity of synthetic data used in lieu of real legal documents.",
+          "issue": "This introduces a categorization ('secondary concern') that is not mentioned in the ground truth. The ground truth lists risks but does not label them as 'primary' or 'secondary'."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Even under ideal conditions, the synthetic legal-like text generation process introduces uncertainty regarding how well such artificial data reflects actual legal document structures and terminologies.",
+          "issue": "The ground truth does not mention anything about 'ideal conditions' or 'uncertainty' in the context of synthetic data generation. It simply lists risks related to synthetic data fidelity without specifying the conditions under which those risks arise."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The risks associated with this approach include potential mismatches between synthetic and real-world legal document complexity, which may affect the validity of any conclusions drawn from the simulation.",
+          "issue": "While the ground truth lists 'synthetic data may not accurately reflect real-world legal document complexity', it does not mention 'potential mismatches' or 'affect the validity of any conclusions drawn from the simulation'. These are additional claims not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Finally, the experimental setup was subject to several implementation-related risks that were not mitigated due to the decision to mark the experiment infeasible.",
+          "issue": "The ground truth does not mention 'implementation-related risks' or that they were 'not mitigated'. It lists risks related to model convergence, overfitting, and tokenizer fidelity, but does not frame them as 'implementation-related' or describe their mitigation status."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These included concerns about model convergence and overfitting during training, as well as the possibility that the simulated tokenizer might not fully capture the nuances of actual legal terminology processing.",
+          "issue": "While the ground truth includes 'model convergence or overfitting during training' and 'simulated domain-specific tokenizer might not fully capture the nuances of actual legal terminology processing', it does not list these as 'concerns about model convergence and overfitting during training' and 'possibility that the simulated tokenizer might not fully capture the nuances'. The phrasing differs in specificity and emphasis, and the ground truth does not support this particular formulation."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Since the experiment was not executed, these risks remain unaddressed, and no empirical validation of the proposed methodology could be performed.",
+          "issue": "The ground truth does not state that these risks 'remain unaddressed' or that 'no empirical validation of the proposed methodology could be performed'. While implied by the infeasibility, these specific claims are not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Therefore, while the underlying idea of enhancing tokenization for legal NER remains theoretically plausible, the current limitations prevent any conclusive assessment of its practical applicability.",
+          "issue": "This conclusion goes beyond what is stated in the ground truth. The ground truth does not make any statement about whether the idea is 'theoretically plausible' or whether the limitations 'prevent any conclusive assessment'. These are interpretive additions not grounded in the provided data."
+        },
+        {
+          "location": "Future Work",
+          "claim": "A key area for further investigation is the development of standardized benchmarks and datasets specifically tailored for legal named-entity recognition",
+          "issue": "While the ground truth identifies a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not specify that developing such benchmarks is a 'key area for further investigation'. This framing implies a prioritized research direction not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The absence of such resources has been noted as a challenge in prior work",
+          "issue": "The ground truth mentions the gap of lacking standardized benchmarks but does not state that this absence has been 'noted as a challenge in prior work'—this is an interpretation not supported by the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Investigating how sentence position affects legal rhetorical role prediction also presents an opportunity for deeper exploration, as current approaches have not fully examined this aspect",
+          "issue": "Although the ground truth identifies a gap regarding 'Insufficient investigation into how sentence position affects legal rhetorical role prediction', it does not assert that current approaches have 'not fully examined this aspect'—this is a stronger claim than what is grounded."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Efforts to establish consistent entity types and classification schemes across legal NER systems may improve interoperability between different approaches",
+          "issue": "The ground truth states there is a gap in 'Inconsistent entity types and classification schemes across legal NER systems', but does not suggest that efforts to standardize them 'may improve interoperability'—this is an inferred benefit not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, while general-purpose large language models have made significant advances, their performance in legal tasks remains suboptimal compared to domain-specific alternatives, indicating a continued need for legal-domain model development",
+          "issue": "The ground truth notes that general-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification, but does not generalize this to all legal tasks or indicate that 'significant advances' in general-purpose models still leave them suboptimal for legal tasks—this is a broader conclusion not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Several hypotheses in this study were marked as infeasible for execution due to constraints in available datasets and computational resources",
+          "issue": "The ground truth confirms that one hypothesis (H1) was marked as infeasible, but it does not mention that 'several hypotheses' were marked as infeasible—this overgeneralizes the scope of infeasibility beyond what is stated."
+        },
+        {
+          "location": "Future Work",
+          "claim": "As a result, future work should consider alternative methods for assessing tokenizer adaptability, such as simulating domain-specific behavior within controlled environments or leveraging synthetic legal-like text",
+          "issue": "While the ground truth suggests simulating the effect of a domain-specific tokenizer is a feasible simplification, it does not explicitly state that 'future work should consider alternative methods' or list these specific simulation techniques as recommended approaches—this is an inference not grounded in the text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Moreover, since the hypothesis concerning tokenizer improvements was inconclusive, further investigation into tokenization strategies tailored for legal texts could be pursued using more appropriate datasets or simulation techniques",
+          "issue": "The ground truth labels the hypothesis as 'inconclusive' and suggests simulation as a simplification, but does not state that 'further investigation into tokenization strategies tailored for legal texts' is a direct consequence or next step—this is an implied continuation not explicitly supported."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The relationship between domain similarity and adaptation performance, for instance, warrants additional study, particularly in light of the limited understanding currently available",
+          "issue": "The ground truth states that the relationship between domain similarity and adaptation effectiveness is unclear, but does not say that this 'warrants additional study' or that it is a priority—this is a normative recommendation not grounded in the facts."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Given the identified gaps in multilingual coverage and diverse legal domains, future research might explore ways to extend existing frameworks to handle greater variety in both language and legal context",
+          "issue": "While the ground truth lists gaps in multilingual coverage and diverse legal domains, it does not suggest that 'future research might explore ways to extend existing frameworks'—this is a speculative proposal not grounded in the provided information."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "Discussion text reads as 'supported' but the actual outcome (from the Coder Agent's data) is 'inconclusive': Experiment status is 'skipped': Marked infeasible by the Experiment Planner: The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance. — correct the framing."
+        },
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text claims that the hypothesis 'posits that adapting BPE encoding to prioritize legal terminology through a domain-specific tokenizer will improve named-entity recognition F1-score on legal documents compared to a general-purpose tokenizer' and that 'no empirical evaluation was conducted to assess this claim.' This overstated the outcome because the ground truth explicitly states that the hypothesis was marked as 'inconclusive' due to the experiment being 'skipped' and 'marked infeasible' by the Experiment Planner. The text implies that the hypothesis itself was rejected or disproven, rather than simply not tested due to feasibility constraints. The phrase 'no empirical evaluation was conducted to assess this claim' incorrectly suggests a definitive refutation, whereas the actual verdict is 'inconclusive,' meaning the claim could not be evaluated due to experimental limitations, not because it was proven false."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 4,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Studies have consistently shown that general-purpose language models perform poorly on legal documents, largely attributed to domain-specific terminology and structural differences (Jayakumar et al., 2023).\" — The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not attribute this observation specifically to Jayakumar et al., 2023. The cited paper 'Large Language Models are legal but they are not: Making the case for a powerful LegalLLM' supports the idea that general-purpose LLMs underperform legal-domain models, but the ground truth does not link this directly to the 'structural differences' aspect or to Jayakumar et al.'s findings in this specific way.\n- Introduction: \"These methods aim to mitigate issues such as out-of-vocabulary terms, semantic shifts, and lexical mismatches that are particularly prevalent in legal contexts.\" — While the ground truth mentions that vocabulary adaptation methods aim to address issues like 'out-of-vocabulary words, semantic shifts, and lexical mismatches,' it does not specify that these issues are 'particularly prevalent in legal contexts.' This added characterization is not supported by the ground truth.\n- Introduction: \"A key limitation is the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Au et al., 2022).\" — The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods,' but it does not explicitly cite Au et al., 2022 as the source for this limitation. The citation is incorrect or misleading based on the provided evidence.\n- Introduction: \"Additionally, there is a notable absence of standardized benchmarks and datasets specifically designed for legal NER, which impedes reproducible and comparable research (Ramesh and Eswara, 2023).\" — The ground truth confirms the lack of standardized benchmarks and datasets for legal NER, but attributes this to papers such as '2e5091e8007f024e0469b51da27c5d867cf5e5ae' and '841ef68839ee5a29f06c4f539a7c7824bea22e60', not to Ramesh and Eswara, 2023. Therefore, citing Ramesh and Eswara is a hallucination.\n- Introduction: \"This scarcity is further compounded by limited annotated corpora for legal NER in non-English languages, with most efforts concentrated on English and German (Araujo et al., 2018).\" — The ground truth lists '976f537d1b84de682351fba6f2600272acf825ae' and '59c0c6b62e33850cda08663d4c9ecabcf5d21596' as supporting evidence for the lack of annotated corpora in non-English languages, but does not mention Araujo et al., 2018 as a source for this claim. The citation is incorrect.\n- Introduction: \"Furthermore, while general-purpose large language models continue to advance, they still exhibit inferior performance compared to legal-domain models in tasks such as contract provision classification (Jayakumar et al., 2023), highlighting the continued relevance of domain-specific modeling approaches.\" — The ground truth supports that general-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification, but it does not explicitly state that this is the reason for the continued relevance of domain-specific modeling approaches. The causal inference here ('highlighting the continued relevance') is not grounded in the provided text.\n- Introduction: \"Another area requiring deeper investigation concerns the influence of sentence position on legal rhetorical role prediction, where existing approaches propose positional embeddings but do not thoroughly evaluate their impact on understanding legal texts (Belfathi et al., 2023).\" — The ground truth mentions that 'positional embeddings are proposed' and that 'their impact on legal text understanding remains underexplored,' but it does not attribute this specific statement to Belfathi et al., 2023. The citation is inaccurate.\n- Introduction: \"Training data limitations also affect performance in legal information retrieval and question answering, restricting the applicability of such systems to broader legal domains (Pham et al., 2024).\" — The ground truth mentions training data limitations affecting performance in legal IR and QA, but it cites '875612e795d76e37ddc6c2cb45680f80197a41e7' as the supporting paper, not Pham et al., 2024. The citation is incorrect.\n- Introduction: \"The inadequate support for specialized tokenizers in professional domains poses another challenge, as general-purpose tokenizers often fail to adequately represent domain-specific terminology (Bommarito et al., 2025).\" — The ground truth confirms that general-purpose tokenizers fail to capture domain-specific vocabulary and references '82bf6de32ec47745ac6866246de6798808d91c80' as the relevant paper, but it does not list Bommarito et al., 2025 as the source for this claim. The citation is incorrect.\n- Introduction: \"Inconsistencies in entity classification schemes across systems further complicate cross-system comparisons (Pais et al., 2023).\" — The ground truth lists '9bc1c0956bf72207ee73204138c9d5066dce8c4e' as supporting evidence for inconsistent entity types and classification schemes, but does not cite Pais et al., 2023 for this point. The citation is incorrect.\n- Introduction: \"Finally, the relationship between domain similarity and adaptation effectiveness remains poorly understood, and current methods struggle to handle simultaneous domain shifts and corruptions (Xu et al., 2021).\" — The ground truth confirms that the relationship between domain similarity and adaptation effectiveness is unclear and that current methods struggle with simultaneous domain shifts and corruptions, but it cites '10133f50939dac23fbb1f5f6f289f4aec9c85f3f' and '2104.10376v1' respectively, not Xu et al., 2021. The citations are incorrect.\n- Related Work: \"Belfathi et al. (2023) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions, demonstrating that their approach reduces computational costs while maintaining strong performance.\" — The ground truth for Belfathi et al. (2023) states that they propose a model enhancing PLMs with sentence position information, but does not mention anything about reducing computational costs or achieving strong performance in the context of rhetorical role prediction. The claim about 'reducing computational costs' is not supported by the abstract or any other part of the provided ground truth.\n- Related Work: \"Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving high accuracy in recognizing legal entities.\" — The ground truth confirms that LegNER was trained on 1,542 court cases and uses an extended legal vocabulary, but it reports accuracy of 99% and F1 score over 99%, not just 'high accuracy'. The claim omits the specific performance metrics mentioned in the abstract.\n- Related Work: \"Lu and Peng (2022) propose a method for Chinese legal NER based on BERT, incorporating domain pre-training and data augmentation techniques to improve performance.\" — The ground truth confirms that Lu and Peng (2022) propose a method for Chinese legal NER based on BERT, and mentions domain pre-training and data augmentation techniques. However, it does not specify that these techniques are used to 'improve performance', which is a subjective claim not explicitly stated in the abstract.\n- Related Work: \"Au et al. (2022) introduce the E-NER dataset derived from SEC filings, demonstrating that applying general English NER models to legal text leads to significant performance degradation.\" — The ground truth confirms that Au et al. (2022) introduce the E-NER dataset based on SEC filings and report significant degradation in performance when applying general English NER models to legal text. However, it specifies the degradation as being between 29.4% and 60.4% in F1-score, which is not mentioned in the claim.\n- Related Work: \"Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification, demonstrating the feasibility of automating document scrutiny and reviewing processes.\" — The ground truth for Alarfaj (2026) mentions that the model uses sentence embeddings and LSTM networks for legal document classification, and notes that it offers legal experts a tool to automate document scrutiny and reviewing. However, it does not explicitly state that the model 'demonstrates the feasibility' of such automation, which is a stronger claim than what is substantiated.\n- Related Work: \"Chen (2025) propose a BiLSTM-enhanced legal text extraction model that incorporates attention mechanisms, aiming to capture sequential dependencies and key sections within legal documents.\" — The ground truth for Chen (2025) confirms that the model uses BiLSTM and attention mechanisms to analyze sequential dependencies and key sections in legal documents. However, it does not explicitly state that the model 'aims to capture sequential dependencies and key sections', which is a purpose statement not directly supported by the abstract.\n- Related Work: \"Wang (2026) introduce a hierarchical attention network (HAN) for predicting and explaining legal case decisions, emphasizing the importance of both word-level and sentence-level semantics in understanding legal judgments.\" — The ground truth for Wang (2026) confirms that the model is a hierarchical attention network (HAN) used for predicting and explaining legal case decisions, and discusses the retention of word-level and sentence-level semantics. However, it does not explicitly state that the model 'emphasizes the importance of both word-level and sentence-level semantics', which is a subjective interpretation not directly stated.\n- Related Work: \"Thanh et al. (2022) explore neural network architectures combining CNNs and attention mechanisms for legal document retrieval, noting that the integration of semantic vectors and lexical features can enhance system performance.\" — The ground truth for Thanh et al. (2022) confirms that they explore neural architectures combining CNNs and attention mechanisms for legal document retrieval and that the combination of semantic vectors and lexical features boosts performance. However, it does not explicitly state that they 'note' this, which is a minor attribution issue but still a deviation from the exact wording of the abstract.\n- Related Work: \"Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.\" — The ground truth confirms that Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach for LLMs. It also mentions that the method modifies tokenization and embedding layers. However, it does not explicitly state that the goal is to 'better align with a target domain', which is a specific interpretation not directly supported by the abstract.\n- Related Work: \"Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.\" — The ground truth confirms that Balde et al. (2024) introduce AdaptBPE, which modifies BPE initialization to integrate domain-specific vocabulary. It also reports improvements in classification and summarization tasks. However, it does not explicitly state that the method shows 'improvements in classification and summarization tasks', which is a conclusion not directly stated in the abstract.\n- Related Work: \"Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve named-entity recognition F1-score on legal documents by at least 3% compared to a general-purpose tokenizer, even when model size remains constant.\" — This hypothesis is not part of the ground truth provided. The ground truth contains only factual information about papers and their methods, but does not include any hypotheses or claims made by the paper being reviewed. Therefore, this claim is entirely fabricated and not grounded in the provided data.\n- Related Work: \"Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.\" — This hypothesis is not part of the ground truth provided. Like H1, it is a claim made by the paper under review and not present in the ground truth data.\n- Related Work: \"Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.\" — This hypothesis is not part of the ground truth provided. Again, it is a claim made by the paper under review and not included in the ground truth.\n- Methods: \"The experimental design for hypothesis H1 was planned to evaluate whether a domain-specific tokenizer, adapted to prioritize legal terminology, could improve named-entity recognition (NER) F1-scores on legal documents compared to a general-purpose tokenizer, while maintaining constant model size.\" — This claim is grounded in the ground truth, but the section text omits key details from the ground truth such as the specific methods used (e.g., 'Vocabulary expansion and adaptation' and 'Named-entity recognition with BERT') and the precise evaluation criteria (e.g., 'If the domain-specific tokenizer achieves an F1-score at least 3% higher than the general-purpose tokenizer, the hypothesis is supported'). These omissions make the claim incomplete and potentially misleading in context.\n- Methods: \"Due to the infeasibility of accessing real legal document datasets, the plan proposed simulating the effect of domain-specific tokenization using synthetic legal-like text with known entities.\" — While this aligns with the ground truth's statement about using synthetic generation, the section text does not specify that the synthetic data must include 'common legal entities such as parties, dates, and case numbers' or that it will be annotated using 'predefined templates'. These specifics are part of the ground truth and are missing from the claim.\n- Methods: \"Two tokenizers were to be employed: a standard BERT tokenizer and a simulated domain-specific variant that expands vocabulary with legal terms derived from a legal lexicon or corpus.\" — This is partially grounded but lacks specificity. The ground truth explicitly states that the method involves 'Vocabulary expansion and adaptation' and references reuse from literature, which is not mentioned here. Also, the ground truth specifies that the domain-specific tokenizer is simulated rather than a real one, which is implied but not clearly stated.\n- Methods: \"The evaluation focused on NER F1-score as the primary metric, with a success criterion defined as achieving at least a 3% improvement over the general-purpose tokenizer.\" — This is accurate according to the ground truth, but the section text fails to mention that the baseline comparison is based on 'Performance of a general-purpose tokenizer on the same dataset and model setup', nor does it clarify that the success criterion is tied to a specific threshold (i.e., 3%) in the context of the hypothesis being tested.\n- Methods: \"However, due to the infeasibility of the original design — specifically, the lack of access to domain-specific legal corpora and the computational cost of training a custom tokenizer — no implementation was carried out, and thus no actual results or performance metrics are available for analysis.\" — This claim contradicts the ground truth, which indicates that the coder status for H1 is 'skipped', implying that the plan was not executed due to feasibility issues, but does not state that 'no implementation was carried out' or that 'no actual results or performance metrics are available for analysis'. The latter part introduces new information not present in the ground truth.\n- Methods: \"Readers should note that this experimental setup remains theoretical, as no code was generated or executed to test the hypothesis.\" — This assertion is not found in the ground truth. While the ground truth notes that the plan was skipped and mentions risks associated with synthetic data and simulation, it does not state anything about whether 'code was generated or executed' or label the setup as 'theoretical' in this way.\n- Limitations: \"The main constraint of this study arises from the infeasibility of directly evaluating the proposed domain-specific tokenizer approach due to dataset limitations.\" — This claim introduces a framing that the 'main constraint' is about 'directly evaluating' the tokenizer, which is not stated in the ground truth. The ground truth only mentions that the experiment was marked infeasible and gives reasons, without asserting that this constitutes the 'main constraint' or that the issue is specifically about direct evaluation.\n- Limitations: \"The experiment designated to test Hypothesis 1 was marked as infeasible by the Experiment Planner because the required domain-specific tokenizer, which would adapt Byte-Pair Encoding (BPE) to prioritize legal terminology, cannot be effectively tested using the available non-legal datasets such as AG News or 20 Newsgroups.\" — While the ground truth states that the tokenizer cannot be tested using non-legal datasets like AG News or 20 Newsgroups, it does not specify that the tokenizer 'would adapt Byte-Pair Encoding (BPE) to prioritize legal terminology'. This added detail about the mechanism of adaptation is not found in the ground truth.\n- Limitations: \"These datasets lack the necessary domain-specific vocabulary for such an evaluation.\" — This is a reasonable inference but not explicitly stated in the ground truth. The ground truth says they are not legal documents and do not contain the necessary vocabulary, but does not use the phrase 'domain-specific vocabulary for such an evaluation'. While close, this phrasing implies a more specific reason than what is grounded.\n- Limitations: \"Furthermore, constructing the tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, which exceeds typical high-performance computing job durations.\" — The ground truth mentions that creating a tokenizer from scratch would require substantial computational resources and time, and that it would exceed typical HPC job durations, but it does not explicitly state that it would require training on a 'large legal corpus'. This addition is not grounded.\n- Limitations: \"A secondary concern relates to the fidelity of synthetic data used in lieu of real legal documents.\" — This introduces a categorization ('secondary concern') that is not mentioned in the ground truth. The ground truth lists risks but does not label them as 'primary' or 'secondary'.\n- Limitations: \"Even under ideal conditions, the synthetic legal-like text generation process introduces uncertainty regarding how well such artificial data reflects actual legal document structures and terminologies.\" — The ground truth does not mention anything about 'ideal conditions' or 'uncertainty' in the context of synthetic data generation. It simply lists risks related to synthetic data fidelity without specifying the conditions under which those risks arise.\n- Limitations: \"The risks associated with this approach include potential mismatches between synthetic and real-world legal document complexity, which may affect the validity of any conclusions drawn from the simulation.\" — While the ground truth lists 'synthetic data may not accurately reflect real-world legal document complexity', it does not mention 'potential mismatches' or 'affect the validity of any conclusions drawn from the simulation'. These are additional claims not supported by the ground truth.\n- Limitations: \"Finally, the experimental setup was subject to several implementation-related risks that were not mitigated due to the decision to mark the experiment infeasible.\" — The ground truth does not mention 'implementation-related risks' or that they were 'not mitigated'. It lists risks related to model convergence, overfitting, and tokenizer fidelity, but does not frame them as 'implementation-related' or describe their mitigation status.\n- Limitations: \"These included concerns about model convergence and overfitting during training, as well as the possibility that the simulated tokenizer might not fully capture the nuances of actual legal terminology processing.\" — While the ground truth includes 'model convergence or overfitting during training' and 'simulated domain-specific tokenizer might not fully capture the nuances of actual legal terminology processing', it does not list these as 'concerns about model convergence and overfitting during training' and 'possibility that the simulated tokenizer might not fully capture the nuances'. The phrasing differs in specificity and emphasis, and the ground truth does not support this particular formulation.\n- Limitations: \"Since the experiment was not executed, these risks remain unaddressed, and no empirical validation of the proposed methodology could be performed.\" — The ground truth does not state that these risks 'remain unaddressed' or that 'no empirical validation of the proposed methodology could be performed'. While implied by the infeasibility, these specific claims are not grounded in the provided information.\n- Limitations: \"Therefore, while the underlying idea of enhancing tokenization for legal NER remains theoretically plausible, the current limitations prevent any conclusive assessment of its practical applicability.\" — This conclusion goes beyond what is stated in the ground truth. The ground truth does not make any statement about whether the idea is 'theoretically plausible' or whether the limitations 'prevent any conclusive assessment'. These are interpretive additions not grounded in the provided data.\n- Future Work: \"A key area for further investigation is the development of standardized benchmarks and datasets specifically tailored for legal named-entity recognition\" — While the ground truth identifies a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not specify that developing such benchmarks is a 'key area for further investigation'. This framing implies a prioritized research direction not explicitly stated in the ground truth.\n- Future Work: \"The absence of such resources has been noted as a challenge in prior work\" — The ground truth mentions the gap of lacking standardized benchmarks but does not state that this absence has been 'noted as a challenge in prior work'—this is an interpretation not supported by the provided evidence.\n- Future Work: \"Investigating how sentence position affects legal rhetorical role prediction also presents an opportunity for deeper exploration, as current approaches have not fully examined this aspect\" — Although the ground truth identifies a gap regarding 'Insufficient investigation into how sentence position affects legal rhetorical role prediction', it does not assert that current approaches have 'not fully examined this aspect'—this is a stronger claim than what is grounded.\n- Future Work: \"Efforts to establish consistent entity types and classification schemes across legal NER systems may improve interoperability between different approaches\" — The ground truth states there is a gap in 'Inconsistent entity types and classification schemes across legal NER systems', but does not suggest that efforts to standardize them 'may improve interoperability'—this is an inferred benefit not grounded in the provided text.\n- Future Work: \"Finally, while general-purpose large language models have made significant advances, their performance in legal tasks remains suboptimal compared to domain-specific alternatives, indicating a continued need for legal-domain model development\" — The ground truth notes that general-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification, but does not generalize this to all legal tasks or indicate that 'significant advances' in general-purpose models still leave them suboptimal for legal tasks—this is a broader conclusion not supported by the ground truth.\n- Future Work: \"Several hypotheses in this study were marked as infeasible for execution due to constraints in available datasets and computational resources\" — The ground truth confirms that one hypothesis (H1) was marked as infeasible, but it does not mention that 'several hypotheses' were marked as infeasible—this overgeneralizes the scope of infeasibility beyond what is stated.\n- Future Work: \"As a result, future work should consider alternative methods for assessing tokenizer adaptability, such as simulating domain-specific behavior within controlled environments or leveraging synthetic legal-like text\" — While the ground truth suggests simulating the effect of a domain-specific tokenizer is a feasible simplification, it does not explicitly state that 'future work should consider alternative methods' or list these specific simulation techniques as recommended approaches—this is an inference not grounded in the text.\n- Future Work: \"Moreover, since the hypothesis concerning tokenizer improvements was inconclusive, further investigation into tokenization strategies tailored for legal texts could be pursued using more appropriate datasets or simulation techniques\" — The ground truth labels the hypothesis as 'inconclusive' and suggests simulation as a simplification, but does not state that 'further investigation into tokenization strategies tailored for legal texts' is a direct consequence or next step—this is an implied continuation not explicitly supported.\n- Future Work: \"The relationship between domain similarity and adaptation performance, for instance, warrants additional study, particularly in light of the limited understanding currently available\" — The ground truth states that the relationship between domain similarity and adaptation effectiveness is unclear, but does not say that this 'warrants additional study' or that it is a priority—this is a normative recommendation not grounded in the facts.\n- Future Work: \"Given the identified gaps in multilingual coverage and diverse legal domains, future research might explore ways to extend existing frameworks to handle greater variety in both language and legal context\" — While the ground truth lists gaps in multilingual coverage and diverse legal domains, it does not suggest that 'future research might explore ways to extend existing frameworks'—this is a speculative proposal not grounded in the provided information.\nHypothesis coverage issues:\n- Discussion > H1: Discussion text reads as 'supported' but the actual outcome (from the Coder Agent's data) is 'inconclusive': Experiment status is 'skipped': Marked infeasible by the Experiment Planner: The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance. — correct the framing.\n- Discussion > H1: The text claims that the hypothesis 'posits that adapting BPE encoding to prioritize legal terminology through a domain-specific tokenizer will improve named-entity recognition F1-score on legal documents compared to a general-purpose tokenizer' and that 'no empirical evaluation was conducted to assess this claim.' This overstated the outcome because the ground truth explicitly states that the hypothesis was marked as 'inconclusive' due to the experiment being 'skipped' and 'marked infeasible' by the Experiment Planner. The text implies that the hypothesis itself was rejected or disproven, rather than simply not tested due to feasibility constraints. The phrase 'no empirical evaluation was conducted to assess this claim' incorrectly suggests a definitive refutation, whereas the actual verdict is 'inconclusive,' meaning the claim could not be evaluated due to experimental limitations, not because it was proven false.",
+      "generated_at": "2026-09-15T19:31:48.724524+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 3,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v3.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q023_does-domain-specific-vocabulary-adaptation-improve-named-entity/v3.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "2bb92e8c07958f2f936456f8103d70dedc2a8175",
+        "976f537d1b84de682351fba6f2600272acf825ae",
+        "2423905453ea1bbae03727fd81890007cccedd43",
+        "36f438b56387d10da4f6d2b1c551fc685ae4ec8e",
+        "623f6d9184e470def8fcf13806cf9c40c1f5f0e3",
+        "2310.05276v1",
+        "82bf6de32ec47745ac6866246de6798808d91c80",
+        "02eb3ff713ac33eb0fb43d32ca5bce2663c95943",
+        "2b74b6f194d3aeb06fc482bc60a8b3f35947a2ee",
+        "03aa38229a6c853d96430edfc8f1542598f2116e",
+        "2112.10474v1",
+        "2311.08890v1",
+        "6e7830b0a04e483901bdaaf321c4f13f45977618",
+        "59c0c6b62e33850cda08663d4c9ecabcf5d21596",
+        "eb7f9c2edc63073b2b7d1ec4c359385d13accbf2",
+        "d7acf190030b1cdf001a456277698a9cf76a31e9",
+        "9bc1c0956bf72207ee73204138c9d5066dce8c4e",
+        "875612e795d76e37ddc6c2cb45680f80197a41e7",
+        "2e5091e8007f024e0469b51da27c5d867cf5e5ae",
+        "74f6823b44ff0072f0170fe6cbfb0ee560220c7f",
+        "ba1aa518fd69d34da6a0eb23251a275681bba9c6",
+        "2104.10376v1",
+        "4c7804f4bd1abc018a077495ac7192e226d51d6f",
+        "2308.13515v5",
+        "841ef68839ee5a29f06c4f539a7c7824bea22e60"
+      ],
+      "notes_for_review": [],
+      "generated_at": "2026-09-15T19:33:24.783599+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 3,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "General-purpose language models are known to perform poorly on legal documents, largely attributed to domain-specific terminology and structural differences (Jayakumar et al., 2023).",
+          "issue": "The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not explicitly state that this is 'known' or attribute the cause directly to 'structural differences' in the way the claim is phrased. The citation to Jayakumar et al. (2023) supports the idea that general-purpose models underperform legal-domain models, but does not provide the specific causal explanation of 'structural differences' as stated here."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A key limitation is the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Au et al., 2022).",
+          "issue": "The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods.' However, it does not mention that this is a 'key limitation' or that it is specifically tied to 'legal NER context' in the way the claim asserts. The citation to Au et al. (2022) is listed in supporting evidence for the gap, but the claim goes beyond what is directly supported."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, there is a notable absence of standardized benchmarks and datasets specifically designed for legal NER, which impedes reproducible and comparable research (Ramesh and Eswara, 2023; Zhao et al., 2023).",
+          "issue": "The ground truth confirms that 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' is a gap, but it does not specify that this impedes 'reproducible and comparable research' or cite Ramesh and Eswara (2023) or Zhao et al. (2023) as sources for this particular assertion. The citation to Ramesh and Eswara (2023) and Zhao et al. (2023) is present in the cited papers list, but not in the supporting evidence for this specific gap."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This scarcity is further compounded by limited annotated corpora for legal NER in non-English languages, with most efforts concentrated on English and German (Araujo et al., 2018; Koto et al., 2021).",
+          "issue": "The ground truth mentions that 'Limited availability of annotated corpora for legal NER in non-English languages' is a gap, and cites Araujo et al. (2018) and Koto et al. (2021) as supporting evidence. However, it does not state that this scarcity is 'compounded' or that 'most efforts are concentrated on English and German,' which are additional claims not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Furthermore, while general-purpose large language models continue to advance, they still exhibit inferior performance compared to legal-domain models in tasks such as contract provision classification (Jayakumar et al., 2023), highlighting the continued relevance of domain-specific modeling approaches.",
+          "issue": "The ground truth states that 'General-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification,' which aligns with the claim. However, it does not mention that general-purpose LLMs 'continue to advance' or that this is used to 'highlight the continued relevance of domain-specific modeling approaches.' These additions are not grounded in the provided ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another area requiring deeper investigation concerns the influence of sentence position on legal rhetorical role prediction, where existing approaches propose positional embeddings but do not thoroughly evaluate their impact on understanding legal texts (Belfathi et al., 2023).",
+          "issue": "The ground truth states that 'Insufficient investigation into how sentence position affects legal rhetorical role prediction' is a gap and cites Belfathi et al. (2023). However, it does not state that existing approaches 'propose positional embeddings' or that they 'do not thoroughly evaluate their impact on understanding legal texts.' These specific claims about the nature of existing approaches are not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Training data limitations also affect performance in legal information retrieval and question answering, restricting the applicability of such systems to broader legal domains (Pham et al., 2024).",
+          "issue": "The ground truth states that 'Lack of comprehensive datasets covering diverse legal domains' is a gap and cites Pham et al. (2024). However, it does not state that training data limitations 'affect performance in legal information retrieval and question answering' or that this restricts 'applicability to broader legal domains.' These specific consequences are not grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The inadequate support for specialized tokenizers in professional domains poses another challenge, as general-purpose tokenizers often fail to adequately represent domain-specific terminology (Bommarito et al., 2025).",
+          "issue": "The ground truth identifies 'Limited research on specialized tokenizers for legal and financial texts' as a gap and cites Bommarito et al. (2025). However, it does not state that this is a 'challenge' or that general-purpose tokenizers 'fail to adequately represent domain-specific terminology.' These specific characterizations are not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Inconsistencies in entity classification schemes across systems further complicate cross-system comparisons (Pais et al., 2023; Yang and Agrawal, 2023).",
+          "issue": "The ground truth confirms that 'Inconsistent entity types and classification schemes across legal NER systems' is a gap and cites Pais et al. (2023) and Yang and Agrawal (2023). However, it does not state that these inconsistencies 'further complicate cross-system comparisons,' which is an added interpretation not found in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Gupta and Srinivasarao (2024) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions.",
+          "issue": "The ground truth lists a paper by Gupta and Srinivasarao (2024) titled 'Leveraging open-source models for legal language modeling and analysis: a case study on the Indian constitution', but it does not mention anything about sentence position embeddings or predicting rhetorical roles in legal opinions. The paper discussed in the ground truth focuses on general legal language modeling and analysis, not specifically on sentence position embeddings or rhetorical role prediction."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving over 99% accuracy and F1 score in legal NER tasks.",
+          "issue": "The ground truth confirms the existence of the LegNER paper by Karamitsos et al. (2025) and mentions it was trained on 1,542 court cases and uses an extended legal vocabulary. However, it states that LegNER achieves 'accuracy (99%), F1 score (over 99%)', which is slightly different from the claim's phrasing of 'over 99% accuracy and F1 score'. The ground truth does not specify that both metrics are over 99%, only that they are 99% and over 99% respectively. This is a minor discrepancy but still constitutes a deviation from the exact wording in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification.",
+          "issue": "The ground truth lists a paper by Alarfaj (2026) titled 'Focusing on legal cases: Automatic classification of legal documents with sentence embeddings and deep learning models', which indeed discusses sentence embeddings and LSTM networks for legal document classification. However, the claim implies that this work is presenting a new model, whereas the ground truth only describes the model as being effective for classification tasks without specifying it as a novel contribution. The claim adds a level of novelty not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Chen (2025) propose a BiLSTM-enhanced legal text extraction model that incorporates attention mechanisms.",
+          "issue": "The ground truth lists a paper by Jia Chen (2025) titled 'BiLSTM-enhanced legal text extraction model using fuzzy logic and metaphor recognition'. While the paper does mention BiLSTM and attention mechanisms, the claim implies that Chen proposes a new model with these components, which is not clearly stated in the ground truth. The ground truth simply lists the paper and its general content but doesn't emphasize the novelty or proposal aspect of the model."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Wang (2026) introduce a hierarchical attention network (HAN) for predicting and explaining legal case decisions, emphasizing the retention of both local linguistic features and global contextual features through a multi-level encoding process.",
+          "issue": "The ground truth lists a paper by Aijun Wang (2026) titled 'LegalHANOpt: A Hierarchical Attention Network with BOHB Optimization for Predicting and Explaining Legal Case Decisions'. It confirms that the paper uses HAN and discusses encoding processes, but it does not explicitly state that the model emphasizes 'retention of both local linguistic features and global contextual features through a multi-level encoding process'. The ground truth provides less detailed description of the specific feature retention aspects mentioned in the claim."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Thanh et al. (2022) explore neural network architectures combining CNNs and attention mechanisms for legal document retrieval, noting that the integration of semantic vectors and lexical features can enhance system performance.",
+          "issue": "The ground truth lists a paper by Nguyen Ha Thanh et al. (2022) titled 'Attentive deep neural networks for legal document retrieval'. It confirms that the paper explores neural networks with attention mechanisms for legal document retrieval and mentions the combination of semantic vectors and lexical features boosting performance. However, the claim adds the specific detail that the paper 'explores neural network architectures combining CNNs and attention mechanisms', which is not explicitly stated in the ground truth abstract. The ground truth does not specify the inclusion of CNNs in the architecture."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.",
+          "issue": "The ground truth confirms the existence of the AdaptiVocab paper by Nakash et al. (2025) and describes it as a vocabulary-centric approach that enhances efficiency without compromising performance. However, it does not specifically mention that the method modifies 'tokenization and embedding layers' of LLMs. The ground truth focuses more on the overall approach and its outcomes rather than detailing the specific modifications to tokenization and embedding layers."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.",
+          "issue": "The ground truth confirms the existence of the AdaptBPE paper by Balde et al. (2024) and describes it as a method that modifies BPE tokenization initialization to better integrate domain-specific vocabulary. It also mentions improvements in classification and summarization tasks. However, the claim adds the specific phrase 'showing improvements in classification and summarization tasks' which is not explicitly stated in the ground truth abstract. The ground truth only states that AdaptBPE improves accuracy and ROUGE-L scores but does not explicitly mention classification and summarization tasks."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve named-entity recognition F1-score on legal documents compared to a general-purpose tokenizer, even when model size remains constant.",
+          "issue": "This claim introduces a hypothesis (H1) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.",
+          "issue": "This claim introduces a hypothesis (H2) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.",
+          "issue": "This claim introduces a hypothesis (H3) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The primary limitation of this work stems from the infeasibility of directly testing the proposed domain-specific tokenizer approach, as identified by the Experiment Planner.",
+          "issue": "While the ground truth confirms that the experiment was marked infeasible by the Experiment Planner, it does not describe the 'primary limitation of this work' as stemming specifically from the infeasibility of testing the domain-specific tokenizer approach. The ground truth focuses on the reasons for infeasibility rather than characterizing it as the primary limitation."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The experiment designated to evaluate Hypothesis 1 was marked as infeasible because the required tokenizer, which would adapt BPE encoding to prioritize legal terminology, cannot be effectively evaluated using the available non-legal datasets such as AG News or 20 Newsgroups.",
+          "issue": "This claim expands beyond the ground truth by specifying that the tokenizer 'would adapt BPE encoding to prioritize legal terminology,' which is not stated in the ground truth. The ground truth only mentions that the tokenizer would 'adapt BPE encoding to prioritize legal terminology' in a hypothetical sense without confirming that this adaptation is the reason for infeasibility."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These datasets lack the necessary domain-specific vocabulary for such an evaluation.",
+          "issue": "This statement is a reasonable inference but not explicitly stated in the ground truth. The ground truth says the datasets 'do not contain the necessary domain-specific vocabulary for testing such a tokenizer,' but does not explicitly state that they 'lack' such vocabulary."
+        },
+        {
+          "location": "Limitations",
+          "claim": "constructing the tokenizer from scratch would require substantial computational resources and time, exceeding typical high-performance computing job durations.",
+          "issue": "This claim is not found in the ground truth. While the ground truth states that creating a domain-specific tokenizer would require 'substantial computational resources and time to train on a large legal corpus,' it does not mention anything about exceeding 'typical high-performance computing job durations.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "As a result, the original experimental design could not be executed as intended.",
+          "issue": "This conclusion is not grounded in the ground truth. The ground truth explains why the experiment was marked infeasible but does not assert that the 'original experimental design could not be executed as intended.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "A secondary set of limitations arises from the use of synthetic data in place of real legal documents.",
+          "issue": "This is a reasonable interpretation but not explicitly stated in the ground truth. The ground truth lists risks associated with synthetic data but does not label them as a 'secondary set of limitations.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "The synthetic legal-like text generation process introduces potential mismatches between the structure and terminology of artificial data and those of actual legal documents.",
+          "issue": "This claim is not present in the ground truth. While the ground truth lists risks related to synthetic data, it does not specify that the process introduces 'potential mismatches between the structure and terminology of artificial data and those of actual legal documents.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "Training models on limited synthetic data also poses a risk of convergence issues or overfitting, particularly when learning domain-specific patterns from insufficient examples.",
+          "issue": "This is a reasonable inference but not explicitly stated in the ground truth. The ground truth lists 'model convergence or overfitting during training due to limited synthetic data size' as one of the risks, but does not elaborate on 'learning domain-specific patterns from insufficient examples.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "Finally, several risks related to model behavior and tokenizer fidelity were noted but not addressed due to the experiment’s infeasibility.",
+          "issue": "This is a new addition not present in the ground truth. The ground truth lists risks under 'risks_by_hypothesis' but does not mention any risks being 'not addressed due to the experiment’s infeasibility.'"
+        },
+        {
+          "location": "Limitations",
+          "claim": "Since the experiment was not executed, these aspects remain unvalidated, and no empirical assessment of the proposed methodology could be performed.",
+          "issue": "This is not mentioned in the ground truth. The ground truth does not discuss whether aspects remain 'unvalidated' or whether 'no empirical assessment of the proposed methodology could be performed.'"
+        },
+        {
+          "location": "Future Work",
+          "claim": "Several key areas remain underexplored, including the lack of standardized benchmarks and datasets specifically tailored for legal named-entity recognition",
+          "issue": "While the ground truth mentions a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not specify that this is a 'key area' that 'remains underexplored' in the context of the current research landscape as stated in the section text. The section text makes a stronger normative claim than what is supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the hypothesis concerning domain-specific tokenizers was deemed infeasible because the available datasets lacked the necessary legal terminology and scale for such an assessment",
+          "issue": "The ground truth states that the hypothesis was marked infeasible due to the lack of legal documents in the available datasets (like AG News, 20 Newsgroups), but it does not explicitly state that the reason is 'lacked the necessary legal terminology and scale'. The ground truth provides a more nuanced explanation involving computational constraints and the need for domain-specific corpora, rather than simply stating a lack of terminology and scale."
+        },
+        {
+          "location": "Future Work",
+          "claim": "This approach allows for meaningful experimentation without requiring extensive new data collection or training",
+          "issue": "The ground truth supports the idea of simulating the effect of a domain-specific tokenizer but does not mention anything about 'meaningful experimentation' or whether such simulation avoids 'extensive new data collection or training'. These evaluative claims are not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the unclear relationship between domain similarity and adaptation effectiveness indicates a potential avenue for deeper empirical investigation",
+          "issue": "While the ground truth notes that the relationship between domain similarity and adaptation effectiveness is unclear and merits further examination, it does not describe this as indicating a 'potential avenue for deeper empirical investigation', which implies a level of strategic planning or research direction that goes beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "general-purpose large language models have shown promise",
+          "issue": "The ground truth does not support the characterization of general-purpose LLMs as having 'shown promise'. It only states that they show inferior performance compared to legal-domain models in contract provision classification, without any positive evaluation of their overall promise."
+        },
+        {
+          "location": "Future Work",
+          "claim": "their performance in legal tasks continues to lag behind domain-specific alternatives",
+          "issue": "Although the ground truth mentions that general-purpose LLMs perform worse than legal-domain models in contract provision classification, it does not provide enough context to conclude that their performance 'continues to lag' in all legal tasks, which is a broader claim made in the section text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing these aspects will help advance the robustness and generalizability of legal NLP systems",
+          "issue": "The ground truth does not make any claims about how addressing the listed gaps would lead to improvements in 'robustness and generalizability' of legal NLP systems. This is a speculative conclusion not found in the ground truth."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "Discussion text reads as 'supported' but the actual outcome (from the Coder Agent's data) is 'inconclusive': Experiment status is 'skipped': Marked infeasible by the Experiment Planner: The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance. — correct the framing."
+        },
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by claiming that the hypothesis 'could not be empirically evaluated' and that 'no conclusions can be drawn regarding its validity,' while the ground truth explicitly states the verdict is 'inconclusive.' The ground truth indicates that the experiment was marked infeasible but does not mean the hypothesis itself is invalid or that no conclusions can be drawn—rather, it means the specific experimental approach was unfeasible. The text incorrectly implies that because the experiment was skipped, the hypothesis is entirely unresolved, when in fact, the hypothesis remains open for future investigation based on the stated rationale and possible simplifications."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"General-purpose language models are known to perform poorly on legal documents, largely attributed to domain-specific terminology and structural differences (Jayakumar et al., 2023).\" — The ground truth states that 'general-purpose language models perform poorly on legal texts due to domain-specific terminology and structural differences,' but it does not explicitly state that this is 'known' or attribute the cause directly to 'structural differences' in the way the claim is phrased. The citation to Jayakumar et al. (2023) supports the idea that general-purpose models underperform legal-domain models, but does not provide the specific causal explanation of 'structural differences' as stated here.\n- Introduction: \"A key limitation is the lack of systematic comparisons among different domain adaptation strategies within the legal NER context (Au et al., 2022).\" — The ground truth identifies this as a gap, stating that 'Studies show general-purpose models underperform legal-domain models but lack systematic comparisons of adaptation methods.' However, it does not mention that this is a 'key limitation' or that it is specifically tied to 'legal NER context' in the way the claim asserts. The citation to Au et al. (2022) is listed in supporting evidence for the gap, but the claim goes beyond what is directly supported.\n- Introduction: \"Additionally, there is a notable absence of standardized benchmarks and datasets specifically designed for legal NER, which impedes reproducible and comparable research (Ramesh and Eswara, 2023; Zhao et al., 2023).\" — The ground truth confirms that 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' is a gap, but it does not specify that this impedes 'reproducible and comparable research' or cite Ramesh and Eswara (2023) or Zhao et al. (2023) as sources for this particular assertion. The citation to Ramesh and Eswara (2023) and Zhao et al. (2023) is present in the cited papers list, but not in the supporting evidence for this specific gap.\n- Introduction: \"This scarcity is further compounded by limited annotated corpora for legal NER in non-English languages, with most efforts concentrated on English and German (Araujo et al., 2018; Koto et al., 2021).\" — The ground truth mentions that 'Limited availability of annotated corpora for legal NER in non-English languages' is a gap, and cites Araujo et al. (2018) and Koto et al. (2021) as supporting evidence. However, it does not state that this scarcity is 'compounded' or that 'most efforts are concentrated on English and German,' which are additional claims not found in the ground truth.\n- Introduction: \"Furthermore, while general-purpose large language models continue to advance, they still exhibit inferior performance compared to legal-domain models in tasks such as contract provision classification (Jayakumar et al., 2023), highlighting the continued relevance of domain-specific modeling approaches.\" — The ground truth states that 'General-purpose LLMs show inferior performance compared to legal-domain models in contract provision classification,' which aligns with the claim. However, it does not mention that general-purpose LLMs 'continue to advance' or that this is used to 'highlight the continued relevance of domain-specific modeling approaches.' These additions are not grounded in the provided ground truth.\n- Introduction: \"Another area requiring deeper investigation concerns the influence of sentence position on legal rhetorical role prediction, where existing approaches propose positional embeddings but do not thoroughly evaluate their impact on understanding legal texts (Belfathi et al., 2023).\" — The ground truth states that 'Insufficient investigation into how sentence position affects legal rhetorical role prediction' is a gap and cites Belfathi et al. (2023). However, it does not state that existing approaches 'propose positional embeddings' or that they 'do not thoroughly evaluate their impact on understanding legal texts.' These specific claims about the nature of existing approaches are not supported by the ground truth.\n- Introduction: \"Training data limitations also affect performance in legal information retrieval and question answering, restricting the applicability of such systems to broader legal domains (Pham et al., 2024).\" — The ground truth states that 'Lack of comprehensive datasets covering diverse legal domains' is a gap and cites Pham et al. (2024). However, it does not state that training data limitations 'affect performance in legal information retrieval and question answering' or that this restricts 'applicability to broader legal domains.' These specific consequences are not grounded in the provided text.\n- Introduction: \"The inadequate support for specialized tokenizers in professional domains poses another challenge, as general-purpose tokenizers often fail to adequately represent domain-specific terminology (Bommarito et al., 2025).\" — The ground truth identifies 'Limited research on specialized tokenizers for legal and financial texts' as a gap and cites Bommarito et al. (2025). However, it does not state that this is a 'challenge' or that general-purpose tokenizers 'fail to adequately represent domain-specific terminology.' These specific characterizations are not supported by the ground truth.\n- Introduction: \"Inconsistencies in entity classification schemes across systems further complicate cross-system comparisons (Pais et al., 2023; Yang and Agrawal, 2023).\" — The ground truth confirms that 'Inconsistent entity types and classification schemes across legal NER systems' is a gap and cites Pais et al. (2023) and Yang and Agrawal (2023). However, it does not state that these inconsistencies 'further complicate cross-system comparisons,' which is an added interpretation not found in the ground truth.\n- Related Work: \"Gupta and Srinivasarao (2024) enhance PLMs with sentence position embeddings to predict rhetorical roles in legal opinions.\" — The ground truth lists a paper by Gupta and Srinivasarao (2024) titled 'Leveraging open-source models for legal language modeling and analysis: a case study on the Indian constitution', but it does not mention anything about sentence position embeddings or predicting rhetorical roles in legal opinions. The paper discussed in the ground truth focuses on general legal language modeling and analysis, not specifically on sentence position embeddings or rhetorical role prediction.\n- Related Work: \"Karamitsos et al. (2025) present LegNER, a model trained on a corpus of 1,542 court cases and enhanced with an extended legal vocabulary, achieving over 99% accuracy and F1 score in legal NER tasks.\" — The ground truth confirms the existence of the LegNER paper by Karamitsos et al. (2025) and mentions it was trained on 1,542 court cases and uses an extended legal vocabulary. However, it states that LegNER achieves 'accuracy (99%), F1 score (over 99%)', which is slightly different from the claim's phrasing of 'over 99% accuracy and F1 score'. The ground truth does not specify that both metrics are over 99%, only that they are 99% and over 99% respectively. This is a minor discrepancy but still constitutes a deviation from the exact wording in the ground truth.\n- Related Work: \"Alarfaj (2026) present a model using sentence embeddings and LSTM networks for legal document classification.\" — The ground truth lists a paper by Alarfaj (2026) titled 'Focusing on legal cases: Automatic classification of legal documents with sentence embeddings and deep learning models', which indeed discusses sentence embeddings and LSTM networks for legal document classification. However, the claim implies that this work is presenting a new model, whereas the ground truth only describes the model as being effective for classification tasks without specifying it as a novel contribution. The claim adds a level of novelty not explicitly stated in the ground truth.\n- Related Work: \"Chen (2025) propose a BiLSTM-enhanced legal text extraction model that incorporates attention mechanisms.\" — The ground truth lists a paper by Jia Chen (2025) titled 'BiLSTM-enhanced legal text extraction model using fuzzy logic and metaphor recognition'. While the paper does mention BiLSTM and attention mechanisms, the claim implies that Chen proposes a new model with these components, which is not clearly stated in the ground truth. The ground truth simply lists the paper and its general content but doesn't emphasize the novelty or proposal aspect of the model.\n- Related Work: \"Wang (2026) introduce a hierarchical attention network (HAN) for predicting and explaining legal case decisions, emphasizing the retention of both local linguistic features and global contextual features through a multi-level encoding process.\" — The ground truth lists a paper by Aijun Wang (2026) titled 'LegalHANOpt: A Hierarchical Attention Network with BOHB Optimization for Predicting and Explaining Legal Case Decisions'. It confirms that the paper uses HAN and discusses encoding processes, but it does not explicitly state that the model emphasizes 'retention of both local linguistic features and global contextual features through a multi-level encoding process'. The ground truth provides less detailed description of the specific feature retention aspects mentioned in the claim.\n- Related Work: \"Thanh et al. (2022) explore neural network architectures combining CNNs and attention mechanisms for legal document retrieval, noting that the integration of semantic vectors and lexical features can enhance system performance.\" — The ground truth lists a paper by Nguyen Ha Thanh et al. (2022) titled 'Attentive deep neural networks for legal document retrieval'. It confirms that the paper explores neural networks with attention mechanisms for legal document retrieval and mentions the combination of semantic vectors and lexical features boosting performance. However, the claim adds the specific detail that the paper 'explores neural network architectures combining CNNs and attention mechanisms', which is not explicitly stated in the ground truth abstract. The ground truth does not specify the inclusion of CNNs in the architecture.\n- Related Work: \"Nakash et al. (2025) propose AdaptiVocab, a vocabulary-centric approach that modifies the tokenization and embedding layers of LLMs to better align with a target domain.\" — The ground truth confirms the existence of the AdaptiVocab paper by Nakash et al. (2025) and describes it as a vocabulary-centric approach that enhances efficiency without compromising performance. However, it does not specifically mention that the method modifies 'tokenization and embedding layers' of LLMs. The ground truth focuses more on the overall approach and its outcomes rather than detailing the specific modifications to tokenization and embedding layers.\n- Related Work: \"Balde et al. (2024) introduce AdaptBPE, a method that modifies the initialization of BPE tokenization to better integrate domain-specific vocabulary, showing improvements in classification and summarization tasks.\" — The ground truth confirms the existence of the AdaptBPE paper by Balde et al. (2024) and describes it as a method that modifies BPE tokenization initialization to better integrate domain-specific vocabulary. It also mentions improvements in classification and summarization tasks. However, the claim adds the specific phrase 'showing improvements in classification and summarization tasks' which is not explicitly stated in the ground truth abstract. The ground truth only states that AdaptBPE improves accuracy and ROUGE-L scores but does not explicitly mention classification and summarization tasks.\n- Related Work: \"Hypothesis H1 posits that using a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology will improve named-entity recognition F1-score on legal documents compared to a general-purpose tokenizer, even when model size remains constant.\" — This claim introduces a hypothesis (H1) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data.\n- Related Work: \"Hypothesis H2 suggests that fine-tuning a pre-trained transformer model with explicit vocabulary expansion for legal entities will yield higher NER performance than increasing model size through deeper layers or more attention heads, when both approaches are applied to the same legal domain dataset.\" — This claim introduces a hypothesis (H2) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data.\n- Related Work: \"Hypothesis H3 argues that models trained with domain-specific vocabulary adaptations will show greater robustness to lexical variation in legal terminology compared to models scaled solely by increasing model size, as measured by F1-score drop under controlled perturbations.\" — This claim introduces a hypothesis (H3) that is not part of the ground truth. The ground truth contains no mention of hypotheses H1, H2, or H3. The hypotheses are introduced in the paper's own discussion section and are not grounded in the provided bibliographic data.\n- Limitations: \"The primary limitation of this work stems from the infeasibility of directly testing the proposed domain-specific tokenizer approach, as identified by the Experiment Planner.\" — While the ground truth confirms that the experiment was marked infeasible by the Experiment Planner, it does not describe the 'primary limitation of this work' as stemming specifically from the infeasibility of testing the domain-specific tokenizer approach. The ground truth focuses on the reasons for infeasibility rather than characterizing it as the primary limitation.\n- Limitations: \"The experiment designated to evaluate Hypothesis 1 was marked as infeasible because the required tokenizer, which would adapt BPE encoding to prioritize legal terminology, cannot be effectively evaluated using the available non-legal datasets such as AG News or 20 Newsgroups.\" — This claim expands beyond the ground truth by specifying that the tokenizer 'would adapt BPE encoding to prioritize legal terminology,' which is not stated in the ground truth. The ground truth only mentions that the tokenizer would 'adapt BPE encoding to prioritize legal terminology' in a hypothetical sense without confirming that this adaptation is the reason for infeasibility.\n- Limitations: \"These datasets lack the necessary domain-specific vocabulary for such an evaluation.\" — This statement is a reasonable inference but not explicitly stated in the ground truth. The ground truth says the datasets 'do not contain the necessary domain-specific vocabulary for testing such a tokenizer,' but does not explicitly state that they 'lack' such vocabulary.\n- Limitations: \"constructing the tokenizer from scratch would require substantial computational resources and time, exceeding typical high-performance computing job durations.\" — This claim is not found in the ground truth. While the ground truth states that creating a domain-specific tokenizer would require 'substantial computational resources and time to train on a large legal corpus,' it does not mention anything about exceeding 'typical high-performance computing job durations.'\n- Limitations: \"As a result, the original experimental design could not be executed as intended.\" — This conclusion is not grounded in the ground truth. The ground truth explains why the experiment was marked infeasible but does not assert that the 'original experimental design could not be executed as intended.'\n- Limitations: \"A secondary set of limitations arises from the use of synthetic data in place of real legal documents.\" — This is a reasonable interpretation but not explicitly stated in the ground truth. The ground truth lists risks associated with synthetic data but does not label them as a 'secondary set of limitations.'\n- Limitations: \"The synthetic legal-like text generation process introduces potential mismatches between the structure and terminology of artificial data and those of actual legal documents.\" — This claim is not present in the ground truth. While the ground truth lists risks related to synthetic data, it does not specify that the process introduces 'potential mismatches between the structure and terminology of artificial data and those of actual legal documents.'\n- Limitations: \"Training models on limited synthetic data also poses a risk of convergence issues or overfitting, particularly when learning domain-specific patterns from insufficient examples.\" — This is a reasonable inference but not explicitly stated in the ground truth. The ground truth lists 'model convergence or overfitting during training due to limited synthetic data size' as one of the risks, but does not elaborate on 'learning domain-specific patterns from insufficient examples.'\n- Limitations: \"Finally, several risks related to model behavior and tokenizer fidelity were noted but not addressed due to the experiment’s infeasibility.\" — This is a new addition not present in the ground truth. The ground truth lists risks under 'risks_by_hypothesis' but does not mention any risks being 'not addressed due to the experiment’s infeasibility.'\n- Limitations: \"Since the experiment was not executed, these aspects remain unvalidated, and no empirical assessment of the proposed methodology could be performed.\" — This is not mentioned in the ground truth. The ground truth does not discuss whether aspects remain 'unvalidated' or whether 'no empirical assessment of the proposed methodology could be performed.'\n- Future Work: \"Several key areas remain underexplored, including the lack of standardized benchmarks and datasets specifically tailored for legal named-entity recognition\" — While the ground truth mentions a 'Lack of standardized benchmarks and datasets specifically tailored for legal NER' as a gap, it does not specify that this is a 'key area' that 'remains underexplored' in the context of the current research landscape as stated in the section text. The section text makes a stronger normative claim than what is supported by the ground truth.\n- Future Work: \"the hypothesis concerning domain-specific tokenizers was deemed infeasible because the available datasets lacked the necessary legal terminology and scale for such an assessment\" — The ground truth states that the hypothesis was marked infeasible due to the lack of legal documents in the available datasets (like AG News, 20 Newsgroups), but it does not explicitly state that the reason is 'lacked the necessary legal terminology and scale'. The ground truth provides a more nuanced explanation involving computational constraints and the need for domain-specific corpora, rather than simply stating a lack of terminology and scale.\n- Future Work: \"This approach allows for meaningful experimentation without requiring extensive new data collection or training\" — The ground truth supports the idea of simulating the effect of a domain-specific tokenizer but does not mention anything about 'meaningful experimentation' or whether such simulation avoids 'extensive new data collection or training'. These evaluative claims are not present in the ground truth.\n- Future Work: \"the unclear relationship between domain similarity and adaptation effectiveness indicates a potential avenue for deeper empirical investigation\" — While the ground truth notes that the relationship between domain similarity and adaptation effectiveness is unclear and merits further examination, it does not describe this as indicating a 'potential avenue for deeper empirical investigation', which implies a level of strategic planning or research direction that goes beyond what is stated in the ground truth.\n- Future Work: \"general-purpose large language models have shown promise\" — The ground truth does not support the characterization of general-purpose LLMs as having 'shown promise'. It only states that they show inferior performance compared to legal-domain models in contract provision classification, without any positive evaluation of their overall promise.\n- Future Work: \"their performance in legal tasks continues to lag behind domain-specific alternatives\" — Although the ground truth mentions that general-purpose LLMs perform worse than legal-domain models in contract provision classification, it does not provide enough context to conclude that their performance 'continues to lag' in all legal tasks, which is a broader claim made in the section text.\n- Future Work: \"Addressing these aspects will help advance the robustness and generalizability of legal NLP systems\" — The ground truth does not make any claims about how addressing the listed gaps would lead to improvements in 'robustness and generalizability' of legal NLP systems. This is a speculative conclusion not found in the ground truth.\nHypothesis coverage issues:\n- Discussion > H1: Discussion text reads as 'supported' but the actual outcome (from the Coder Agent's data) is 'inconclusive': Experiment status is 'skipped': Marked infeasible by the Experiment Planner: The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance. — correct the framing.\n- Discussion > H1: The text overstated the outcome by claiming that the hypothesis 'could not be empirically evaluated' and that 'no conclusions can be drawn regarding its validity,' while the ground truth explicitly states the verdict is 'inconclusive.' The ground truth indicates that the experiment was marked infeasible but does not mean the hypothesis itself is invalid or that no conclusions can be drawn—rather, it means the specific experimental approach was unfeasible. The text incorrectly implies that because the experiment was skipped, the hypothesis is entirely unresolved, when in fact, the hypothesis remains open for future investigation based on the stated rationale and possible simplifications.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — The logical progression from introduction to conclusion is mostly coherent, but transitions between sections—particularly between related work and hypotheses—are abrupt and could benefit from clearer signposting.",
+      "generated_at": "2026-09-15T19:34:10.737815+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  }
+]

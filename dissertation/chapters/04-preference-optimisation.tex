@@ -91,7 +91,8 @@ anchoring on the template's own literal chunks either side of the splice
 points, so it survives template changes. Finally, the shared prompt is
 reconstructed from the experiment's framing plus the error that had to be
 answered, because the original generation prompt is not retained in run
-artefacts.
+artefacts --- a limitation since removed, as Section~\ref{sec:po-transcripts}
+describes.
 
 Across every run recorded during this project the harvest yields 121 pairs.
 Table~\ref{tab:pair-sources} gives the check that did the rejecting.
@@ -128,6 +129,36 @@ The corpus is small, and small by construction rather than through insufficient
 collection: a pair requires both a rejection and a resolution, and the pipeline
 produces a few dozen such events per sweep. This bounds every claim in the next
 two sections.
+
+\section{Retaining the exchange rather than rebuilding it}
+\label{sec:po-transcripts}
+
+Reconstruction was the weakest joint in the harvest above, and it fails in the
+place it can least afford to. A prompt rebuilt from the plan plus
+\texttt{prompts.py} is only correct at the commit that ran, which makes it
+archaeology rather than a dataset; and for a \emph{targeted} regeneration, where
+the agent asks for only the sections a check localised its failure to
+(Chapter~\ref{ch:design}), the prompt's shape depends on which sections were
+requested and cannot be recovered from the summary at all. The response half has
+the mirror problem: \texttt{run.py} is the model's sections after they were
+spliced into the fixed template, so training on it teaches a model to emit a file
+it is never asked for, and the two failure categories where the raw text
+\emph{is} the whole defect --- a response that did not parse, and one missing a
+section --- return before any file is written and leave nothing behind at all.
+
+The agent now writes both halves verbatim as a \texttt{.transcript.json} beside
+the code they produced, snapshotted into each attempt's directory alongside its
+\texttt{run.py}. A companion exporter reads them and emits three shapes, kept
+separate because conflating them would be subtly wrong: a supervised fix set
+(the fix prompt that was sent, the response that cleared the error), preference
+pairs, and a plain generation set. Rows carry the provenance of their own
+halves, so a reader can tell a transcript-exact example from a reconstructed one.
+
+The first harvest under this scheme, over two runs of the frozen corpus, yields
+24 preference pairs and 24 supervised fix examples, every one of them exact. That
+is a smaller corpus than the 121 reconstructed pairs and a sounder one, and it
+scales with sweeps rather than with archaeology: the join it needs is now written
+at the moment the exchange happens.
 
 \section{Training}
 \label{sec:po-training}

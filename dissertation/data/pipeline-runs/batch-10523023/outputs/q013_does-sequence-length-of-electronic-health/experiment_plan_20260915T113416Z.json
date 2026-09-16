@@ -1,0 +1,111 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis concerns EHR-based clinical prediction tasks and sequence length effects in transformers, but the available datasets (AG News, 20 Newsgroups, financial, molecular, census, air quality, credit approval, German credit) are not EHR data. However, the hypothesis can be adapted to a related domain: text classification with long sequences. The 20 Newsgroups dataset contains long documents (median 86 words, p90 342, max 11765) which allows us to explore sequence length effects in a natural language setting. We will use the 'twenty_newsgroups_document_text_category_classification_train.csv' dataset for training and 'twenty_newsgroups_document_text_category_classification_test.csv' for testing. This maintains the core experimental design while adapting to available data.",
+      "objective": "To determine whether increasing sequence length beyond 512 tokens leads to diminishing returns in predictive accuracy for transformer models in text classification tasks, and to assess whether model architecture choice has a greater impact on performance than sequence length.",
+      "variables": {
+        "independent": [
+          "sequence_length",
+          "model_architecture"
+        ],
+        "dependent": [
+          "predictive_accuracy"
+        ]
+      },
+      "design": "Factorial experiment comparing multiple transformer architectures (BERT, RoBERTa, DistilBERT) at various sequence lengths (128, 256, 512, 1024, 2048) on a text classification task using the 20 Newsgroups dataset. The experiment will measure predictive accuracy as the dependent variable.",
+      "data_requirements": {
+        "source": "twenty_newsgroups_document_text_category_classification_train.csv and twenty_newsgroups_document_text_category_classification_test.csv",
+        "description": "The 20 Newsgroups dataset contains real newsgroup posts with 20 categories. Documents vary widely in length, making it suitable for exploring sequence length effects. The train set has 11014 rows and the test set has 7317 rows. Text is already tokenized and normalized.",
+        "preprocessing_steps": [
+          "Load the train and test datasets using pandas.read_csv()",
+          "Extract the 'text' and 'category' columns for training and testing",
+          "Convert category labels to integers using sklearn.preprocessing.LabelEncoder",
+          "Tokenize texts using HuggingFace tokenizer (e.g., bert-base-uncased) with padding and truncation",
+          "Apply sliding window technique to create sequences of specified lengths (128, 256, 512, 1024, 2048)"
+        ]
+      },
+      "methods": [
+        {
+          "name": "BERT",
+          "description": "A transformer-based model pre-trained on masked language modeling and next sentence prediction tasks. Used as one of the baseline architectures for comparison.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "RoBERTa",
+          "description": "An optimized variant of BERT with improved training procedures and larger batch sizes. Used as another baseline architecture for comparison.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "DistilBERT",
+          "description": "A smaller, faster version of BERT with 60% fewer parameters. Used as a third baseline architecture for comparison.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Sliding window technique",
+          "description": "Used to create sequences of specified lengths from longer documents, allowing for evaluation at different sequence lengths while preserving context.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "accuracy_score",
+          "f1_score"
+        ],
+        "baseline": "Performance of models trained on truncated sequences (e.g., 512 tokens) as a reference point for measuring diminishing returns",
+        "success_criteria": "Supporting the hypothesis would mean observing that accuracy plateaus or decreases with increasing sequence length beyond 512 tokens, while model architecture choice consistently shows stronger performance differences. Refuting the hypothesis would mean showing that accuracy continues to improve with longer sequences or that model architecture choice has minimal impact."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load the 20 Newsgroups datasets using pandas.read_csv('twenty_newsgroups_document_text_category_classification_train.csv') and pandas.read_csv('twenty_newsgroups_document_text_category_classification_test.csv')"
+        },
+        {
+          "step": 2,
+          "description": "Preprocess the data by extracting 'text' and 'category' columns, converting categories to integer labels using sklearn.preprocessing.LabelEncoder"
+        },
+        {
+          "step": 3,
+          "description": "Initialize HuggingFace tokenizers (bert-base-uncased, roberta-base, distilbert-base-uncased) and tokenize the text data with padding and truncation to specified lengths (128, 256, 512, 1024, 2048)"
+        },
+        {
+          "step": 4,
+          "description": "Implement a training loop for each model architecture (BERT, RoBERTa, DistilBERT) at each sequence length, using PyTorch or TensorFlow for model training and evaluation"
+        },
+        {
+          "step": 5,
+          "description": "Train each model configuration for a fixed number of epochs (e.g., 3) and record accuracy and F1 scores on the test set"
+        },
+        {
+          "step": 6,
+          "description": "Aggregate results across all configurations and plot accuracy vs sequence length for each model architecture to visualize diminishing returns"
+        },
+        {
+          "step": 7,
+          "description": "Perform statistical analysis to determine if differences in performance between architectures are significant and whether sequence length effects are consistent across models"
+        }
+      ],
+      "estimated_complexity": "medium",
+      "risks": [
+        "Computational cost of training multiple model architectures at multiple sequence lengths may exceed available GPU time on the HPC cluster",
+        "The 20 Newsgroups dataset is not clinical data, so conclusions may not directly translate to EHR settings",
+        "Overfitting may occur with very long sequences and small datasets, leading to artificially inflated performance metrics",
+        "Variability in document lengths might introduce confounding factors in the sequence length analysis"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T11:34:16.860609+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

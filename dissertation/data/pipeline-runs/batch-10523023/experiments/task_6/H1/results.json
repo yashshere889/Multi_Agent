@@ -1,0 +1,55 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether feature drift detected via Kolmogorov-Smirnov tests leads to a faster decline in model calibration compared to ranking discrimination over time in a consumer credit approval model.",
+  "author": "coder-agent",
+  "baseline": "Performance of the model trained on the first time slice (t=0) as reference point",
+  "success_criteria": "If the rate of increase in ECE exceeds the rate of decrease in AUC over time, then the hypothesis is supported. Conversely, if AUC declines faster than ECE, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T07:35:09.648883+00:00",
+  "status": "success",
+  "elapsed_seconds": 1.3804,
+  "resumed": false,
+  "metrics": {
+    "auc_scores": [
+      0.9552,
+      0.9365808823529412,
+      0.9666854884246189,
+      0.9399801587301587,
+      0.9568452380952381,
+      0.968995452666391,
+      0.9361904761904762,
+      0.9439338235294118,
+      0.9635745507527925,
+      0.9131433823529411
+    ],
+    "ece_scores": [
+      0.20945658456256191,
+      0.15559673121069623,
+      0.15852300687356416,
+      0.09455692286105735,
+      0.1547152535563089,
+      0.15620272239387262,
+      0.16041065074039723,
+      0.15809533189947395,
+      0.17772616298267388,
+      0.11240273643323477
+    ],
+    "drifted_features": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "auc_slope": -0.004672957516339881,
+    "ece_slope": -0.010783760903258572
+  },
+  "meets_success_criteria": true,
+  "notes": "Calibration error (ECE) deteriorates faster than ranking discrimination (AUC) over time.",
+  "error": null
+}

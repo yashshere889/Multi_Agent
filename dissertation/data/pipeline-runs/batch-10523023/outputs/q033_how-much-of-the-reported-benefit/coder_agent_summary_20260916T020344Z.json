@@ -1,0 +1,331 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "completed",
+      "reason": "",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1",
+      "assumptions_made": [
+        "The dataset has sufficient temporal ordering in duration_months and age_years to support chronological splits",
+        "The three augmentation techniques can be meaningfully applied to the numeric temporal features",
+        "The synthetic dataset generation provides a reasonable approximation when the real dataset is unavailable",
+        "The logistic regression model is appropriate for this tabular classification task"
+      ],
+      "results": {
+        "experiment_id": "H1",
+        "experiment_name": "Experiment H1",
+        "hypothesis": "To test whether applying temporal data augmentation techniques to a tabular dataset with inherent time ordering (UCI Statlog German Credit) results in a performance degradation of at least 20% when evaluated using strict chronological splits compared to standard (non-temporal) evaluation splits.",
+        "author": "coder-agent",
+        "baseline": "Model performance without any data augmentation on both standard and chronological splits",
+        "success_criteria": "If the performance gain from augmentation drops by at least 20% when evaluated using strict chronological splits compared to standard splits, the hypothesis is supported. If the drop is less than 20%, the hypothesis is refuted.",
+        "timestamp_utc": "2026-09-16T02:03:43.891604+00:00",
+        "status": "success",
+        "elapsed_seconds": 1.46,
+        "resumed": false,
+        "metrics": {
+          "accuracy": 0.77,
+          "f1": 0.5576923076923077,
+          "average_gain_difference": 0.010000000000000009
+        },
+        "meets_success_criteria": false,
+        "notes": "Average performance gain difference across augmentation methods: 0.010; Baseline accuracy (random split): 0.770; Baseline accuracy (temporal split): 0.765; time_warping: gain_random=0.000, gain_temporal=0.000, difference=0.000; jittering: gain_random=0.000, gain_temporal=0.000, difference=0.000; smote: gain_random=-0.015, gain_temporal=-0.045, difference=0.030",
+        "error": null
+      },
+      "fix_attempts": 2,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 6: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The dataset's temporal ordering is adequately captured by sorting on duration_months and age_years",
+            "Time warping and jittering are applied only to the temporal features (duration_months, credit_amount, age_years) to preserve the overall structure",
+            "SMOTE is implemented as simple oversampling of the minority class to balance the dataset",
+            "Logistic regression is chosen as a representative baseline model for this tabular classification task",
+            "The 20% performance degradation threshold is appropriate for detecting meaningful differences in augmentation effectiveness",
+            "All categorical variables are properly encoded using one-hot encoding",
+            "Missing values are handled by dropping rows with '?' entries",
+            "The experiment assumes that the temporal nature of the data is sufficiently strong to observe meaningful differences between chronological and random splits",
+            "The augmentation techniques are applied consistently to both random and temporal splits for fair comparison",
+            "The experiment uses a simple logistic regression model rather than more complex models due to computational constraints",
+            "The performance gain is measured as the absolute difference in accuracy between augmented and non-augmented models",
+            "The experiment considers the average across all augmentation methods to determine overall effect"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: tscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/run.py\", line 647, in run\n        data = load_data()\n      File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/run.py\", line 266, in load_data\n        categorical_columns.remove('credit_risk')  # Remove target column\n        ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\n    ValueError: list.remove(x): x not in list\n========================================================================\n\n\nes are included by select_dtypes when 'object' dtype is specified. This behavior is deprecated and will be removed in a future version. Explicitly pass 'str' to `include` to select them, or to `exclude` to remove them and silence this warning.\nSee https://pandas.pydata.org/docs/user_guide/migration-3-strings.html#string-migration-select-dtypes for details on how to write code that works with pandas 2 and 3.\n  categorical_columns = df.select_dtypes(include=['object']).columns.tolist()\n2026-09-16T03:02:55 [ERROR] H1 — Experiment FAILED:\nTraceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/run.py\", line 647, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/run.py\", line 266, in load_data\n    categorical_columns.remove('credit_risk')  # Remove target column\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\nValueError: list.remove(x): x not in list",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/H1/fix_attempts/attempt_2/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment falls back to a synthetic dataset if the real dataset is not found at the expected path",
+            "The synthetic dataset maintains the same structure and approximate statistical properties as the real UCI Statlog German Credit dataset",
+            "The synthetic dataset preserves the class imbalance (70% good credit, 30% bad credit) of the original",
+            "The synthetic dataset includes all required columns with appropriate value ranges and distributions"
+          ],
+          "same_error_streak": 1
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "classification",
+      "data_provenance": {
+        "inputs": [
+          {
+            "name": "uci_statlog_german_credit.csv",
+            "kind": "real_local",
+            "uri": "",
+            "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/uci_statlog_german_credit.csv",
+            "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/uci_statlog_german_credit.csv",
+            "credentials": [],
+            "preview": {
+              "data_format": "csv",
+              "read_hint": "comma-separated, with a header row (pandas.read_csv)",
+              "columns": [
+                "checking_status",
+                "duration_months",
+                "credit_history",
+                "purpose",
+                "credit_amount",
+                "savings_status",
+                "employment_since",
+                "installment_rate",
+                "personal_status_sex",
+                "other_debtors",
+                "residence_since",
+                "property",
+                "age_years",
+                "other_installment_plans",
+                "housing",
+                "existing_credits",
+                "job",
+                "num_dependents",
+                "telephone",
+                "foreign_worker",
+                "credit_risk"
+              ],
+              "sample_rows": [
+                {
+                  "checking_status": "A11",
+                  "duration_months": "6",
+                  "credit_history": "A34",
+                  "purpose": "A43",
+                  "credit_amount": "1169",
+                  "savings_status": "A65",
+                  "employment_since": "A75",
+                  "installment_rate": "4",
+                  "personal_status_sex": "A93",
+                  "other_debtors": "A101",
+                  "residence_since": "4",
+                  "property": "A121",
+                  "age_years": "67",
+                  "other_installment_plans": "A143",
+                  "housing": "A152",
+                  "existing_credits": "2",
+                  "job": "A173",
+                  "num_dependents": "1",
+                  "telephone": "A192",
+                  "foreign_worker": "A201",
+                  "credit_risk": "1"
+                },
+                {
+                  "checking_status": "A12",
+                  "duration_months": "48",
+                  "credit_history": "A32",
+                  "purpose": "A43",
+                  "credit_amount": "5951",
+                  "savings_status": "A61",
+                  "employment_since": "A73",
+                  "installment_rate": "2",
+                  "personal_status_sex": "A92",
+                  "other_debtors": "A101",
+                  "residence_since": "2",
+                  "property": "A121",
+                  "age_years": "22",
+                  "other_installment_plans": "A143",
+                  "housing": "A152",
+                  "existing_credits": "1",
+                  "job": "A173",
+                  "num_dependents": "1",
+                  "telephone": "A191",
+                  "foreign_worker": "A201",
+                  "credit_risk": "2"
+                },
+                {
+                  "checking_status": "A14",
+                  "duration_months": "12",
+                  "credit_history": "A34",
+                  "purpose": "A46",
+                  "credit_amount": "2096",
+                  "savings_status": "A61",
+                  "employment_since": "A74",
+                  "installment_rate": "2",
+                  "personal_status_sex": "A93",
+                  "other_debtors": "A101",
+                  "residence_since": "3",
+                  "property": "A121",
+                  "age_years": "49",
+                  "other_installment_plans": "A143",
+                  "housing": "A152",
+                  "existing_credits": "1",
+                  "job": "A172",
+                  "num_dependents": "2",
+                  "telephone": "A191",
+                  "foreign_worker": "A201",
+                  "credit_risk": "1"
+                }
+              ],
+              "notes": "uci_statlog_german_credit.csv  (1000 rows)\n  Source: UCI ML Repository \"Statlog (German Credit Data)\", dataset/144 (german.data).\n  Columns are the documented 20 attributes plus credit_risk.\n  Target: credit_risk, 1 = good, 2 = bad. Categorical fields are the original\n  codes (A11, A34, ...); see the UCI attribute documentation for meanings.\n  Class balance is 700 good / 300 bad — imbalanced by design.",
+              "row_count": 1000,
+              "last_rows": [
+                {
+                  "checking_status": "A14",
+                  "duration_months": "12",
+                  "credit_history": "A32",
+                  "purpose": "A43",
+                  "credit_amount": "804",
+                  "savings_status": "A61",
+                  "employment_since": "A75",
+                  "installment_rate": "4",
+                  "personal_status_sex": "A93",
+                  "other_debtors": "A101",
+                  "residence_since": "4",
+                  "property": "A123",
+                  "age_years": "38",
+                  "other_installment_plans": "A143",
+                  "housing": "A152",
+                  "existing_credits": "1",
+                  "job": "A173",
+                  "num_dependents": "1",
+                  "telephone": "A191",
+                  "foreign_worker": "A201",
+                  "credit_risk": "1"
+                },
+                {
+                  "checking_status": "A11",
+                  "duration_months": "45",
+                  "credit_history": "A32",
+                  "purpose": "A43",
+                  "credit_amount": "1845",
+                  "savings_status": "A61",
+                  "employment_since": "A73",
+                  "installment_rate": "4",
+                  "personal_status_sex": "A93",
+                  "other_debtors": "A101",
+                  "residence_since": "4",
+                  "property": "A124",
+                  "age_years": "23",
+                  "other_installment_plans": "A143",
+                  "housing": "A153",
+                  "existing_credits": "1",
+                  "job": "A173",
+                  "num_dependents": "1",
+                  "telephone": "A192",
+                  "foreign_worker": "A201",
+                  "credit_risk": "2"
+                },
+                {
+                  "checking_status": "A12",
+                  "duration_months": "45",
+                  "credit_history": "A34",
+                  "purpose": "A41",
+                  "credit_amount": "4576",
+                  "savings_status": "A62",
+                  "employment_since": "A71",
+                  "installment_rate": "3",
+                  "personal_status_sex": "A93",
+                  "other_debtors": "A101",
+                  "residence_since": "4",
+                  "property": "A123",
+                  "age_years": "27",
+                  "other_installment_plans": "A143",
+                  "housing": "A152",
+                  "existing_credits": "1",
+                  "job": "A173",
+                  "num_dependents": "1",
+                  "telephone": "A191",
+                  "foreign_worker": "A201",
+                  "credit_risk": "1"
+                }
+              ]
+            }
+          }
+        ],
+        "methodological_validity": "real data — findings are interpretable as evidence for the hypothesis",
+        "all_inputs_real": true,
+        "surrogate_count": 0,
+        "unconfirmed_discovered_inputs": []
+      },
+      "compute_provenance": {
+        "downscaled": false,
+        "changes": [],
+        "converged": true,
+        "convergence_findings": [],
+        "measurement_changes": [],
+        "precision_changes": [],
+        "timeout_seconds": 120,
+        "compute_validity": "ran at the size it was generated for — metrics describe the experiment as written",
+        "ran_at_full_size": true
+      },
+      "reference_implementations": [
+        {
+          "paper_id": "2502.20260",
+          "title": "Understanding the Limits of Deep Tabular Methods with Temporal Shift",
+          "year": "2025",
+          "citation_count": 8,
+          "tldr": "",
+          "url_abs": "https://arxiv.org/abs/2502.20260",
+          "repositories": [
+            {
+              "url": "https://github.com/lamda-tabular/tabular-temporal-shift",
+              "is_official": true,
+              "stars": 15
+            }
+          ],
+          "methods": [
+            "Embedding"
+          ]
+        },
+        {
+          "paper_id": "2310.09656",
+          "title": "Mixed-Type Tabular Data Synthesis with Score-based Diffusion in Latent Space",
+          "year": "2023",
+          "citation_count": 293,
+          "tldr": "Tabsyn synthesizes tabular data by integrating diffusion models within a VAE latent space, enhancing generality, quality, and speed compared to existing methods.",
+          "url_abs": "https://arxiv.org/abs/2310.09656v3",
+          "repositories": [
+            {
+              "url": "https://github.com/amazon-science/tabsyn",
+              "is_official": true,
+              "stars": 204
+            }
+          ],
+          "methods": [
+            "Autoencoder (AE)",
+            "Diffusion",
+            "Embedding",
+            "Layer Normalization",
+            "VAE",
+            "VQ-VAE"
+          ]
+        }
+      ]
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_33/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T02:03:44.321768+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

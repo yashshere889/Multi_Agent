@@ -1,0 +1,24 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether using spectral clustering to identify market regimes from daily S&P 500 price and volume features improves the out-of-sample Sharpe ratio of a simple momentum strategy compared to a static momentum rule.",
+  "author": "coder-agent",
+  "baseline": "Static momentum strategy without regime detection using the same lookback period and rebalancing frequency",
+  "success_criteria": "If the regime-aware momentum strategy achieves a higher out-of-sample Sharpe ratio than the static momentum strategy, the hypothesis is supported. If the opposite occurs, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T07:05:36.972717+00:00",
+  "status": "success",
+  "elapsed_seconds": 2.8715,
+  "resumed": false,
+  "metrics": {
+    "static_sharpe": 0.8486159924947793,
+    "regime_aware_sharpe": 0.8486159924947793,
+    "static_return": 0.40762652908988617,
+    "regime_aware_return": 0.40762652908988617,
+    "static_drawdown": -0.7785679198179248,
+    "regime_aware_drawdown": -0.7785679198179248,
+    "better_strategy": "static"
+  },
+  "meets_success_criteria": false,
+  "notes": "Static strategy Sharpe: 0.8486, Regime-aware strategy Sharpe: 0.8486. Hypothesis refuted.",
+  "error": null
+}

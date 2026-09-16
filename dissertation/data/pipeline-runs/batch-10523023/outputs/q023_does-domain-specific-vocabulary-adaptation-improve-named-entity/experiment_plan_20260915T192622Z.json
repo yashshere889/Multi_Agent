@@ -1,0 +1,92 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": false,
+      "feasibility_notes": "The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance.",
+      "objective": "To determine whether a domain-specific tokenizer that prioritizes legal terminology improves named-entity recognition F1-score on legal documents compared to a general-purpose tokenizer, while keeping model size constant.",
+      "variables": {
+        "independent": [
+          "tokenizer type (general vs. domain-specific)"
+        ],
+        "dependent": [
+          "NER F1-score"
+        ]
+      },
+      "design": "A comparative benchmark experiment using a simulated domain-specific tokenizer effect on a legal NER task. Since no real legal document dataset is available among the provided ones, we simulate the impact of domain-specific tokenization by artificially introducing legal terms into a general-purpose dataset and evaluating how a modified tokenizer affects NER performance.",
+      "data_requirements": {
+        "source": "synthetic generation",
+        "description": "Synthetic legal-like text with known named entities to simulate the effect of domain-specific tokenization. This allows us to test the hypothesis without requiring access to real legal documents.",
+        "preprocessing_steps": [
+          "Generate synthetic legal documents containing common legal entities (e.g., parties, dates, case numbers)",
+          "Annotate each document with named entities using predefined templates",
+          "Tokenize the documents using both a general-purpose tokenizer and a simulated domain-specific tokenizer"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Vocabulary expansion and adaptation",
+          "description": "Modify the BPE tokenizer to prioritize legal terminology by expanding its vocabulary with legal terms extracted from a legal lexicon or domain-specific corpus. This method is reused from the literature to adapt tokenization to the legal domain.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Named-entity recognition with BERT",
+          "description": "Use a BERT-based model fine-tuned for NER to classify entities in the tokenized documents. The model architecture remains constant across both tokenizer conditions to isolate the effect of tokenization.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "F1-score for named-entity recognition"
+        ],
+        "baseline": "Performance of a general-purpose tokenizer on the same dataset and model setup",
+        "success_criteria": "If the domain-specific tokenizer achieves an F1-score at least 3% higher than the general-purpose tokenizer, the hypothesis is supported. If the improvement is less than 3%, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load or generate a synthetic legal document dataset with known named entities. Ensure the dataset includes a variety of legal terms and structures."
+        },
+        {
+          "step": 2,
+          "description": "Initialize two tokenizers: one general-purpose (e.g., BERT tokenizer) and one simulated domain-specific tokenizer that expands vocabulary with legal terms."
+        },
+        {
+          "step": 3,
+          "description": "Tokenize the synthetic legal documents using both tokenizers and prepare the data for NER training."
+        },
+        {
+          "step": 4,
+          "description": "Train a BERT-based NER model on the tokenized data using both tokenizer variants, keeping all other model parameters identical."
+        },
+        {
+          "step": 5,
+          "description": "Evaluate the trained models on the test set using F1-score for named-entity recognition and compare results between the two tokenizers."
+        },
+        {
+          "step": 6,
+          "description": "Compute the difference in F1-scores between the domain-specific and general-purpose tokenizer and assess whether it meets or exceeds the 3% threshold."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Synthetic data may not accurately reflect real-world legal document complexity and variability",
+        "The simulated domain-specific tokenizer might not fully capture the nuances of actual legal terminology processing",
+        "Model convergence or overfitting during training due to limited synthetic data size"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T19:26:22.301924+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

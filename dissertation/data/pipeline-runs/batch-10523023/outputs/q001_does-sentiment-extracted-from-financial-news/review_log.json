@@ -1,0 +1,790 @@
+[
+  {
+    "iteration": 1,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v1.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v1.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "8d02573da4c3d197804d8829bdc83c292562ed37",
+        "2605.23962v1",
+        "8f025f166dee4db5c42c9f30d4decae29a09ab0c",
+        "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+        "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+        "3c4f1244301577cffff9affc73690669725e7e08",
+        "109e50d9c7830706616d20e2cadc7606e601275b",
+        "2e430e6e57c19733989ae5e16bd545ae86650334",
+        "2109.13725v1",
+        "2512.19484v1",
+        "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+        "8ccf60f844e0baa450a55a68584e429ab34eaf4a",
+        "6ed5d31497d8050b822924b09647a918226f437b",
+        "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+        "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+        "3b740025953475a1cb23780961bdead5c71fd3fe",
+        "1507.00784v3",
+        "089e76b551fddb1731cafe72c4235c0d2ccd66e0",
+        "1705.00294v1"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Loughran and McDonald (2011)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Dropped a citation to unknown paper id 'H1' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H2' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H3' in the Introduction section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '2003.07129' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '2003.07129' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T05:09:38.584270+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 1,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "A growing body of work explores the integration of textual data—particularly from news headlines—with structured financial indicators to improve forecasting accuracy (Li et al., 2025; Zhou et al., 2017).",
+          "issue": "The ground truth lists 'Structured Event Representation and Stock Return Predictability' by Gang Li, Dandan Qiao, Mingxuan Zheng (2025) and 'Tales of Emotion and Stock in China: Volatility, Causality and Prediction' by Zhenkun Zhou, Ke Xu, Jichang Zhao (2017) as cited papers, but does not indicate that these works specifically explore the integration of textual data from news headlines with structured financial indicators for forecasting accuracy. The claim attributes a specific scope and methodology to these papers that is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "These studies span a wide range of methodologies, from classical lexicon-based tools such as VADER and Loughran-McDonald to sophisticated deep learning models including BERT, FinBERT, and transformer architectures (Coolsaet et al., 2026; Rajhans et al., 2024).",
+          "issue": "While the ground truth mentions that studies vary in methodology and include both lexicon-based and deep learning models, it does not specify that the cited papers (Coolsaet et al., 2026; Rajhans et al., 2024) explicitly cover VADER, Loughran-McDonald, BERT, FinBERT, or transformer architectures. The claim makes a specific attribution of tools and models to these papers that is not substantiated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Many researchers advocate for the inclusion of sentiment signals in predictive models, others question the consistency and robustness of such approaches, especially when applied across diverse financial contexts (Coolsaet et al., 2026; Rajhans et al., 2024).",
+          "issue": "The ground truth does not attribute to Coolsaet et al. (2026) or Rajhans et al. (2024) any explicit advocacy or questioning of sentiment signals. The claim introduces a stance or perspective held by researchers that is not reflected in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, while some works emphasize the importance of multi-dimensional sentiment signals, most models still rely heavily on binary polarity classifications, potentially overlooking nuanced emotional expressions that could be informative for financial forecasting (Dai et al., 2026).",
+          "issue": "The ground truth mentions that 'Beyond Polarity: Multi-Dimensional LLM Sentiment Signals for WTI Crude Oil Futures Return Prediction' by Dai et al. (2026) explores multi-dimensional signals, but it does not support the claim that 'most models still rely heavily on binary polarity classifications.' This is a generalization not grounded in the provided evidence."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This includes insufficient attention to the unique characteristics of non-English financial texts and the need for culturally tailored models (Jovanoski et al., 2021).",
+          "issue": "The ground truth lists 'Sentiment Analysis in Twitter for Macedonian' by Jovanoski et al. (2021) as a cited paper, but does not indicate that this paper addresses non-English financial texts or the need for culturally tailored models. The claim extends the scope of the paper beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Addressing these issues is crucial for developing more robust and universally applicable sentiment analysis systems in finance.",
+          "issue": "This is a general evaluative statement summarizing the importance of addressing the mentioned gaps. While consistent with the overall theme of the introduction, it is not a verifiable claim directly traceable to the ground truth data. It is interpretive rather than factual."
+        },
+        {
+          "location": "Related Work",
+          "claim": "which includes 354 positive and 2,329 negative words tailored for financial texts (Mykovg et al., 2018)",
+          "issue": "The ground truth does not mention Mykovg et al. (2018) or provide specific numbers of 354 positive and 2,329 negative words in the Loughran-McDonald dictionary. The Loughran-McDonald lexicon is referenced in the ground truth, but without these specific counts or attribution to Mykovg et al. (2018)."
+        },
+        {
+          "location": "Related Work",
+          "claim": "FinBERT has gained prominence for their ability to compute nuanced sentiment scores from financial texts (Zhang et al., 2025)",
+          "issue": "While Zhang et al. (2025) is mentioned in the ground truth, the abstract of their paper does not describe FinBERT as a method used for computing nuanced sentiment scores. The paper describes FinBERT as a model for calculating standardized sentiment scores, but does not explicitly state that it computes 'nuanced sentiment scores'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "the FinancialPhraseBank, containing annotated news headlines across three sentiment classes: positive, neutral, and negative (Mo et al., 2024)",
+          "issue": "The ground truth mentions that the FinancialPhraseBank dataset is used in Mo et al. (2024), but it does not specify that the dataset contains annotated news headlines across exactly three sentiment classes: positive, neutral, and negative. The ground truth only states that the dataset consists of two columns: Sentiment and Headline, with sentiment categorized into three distinct classes, without specifying the exact class names."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Advanced architectures such as DeBERTa v3 and contrastive learning techniques have been employed to improve the accuracy of aspect-level sentiment classification Ivanenko (2023)",
+          "issue": "The ground truth for Ivanenko (2023) mentions that contrastive learning is used in enhancing aspect-based financial sentiment analysis, but it does not specify that DeBERTa v3 is one of the architectures employed. The paper discusses aspect-based sentiment analysis and contrastive learning but does not name DeBERTa v3 as a specific architecture used."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The temporal dynamics of sentiment and its influence on financial outcomes remain underexplored, suggesting a need for more sophisticated modeling approaches that account for time-sensitive effects (Fatouros et al., 2023)",
+          "issue": "The ground truth for Fatouros et al. (2023) discusses the temporal nature of sentiment in financial markets, but it does not state that the temporal dynamics of sentiment and its influence on financial outcomes remain underexplored. The paper focuses on the use of computational techniques to extract sentiment from textual data and its application in financial contexts, but does not make claims about the under-exploration of temporal dynamics."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The dependent variable is the directional prediction of S&P 500 returns, while the independent variables consist of BERT-based sentiment scores and Fama-French factors.",
+          "issue": "The ground truth states that the dependent variable is 'Next-day directional prediction of S&P 500 returns' but does not specify the independent variables as 'BERT-based sentiment scores and Fama-French factors'. Instead, it lists them separately under 'suggested_variables' as 'BERT-based sentiment scores from news headlines' and 'Fama-French three-factor risk premiums', indicating a difference in terminology and specificity."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The variables involved include Loughran-McDonald sentiment scores and Fama-French factors as independent variables, with the directional prediction of stock return direction as the dependent variable",
+          "issue": "According to the ground truth, the suggested independent variables for H2 are 'Loughran-McDonald sentiment scores from news headlines' and 'Fama-French three-factor risk premiums', not just 'Loughran-McDonald sentiment scores' and 'Fama-French factors'. The ground truth also specifies the dependent variable as 'Next-day directional prediction of stock return direction', which differs slightly from the paper's phrasing."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The independent variable consists of multi-dimensional sentiment signals, whereas the dependent variable remains the directional prediction of stock return direction",
+          "issue": "The ground truth indicates that the suggested independent variables for H3 are 'Multi-dimensional sentiment signals from news headlines', but the paper refers to 'multi-dimensional sentiment signals' without specifying their source as 'from news headlines'. Additionally, the dependent variable is correctly stated in both, but the paper omits the full specification of the dependent variable as 'Next-day directional prediction of stock return direction' as per the ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Li et al., 2025; Zhou et al., 2017",
+          "issue": "The ground truth does not mention any citations or references to Li et al., 2025 or Zhou et al., 2017. These are fabricated citations not found in the provided ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Coolsaet et al., 2026; Souza et al., 2015",
+          "issue": "The ground truth does not mention any citations or references to Coolsaet et al., 2026 or Souza et al., 2015. These are fabricated citations not found in the provided ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "Ehsan et al., 2025",
+          "issue": "The ground truth does not mention any citation or reference to Ehsan et al., 2025. This is a fabricated citation not found in the provided ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Given that the primary hypothesis (H1) remains inconclusive due to the use of synthetic data",
+          "issue": "The ground truth states that H1's verdict is 'inconclusive' because the experiment ran to completion but no verdict is drawn from the metrics (meets_success_criteria=\"unknown\") and one or more inputs are synthetic surrogates. However, the ground truth does not explicitly state that the inconclusiveness is *due to* the use of synthetic data, nor does it define 'synthetic data' in this context. The claim makes an assumption about causation that is not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "future experiments should focus on replicating the analysis with real-world financial datasets",
+          "issue": "While the ground truth notes that the current experiment used synthetic surrogates and that the hypothesis is inconclusive, it does not specify or imply that future experiments must replicate the *exact same analysis* with real-world datasets. The claim presumes a particular path forward that is not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "ensuring that all inputs and outputs are derived from authentic market data",
+          "issue": "The ground truth does not mention anything about ensuring inputs and outputs are derived from 'authentic market data'. This is a new requirement or emphasis not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "further investigation into hybrid architectures that combine the strengths of both paradigms is warranted",
+          "issue": "Although the ground truth mentions a gap related to contradictory findings between deep learning and classical ML models, it does not specifically call for or imply that future work should investigate hybrid architectures. This claim introduces a specific solution or direction not stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the absence of standardized datasets for financial sentiment—particularly in non-English markets—highlights a critical barrier to reproducibility and generalization",
+          "issue": "While the ground truth lists this as a gap, it does not describe this gap as 'highlighting a critical barrier', nor does it explicitly link it to 'reproducibility and generalization' in the way the claim does. The claim adds evaluative language not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Future work should therefore aim to develop and curate such datasets",
+          "issue": "The ground truth identifies the lack of standardized datasets as a gap but does not suggest or require that future work must 'develop and curate such datasets'. This is a prescriptive statement not grounded in the provided facts."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the limited availability of multi-source textual data and the lack of exploration into how sentiment from diverse channels (e.g., news and microblogs) interacts suggest a promising direction for enhancing model robustness",
+          "issue": "The ground truth confirms that there is a gap in multi-source data and in exploring interactions between sentiment from different sources, but it does not label this as a 'promising direction' for enhancing robustness. This is an interpretive addition not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing these issues will help build more comprehensive and culturally sensitive sentiment models capable of capturing nuanced market dynamics",
+          "issue": "While the ground truth discusses cultural sensitivity and nuances, it does not assert or predict that addressing the listed gaps will lead to building 'more comprehensive and culturally sensitive sentiment models'. This is a speculative conclusion not grounded in the facts."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the temporal dimension of sentiment influence on financial outcomes remains inadequately modeled in current approaches",
+          "issue": "The ground truth confirms that there is a gap in modeling the time-sensitive nature of sentiment’s influence, but it does not describe this as 'inadequately modeled in current approaches'. The claim adds a subjective characterization not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "incorporate advanced time-series techniques to better align sentiment signals with stock price movements",
+          "issue": "The ground truth identifies a gap in temporal modeling but does not recommend or specify 'advanced time-series techniques' as a solution. This is a proposed methodology not grounded in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "mitigating potential look-ahead biases",
+          "issue": "The ground truth mentions temporal alignment and look-ahead bias as a concern, but does not state that future work should 'mitigate' such biases. The claim implies a specific action not directly supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "longitudinal investigations into how investor sentiment evolves over time and its interaction with cultural factors present another important avenue for research",
+          "issue": "While the ground truth lists longitudinal studies and cultural factors as gaps, it does not state that they together form an 'important avenue for research'. This is a synthesis or prioritization not grounded in the facts."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These directions not only address the identified methodological shortcomings but also align with broader trends toward more interpretable, scalable, and globally applicable financial NLP systems",
+          "issue": "The ground truth does not mention any 'broader trends' toward interpretable, scalable, or globally applicable systems. This is a generalization or framing not supported by the ground truth."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Mykovg et al., 2018)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        },
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Mykovg et\nal., 2018)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500",
+          "actual": "Coder Agent reports sample_size=26272"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text states, 'the metrics reported reflect the behavior of the pipeline on generated data rather than actual market observations,' which is accurate according to the ground truth. However, it also says, 'As such, these findings cannot validate or refute the hypothesis,' which overstated the outcome. The ground truth explicitly states that the experiment 'meets_success_criteria=\"unknown\"'—meaning the experiment did not fail to meet criteria, but rather that no verdict was drawn from it. The paper incorrectly implies that the lack of a conclusion is due to invalid data, when in fact the experiment completed without reaching a definitive outcome based on its own metrics. This misrepresents the nature of an inconclusive result by framing it as a failure of data quality rather than a neutral scientific outcome."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"A growing body of work explores the integration of textual data—particularly from news headlines—with structured financial indicators to improve forecasting accuracy (Li et al., 2025; Zhou et al., 2017).\" — The ground truth lists 'Structured Event Representation and Stock Return Predictability' by Gang Li, Dandan Qiao, Mingxuan Zheng (2025) and 'Tales of Emotion and Stock in China: Volatility, Causality and Prediction' by Zhenkun Zhou, Ke Xu, Jichang Zhao (2017) as cited papers, but does not indicate that these works specifically explore the integration of textual data from news headlines with structured financial indicators for forecasting accuracy. The claim attributes a specific scope and methodology to these papers that is not supported by the ground truth.\n- Introduction: \"These studies span a wide range of methodologies, from classical lexicon-based tools such as VADER and Loughran-McDonald to sophisticated deep learning models including BERT, FinBERT, and transformer architectures (Coolsaet et al., 2026; Rajhans et al., 2024).\" — While the ground truth mentions that studies vary in methodology and include both lexicon-based and deep learning models, it does not specify that the cited papers (Coolsaet et al., 2026; Rajhans et al., 2024) explicitly cover VADER, Loughran-McDonald, BERT, FinBERT, or transformer architectures. The claim makes a specific attribution of tools and models to these papers that is not substantiated in the ground truth.\n- Introduction: \"Many researchers advocate for the inclusion of sentiment signals in predictive models, others question the consistency and robustness of such approaches, especially when applied across diverse financial contexts (Coolsaet et al., 2026; Rajhans et al., 2024).\" — The ground truth does not attribute to Coolsaet et al. (2026) or Rajhans et al. (2024) any explicit advocacy or questioning of sentiment signals. The claim introduces a stance or perspective held by researchers that is not reflected in the ground truth.\n- Introduction: \"Moreover, while some works emphasize the importance of multi-dimensional sentiment signals, most models still rely heavily on binary polarity classifications, potentially overlooking nuanced emotional expressions that could be informative for financial forecasting (Dai et al., 2026).\" — The ground truth mentions that 'Beyond Polarity: Multi-Dimensional LLM Sentiment Signals for WTI Crude Oil Futures Return Prediction' by Dai et al. (2026) explores multi-dimensional signals, but it does not support the claim that 'most models still rely heavily on binary polarity classifications.' This is a generalization not grounded in the provided evidence.\n- Introduction: \"This includes insufficient attention to the unique characteristics of non-English financial texts and the need for culturally tailored models (Jovanoski et al., 2021).\" — The ground truth lists 'Sentiment Analysis in Twitter for Macedonian' by Jovanoski et al. (2021) as a cited paper, but does not indicate that this paper addresses non-English financial texts or the need for culturally tailored models. The claim extends the scope of the paper beyond what is stated in the ground truth.\n- Introduction: \"Addressing these issues is crucial for developing more robust and universally applicable sentiment analysis systems in finance.\" — This is a general evaluative statement summarizing the importance of addressing the mentioned gaps. While consistent with the overall theme of the introduction, it is not a verifiable claim directly traceable to the ground truth data. It is interpretive rather than factual.\n- Related Work: \"which includes 354 positive and 2,329 negative words tailored for financial texts (Mykovg et al., 2018)\" — The ground truth does not mention Mykovg et al. (2018) or provide specific numbers of 354 positive and 2,329 negative words in the Loughran-McDonald dictionary. The Loughran-McDonald lexicon is referenced in the ground truth, but without these specific counts or attribution to Mykovg et al. (2018).\n- Related Work: \"FinBERT has gained prominence for their ability to compute nuanced sentiment scores from financial texts (Zhang et al., 2025)\" — While Zhang et al. (2025) is mentioned in the ground truth, the abstract of their paper does not describe FinBERT as a method used for computing nuanced sentiment scores. The paper describes FinBERT as a model for calculating standardized sentiment scores, but does not explicitly state that it computes 'nuanced sentiment scores'.\n- Related Work: \"the FinancialPhraseBank, containing annotated news headlines across three sentiment classes: positive, neutral, and negative (Mo et al., 2024)\" — The ground truth mentions that the FinancialPhraseBank dataset is used in Mo et al. (2024), but it does not specify that the dataset contains annotated news headlines across exactly three sentiment classes: positive, neutral, and negative. The ground truth only states that the dataset consists of two columns: Sentiment and Headline, with sentiment categorized into three distinct classes, without specifying the exact class names.\n- Related Work: \"Advanced architectures such as DeBERTa v3 and contrastive learning techniques have been employed to improve the accuracy of aspect-level sentiment classification Ivanenko (2023)\" — The ground truth for Ivanenko (2023) mentions that contrastive learning is used in enhancing aspect-based financial sentiment analysis, but it does not specify that DeBERTa v3 is one of the architectures employed. The paper discusses aspect-based sentiment analysis and contrastive learning but does not name DeBERTa v3 as a specific architecture used.\n- Related Work: \"The temporal dynamics of sentiment and its influence on financial outcomes remain underexplored, suggesting a need for more sophisticated modeling approaches that account for time-sensitive effects (Fatouros et al., 2023)\" — The ground truth for Fatouros et al. (2023) discusses the temporal nature of sentiment in financial markets, but it does not state that the temporal dynamics of sentiment and its influence on financial outcomes remain underexplored. The paper focuses on the use of computational techniques to extract sentiment from textual data and its application in financial contexts, but does not make claims about the under-exploration of temporal dynamics.\n- Hypotheses: \"The dependent variable is the directional prediction of S&P 500 returns, while the independent variables consist of BERT-based sentiment scores and Fama-French factors.\" — The ground truth states that the dependent variable is 'Next-day directional prediction of S&P 500 returns' but does not specify the independent variables as 'BERT-based sentiment scores and Fama-French factors'. Instead, it lists them separately under 'suggested_variables' as 'BERT-based sentiment scores from news headlines' and 'Fama-French three-factor risk premiums', indicating a difference in terminology and specificity.\n- Hypotheses: \"The variables involved include Loughran-McDonald sentiment scores and Fama-French factors as independent variables, with the directional prediction of stock return direction as the dependent variable\" — According to the ground truth, the suggested independent variables for H2 are 'Loughran-McDonald sentiment scores from news headlines' and 'Fama-French three-factor risk premiums', not just 'Loughran-McDonald sentiment scores' and 'Fama-French factors'. The ground truth also specifies the dependent variable as 'Next-day directional prediction of stock return direction', which differs slightly from the paper's phrasing.\n- Hypotheses: \"The independent variable consists of multi-dimensional sentiment signals, whereas the dependent variable remains the directional prediction of stock return direction\" — The ground truth indicates that the suggested independent variables for H3 are 'Multi-dimensional sentiment signals from news headlines', but the paper refers to 'multi-dimensional sentiment signals' without specifying their source as 'from news headlines'. Additionally, the dependent variable is correctly stated in both, but the paper omits the full specification of the dependent variable as 'Next-day directional prediction of stock return direction' as per the ground truth.\n- Hypotheses: \"Li et al., 2025; Zhou et al., 2017\" — The ground truth does not mention any citations or references to Li et al., 2025 or Zhou et al., 2017. These are fabricated citations not found in the provided ground truth.\n- Hypotheses: \"Coolsaet et al., 2026; Souza et al., 2015\" — The ground truth does not mention any citations or references to Coolsaet et al., 2026 or Souza et al., 2015. These are fabricated citations not found in the provided ground truth.\n- Hypotheses: \"Ehsan et al., 2025\" — The ground truth does not mention any citation or reference to Ehsan et al., 2025. This is a fabricated citation not found in the provided ground truth.\n- Future Work: \"Given that the primary hypothesis (H1) remains inconclusive due to the use of synthetic data\" — The ground truth states that H1's verdict is 'inconclusive' because the experiment ran to completion but no verdict is drawn from the metrics (meets_success_criteria=\"unknown\") and one or more inputs are synthetic surrogates. However, the ground truth does not explicitly state that the inconclusiveness is *due to* the use of synthetic data, nor does it define 'synthetic data' in this context. The claim makes an assumption about causation that is not supported by the ground truth.\n- Future Work: \"future experiments should focus on replicating the analysis with real-world financial datasets\" — While the ground truth notes that the current experiment used synthetic surrogates and that the hypothesis is inconclusive, it does not specify or imply that future experiments must replicate the *exact same analysis* with real-world datasets. The claim presumes a particular path forward that is not grounded in the provided information.\n- Future Work: \"ensuring that all inputs and outputs are derived from authentic market data\" — The ground truth does not mention anything about ensuring inputs and outputs are derived from 'authentic market data'. This is a new requirement or emphasis not found in the ground truth.\n- Future Work: \"further investigation into hybrid architectures that combine the strengths of both paradigms is warranted\" — Although the ground truth mentions a gap related to contradictory findings between deep learning and classical ML models, it does not specifically call for or imply that future work should investigate hybrid architectures. This claim introduces a specific solution or direction not stated in the ground truth.\n- Future Work: \"the absence of standardized datasets for financial sentiment—particularly in non-English markets—highlights a critical barrier to reproducibility and generalization\" — While the ground truth lists this as a gap, it does not describe this gap as 'highlighting a critical barrier', nor does it explicitly link it to 'reproducibility and generalization' in the way the claim does. The claim adds evaluative language not present in the ground truth.\n- Future Work: \"Future work should therefore aim to develop and curate such datasets\" — The ground truth identifies the lack of standardized datasets as a gap but does not suggest or require that future work must 'develop and curate such datasets'. This is a prescriptive statement not grounded in the provided facts.\n- Future Work: \"the limited availability of multi-source textual data and the lack of exploration into how sentiment from diverse channels (e.g., news and microblogs) interacts suggest a promising direction for enhancing model robustness\" — The ground truth confirms that there is a gap in multi-source data and in exploring interactions between sentiment from different sources, but it does not label this as a 'promising direction' for enhancing robustness. This is an interpretive addition not supported by the ground truth.\n- Future Work: \"Addressing these issues will help build more comprehensive and culturally sensitive sentiment models capable of capturing nuanced market dynamics\" — While the ground truth discusses cultural sensitivity and nuances, it does not assert or predict that addressing the listed gaps will lead to building 'more comprehensive and culturally sensitive sentiment models'. This is a speculative conclusion not grounded in the facts.\n- Future Work: \"the temporal dimension of sentiment influence on financial outcomes remains inadequately modeled in current approaches\" — The ground truth confirms that there is a gap in modeling the time-sensitive nature of sentiment’s influence, but it does not describe this as 'inadequately modeled in current approaches'. The claim adds a subjective characterization not found in the ground truth.\n- Future Work: \"incorporate advanced time-series techniques to better align sentiment signals with stock price movements\" — The ground truth identifies a gap in temporal modeling but does not recommend or specify 'advanced time-series techniques' as a solution. This is a proposed methodology not grounded in the ground truth.\n- Future Work: \"mitigating potential look-ahead biases\" — The ground truth mentions temporal alignment and look-ahead bias as a concern, but does not state that future work should 'mitigate' such biases. The claim implies a specific action not directly supported by the ground truth.\n- Future Work: \"longitudinal investigations into how investor sentiment evolves over time and its interaction with cultural factors present another important avenue for research\" — While the ground truth lists longitudinal studies and cultural factors as gaps, it does not state that they together form an 'important avenue for research'. This is a synthesis or prioritization not grounded in the facts.\n- Future Work: \"These directions not only address the identified methodological shortcomings but also align with broader trends toward more interpretable, scalable, and globally applicable financial NLP systems\" — The ground truth does not mention any 'broader trends' toward interpretable, scalable, or globally applicable systems. This is a generalization or framing not supported by the ground truth.\nCitation issues:\n- Related Work: citation-like text \"(Mykovg et al., 2018)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\n- Related Work: citation-like text \"(Mykovg et\nal., 2018)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500; actual — Coder Agent reports sample_size=26272. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text states, 'the metrics reported reflect the behavior of the pipeline on generated data rather than actual market observations,' which is accurate according to the ground truth. However, it also says, 'As such, these findings cannot validate or refute the hypothesis,' which overstated the outcome. The ground truth explicitly states that the experiment 'meets_success_criteria=\"unknown\"'—meaning the experiment did not fail to meet criteria, but rather that no verdict was drawn from it. The paper incorrectly implies that the lack of a conclusion is due to invalid data, when in fact the experiment completed without reaching a definitive outcome based on its own metrics. This misrepresents the nature of an inconclusive result by framing it as a failure of data quality rather than a neutral scientific outcome.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists from introduction to conclusion, but transitions between sections feel somewhat abrupt, especially between related work and hypotheses, and between methods and results.",
+      "generated_at": "2026-09-15T05:10:12.882636+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 2,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v2.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v2.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "7102bb3fe73bd057ff161d9db5214a267c1ef312",
+        "8d02573da4c3d197804d8829bdc83c292562ed37",
+        "2605.23962v1",
+        "8f025f166dee4db5c42c9f30d4decae29a09ab0c",
+        "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+        "3c4f1244301577cffff9affc73690669725e7e08",
+        "109e50d9c7830706616d20e2cadc7606e601275b",
+        "2e430e6e57c19733989ae5e16bd545ae86650334",
+        "2512.19484v1",
+        "ff24cf22a21ac3921c71edfaeb461a29a28b1c57",
+        "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+        "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+        "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+        "3b740025953475a1cb23780961bdead5c71fd3fe",
+        "1705.00294v1"
+      ],
+      "notes_for_review": [
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Limitations section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T05:11:28.840659+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 2,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "A number of studies have explored the use of textual data—particularly from news headlines—as a source of sentiment signals that can be integrated with structured financial indicators.",
+          "issue": "While the ground truth mentions that studies apply NLP and ML techniques to analyze financial sentiment from news headlines, it does not specify that these studies explicitly integrate sentiment signals with structured financial indicators. This particular phrasing implies a common practice that is not substantiated in the provided ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Several persistent issues hinder progress in this field. One major challenge is the lack of standardized datasets and evaluation metrics, which complicates direct comparisons between studies (Coolsaet et al., 2026; Rajhans et al., 2024).",
+          "issue": "The ground truth lists 'inconsistent evaluation metrics and benchmarks across studies' as a gap, but does not mention 'standardized datasets' as a separate issue. Furthermore, Coolsaet et al. (2026) is listed among cited papers, but the ground truth does not associate this paper with the lack of standardized datasets. Therefore, attributing this specific problem to these two papers is a hallucination."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, there is limited cross-market validation of sentiment models, raising questions about their generalizability beyond specific regions or timeframes (Zhou et al., 2017; Li et al., 2025; Rajhans et al., 2024).",
+          "issue": "The ground truth identifies 'limited discussion on the robustness of sentiment analysis models across different financial markets and time periods' as a gap, but it does not list any of the mentioned authors (Zhou et al., Li et al.) as supporting evidence for this specific point. Thus, linking these specific papers to this issue is incorrect."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Similarly, while some research highlights the value of multi-dimensional sentiment signals, most existing models continue to rely primarily on binary polarity classifications (Dai et al., 2026).",
+          "issue": "Although the ground truth notes that there is a 'limited exploration of multi-dimensional sentiment signals beyond polarity', it does not state that 'most existing models continue to rely primarily on binary polarity classifications'. This claim introduces a generalization not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Cultural and linguistic differences in financial texts also present challenges, particularly in non-English markets, where models often lack appropriate tailoring (Duarte et al., 2020).",
+          "issue": "The ground truth includes a gap related to 'limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets', but it does not link this specifically to Duarte et al. (2020) or assert that models 'lack appropriate tailoring'. This claim is therefore not grounded in the provided information."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Temporal dynamics of sentiment and potential look-ahead biases in news-based analyses remain underexplored (Olaniyan et al., 2021; Rommadhon et al., 2026).",
+          "issue": "The ground truth identifies 'gap in modeling the time-sensitive nature of sentiment's influence on stock prices' and 'temporal alignment and look-ahead bias in news sentiment analysis may affect model validity', but it does not attribute either of these to the specific cited papers. Therefore, this attribution is a hallucination."
+        },
+        {
+          "location": "Introduction",
+          "claim": "We examine whether BERT-based financial sentiment models trained on news headlines yield improved directional prediction performance compared to traditional factor models",
+          "issue": "While the hypotheses section includes H1 stating this, the introduction does not directly reference or summarize H1. It only states that the paper aims to test a set of hypotheses without specifying which ones. This claim introduces a hypothesis not yet clearly stated in the introduction, making it a hallucination."
+        },
+        {
+          "location": "Introduction",
+          "claim": "and whether incorporating multi-dimensional sentiment signals enhances predictive accuracy beyond conventional price-derived features.",
+          "issue": "This refers to H3, which is introduced in the hypotheses section but not summarized or referenced in the introduction. The introduction does not explicitly state that this is one of the goals being tested, so this claim is not grounded in the text."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Early approaches relied heavily on domain-specific lexicons such as the Loughran and McDonald dictionary, which have been widely adopted in financial contexts Luo (2026).",
+          "issue": "The ground truth for Luo (2026) does not mention the Loughran-McDonald dictionary or its widespread adoption in financial contexts. The Loughran-McDonald lexicon is mentioned in the ground truth only in relation to the paper 'From Financial Sentiment Classification to Return Predictability: A QLoRA Benchmark of Large Language Models' (paper ID: bcc576b7957c96faaf8bfefaed4279ee7d39b8cd), but not in Luo (2026)."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These lexicons enable term-frequency counting normalized by document length to capture the overall sentiment of financial news Luo (2026).",
+          "issue": "The ground truth for Luo (2026) does not describe how Loughran-McDonald lexicons are used for term-frequency counting normalized by document length. This specific method of usage is not mentioned in the abstract of Luo (2026)."
+        },
+        {
+          "location": "Related Work",
+          "claim": "More recently, transformer-based models such as FinBERT have gained prominence for their ability to process financial texts Fatouros et al. (2023), leveraging pre-trained representations on large-scale corpora to better interpret financial language Fatouros et al. (2023).",
+          "issue": "While FinBERT is mentioned in the ground truth as a method used in one paper (ID: 089e76b551fddb1731cafe72c4235c0d2ccd66e0), the abstract of Fatouros et al. (2023) does not describe FinBERT specifically or its use in processing financial texts. The paper discusses VADER and other models but does not mention FinBERT."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Researchers have also explored the integration of financial data with textual features to improve prediction accuracy Chen et al. (2025).",
+          "issue": "The ground truth for Chen et al. (2025) mentions the use of weighted F1 scores and behavioral finance insights related to sentiment impact, but does not describe any integration of financial data with textual features for improving prediction accuracy."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The use of weighted functions to incorporate the recency of news has been explored to enhance the relevance of sentiment signals in predictive models Duarte et al. (2020).",
+          "issue": "The ground truth for Duarte et al. (2020) describes the use of weight functions (w1 and w2) for news publication dates, but does not explicitly state that these functions are used to incorporate the recency of news to enhance sentiment signal relevance in predictive models."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Advanced techniques such as contrastive learning have been employed to improve the accuracy of aspect-level sentiment classification Ivanenko (2023).",
+          "issue": "The ground truth for Ivanenko (2023) mentions the use of aspect-based sentiment analysis (ABSA) and the need for more nuanced perspectives, but does not mention the employment of contrastive learning techniques to improve aspect-level sentiment classification."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The integration of structured financial data with unstructured textual information has been shown to enhance model performance, although the extent of this enhancement remains an open question Chen et al. (2025).",
+          "issue": "While Chen et al. (2025) discusses the importance of assigning different weights to sentiment categories based on their impact on market volatility, it does not discuss the integration of structured financial data with unstructured textual information or whether such integration enhances model performance."
+        },
+        {
+          "location": "Related Work",
+          "claim": "While certain works rely on established lexicons and simple term-frequency counting, others adopt more sophisticated neural architectures to process financial text Fatouros et al. (2023).",
+          "issue": "The ground truth for Fatouros et al. (2023) does not mention simple term-frequency counting or the reliance on established lexicons. It discusses the evolution from manual lexicons to ML and DL techniques but does not specify that some works still rely on simple term-frequency counting."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Lv (2025) demonstrates that analyst report information, including numerical forecasts and revisions in recommendations, earnings, and target prices, exhibits statistically significant predictive ability for future stock returns Lv (2025).",
+          "issue": "The ground truth for Lv (2025) shows that analyst report information demonstrates statistically significant predictive power for future stock returns, but it does not specify that this includes numerical forecasts and revisions in recommendations, earnings, and target prices as a single cohesive unit."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The integration of textual components of analyst reports with numerical forecasts has been shown to enhance predictive accuracy Lv (2025).",
+          "issue": "The ground truth for Lv (2025) states that the predictive power of text-based estimates remains robust when controlling for numerical forecasts, but it does not state that integrating textual components with numerical forecasts enhances predictive accuracy."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Huang et al. (2024) introduces a model based on multisource information fusion, applying a triple-dimensional output to classify stock movements, demonstrating its applicability in simulated trading environments Huang et al. (2024).",
+          "issue": "The ground truth for Huang et al. (2024) describes a model with a three-dimensional output representing probabilities of rising, flattening, and falling, and evaluates profitability using cumulative return and Sharpe ratio, but it does not mention multisource information fusion or simulated trading environments."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Our hypotheses build upon this foundation by examining whether BERT-based financial sentiment models, when combined with structured financial data such as Fama-French risk premiums, can improve next-day directional prediction of S&P 500 returns compared to traditional models.",
+          "issue": "This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Specifically, we test whether sentiment derived from financial news headlines using the Loughran-McDonald lexicon, when combined with structured financial data, produces higher accuracy in predicting next-day stock return direction than models using only price-derived features (H2).",
+          "issue": "This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "We also investigate whether models incorporating multi-dimensional sentiment signals perform better than those using only binary sentiment polarity (H3).",
+          "issue": "This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Furthermore, we evaluate whether a BERT-based financial sentiment model trained on news headlines can improve directional prediction compared to a model using only Fama-French three-factor risk premiums (H1).",
+          "issue": "This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions."
+        },
+        {
+          "location": "Limitations",
+          "claim": "A key concern involves the use of synthetic sentiment labels, which were introduced as a pragmatic solution to avoid computational bottlenecks during model training and inference",
+          "issue": "The ground truth states that synthetic sentiment labels were used to avoid 'potential memory and time issues' but does not mention 'computational bottlenecks during model training and inference'. The specific framing of 'model training and inference' is not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "While this approach enabled the execution of the study within feasible time and memory limits",
+          "issue": "The ground truth mentions replacing BERT with synthetic scores to avoid memory/time issues, but does not explicitly state that the study was executed 'within feasible time and memory limits'. This is an interpretation not directly grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "the temporal alignment between sentiment and financial data may introduce timing mismatches, potentially affecting the validity of Granger causality tests that rely on precise synchronization of observations",
+          "issue": "The ground truth lists 'The alignment of dates between sentiment data and financial data might introduce timing mismatches' as a risk, but does not specify that such mismatches 'potentially affect the validity of Granger causality tests that rely on precise synchronization of observations'. The added specificity about 'validity' and 'precise synchronization' is not found in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "To manage computational overhead, we reduced both the batch size and the maximum lag parameter used in the Granger causality analysis",
+          "issue": "The ground truth confirms reducing BATCH_SIZE from 8 to 4 and MAX_GRANGER_LAGS from 3 to 2, but does not state that these reductions were made 'to manage computational overhead'. This reason is not mentioned in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "substituting a complex BERT-based model with a simpler synthetic data generation method",
+          "issue": "The ground truth states that BERT was replaced with synthetic scores, but does not describe the replacement as a 'simpler synthetic data generation method'. The characterization of the replacement as a 'synthetic data generation method' rather than just synthetic scores is not grounded in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These adjustments, while necessary for feasibility, likely diminished the sensitivity and accuracy of the models in detecting nuanced relationships within the data",
+          "issue": "The ground truth does not mention anything about the 'sensitivity and accuracy of the models' or their ability to detect 'nuanced relationships'. This is an interpretive claim not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "the use of a mean-based prediction strategy instead of more sophisticated modeling techniques represents another simplification that may overlook important patterns in the financial data",
+          "issue": "The ground truth confirms using a 'simple mean-based prediction approach', but does not state that this approach 'may overlook important patterns in the financial data'. This added judgment is not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "the choice of Granger causality as the primary analytical tool introduces inherent limitations due to its assumption of linear relationships, which may not hold in the inherently non-linear and volatile environment of financial markets",
+          "issue": "The ground truth lists 'Granger causality tests assume linear relationships, which may not hold for financial data' as a risk, but does not describe financial markets as 'inherently non-linear and volatile'. This added characterization of financial markets is not grounded in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Since the primary hypothesis (H1) remains inconclusive due to the use of synthetic surrogates in the input data",
+          "issue": "The ground truth states that the hypothesis H1 is inconclusive because 'One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis', but it does not explicitly state that the reason for inconclusiveness is 'due to the use of synthetic surrogates in the input data'. The phrasing implies a direct causal link that is not made in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "future efforts should prioritize validating the framework with real-world financial data to assess the true performance of BERT-based sentiment models relative to traditional factor models",
+          "issue": "While the ground truth mentions that H1 is inconclusive due to synthetic data and that validation with real-world data would be necessary, it does not specify that this is a 'future effort' or that it should be prioritized. This is an interpretive addition not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "further exploration into model integration strategies is merited, although specific architectural choices remain open for investigation",
+          "issue": "The ground truth lists a gap related to 'Contradictory findings regarding the superiority of deep learning models versus traditional ML models' but does not mention anything about 'model integration strategies' or suggest that such exploration is merited. This is a new idea introduced without grounding in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The lack of standardized datasets—especially for non-English markets—represents a notable challenge for reproducibility and generalization",
+          "issue": "The ground truth confirms the existence of a gap regarding 'Lack of standardized datasets for financial sentiment analysis, particularly in non-English markets', but it does not describe this as a 'notable challenge for reproducibility and generalization'. This is a reinterpretation or elaboration not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Similarly, the limited availability of multi-source textual data and insufficient exploration of how sentiment from various channels, such as news and microblogs, interacts suggests opportunities for improving model robustness through cross-source analysis",
+          "issue": "The ground truth includes a gap titled 'Limited availability of datasets combining multiple text sources for financial sentiment analysis' and another titled 'The relationship between sentiment across different data sources such as news and microblogs remains underexplored'. However, it does not state that these gaps 'suggest opportunities for improving model robustness through cross-source analysis'. This is an inference not directly supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The existing gap in modeling the time-sensitive nature of sentiment indicates a need for improved temporal alignment techniques and careful consideration of look-ahead bias in time-series analyses",
+          "issue": "The ground truth identifies a gap titled 'Gap in modeling the time-sensitive nature of sentiment's influence on stock prices' and another titled 'Temporal alignment and look-ahead bias in news sentiment analysis may affect model validity'. While these are related, the ground truth does not explicitly state that these gaps indicate a 'need for improved temporal alignment techniques and careful consideration of look-ahead bias'. This is a synthesis not grounded in the exact wording or implications of the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Investigating how investor sentiment evolves over time, including its interaction with cultural factors, also presents a valuable direction for future research",
+          "issue": "The ground truth includes a gap titled 'Limited longitudinal studies examining how investor sentiment evolves over extended periods' and another titled 'Limited discussion on how cultural differences interact with investor sentiment in shaping market outcomes beyond general tendencies'. However, it does not state that investigating these aspects 'presents a valuable direction for future research'. This is a subjective judgment not stated in the ground truth."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500",
+          "actual": "Coder Agent reports sample_size=26272"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text states, 'the experiment reached completion and met its success criteria, yet the outcome remains unknown,' which understates the given verdict of 'inconclusive.' The ground truth explicitly says that the verdict is 'inconclusive' because 'no verdict is drawn from them (meets_success_criteria=\"unknown\")' due to the use of synthetic data. The paper's framing implies that the experiment was successful in execution but failed in providing a conclusion, whereas the ground truth makes clear that the experiment's outcome cannot be evaluated at all due to data provenance issues, not just lack of a conclusion."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 4,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"A number of studies have explored the use of textual data—particularly from news headlines—as a source of sentiment signals that can be integrated with structured financial indicators.\" — While the ground truth mentions that studies apply NLP and ML techniques to analyze financial sentiment from news headlines, it does not specify that these studies explicitly integrate sentiment signals with structured financial indicators. This particular phrasing implies a common practice that is not substantiated in the provided ground truth.\n- Introduction: \"Several persistent issues hinder progress in this field. One major challenge is the lack of standardized datasets and evaluation metrics, which complicates direct comparisons between studies (Coolsaet et al., 2026; Rajhans et al., 2024).\" — The ground truth lists 'inconsistent evaluation metrics and benchmarks across studies' as a gap, but does not mention 'standardized datasets' as a separate issue. Furthermore, Coolsaet et al. (2026) is listed among cited papers, but the ground truth does not associate this paper with the lack of standardized datasets. Therefore, attributing this specific problem to these two papers is a hallucination.\n- Introduction: \"Additionally, there is limited cross-market validation of sentiment models, raising questions about their generalizability beyond specific regions or timeframes (Zhou et al., 2017; Li et al., 2025; Rajhans et al., 2024).\" — The ground truth identifies 'limited discussion on the robustness of sentiment analysis models across different financial markets and time periods' as a gap, but it does not list any of the mentioned authors (Zhou et al., Li et al.) as supporting evidence for this specific point. Thus, linking these specific papers to this issue is incorrect.\n- Introduction: \"Similarly, while some research highlights the value of multi-dimensional sentiment signals, most existing models continue to rely primarily on binary polarity classifications (Dai et al., 2026).\" — Although the ground truth notes that there is a 'limited exploration of multi-dimensional sentiment signals beyond polarity', it does not state that 'most existing models continue to rely primarily on binary polarity classifications'. This claim introduces a generalization not supported by the ground truth.\n- Introduction: \"Cultural and linguistic differences in financial texts also present challenges, particularly in non-English markets, where models often lack appropriate tailoring (Duarte et al., 2020).\" — The ground truth includes a gap related to 'limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets', but it does not link this specifically to Duarte et al. (2020) or assert that models 'lack appropriate tailoring'. This claim is therefore not grounded in the provided information.\n- Introduction: \"Temporal dynamics of sentiment and potential look-ahead biases in news-based analyses remain underexplored (Olaniyan et al., 2021; Rommadhon et al., 2026).\" — The ground truth identifies 'gap in modeling the time-sensitive nature of sentiment's influence on stock prices' and 'temporal alignment and look-ahead bias in news sentiment analysis may affect model validity', but it does not attribute either of these to the specific cited papers. Therefore, this attribution is a hallucination.\n- Introduction: \"We examine whether BERT-based financial sentiment models trained on news headlines yield improved directional prediction performance compared to traditional factor models\" — While the hypotheses section includes H1 stating this, the introduction does not directly reference or summarize H1. It only states that the paper aims to test a set of hypotheses without specifying which ones. This claim introduces a hypothesis not yet clearly stated in the introduction, making it a hallucination.\n- Introduction: \"and whether incorporating multi-dimensional sentiment signals enhances predictive accuracy beyond conventional price-derived features.\" — This refers to H3, which is introduced in the hypotheses section but not summarized or referenced in the introduction. The introduction does not explicitly state that this is one of the goals being tested, so this claim is not grounded in the text.\n- Related Work: \"Early approaches relied heavily on domain-specific lexicons such as the Loughran and McDonald dictionary, which have been widely adopted in financial contexts Luo (2026).\" — The ground truth for Luo (2026) does not mention the Loughran-McDonald dictionary or its widespread adoption in financial contexts. The Loughran-McDonald lexicon is mentioned in the ground truth only in relation to the paper 'From Financial Sentiment Classification to Return Predictability: A QLoRA Benchmark of Large Language Models' (paper ID: bcc576b7957c96faaf8bfefaed4279ee7d39b8cd), but not in Luo (2026).\n- Related Work: \"These lexicons enable term-frequency counting normalized by document length to capture the overall sentiment of financial news Luo (2026).\" — The ground truth for Luo (2026) does not describe how Loughran-McDonald lexicons are used for term-frequency counting normalized by document length. This specific method of usage is not mentioned in the abstract of Luo (2026).\n- Related Work: \"More recently, transformer-based models such as FinBERT have gained prominence for their ability to process financial texts Fatouros et al. (2023), leveraging pre-trained representations on large-scale corpora to better interpret financial language Fatouros et al. (2023).\" — While FinBERT is mentioned in the ground truth as a method used in one paper (ID: 089e76b551fddb1731cafe72c4235c0d2ccd66e0), the abstract of Fatouros et al. (2023) does not describe FinBERT specifically or its use in processing financial texts. The paper discusses VADER and other models but does not mention FinBERT.\n- Related Work: \"Researchers have also explored the integration of financial data with textual features to improve prediction accuracy Chen et al. (2025).\" — The ground truth for Chen et al. (2025) mentions the use of weighted F1 scores and behavioral finance insights related to sentiment impact, but does not describe any integration of financial data with textual features for improving prediction accuracy.\n- Related Work: \"The use of weighted functions to incorporate the recency of news has been explored to enhance the relevance of sentiment signals in predictive models Duarte et al. (2020).\" — The ground truth for Duarte et al. (2020) describes the use of weight functions (w1 and w2) for news publication dates, but does not explicitly state that these functions are used to incorporate the recency of news to enhance sentiment signal relevance in predictive models.\n- Related Work: \"Advanced techniques such as contrastive learning have been employed to improve the accuracy of aspect-level sentiment classification Ivanenko (2023).\" — The ground truth for Ivanenko (2023) mentions the use of aspect-based sentiment analysis (ABSA) and the need for more nuanced perspectives, but does not mention the employment of contrastive learning techniques to improve aspect-level sentiment classification.\n- Related Work: \"The integration of structured financial data with unstructured textual information has been shown to enhance model performance, although the extent of this enhancement remains an open question Chen et al. (2025).\" — While Chen et al. (2025) discusses the importance of assigning different weights to sentiment categories based on their impact on market volatility, it does not discuss the integration of structured financial data with unstructured textual information or whether such integration enhances model performance.\n- Related Work: \"While certain works rely on established lexicons and simple term-frequency counting, others adopt more sophisticated neural architectures to process financial text Fatouros et al. (2023).\" — The ground truth for Fatouros et al. (2023) does not mention simple term-frequency counting or the reliance on established lexicons. It discusses the evolution from manual lexicons to ML and DL techniques but does not specify that some works still rely on simple term-frequency counting.\n- Related Work: \"Lv (2025) demonstrates that analyst report information, including numerical forecasts and revisions in recommendations, earnings, and target prices, exhibits statistically significant predictive ability for future stock returns Lv (2025).\" — The ground truth for Lv (2025) shows that analyst report information demonstrates statistically significant predictive power for future stock returns, but it does not specify that this includes numerical forecasts and revisions in recommendations, earnings, and target prices as a single cohesive unit.\n- Related Work: \"The integration of textual components of analyst reports with numerical forecasts has been shown to enhance predictive accuracy Lv (2025).\" — The ground truth for Lv (2025) states that the predictive power of text-based estimates remains robust when controlling for numerical forecasts, but it does not state that integrating textual components with numerical forecasts enhances predictive accuracy.\n- Related Work: \"Huang et al. (2024) introduces a model based on multisource information fusion, applying a triple-dimensional output to classify stock movements, demonstrating its applicability in simulated trading environments Huang et al. (2024).\" — The ground truth for Huang et al. (2024) describes a model with a three-dimensional output representing probabilities of rising, flattening, and falling, and evaluates profitability using cumulative return and Sharpe ratio, but it does not mention multisource information fusion or simulated trading environments.\n- Related Work: \"Our hypotheses build upon this foundation by examining whether BERT-based financial sentiment models, when combined with structured financial data such as Fama-French risk premiums, can improve next-day directional prediction of S&P 500 returns compared to traditional models.\" — This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions.\n- Related Work: \"Specifically, we test whether sentiment derived from financial news headlines using the Loughran-McDonald lexicon, when combined with structured financial data, produces higher accuracy in predicting next-day stock return direction than models using only price-derived features (H2).\" — This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions.\n- Related Work: \"We also investigate whether models incorporating multi-dimensional sentiment signals perform better than those using only binary sentiment polarity (H3).\" — This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions.\n- Related Work: \"Furthermore, we evaluate whether a BERT-based financial sentiment model trained on news headlines can improve directional prediction compared to a model using only Fama-French three-factor risk premiums (H1).\" — This statement is a hypothesis about the authors' own work and is not grounded in the ground truth provided. The ground truth does not contain any information about the authors' hypotheses or their specific research questions.\n- Limitations: \"A key concern involves the use of synthetic sentiment labels, which were introduced as a pragmatic solution to avoid computational bottlenecks during model training and inference\" — The ground truth states that synthetic sentiment labels were used to avoid 'potential memory and time issues' but does not mention 'computational bottlenecks during model training and inference'. The specific framing of 'model training and inference' is not supported by the ground truth.\n- Limitations: \"While this approach enabled the execution of the study within feasible time and memory limits\" — The ground truth mentions replacing BERT with synthetic scores to avoid memory/time issues, but does not explicitly state that the study was executed 'within feasible time and memory limits'. This is an interpretation not directly grounded in the provided information.\n- Limitations: \"the temporal alignment between sentiment and financial data may introduce timing mismatches, potentially affecting the validity of Granger causality tests that rely on precise synchronization of observations\" — The ground truth lists 'The alignment of dates between sentiment data and financial data might introduce timing mismatches' as a risk, but does not specify that such mismatches 'potentially affect the validity of Granger causality tests that rely on precise synchronization of observations'. The added specificity about 'validity' and 'precise synchronization' is not found in the ground truth.\n- Limitations: \"To manage computational overhead, we reduced both the batch size and the maximum lag parameter used in the Granger causality analysis\" — The ground truth confirms reducing BATCH_SIZE from 8 to 4 and MAX_GRANGER_LAGS from 3 to 2, but does not state that these reductions were made 'to manage computational overhead'. This reason is not mentioned in the ground truth.\n- Limitations: \"substituting a complex BERT-based model with a simpler synthetic data generation method\" — The ground truth states that BERT was replaced with synthetic scores, but does not describe the replacement as a 'simpler synthetic data generation method'. The characterization of the replacement as a 'synthetic data generation method' rather than just synthetic scores is not grounded in the ground truth.\n- Limitations: \"These adjustments, while necessary for feasibility, likely diminished the sensitivity and accuracy of the models in detecting nuanced relationships within the data\" — The ground truth does not mention anything about the 'sensitivity and accuracy of the models' or their ability to detect 'nuanced relationships'. This is an interpretive claim not supported by the ground truth.\n- Limitations: \"the use of a mean-based prediction strategy instead of more sophisticated modeling techniques represents another simplification that may overlook important patterns in the financial data\" — The ground truth confirms using a 'simple mean-based prediction approach', but does not state that this approach 'may overlook important patterns in the financial data'. This added judgment is not grounded in the provided information.\n- Limitations: \"the choice of Granger causality as the primary analytical tool introduces inherent limitations due to its assumption of linear relationships, which may not hold in the inherently non-linear and volatile environment of financial markets\" — The ground truth lists 'Granger causality tests assume linear relationships, which may not hold for financial data' as a risk, but does not describe financial markets as 'inherently non-linear and volatile'. This added characterization of financial markets is not grounded in the ground truth.\n- Future Work: \"Since the primary hypothesis (H1) remains inconclusive due to the use of synthetic surrogates in the input data\" — The ground truth states that the hypothesis H1 is inconclusive because 'One or more inputs are synthetic surrogates, so these metrics describe the pipeline's behaviour on generated data and say nothing about the real-world hypothesis', but it does not explicitly state that the reason for inconclusiveness is 'due to the use of synthetic surrogates in the input data'. The phrasing implies a direct causal link that is not made in the ground truth.\n- Future Work: \"future efforts should prioritize validating the framework with real-world financial data to assess the true performance of BERT-based sentiment models relative to traditional factor models\" — While the ground truth mentions that H1 is inconclusive due to synthetic data and that validation with real-world data would be necessary, it does not specify that this is a 'future effort' or that it should be prioritized. This is an interpretive addition not supported by the ground truth.\n- Future Work: \"further exploration into model integration strategies is merited, although specific architectural choices remain open for investigation\" — The ground truth lists a gap related to 'Contradictory findings regarding the superiority of deep learning models versus traditional ML models' but does not mention anything about 'model integration strategies' or suggest that such exploration is merited. This is a new idea introduced without grounding in the provided information.\n- Future Work: \"The lack of standardized datasets—especially for non-English markets—represents a notable challenge for reproducibility and generalization\" — The ground truth confirms the existence of a gap regarding 'Lack of standardized datasets for financial sentiment analysis, particularly in non-English markets', but it does not describe this as a 'notable challenge for reproducibility and generalization'. This is a reinterpretation or elaboration not found in the ground truth.\n- Future Work: \"Similarly, the limited availability of multi-source textual data and insufficient exploration of how sentiment from various channels, such as news and microblogs, interacts suggests opportunities for improving model robustness through cross-source analysis\" — The ground truth includes a gap titled 'Limited availability of datasets combining multiple text sources for financial sentiment analysis' and another titled 'The relationship between sentiment across different data sources such as news and microblogs remains underexplored'. However, it does not state that these gaps 'suggest opportunities for improving model robustness through cross-source analysis'. This is an inference not directly supported by the ground truth.\n- Future Work: \"The existing gap in modeling the time-sensitive nature of sentiment indicates a need for improved temporal alignment techniques and careful consideration of look-ahead bias in time-series analyses\" — The ground truth identifies a gap titled 'Gap in modeling the time-sensitive nature of sentiment's influence on stock prices' and another titled 'Temporal alignment and look-ahead bias in news sentiment analysis may affect model validity'. While these are related, the ground truth does not explicitly state that these gaps indicate a 'need for improved temporal alignment techniques and careful consideration of look-ahead bias'. This is a synthesis not grounded in the exact wording or implications of the ground truth.\n- Future Work: \"Investigating how investor sentiment evolves over time, including its interaction with cultural factors, also presents a valuable direction for future research\" — The ground truth includes a gap titled 'Limited longitudinal studies examining how investor sentiment evolves over extended periods' and another titled 'Limited discussion on how cultural differences interact with investor sentiment in shaping market outcomes beyond general tendencies'. However, it does not state that investigating these aspects 'presents a valuable direction for future research'. This is a subjective judgment not stated in the ground truth.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500; actual — Coder Agent reports sample_size=26272. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text states, 'the experiment reached completion and met its success criteria, yet the outcome remains unknown,' which understates the given verdict of 'inconclusive.' The ground truth explicitly says that the verdict is 'inconclusive' because 'no verdict is drawn from them (meets_success_criteria=\"unknown\")' due to the use of synthetic data. The paper's framing implies that the experiment was successful in execution but failed in providing a conclusion, whereas the ground truth makes clear that the experiment's outcome cannot be evaluated at all due to data provenance issues, not just lack of a conclusion.",
+      "generated_at": "2026-09-15T05:12:10.737600+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 3,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v3.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q001_does-sentiment-extracted-from-financial-news/v3.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "4b78ce1af7cad36a105d3e80a73925cbb28b22de",
+        "8d02573da4c3d197804d8829bdc83c292562ed37",
+        "2605.23962v1",
+        "e452391a5ae07e0713a4a6afc3dc86425e1870eb",
+        "50052383ec0b8f2deb199064b6dfe45364af97e1",
+        "cc067eef6c350876a6d4fe3aa614eccf3186619d",
+        "74c0b5672bf1de8be7c4b44c59e29ff32eb5daeb",
+        "109e50d9c7830706616d20e2cadc7606e601275b",
+        "2e430e6e57c19733989ae5e16bd545ae86650334",
+        "2109.13725v1",
+        "3fde48753b4975ac8f4d7ce77e3e89531ecf4477",
+        "2512.19484v1",
+        "ff24cf22a21ac3921c71edfaeb461a29a28b1c57",
+        "ce8cf93806a3811d92adfbabc4e0832d1c763d17",
+        "8ccf60f844e0baa450a55a68584e429ab34eaf4a",
+        "2510.15915v1",
+        "bcc576b7957c96faaf8bfefaed4279ee7d39b8cd",
+        "3da9dbffff9bd0273f4de3d5560970b13c688177",
+        "138eee48d6dc4b8b1db2a2d0447a4a0de5e65539",
+        "92a9ba8d0cfa73e5fa0817a7df1521818beaee71",
+        "995d24ce53571a24bbfe7f80c9d668e81b8a2971",
+        "8390b9ea558ac905c2a3231d239a9cf81bc49450",
+        "3b740025953475a1cb23780961bdead5c71fd3fe",
+        "089e76b551fddb1731cafe72c4235c0d2ccd66e0",
+        "1705.00294v1"
+      ],
+      "notes_for_review": [
+        "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id 'H1' in the Future Work section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-15T05:13:33.687216+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 3,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Approaches span from traditional lexicon-based methods like VADER and Loughran-McDonald to advanced deep learning models such as BERT and FinBERT",
+          "issue": "The ground truth mentions VADER and Loughran-McDonald as traditional lexicon-based approaches and BERT and FinBERT as advanced deep learning models, but does not explicitly list VADER among the traditional methods used in the literature. The claim implies a direct categorization that is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The absence of consistent evaluation metrics and benchmarks complicates direct comparisons between different approaches (Coolsaet et al., 2026; Rajhans et al., 2024)",
+          "issue": "While the ground truth identifies inconsistent evaluation metrics as a gap, it does not specifically attribute this issue to the cited papers Coolsaet et al. (2026) or Rajhans et al. (2024). The claim incorrectly attributes this specific limitation to those papers without confirmation from the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Similarly, there is limited discussion regarding the robustness of sentiment models across diverse financial markets and time periods (Zhou et al., 2017; Li et al., 2025; Rajhans et al., 2024)",
+          "issue": "The ground truth lists a gap related to limited discussion on robustness across markets and time periods, but does not associate this with the specific papers cited (Zhou et al., Li et al., Rajhans et al.). The claim fabricates a connection between these papers and this particular gap."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The lack of standardized datasets, especially for non-English markets, presents a barrier to reproducibility and broader applicability (Ehsan et al., 2025; Nuriksan and Nikmah, 2025)",
+          "issue": "The ground truth confirms the lack of standardized datasets for non-English markets as a gap, but does not link this directly to the cited papers Ehsan et al. (2025) or Nuriksan and Nikmah (2025). This attribution is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, contradictory findings exist regarding the relative effectiveness of deep learning models versus traditional machine learning models in stock prediction (Coolsaet et al., 2026; Rajhans et al., 2024)",
+          "issue": "The ground truth identifies contradictory findings as a gap, but does not specify that this applies to the papers Coolsaet et al. (2026) or Rajhans et al. (2024). The claim incorrectly assigns this limitation to these specific works."
+        },
+        {
+          "location": "Introduction",
+          "claim": "the precise definition of sentiment in financial contexts remains under debate (Saqur, 2017)",
+          "issue": "The ground truth lists a gap concerning the lack of consensus on the definition of sentiment in the financial domain, but does not cite Saqur (2017) as the source for this issue. The citation is fabricated."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additional concerns include the limited availability of datasets combining multiple text sources (Daudert, 2020)",
+          "issue": "The ground truth confirms the gap regarding limited availability of datasets combining multiple text sources, but does not attribute this to Daudert (2020). The claim misattributes this gap to the cited paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "and the underexplored relationship between sentiment from different data sources such as news and microblogs (Daudert and Buitelaar, 2018)",
+          "issue": "The ground truth acknowledges the underexplored relationship between sentiment from news and microblogs, but does not attribute this to Daudert and Buitelaar (2018). The claim fabricates a direct link to this paper."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Early approaches relied on domain-specific lexicons such as the Loughran and McDonald dictionary, which have been widely adopted in financial contexts Nagib and Husodo (2022).",
+          "issue": "While the Loughran-McDonald lexicon is mentioned in the ground truth as being used in papers (e.g., bcc576b7957c96faaf8bfefaed4279ee7d39b8cd), the claim that it has been 'widely adopted in financial contexts' is not explicitly stated in the abstracts provided. The ground truth does not confirm the extent or frequency of its adoption beyond its use in specific studies."
+        },
+        {
+          "location": "Related Work",
+          "claim": "More recently, transformer-based models such as FinBERT have gained prominence for their ability to process financial texts Zhang et al. (2025), leveraging pre-trained representations on large-scale corpora to better interpret financial language Zhang et al. (2025).",
+          "issue": "The ground truth mentions FinBERT in the abstract of Zhang et al. (2025) but does not state that FinBERT has 'gained prominence' or that it leverages pre-trained representations on large-scale corpora specifically for processing financial texts. The abstract of Zhang et al. (2025) discusses embedding structured financial data into text templates, not FinBERT's pre-training or representation capabilities."
+        },
+        {
+          "location": "Related Work",
+          "claim": "These models are often fine-tuned on financial datasets such as the FinancialPhraseBank, which contains annotated news headlines Mo et al. (2024).",
+          "issue": "The FinancialPhraseBank is mentioned in the abstract of Mo et al. (2024), but the claim that it is a 'financial dataset' and that 'these models are often fine-tuned on' it is not supported by the ground truth. The abstract does not specify that the dataset is used for fine-tuning transformer models or that it is a common practice."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Weighted F1 scores have been proposed to reflect the varying impacts of sentiment categories on market dynamics, assigning higher weights to negative sentiment due to its stronger influence on investor behavior Chen et al. (2025).",
+          "issue": "The ground truth confirms that Chen et al. (2025) introduces weighted F1 scores and assigns weights (0.5, 0.3, 0.2) to negative, positive, and neutral sentiments respectively. However, the claim that this is done 'to reflect the varying impacts of sentiment categories on market dynamics' and that 'negative sentiment has a stronger influence on investor behavior' is not explicitly stated in the abstract. The abstract only describes the calculation and rationale without specifying the behavioral or market dynamics implications."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The use of weighted functions to incorporate the recency of news has been explored to enhance the relevance of sentiment signals in predictive models Duarte et al. (2020).",
+          "issue": "The abstract of Duarte et al. (2020) mentions the use of a weight function (w) to predict prices in the return window, but it does not explicitly state that this is done to 'incorporate the recency of news' or to 'enhance the relevance of sentiment signals'. The abstract describes the method but does not elaborate on the motivation or impact of weighting by recency."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Aspect-based sentiment analysis (ABSA) allows for the detection of varying sentiments toward different components within a text Ivanenko (2023).",
+          "issue": "The abstract of Ivanenko (2023) mentions ABSA as a method for identifying sentiments associated with distinct entities or aspects, but it does not explicitly state that ABSA 'allows for the detection of varying sentiments toward different components within a text'. The ground truth does not support the specific phrasing or emphasis on 'components' in this way."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The integration of structured financial data with unstructured textual information has been explored, although the specific mechanisms for such integration vary across studies Duarte et al. (2020).",
+          "issue": "The abstract of Duarte et al. (2020) does not mention any integration of structured financial data with unstructured text. It focuses on news articles, stock prices, and weight functions but does not discuss embedding structured data into textual formats. Thus, the claim about such integration being explored is not grounded in the provided abstract."
+        },
+        {
+          "location": "Related Work",
+          "claim": "While certain works rely on established lexicons and simple term-frequency counting, others adopt more sophisticated neural architectures to process financial text Olaniyan et al. (2021).",
+          "issue": "The abstract of Olaniyan et al. (2021) mentions that sentiment analysis is used in finance and that BERT-based models are proposed, but it does not explicitly state that some works rely on 'established lexicons and simple term-frequency counting', nor does it contrast this with 'more sophisticated neural architectures'. The abstract does not support this characterization of the field."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Lv (2025) demonstrates that analyst report information exhibits statistically significant predictive ability for future stock returns Lv (2025).",
+          "issue": "The abstract of Lv (2025) states that analyst report information shows statistically significant predictive power for future stock returns, but it does not explicitly state that this is demonstrated by 'Lv (2025)' in the way described. The abstract does not attribute the demonstration directly to Lv’s work in the sentence structure implied."
+        },
+        {
+          "location": "Related Work",
+          "claim": "The predictive strength of text-based estimates remains robust even when controlling for numerical forecasts Lv (2025).",
+          "issue": "The abstract of Lv (2025) mentions that text-based estimates remain robust when controlling for numerical forecasts, but it does not explicitly state that this is the case in the way described. The abstract does not clearly support the claim that the predictive strength is 'robust' in the specified manner."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Huang et al. (2024) proposes a model based on multisource information fusion that outputs a three-dimensional vector representing the probabilities of stock price movements, evaluating its profitability using cumulative return and Sharpe ratio metrics Huang et al. (2024).",
+          "issue": "The abstract of Huang et al. (2024) states that the model outputs a three-dimensional vector and evaluates profitability using cumulative return and Sharpe ratio, but it does not explicitly state that the model is based on 'multisource information fusion'. The abstract does not describe the fusion aspect of the model."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Our hypotheses build upon this foundation by examining whether BERT-based financial sentiment models, when combined with structured financial data such as Fama-French risk premiums, can improve next-day directional prediction of S&P 500 returns compared to traditional models.",
+          "issue": "This is a hypothesis or research question posed by the authors, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Specifically, we test whether sentiment derived from financial news headlines using the Loughran-McDonald lexicon, when combined with structured financial data, produces higher accuracy in predicting next-day stock return direction than models using only price-derived features (H2).",
+          "issue": "This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "We also investigate whether models incorporating multi-dimensional sentiment signals perform better than those using only binary sentiment polarity (H3).",
+          "issue": "This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Furthermore, we evaluate whether a BERT-based financial sentiment model trained on news headlines can improve directional prediction compared to a model using only Fama-French three-factor risk premiums (H1).",
+          "issue": "This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The absence of standardized datasets, particularly for non-English markets, poses a significant barrier to reproducibility and generalization of financial sentiment models (Ehsan et al., 2025; Nuriksan and Nikmah, 2025).",
+          "issue": "While the ground truth lists 'Lack of standardized datasets for financial sentiment analysis, particularly in non-English markets' as a gap, it does not attribute this to being a 'significant barrier' or link it specifically to reproducibility and generalization in the way stated. The citation to Ehsan et al. (2025) and Nuriksan and Nikmah (2025) is accurate per the cited_papers list, but the qualitative assertion about their impact is not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Likewise, the limited availability of datasets combining multiple text sources and the underexplored relationship between sentiment from diverse channels such as news and microblogs present opportunities for enhancing model robustness (Daudert, 2020; Daudert and Buitelaar, 2018).",
+          "issue": "The ground truth mentions 'Limited availability of datasets combining multiple text sources' and 'The relationship between sentiment across different data sources such as news and microblogs remains underexplored', but does not explicitly state that these gaps 'present opportunities for enhancing model robustness'. This evaluative framing is not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Additionally, the lack of consensus on the definition of sentiment within financial contexts and the absence of longitudinal studies examining sentiment evolution over time underscore the need for more nuanced and temporally aware modeling approaches (Saqur, 2017; Mukherjee, 2025; Kim et al., 2025; Rehman et al., 2025).",
+          "issue": "The ground truth lists 'Lack of consensus on the precise definition of sentiment in the financial domain' and 'Limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets' as gaps, but does not mention 'absence of longitudinal studies examining sentiment evolution over time' or assert that these gaps 'underscore the need for more nuanced and temporally aware modeling approaches'. The citation to Mukherjee (2025), Kim et al. (2025), and Rehman et al. (2025) is accurate, but the interpretation of their relevance is not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The inconclusive outcome of the primary hypothesis (H1) reflects the limitations of the current experimental setup, particularly due to the use of synthetic surrogates in the input data, which prevents meaningful real-world validation.",
+          "issue": "While the ground truth states that H1's experiment was completed and its metrics are reported but no verdict is drawn because one or more inputs are synthetic surrogates, it does not explicitly state that this reflects 'limitations of the current experimental setup' or that the use of synthetic surrogates 'prevents meaningful real-world validation'. These interpretations are not directly supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "As such, future investigations should prioritize the collection and utilization of authentic financial data to properly evaluate the predictive capabilities of BERT-based sentiment models against traditional factor models.",
+          "issue": "The ground truth does not support the claim that future investigations should 'prioritize the collection and utilization of authentic financial data' or that this is necessary to 'properly evaluate the predictive capabilities of BERT-based sentiment models against traditional factor models'. While it notes synthetic data was used, it does not prescribe the solution or imply that this is the only path forward."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Furthermore, while there is no clear consensus on the relative effectiveness of deep learning versus classical machine learning models in stock prediction, the lack of direct empirical evidence in this area highlights the importance of continued comparative analysis (Coolsaet et al., 2026; Rajhans et al., 2024).",
+          "issue": "The ground truth lists 'Contradictory findings regarding the superiority of deep learning models versus traditional ML models in stock prediction' as a gap, but does not state that there is 'no clear consensus' or that the 'lack of direct empirical evidence in this area highlights the importance of continued comparative analysis'. These claims go beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, methodological considerations such as temporal alignment and look-ahead bias remain underexplored, especially in the context of news sentiment analysis (Rommadhon et al., 2026).",
+          "issue": "The ground truth lists 'Temporal alignment and look-ahead bias in news sentiment analysis may affect model validity' as a gap, but does not state that these are 'methodological considerations' or that they are 'especially underexplored in the context of news sentiment analysis'. The citation to Rommadhon et al. (2026) is accurate, but the framing of the issue is not grounded in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing these concerns will improve the validity of time-series models used in financial applications.",
+          "issue": "The ground truth does not make any claim about 'addressing these concerns will improve the validity of time-series models used in financial applications'. This is an inference or implication not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Moreover, the need for culturally and linguistically tailored models, particularly in emerging markets, remains an important direction for future study (Duarte et al., 2020; Jovanoski et al., 2021).",
+          "issue": "The ground truth lists 'Limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets' and 'Limited cross-cultural validation of sentiment analysis models for non-English languages like Macedonian' as gaps, but does not state that 'culturally and linguistically tailored models' are needed or that 'particularly in emerging markets' is a key focus. The citations to Duarte et al. (2020) and Jovanoski et al. (2021) are accurate, but the framing of their relevance is not grounded."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These directions aim to strengthen both the theoretical understanding and practical applicability of sentiment-based financial models.",
+          "issue": "The ground truth does not mention anything about 'these directions aim to strengthen both the theoretical understanding and practical applicability of sentiment-based financial models'. This is a general conclusion not supported by the ground truth."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Related Work",
+          "issue": "citation-like text \"(Duarte et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500",
+          "actual": "Coder Agent reports sample_size=26272"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by implying that the experiment 'reached completion and is marked as having met its success criteria,' which contradicts the ground truth stating that the verdict is 'inconclusive' because 'no verdict is drawn from them (meets_success_criteria=\"unknown\")'. The claim that the experiment 'met its success criteria' is not supported by the ground truth and misrepresents the actual status of the evaluation."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 5
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Approaches span from traditional lexicon-based methods like VADER and Loughran-McDonald to advanced deep learning models such as BERT and FinBERT\" — The ground truth mentions VADER and Loughran-McDonald as traditional lexicon-based approaches and BERT and FinBERT as advanced deep learning models, but does not explicitly list VADER among the traditional methods used in the literature. The claim implies a direct categorization that is not supported by the ground truth.\n- Introduction: \"The absence of consistent evaluation metrics and benchmarks complicates direct comparisons between different approaches (Coolsaet et al., 2026; Rajhans et al., 2024)\" — While the ground truth identifies inconsistent evaluation metrics as a gap, it does not specifically attribute this issue to the cited papers Coolsaet et al. (2026) or Rajhans et al. (2024). The claim incorrectly attributes this specific limitation to those papers without confirmation from the ground truth.\n- Introduction: \"Similarly, there is limited discussion regarding the robustness of sentiment models across diverse financial markets and time periods (Zhou et al., 2017; Li et al., 2025; Rajhans et al., 2024)\" — The ground truth lists a gap related to limited discussion on robustness across markets and time periods, but does not associate this with the specific papers cited (Zhou et al., Li et al., Rajhans et al.). The claim fabricates a connection between these papers and this particular gap.\n- Introduction: \"The lack of standardized datasets, especially for non-English markets, presents a barrier to reproducibility and broader applicability (Ehsan et al., 2025; Nuriksan and Nikmah, 2025)\" — The ground truth confirms the lack of standardized datasets for non-English markets as a gap, but does not link this directly to the cited papers Ehsan et al. (2025) or Nuriksan and Nikmah (2025). This attribution is not supported by the ground truth.\n- Introduction: \"Moreover, contradictory findings exist regarding the relative effectiveness of deep learning models versus traditional machine learning models in stock prediction (Coolsaet et al., 2026; Rajhans et al., 2024)\" — The ground truth identifies contradictory findings as a gap, but does not specify that this applies to the papers Coolsaet et al. (2026) or Rajhans et al. (2024). The claim incorrectly assigns this limitation to these specific works.\n- Introduction: \"the precise definition of sentiment in financial contexts remains under debate (Saqur, 2017)\" — The ground truth lists a gap concerning the lack of consensus on the definition of sentiment in the financial domain, but does not cite Saqur (2017) as the source for this issue. The citation is fabricated.\n- Introduction: \"Additional concerns include the limited availability of datasets combining multiple text sources (Daudert, 2020)\" — The ground truth confirms the gap regarding limited availability of datasets combining multiple text sources, but does not attribute this to Daudert (2020). The claim misattributes this gap to the cited paper.\n- Introduction: \"and the underexplored relationship between sentiment from different data sources such as news and microblogs (Daudert and Buitelaar, 2018)\" — The ground truth acknowledges the underexplored relationship between sentiment from news and microblogs, but does not attribute this to Daudert and Buitelaar (2018). The claim fabricates a direct link to this paper.\n- Related Work: \"Early approaches relied on domain-specific lexicons such as the Loughran and McDonald dictionary, which have been widely adopted in financial contexts Nagib and Husodo (2022).\" — While the Loughran-McDonald lexicon is mentioned in the ground truth as being used in papers (e.g., bcc576b7957c96faaf8bfefaed4279ee7d39b8cd), the claim that it has been 'widely adopted in financial contexts' is not explicitly stated in the abstracts provided. The ground truth does not confirm the extent or frequency of its adoption beyond its use in specific studies.\n- Related Work: \"More recently, transformer-based models such as FinBERT have gained prominence for their ability to process financial texts Zhang et al. (2025), leveraging pre-trained representations on large-scale corpora to better interpret financial language Zhang et al. (2025).\" — The ground truth mentions FinBERT in the abstract of Zhang et al. (2025) but does not state that FinBERT has 'gained prominence' or that it leverages pre-trained representations on large-scale corpora specifically for processing financial texts. The abstract of Zhang et al. (2025) discusses embedding structured financial data into text templates, not FinBERT's pre-training or representation capabilities.\n- Related Work: \"These models are often fine-tuned on financial datasets such as the FinancialPhraseBank, which contains annotated news headlines Mo et al. (2024).\" — The FinancialPhraseBank is mentioned in the abstract of Mo et al. (2024), but the claim that it is a 'financial dataset' and that 'these models are often fine-tuned on' it is not supported by the ground truth. The abstract does not specify that the dataset is used for fine-tuning transformer models or that it is a common practice.\n- Related Work: \"Weighted F1 scores have been proposed to reflect the varying impacts of sentiment categories on market dynamics, assigning higher weights to negative sentiment due to its stronger influence on investor behavior Chen et al. (2025).\" — The ground truth confirms that Chen et al. (2025) introduces weighted F1 scores and assigns weights (0.5, 0.3, 0.2) to negative, positive, and neutral sentiments respectively. However, the claim that this is done 'to reflect the varying impacts of sentiment categories on market dynamics' and that 'negative sentiment has a stronger influence on investor behavior' is not explicitly stated in the abstract. The abstract only describes the calculation and rationale without specifying the behavioral or market dynamics implications.\n- Related Work: \"The use of weighted functions to incorporate the recency of news has been explored to enhance the relevance of sentiment signals in predictive models Duarte et al. (2020).\" — The abstract of Duarte et al. (2020) mentions the use of a weight function (w) to predict prices in the return window, but it does not explicitly state that this is done to 'incorporate the recency of news' or to 'enhance the relevance of sentiment signals'. The abstract describes the method but does not elaborate on the motivation or impact of weighting by recency.\n- Related Work: \"Aspect-based sentiment analysis (ABSA) allows for the detection of varying sentiments toward different components within a text Ivanenko (2023).\" — The abstract of Ivanenko (2023) mentions ABSA as a method for identifying sentiments associated with distinct entities or aspects, but it does not explicitly state that ABSA 'allows for the detection of varying sentiments toward different components within a text'. The ground truth does not support the specific phrasing or emphasis on 'components' in this way.\n- Related Work: \"The integration of structured financial data with unstructured textual information has been explored, although the specific mechanisms for such integration vary across studies Duarte et al. (2020).\" — The abstract of Duarte et al. (2020) does not mention any integration of structured financial data with unstructured text. It focuses on news articles, stock prices, and weight functions but does not discuss embedding structured data into textual formats. Thus, the claim about such integration being explored is not grounded in the provided abstract.\n- Related Work: \"While certain works rely on established lexicons and simple term-frequency counting, others adopt more sophisticated neural architectures to process financial text Olaniyan et al. (2021).\" — The abstract of Olaniyan et al. (2021) mentions that sentiment analysis is used in finance and that BERT-based models are proposed, but it does not explicitly state that some works rely on 'established lexicons and simple term-frequency counting', nor does it contrast this with 'more sophisticated neural architectures'. The abstract does not support this characterization of the field.\n- Related Work: \"Lv (2025) demonstrates that analyst report information exhibits statistically significant predictive ability for future stock returns Lv (2025).\" — The abstract of Lv (2025) states that analyst report information shows statistically significant predictive power for future stock returns, but it does not explicitly state that this is demonstrated by 'Lv (2025)' in the way described. The abstract does not attribute the demonstration directly to Lv’s work in the sentence structure implied.\n- Related Work: \"The predictive strength of text-based estimates remains robust even when controlling for numerical forecasts Lv (2025).\" — The abstract of Lv (2025) mentions that text-based estimates remain robust when controlling for numerical forecasts, but it does not explicitly state that this is the case in the way described. The abstract does not clearly support the claim that the predictive strength is 'robust' in the specified manner.\n- Related Work: \"Huang et al. (2024) proposes a model based on multisource information fusion that outputs a three-dimensional vector representing the probabilities of stock price movements, evaluating its profitability using cumulative return and Sharpe ratio metrics Huang et al. (2024).\" — The abstract of Huang et al. (2024) states that the model outputs a three-dimensional vector and evaluates profitability using cumulative return and Sharpe ratio, but it does not explicitly state that the model is based on 'multisource information fusion'. The abstract does not describe the fusion aspect of the model.\n- Related Work: \"Our hypotheses build upon this foundation by examining whether BERT-based financial sentiment models, when combined with structured financial data such as Fama-French risk premiums, can improve next-day directional prediction of S&P 500 returns compared to traditional models.\" — This is a hypothesis or research question posed by the authors, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions.\n- Related Work: \"Specifically, we test whether sentiment derived from financial news headlines using the Loughran-McDonald lexicon, when combined with structured financial data, produces higher accuracy in predicting next-day stock return direction than models using only price-derived features (H2).\" — This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions.\n- Related Work: \"We also investigate whether models incorporating multi-dimensional sentiment signals perform better than those using only binary sentiment polarity (H3).\" — This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions.\n- Related Work: \"Furthermore, we evaluate whether a BERT-based financial sentiment model trained on news headlines can improve directional prediction compared to a model using only Fama-French three-factor risk premiums (H1).\" — This is a hypothesis or research question, not a claim that can be traced back to the ground truth. It is speculative and not grounded in the provided abstracts or method descriptions.\n- Future Work: \"The absence of standardized datasets, particularly for non-English markets, poses a significant barrier to reproducibility and generalization of financial sentiment models (Ehsan et al., 2025; Nuriksan and Nikmah, 2025).\" — While the ground truth lists 'Lack of standardized datasets for financial sentiment analysis, particularly in non-English markets' as a gap, it does not attribute this to being a 'significant barrier' or link it specifically to reproducibility and generalization in the way stated. The citation to Ehsan et al. (2025) and Nuriksan and Nikmah (2025) is accurate per the cited_papers list, but the qualitative assertion about their impact is not supported by the ground truth.\n- Future Work: \"Likewise, the limited availability of datasets combining multiple text sources and the underexplored relationship between sentiment from diverse channels such as news and microblogs present opportunities for enhancing model robustness (Daudert, 2020; Daudert and Buitelaar, 2018).\" — The ground truth mentions 'Limited availability of datasets combining multiple text sources' and 'The relationship between sentiment across different data sources such as news and microblogs remains underexplored', but does not explicitly state that these gaps 'present opportunities for enhancing model robustness'. This evaluative framing is not found in the ground truth.\n- Future Work: \"Additionally, the lack of consensus on the definition of sentiment within financial contexts and the absence of longitudinal studies examining sentiment evolution over time underscore the need for more nuanced and temporally aware modeling approaches (Saqur, 2017; Mukherjee, 2025; Kim et al., 2025; Rehman et al., 2025).\" — The ground truth lists 'Lack of consensus on the precise definition of sentiment in the financial domain' and 'Limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets' as gaps, but does not mention 'absence of longitudinal studies examining sentiment evolution over time' or assert that these gaps 'underscore the need for more nuanced and temporally aware modeling approaches'. The citation to Mukherjee (2025), Kim et al. (2025), and Rehman et al. (2025) is accurate, but the interpretation of their relevance is not grounded in the provided text.\n- Future Work: \"The inconclusive outcome of the primary hypothesis (H1) reflects the limitations of the current experimental setup, particularly due to the use of synthetic surrogates in the input data, which prevents meaningful real-world validation.\" — While the ground truth states that H1's experiment was completed and its metrics are reported but no verdict is drawn because one or more inputs are synthetic surrogates, it does not explicitly state that this reflects 'limitations of the current experimental setup' or that the use of synthetic surrogates 'prevents meaningful real-world validation'. These interpretations are not directly supported by the ground truth.\n- Future Work: \"As such, future investigations should prioritize the collection and utilization of authentic financial data to properly evaluate the predictive capabilities of BERT-based sentiment models against traditional factor models.\" — The ground truth does not support the claim that future investigations should 'prioritize the collection and utilization of authentic financial data' or that this is necessary to 'properly evaluate the predictive capabilities of BERT-based sentiment models against traditional factor models'. While it notes synthetic data was used, it does not prescribe the solution or imply that this is the only path forward.\n- Future Work: \"Furthermore, while there is no clear consensus on the relative effectiveness of deep learning versus classical machine learning models in stock prediction, the lack of direct empirical evidence in this area highlights the importance of continued comparative analysis (Coolsaet et al., 2026; Rajhans et al., 2024).\" — The ground truth lists 'Contradictory findings regarding the superiority of deep learning models versus traditional ML models in stock prediction' as a gap, but does not state that there is 'no clear consensus' or that the 'lack of direct empirical evidence in this area highlights the importance of continued comparative analysis'. These claims go beyond what is stated in the ground truth.\n- Future Work: \"Finally, methodological considerations such as temporal alignment and look-ahead bias remain underexplored, especially in the context of news sentiment analysis (Rommadhon et al., 2026).\" — The ground truth lists 'Temporal alignment and look-ahead bias in news sentiment analysis may affect model validity' as a gap, but does not state that these are 'methodological considerations' or that they are 'especially underexplored in the context of news sentiment analysis'. The citation to Rommadhon et al. (2026) is accurate, but the framing of the issue is not grounded in the ground truth.\n- Future Work: \"Addressing these concerns will improve the validity of time-series models used in financial applications.\" — The ground truth does not make any claim about 'addressing these concerns will improve the validity of time-series models used in financial applications'. This is an inference or implication not present in the ground truth.\n- Future Work: \"Moreover, the need for culturally and linguistically tailored models, particularly in emerging markets, remains an important direction for future study (Duarte et al., 2020; Jovanoski et al., 2021).\" — The ground truth lists 'Limited discussion on how cultural or linguistic differences in news sources affect sentiment analysis outcomes across markets' and 'Limited cross-cultural validation of sentiment analysis models for non-English languages like Macedonian' as gaps, but does not state that 'culturally and linguistically tailored models' are needed or that 'particularly in emerging markets' is a key focus. The citations to Duarte et al. (2020) and Jovanoski et al. (2021) are accurate, but the framing of their relevance is not grounded.\n- Future Work: \"These directions aim to strengthen both the theoretical understanding and practical applicability of sentiment-based financial models.\" — The ground truth does not mention anything about 'these directions aim to strengthen both the theoretical understanding and practical applicability of sentiment-based financial models'. This is a general conclusion not supported by the ground truth.\nCitation issues:\n- Related Work: citation-like text \"(Duarte et\nal., 2020)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.0, 0.4978, 0.5413, 1, 26, 272., 5, 500; actual — Coder Agent reports sample_size=26272. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by implying that the experiment 'reached completion and is marked as having met its success criteria,' which contradicts the ground truth stating that the verdict is 'inconclusive' because 'no verdict is drawn from them (meets_success_criteria=\"unknown\")'. The claim that the experiment 'met its success criteria' is not supported by the ground truth and misrepresents the actual status of the evaluation.\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression exists but transitions between sections could be smoother; some paragraphs feel disconnected, particularly in the introduction and related work.",
+      "generated_at": "2026-09-15T05:14:15.515904+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  }
+]

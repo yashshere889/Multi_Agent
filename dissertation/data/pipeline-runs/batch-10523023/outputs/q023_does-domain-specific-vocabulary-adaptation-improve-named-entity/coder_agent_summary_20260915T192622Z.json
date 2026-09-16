@@ -1,0 +1,25 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "skipped",
+      "reason": "Marked infeasible by the Experiment Planner: The hypothesis requires a domain-specific tokenizer that adapts BPE encoding to prioritize legal terminology, which cannot be directly tested using the provided datasets. The available datasets (AG News, 20 Newsgroups, etc.) are not legal documents and do not contain the necessary domain-specific vocabulary for testing such a tokenizer. Additionally, creating a domain-specific tokenizer from scratch would require substantial computational resources and time to train on a large legal corpus, exceeding typical HPC job durations. A feasible simplification is to simulate the effect of a domain-specific tokenizer on an existing legal NER benchmark by artificially modifying tokenization behavior within a controlled environment using a subset of a known legal dataset (e.g., a small portion of a legal NER dataset if available) or by generating synthetic legal-like text with known entities to evaluate tokenizer performance.",
+      "code_path": null,
+      "assumptions_made": [],
+      "results": null,
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": []
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_23/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T19:26:22.404710+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

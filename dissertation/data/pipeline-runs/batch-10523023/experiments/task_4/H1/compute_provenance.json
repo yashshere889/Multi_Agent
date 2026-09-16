@@ -1,0 +1,21 @@
+{
+  "downscaled": true,
+  "changes": [
+    "epochs: 100 -> 200",
+    "epochs: 200 -> 400"
+  ],
+  "converged": false,
+  "convergence_findings": [
+    "'multi_task' was still improving when training stopped \u2014 mean loss fell 18.2% over the final quarter of 16 epochs (0.8002 -> 0.6545), so the epoch budget ran out before the model converged",
+    "'single_task' trained for only 0 epoch(s), too few to show convergence",
+    "Train every arm to convergence before comparing them: raise the epoch budget, and stop on the validation split rather than at a fixed epoch count. A comparison between models that have not converged measures the training budget, not the thing under test"
+  ],
+  "measurement_changes": [
+    "epochs: 100 -> 200",
+    "epochs: 200 -> 400"
+  ],
+  "precision_changes": [],
+  "timeout_seconds": 120,
+  "compute_validity": "training stopped before the model converged and no epoch budget within the compute budget reached it \u2014 the metrics describe an undertrained model rather than the method as designed, and are NOT interpretable as evidence for or against the hypothesis",
+  "ran_at_full_size": false
+}

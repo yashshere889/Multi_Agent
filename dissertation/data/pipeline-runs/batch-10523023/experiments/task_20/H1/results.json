@@ -1,0 +1,45 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether K-means clustering with PCA dimensionality reduction recovers income strata more consistently with predefined income thresholds than hierarchical clustering or fuzzy c-means methods.",
+  "author": "coder-agent",
+  "baseline": "Predefined income thresholds ('>50K' vs '<=50K') serving as ground truth for cluster alignment",
+  "success_criteria": "K-means with PCA will show higher Adjusted Rand Index and Normalized Mutual Information scores compared to hierarchical clustering and fuzzy c-means when evaluated against predefined income thresholds, indicating better recovery of income strata consistency.",
+  "timestamp_utc": "2026-09-16T06:26:59.709236+00:00",
+  "status": "success",
+  "elapsed_seconds": 79.5165,
+  "resumed": false,
+  "metrics": {
+    "ari_scores": {
+      "kmeans_raw": 0.1694164099678876,
+      "kmeans_pca": 0.11943289284742183,
+      "hierarchical": -0.019446760585412462,
+      "fuzzy": 0.1694164099678876
+    },
+    "nmi_scores": {
+      "kmeans_raw": 0.1822800687890134,
+      "kmeans_pca": 0.18710591150483113,
+      "hierarchical": 0.002037516025493115,
+      "fuzzy": 0.1822800687890134
+    },
+    "sil_scores": {
+      "kmeans_raw": 0.05134847522659287,
+      "kmeans_pca": 0.3942914879613702,
+      "hierarchical": 0.5153631111594513,
+      "fuzzy": 0.05134847522659287
+    },
+    "consistency_scores": {
+      "kmeans_raw": 0.9423089263941474,
+      "kmeans_pca": 0.96100438880495,
+      "hierarchical": 0.8079545454545455,
+      "fuzzy": 0.9423089263941474
+    },
+    "best_ari_method": "kmeans_raw",
+    "best_nmi_method": "kmeans_pca",
+    "kmeans_pca_ari": 0.11943289284742183,
+    "kmeans_pca_nmi": 0.18710591150483113
+  },
+  "meets_success_criteria": false,
+  "notes": "K-means with PCA ARI: 0.1194\nK-means with PCA NMI: 0.1871\nBest ARI method: kmeans_raw\nBest NMI method: kmeans_pca\nK-means with PCA outperforms others in ARI: False\nK-means with PCA outperforms others in NMI: True\nOverall success criteria met: False",
+  "error": null
+}

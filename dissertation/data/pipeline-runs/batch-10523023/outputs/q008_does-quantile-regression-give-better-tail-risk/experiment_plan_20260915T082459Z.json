@@ -1,0 +1,94 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. We use the Fama-French three-factor daily returns dataset which provides real daily equity return data suitable for VaR estimation. The experiment will estimate VaR at the 5th percentile using both quantile regression with asymmetric Laplace distribution (Bayesian approach) and Gaussian error models, comparing their pinball loss. This setup fits within typical SLURM job durations and GPU usage.",
+      "objective": "To determine whether quantile regression models estimated using the asymmetric Laplace distribution provide more accurate Value-at-Risk (VaR) estimates at the 5th percentile compared to Gaussian error models, as measured by lower pinball loss.",
+      "variables": {
+        "independent": [
+          "daily_returns"
+        ],
+        "dependent": [
+          "VaR_estimate"
+        ]
+      },
+      "design": "Comparative benchmark experiment where we fit two models on the same dataset: (1) Bayesian quantile regression with asymmetric Laplace distribution for the 5th percentile VaR estimate, and (2) Gaussian error model for the same VaR estimate. We then compare their performance using pinball loss as the evaluation metric.",
+      "data_requirements": {
+        "source": "fama_french_three_factor_daily_returns.csv",
+        "description": "Daily returns data from Fama-French factors including market excess returns (Mkt-RF), size factor (SMB), and value factor (HML). These represent systematic risk factors that influence equity returns and are suitable for VaR modeling. The dataset spans from 1926-07-01 to 2026-06-30 with 26,274 observations.",
+        "preprocessing_steps": [
+          "Extract daily returns from Mkt-RF column (convert percentage to decimal by dividing by 100)",
+          "Remove any missing or invalid entries",
+          "Compute rolling window returns for stability (e.g., 252-day windows for annualization)",
+          "Ensure data integrity by checking for outliers or anomalies in return series"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Bayesian Quantile Regression",
+          "description": "Estimates quantile regression coefficients using Bayesian inference with asymmetric Laplace distribution as the likelihood function. Specifically targets the 5th percentile VaR estimate by fitting the model to daily returns data.",
+          "reused_from_literature": true
+        },
+        {
+          "name": "Gaussian Error Model",
+          "description": "Standard linear regression model assuming normally distributed errors. Used to estimate VaR at the 5th percentile by computing mean and standard deviation of returns and applying normal distribution quantile.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "Pinball Loss"
+        ],
+        "baseline": "Gaussian error model VaR estimates",
+        "success_criteria": "If the Bayesian quantile regression model achieves lower pinball loss than the Gaussian model, the hypothesis is supported. If the Gaussian model performs better or similarly, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load fama_french_three_factor_daily_returns.csv and extract Mkt-RF column as daily returns (convert from percentage to decimal). Filter out any NaN or invalid values. Store as numpy array or pandas Series."
+        },
+        {
+          "step": 2,
+          "description": "Preprocess the returns data by computing rolling 252-day windows to capture stable return characteristics. Ensure each window contains sufficient data points (>100) for reliable estimation."
+        },
+        {
+          "step": 3,
+          "description": "Implement Bayesian quantile regression using asymmetric Laplace distribution to estimate 5th percentile VaR for each rolling window. Use libraries like PyMC3 or Stan for Bayesian inference."
+        },
+        {
+          "step": 4,
+          "description": "Implement standard Gaussian error model to estimate 5th percentile VaR for each rolling window by computing mean and standard deviation of returns and applying inverse normal CDF."
+        },
+        {
+          "step": 5,
+          "description": "Calculate pinball loss for both models at the 5th percentile for all rolling windows. Pinball loss = (1/2) * sum(max(0, tau*(y - y_pred), (1-tau)*(y_pred - y))) where tau=0.05."
+        },
+        {
+          "step": 6,
+          "description": "Compare average pinball loss between Bayesian quantile regression and Gaussian models. Report statistical significance of difference using appropriate hypothesis testing (e.g., paired t-test)."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient data points in some rolling windows leading to unstable estimates",
+        "Computational overhead of Bayesian inference may exceed available GPU time limits",
+        "Potential convergence issues in Bayesian quantile regression fitting process",
+        "Misinterpretation of pinball loss due to varying window sizes affecting comparability"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T08:24:59.649748+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

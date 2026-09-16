@@ -1,0 +1,648 @@
+{
+  "literature_summary": "The literature explores a wide range of unsupervised and hybrid methods for identifying financial market regimes, with a focus on improving momentum strategies and risk-adjusted returns. Techniques such as K-Means clustering, Hidden Markov Models, Variational Autoencoders, and spectral clustering are commonly employed to detect distinct market states. However, many studies face limitations including lack of ground truth for validation, sensitivity to outliers and noise, and insufficient integration of regime detection with trading strategy performance. There is also a notable gap in understanding how regime-switching models interact with adaptive control mechanisms and how clustering methods perform under real-world data complexities such as survivorship bias and non-stationarity.",
+  "methods_overview": [
+    {
+      "method": "K-Means Clustering",
+      "papers_using_it": [
+        "1f5aa2567938b5e95d8c9cca485e9a3d855c40bb",
+        "adc91b9a4dcbaa7c488734415165b528bc3ac7c5"
+      ],
+      "notes": "Commonly used for segmenting market data into distinct regimes such as bullish, bearish, and sideways."
+    },
+    {
+      "method": "Hidden Markov Model",
+      "papers_using_it": [
+        "1f5aa2567938b5e95d8c9cca485e9a3d855c40bb",
+        "69ed2bd6babd72a69f13a8975cb3b7861f289621"
+      ],
+      "notes": "Often combined with other clustering methods to estimate probabilistic transitions between identified market regimes."
+    },
+    {
+      "method": "Variational Autoencoder (VAE)",
+      "papers_using_it": [
+        "b2241edb47d3e65035c6eb6db2b0e644966a74de"
+      ],
+      "notes": "Rare but promising for online and adaptive factor modeling with regime-switching capabilities."
+    },
+    {
+      "method": "Path Signatures",
+      "papers_using_it": [
+        "97d7449a53bf2907077609e7f547d22cc71ea5c3"
+      ],
+      "notes": "Rare application used to encode time series into structured objects for regime classification."
+    },
+    {
+      "method": "Macro-economic Data Clustering",
+      "papers_using_it": [
+        "7205855e1dd1e3af8dd81eb928a3f2d56e768dcc"
+      ],
+      "notes": "Used to detect market regimes based on macroeconomic features and derive regime transition graphs."
+    },
+    {
+      "method": "Deterministic Clusterization",
+      "papers_using_it": [
+        "adc91b9a4dcbaa7c488734415165b528bc3ac7c5"
+      ],
+      "notes": "Proposed method for regime identification using time-series data without probabilistic assumptions."
+    },
+    {
+      "method": "Wasserstein k-means clustering",
+      "papers_using_it": [
+        "3d82f8e1e0632670fc471f3ac5c0ee1f4aee70d0"
+      ],
+      "notes": "Rare but innovative approach using p-Wasserstein distance between empirical distributions to cluster financial time-series."
+    },
+    {
+      "method": "Hybrid unsupervised-supervised learning for regime detection",
+      "papers_using_it": [
+        "fde2643b39f3dbd17b1dbe27f1b3fa89ba6bd31c"
+      ],
+      "notes": "Rare method combining cluster analysis with classification to automate regime switch detection."
+    },
+    {
+      "method": "Structural Clustering of Volatility Regimes",
+      "papers_using_it": [
+        "85c8faa74a13db6fed6f60626629e5304b937547"
+      ],
+      "notes": "Used for dynamically determining the number of volatility regimes using self-tuning unsupervised learning."
+    },
+    {
+      "method": "Diffusion-Based Parameters for Stock Clustering",
+      "papers_using_it": [
+        "ffb7ac8fd6bee668c3d55d37ab3914510347f2f9"
+      ],
+      "notes": "Rare application of diffusion processes to capture underlying structures in stock data."
+    },
+    {
+      "method": "Momentum Strategy",
+      "papers_using_it": [
+        "a74c5703e7550fc4774a3768c778a581759f858c",
+        "06e8e1cccb94b678d694ad3a58427fb4d5aae25b",
+        "3c6fc4d27b2cf2f1daee5d5f0ea70290eff810e3",
+        "c07b4a8e4964b54b136d66416fa3752aee6245e5",
+        "b194314da462c0a6546e10c9ae9646fbc77777ba",
+        "475934fe6cf0a2a5ca6a14d5d0eabcac93c81825"
+      ],
+      "notes": "Commonly applied across various markets and timeframes to evaluate performance."
+    },
+    {
+      "method": "Survivorship bias analysis",
+      "papers_using_it": [
+        "15f9497e9873b02fbb5b8d6c9345f2cb5836e51c"
+      ],
+      "notes": "Rare but important for assessing potential underestimation of returns in momentum strategies."
+    },
+    {
+      "method": "Volatility scaling",
+      "papers_using_it": [
+        "77c8fe4eff010006548ef8f60169eebaba2172c8"
+      ],
+      "notes": "Rare application to adjust traditional momentum strategies for improved risk-adjusted returns."
+    },
+    {
+      "method": "Network-based momentum strategies",
+      "papers_using_it": [
+        "59b8322e2f981155e3d7bbb5812c99aa29dc207f"
+      ],
+      "notes": "Rare but promising approach using centrality measures from investor networks."
+    },
+    {
+      "method": "Rolling momentum strategy",
+      "papers_using_it": [
+        "fab259334279a7dc30eed85f3ecaf59a8506b6f2"
+      ],
+      "notes": "Used to test dynamic momentum approaches over fixed periods."
+    },
+    {
+      "method": "Ownership concentration analysis",
+      "papers_using_it": [
+        "591595a99a1439744bdddceaeba99cd5d950f8df"
+      ],
+      "notes": "Rare application examining how firm-level characteristics affect momentum profitability."
+    },
+    {
+      "method": "unsupervised stock clustering based on adversarial learning",
+      "papers_using_it": [
+        "af86d81b35121f822c15ce004682a40b18ee9217"
+      ],
+      "notes": "Rare application for identifying groups of stocks with similar trends."
+    },
+    {
+      "method": "shape-based clustering-driven machine learning",
+      "papers_using_it": [
+        "3196e0040e813375f5ebc3b143892e1105ce3965"
+      ],
+      "notes": "Rare method applied to portfolio management for unsupervised feature discovery."
+    },
+    {
+      "method": "intersection-based pattern recognition",
+      "papers_using_it": [
+        "439b5295d051e9c0d0a677f298aa69d816351f5f"
+      ],
+      "notes": "Novel and rare unsupervised learning technique for financial engineering."
+    },
+    {
+      "method": "cluster-specific latent factor estimation",
+      "papers_using_it": [
+        "f5880a1d2b0dce4125765a974bbe49a72f418b8c"
+      ],
+      "notes": "Rare method for identifying latent factors affecting specific clusters of assets."
+    },
+    {
+      "method": "spectral clustering",
+      "papers_using_it": [
+        "eda90bd43f4256986688e525b45b833a3addab97",
+        "c02dfd94b11933093c797c362e2f8f6a3b9b8012"
+      ],
+      "notes": "Commonly used for clustering in large spatial databases and financial applications."
+    },
+    {
+      "method": "silhouette analysis",
+      "papers_using_it": [
+        "f16841e022038e94a59f7e0a82002102b78d79a4"
+      ],
+      "notes": "Rare graphical tool for evaluating clustering validity and determining cluster quality."
+    },
+    {
+      "method": "density-based clustering (DBSCAN)",
+      "papers_using_it": [
+        "5c8fe9a0412a078e30eb7e5eeb0068655b673e86"
+      ],
+      "notes": "Rare algorithm for discovering clusters in large spatial databases with noise."
+    },
+    {
+      "method": "cluster separation measure",
+      "papers_using_it": [
+        "e8480bca4664e9944fdd473e08bb9bcafea0551c"
+      ],
+      "notes": "Rare metric for assessing the distinctiveness of clusters."
+    },
+    {
+      "method": "signature matrix representation",
+      "papers_using_it": [
+        "131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683"
+      ],
+      "notes": "Rare method capturing pairwise dependencies among process parameters for anomaly detection."
+    },
+    {
+      "method": "State-Conditioned Association Learning (SCAL)",
+      "papers_using_it": [
+        "af2edd2109491d13fccfbf4878dc38b0f8f4c89b"
+      ],
+      "notes": "Rare framework for unsupervised anomaly detection in industrial measurements."
+    },
+    {
+      "method": "fully unsupervised refinement of contaminated data",
+      "papers_using_it": [
+        "733edc7568374cb028bba3780b5ab99344c06654"
+      ],
+      "notes": "Rare approach for improving anomaly detection when training data contains abnormal samples."
+    },
+    {
+      "method": "Unsupervised anomaly detection with contaminated data refinement",
+      "papers_using_it": [
+        "4ea98667c3357be8ac7758e86e2be7eb2b1d1de2"
+      ],
+      "notes": "Rare framework for refining contaminated training data for residual-based models."
+    },
+    {
+      "method": "Geometric observables for financial regime detection",
+      "papers_using_it": [
+        "67a97bd72ef1ee582b2d1fe07c1554b0de8d4f93"
+      ],
+      "notes": "Rare method using spectral embeddings to detect financial regime shifts."
+    },
+    {
+      "method": "Hierarchical clustering for event detection in finance",
+      "papers_using_it": [
+        "ee6edd08e62d7920aafb04aa7543a0d81028707f"
+      ],
+      "notes": "Rare integration of news and social media data using clustering for real-time event detection."
+    },
+    {
+      "method": "Distance-based outlier detection for network anomalies",
+      "papers_using_it": [
+        "4074556"
+      ],
+      "notes": "Rare application of clustering algorithms to detect network intrusions without prior knowledge."
+    },
+    {
+      "method": "ClassCut for unsupervised class segmentation",
+      "papers_using_it": [
+        "8985633"
+      ],
+      "notes": "Rare method alternating between segmenting object instances and learning class models."
+    },
+    {
+      "method": "Stochastic primitives for fault detection in self-healing systems",
+      "papers_using_it": [
+        "18391625"
+      ],
+      "notes": "Rare application of stochastic methods for autonomous fault detection."
+    },
+    {
+      "method": "Extended fuzzy clustering with volume prototypes and cluster merging",
+      "papers_using_it": [
+        "2633705"
+      ],
+      "notes": "Rare improvement to fuzzy clustering by extending point prototypes to hypervolumes."
+    },
+    {
+      "method": "fuzzy central clustering algorithms",
+      "papers_using_it": [
+        "234788"
+      ],
+      "notes": "Rare examination of performance under non-metric dissimilarities."
+    },
+    {
+      "method": "two-mode clustering",
+      "papers_using_it": [
+        "2859495"
+      ],
+      "notes": "Rare use of k-means and fuzzy c-means with meta-heuristics."
+    },
+    {
+      "method": "ACO clustering (ACOC)",
+      "papers_using_it": [
+        "8220924",
+        "8220933"
+      ],
+      "notes": "Rare application integrating spectral Laplacian or medoid-based approach."
+    },
+    {
+      "method": "adaptive control",
+      "papers_using_it": [
+        "df763328b6343ed4210315ca26a514fcbd2e3c8b",
+        "1f7dbef856d6a90adb4b0930737cebad0ad950af",
+        "1ee2b3e99832e389c8c80d0d73f50d8b2ebadd52",
+        "c5798f2ed97cc14e9fd5cfefa412426bc8d4c71b"
+      ],
+      "notes": "Rare application to synchronize hyperchaotic finance systems and control chaotic dynamics."
+    },
+    {
+      "method": "regime-switching forecasting",
+      "papers_using_it": [
+        "a7ad82d4fe864f764ec385d0dc9dd95742ef0d2c",
+        "c35134cddf15b833d4f9e5b9a984b286a199ddb4"
+      ],
+      "notes": "Rare use of deep switching state-space models and spatio-temporal vector autoregression."
+    },
+    {
+      "method": "conformal prediction",
+      "papers_using_it": [
+        "a7ad82d4fe864f764ec385d0dc9dd95742ef0d2c"
+      ],
+      "notes": "Rare application with regime-switching models for distribution-free uncertainty quantification."
+    },
+    {
+      "method": "Regime-Switching Models",
+      "papers_using_it": [
+        "04693f860decca513fdba5e9dd513ec6f21701e3",
+        "b678c914e4d9b74c12d120f36392af8d9c936291",
+        "2612991",
+        "2646880",
+        "2482953"
+      ],
+      "notes": "Commonly used to model systems with distinct behavioral regimes."
+    },
+    {
+      "method": "Adaptive Control",
+      "papers_using_it": [
+        "2695191",
+        "4516595",
+        "37910261",
+        "15342254"
+      ],
+      "notes": "Used to manage uncertainties in systems like spacecraft and mechanical systems."
+    },
+    {
+      "method": "Variational Approximation",
+      "papers_using_it": [
+        "04693f860decca513fdba5e9dd513ec6f21701e3"
+      ],
+      "notes": "Rare method used in PARD-SSM to reduce computational complexity."
+    },
+    {
+      "method": "Bayesian Estimation",
+      "papers_using_it": [
+        "2482953"
+      ],
+      "notes": "Rare application for estimating parameters in regime-switching GARCH models."
+    },
+    {
+      "method": "Markov regime-switching regression with endogenous switching",
+      "papers_using_it": [
+        "2690554"
+      ],
+      "notes": "Rare incorporation of instruments to identify and estimate models where regime transitions are endogenous."
+    },
+    {
+      "method": "Markov regime-switching models with price-capped spike distributions",
+      "papers_using_it": [
+        "2725419"
+      ],
+      "notes": "Rare calibration of MRS models to electricity spot prices using truncated distributions."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of explicit validation against labeled data for clustering methods",
+      "supporting_evidence": [
+        "9bee2b7f875663036b3ce8ca1cac6c4986ee4df5",
+        "1f5aa2567938b5e95d8c9cca485e9a3d855c40bb"
+      ],
+      "notes": "Makes it difficult to assess true performance and interpretability."
+    },
+    {
+      "gap": "Limited discussion on how macroeconomic features affect clustering quality",
+      "supporting_evidence": [
+        "7205855e1dd1e3af8dd81eb928a3f2d56e768dcc"
+      ],
+      "notes": "Affects the reliability of regime detection in macroeconomic contexts."
+    },
+    {
+      "gap": "Inconsistency in treatment of survivorship bias in momentum strategy evaluations",
+      "supporting_evidence": [
+        "475934fe6cf0a2a5ca6a14d5d0eabcac93c81825"
+      ],
+      "notes": "Impacts comparability and robustness of results across markets."
+    },
+    {
+      "gap": "Lack of standardized metrics for comparing momentum strategy performance",
+      "supporting_evidence": [
+        "a74c5703e7550fc4774a3768c778a581759f858c",
+        "06e8e1cccb94b678d694ad3a58427fb4d5aae25b",
+        "3c6fc4d27b2cf2f1daee5d5f0ea70290eff810e3",
+        "c07b4a8e4964b54b136d66416fa3752aee6245e5",
+        "b194314da462c0a6546e10c9ae9646fbc77777ba",
+        "475934fe6cf0a2a5ca6a14d5d0eabcac93c81825"
+      ],
+      "notes": "Hinders cross-market comparisons and generalizability."
+    },
+    {
+      "gap": "Insufficient exploration of integration between volatility regime detection and momentum strategy optimization",
+      "supporting_evidence": [
+        "85c8faa74a13db6fed6f60626629e5304b937547",
+        "06e8e1cccb94b678d694ad3a58427fb4d5aae25b",
+        "3c6fc4d27b2cf2f1daee5d5f0ea70290eff810e3",
+        "c07b4a8e4964b54b136d66416fa3752aee6245e5",
+        "b194314da462c0a6546e10c9ae9646fbc77777ba",
+        "475934fe6cf0a2a5ca6a14d5d0eabcac93c81825"
+      ],
+      "notes": "Leads to missed opportunities for performance enhancement."
+    },
+    {
+      "gap": "Limited literature examining the impact of survival bias specifically on the momentum effect",
+      "supporting_evidence": [
+        "15f9497e9873b02fbb5b8d6c9345f2cb5836e51c"
+      ],
+      "notes": "Undermines understanding of potential biases in momentum strategy performance."
+    },
+    {
+      "gap": "Lack of comparative studies evaluating the relative performance of different adaptive control strategies",
+      "supporting_evidence": [
+        "37910261",
+        "15342254"
+      ],
+      "notes": "Prevents informed decisions about control system design."
+    },
+    {
+      "gap": "Limited exploration of ACO-based clustering in spectral and medoid contexts",
+      "supporting_evidence": [
+        "8220924",
+        "8220933"
+      ],
+      "notes": "Reduces understanding of its potential in financial applications."
+    },
+    {
+      "gap": "Unclear which global optimization method is most effective for two-mode clustering",
+      "supporting_evidence": [
+        "2859495"
+      ],
+      "notes": "Limits reproducibility and optimization of clustering outcomes."
+    },
+    {
+      "gap": "Limited discussion on integration of regime-switching models with real-time adaptive control",
+      "supporting_evidence": [
+        "4516595",
+        "37910261",
+        "15342254"
+      ],
+      "notes": "Restricts application in complex, dynamic environments."
+    },
+    {
+      "gap": "Lack of invariance to shift operations in fuzzy central clustering algorithms",
+      "supporting_evidence": [
+        "234788"
+      ],
+      "notes": "Affects robustness under non-metric dissimilarities."
+    },
+    {
+      "gap": "Need for further investigation into robustness of adaptive control in hyperchaotic systems",
+      "supporting_evidence": [
+        "1f7dbef856d6a90adb4b0930737cebad0ad950af",
+        "1ee2b3e99832e389c8c80d0d73f50d8b2ebadd52"
+      ],
+      "notes": "Necessary for reliable deployment in financial systems."
+    },
+    {
+      "gap": "Performance of estimation procedures under endogenous switching has not been fully explored",
+      "supporting_evidence": [
+        "2690554"
+      ],
+      "notes": "Limits confidence in model validity."
+    },
+    {
+      "gap": "Applicability of unsupervised clustering methods in financial markets remains underexplored",
+      "supporting_evidence": [
+        "1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f",
+        "f5880a1d2b0dce4125765a974bbe49a72f418b8c"
+      ],
+      "notes": "Especially in relation to momentum strategies across sectors and time."
+    },
+    {
+      "gap": "Limited discussion on how unsupervised clustering methods perform with noisy or contaminated financial datasets",
+      "supporting_evidence": [
+        "733edc7568374cb028bba3780b5ab99344c06654",
+        "af86d81b35121f822c15ce004682a40b18ee9217"
+      ],
+      "notes": "Affects reliability in real-world applications."
+    },
+    {
+      "gap": "Effectiveness of unsupervised methods in detecting financial regime shifts lacks ground truth validation",
+      "supporting_evidence": [
+        "67a97bd72ef1ee582b2d1fe07c1554b0de8d4f93"
+      ],
+      "notes": "Impairs assessment of accuracy and utility."
+    },
+    {
+      "gap": "Insufficient empirical evidence comparing cost-effectiveness of self-healing systems using unsupervised fault detection",
+      "supporting_evidence": [
+        "18391625"
+      ],
+      "notes": "Limits practical adoption of such systems."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Using spectral clustering to identify market regimes from daily S&P 500 price and volume features will improve the out-of-sample Sharpe ratio of a simple momentum strategy compared to a static momentum rule.",
+      "rationale": "Spectral clustering is a common method for financial regime detection and has been shown to effectively partition large spatial databases and financial time series. The gap regarding inconsistency in treatment of survivorship bias in momentum strategy evaluations suggests that regime-aware strategies may better account for data integrity issues. This hypothesis directly tests whether unsupervised clustering improves risk-adjusted returns, addressing both the need for better regime detection and the lack of standardized performance metrics.",
+      "related_gaps": [
+        "Inconsistency in treatment of survivorship bias in momentum strategy evaluations",
+        "Lack of standardized metrics for comparing momentum strategy performance"
+      ],
+      "related_methods": [
+        "spectral clustering",
+        "Momentum Strategy"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Spectral cluster assignments of S&P 500 price-volume features"
+        ],
+        "dependent": [
+          "Out-of-sample Sharpe ratio of momentum strategy"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Implementing a regime-switching momentum strategy using Hidden Markov Models trained on macroeconomic features will yield higher risk-adjusted returns than a conventional momentum strategy when applied to the Fama-French three-factor model data.",
+      "rationale": "Hidden Markov Models are frequently combined with clustering methods to estimate probabilistic transitions between market regimes. The gap concerning limited discussion on how macroeconomic features affect clustering quality indicates that incorporating such features could enhance regime detection accuracy. This hypothesis leverages the integration of macroeconomic data clustering with momentum strategies, building upon the hybrid unsupervised-supervised learning approach and addressing the need for more robust regime identification in macroeconomic contexts.",
+      "related_gaps": [
+        "Limited discussion on how macroeconomic features affect clustering quality",
+        "Insufficient exploration of integration between volatility regime detection and momentum strategy optimization"
+      ],
+      "related_methods": [
+        "Hidden Markov Model",
+        "Macro-economic Data Clustering",
+        "Momentum Strategy"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Regime states inferred from HMM trained on macroeconomic features"
+        ],
+        "dependent": [
+          "Risk-adjusted returns (Sharpe ratio) of momentum strategy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Adopting a network-based clustering approach inspired by cybersecurity anomaly detection to group stocks according to their response to regime shifts will lead to superior out-of-sample performance of a momentum strategy compared to traditional K-Means clustering.",
+      "rationale": "Cross-disciplinary bridge insight #4 connects network-based clustering from cybersecurity to financial asset grouping. The gap regarding limited exploration of ACO-based clustering in spectral and medoid contexts suggests that alternative clustering paradigms might be more suitable for financial data. This hypothesis applies a novel clustering methodology drawn from another domain—network clustering—to financial asset classification, aiming to improve momentum strategy performance by identifying coherent groups of assets that respond similarly to regime changes.",
+      "related_gaps": [
+        "Limited exploration of ACO-based clustering in spectral and medoid contexts",
+        "Applicability of unsupervised clustering methods in financial markets remains underexplored"
+      ],
+      "related_methods": [
+        "Network-based momentum strategies",
+        "Hierarchical clustering for event detection in finance",
+        "K-Means Clustering"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "Stock clusters formed via network-based clustering vs. K-Means"
+        ],
+        "dependent": [
+          "Out-of-sample performance of momentum strategy"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the most feasible as it uses the 'historical_stock_market_daily_closing_price_financial_data.csv' dataset which contains S&P 500 price and volume features (SP500, Real Price, Dividend, Earnings, etc.) and can be directly used to compute momentum strategies and Sharpe ratios. It is highly testable because the claim is specific: whether spectral clustering improves out-of-sample Sharpe ratio versus a static momentum rule, with clear binary outcomes. It is coherent as it focuses on the system (momentum strategy performance) rather than just methods, and avoids contradictions in its components. The data is sufficient to make a decision about the claim, not merely feed a pre-defined model. It is well-grounded in the literature, particularly the gap around survivorship bias and lack of standardized metrics, and aligns with the cross-disciplinary insight on geometric observables from spectral embeddings."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 is moderately feasible but less so than H1, as it requires macroeconomic features that are not present in the listed datasets, necessitating additional data collection or proxy creation. It is testable in principle but less clearly defined due to reliance on HMMs and macroeconomic clustering, which introduces more complexity and assumptions. It is somewhat coherent but mixes elements of supervised (HMM) and unsupervised (clustering) methods in a way that could be seen as inconsistent. The data does not directly support the claim without significant preprocessing or assumption-building. While grounded in the literature, it leans heavily on gaps related to macroeconomic features and regime-switching models, which are harder to validate with current datasets."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 is least feasible because it proposes a network-based clustering approach inspired by cybersecurity, which is not supported by any of the listed datasets. The data does not contain network structures or appropriate features for such clustering. It is also less testable because the comparison with K-Means is vague without a clear definition of what constitutes 'network-based clustering' in this context. It is less coherent due to the mismatch between the proposed method (network clustering) and the data available (financial time series). Although it draws on a cross-disciplinary bridge insight, the insight is not directly applicable to the available datasets, making it speculative rather than actionable."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "9bee2b7f875663036b3ce8ca1cac6c4986ee4df5",
+    "1f5aa2567938b5e95d8c9cca485e9a3d855c40bb",
+    "c91364095c9352e3376097a7a1c07fa7f3cdde0e",
+    "7205855e1dd1e3af8dd81eb928a3f2d56e768dcc",
+    "b2241edb47d3e65035c6eb6db2b0e644966a74de",
+    "97d7449a53bf2907077609e7f547d22cc71ea5c3",
+    "adc91b9a4dcbaa7c488734415165b528bc3ac7c5",
+    "3d82f8e1e0632670fc471f3ac5c0ee1f4aee70d0",
+    "5f2e7538e3d002e2a1db8161e5a500d87381fdf4",
+    "69ed2bd6babd72a69f13a8975cb3b7861f289621",
+    "fde2643b39f3dbd17b1dbe27f1b3fa89ba6bd31c",
+    "85c8faa74a13db6fed6f60626629e5304b937547",
+    "ffb7ac8fd6bee668c3d55d37ab3914510347f2f9",
+    "a74c5703e7550fc4774a3768c778a581759f858c",
+    "06e8e1cccb94b678d694ad3a58427fb4d5aae25b",
+    "3c6fc4d27b2cf2f1daee5d5f0ea70290eff810e3",
+    "c07b4a8e4964b54b136d66416fa3752aee6245e5",
+    "b194314da462c0a6546e10c9ae9646fbc77777ba",
+    "475934fe6cf0a2a5ca6a14d5d0eabcac93c81825",
+    "03748920b1317c58ee6722fd5afbdc5c27037d09",
+    "15f9497e9873b02fbb5b8d6c9345f2cb5836e51c",
+    "77c8fe4eff010006548ef8f60169eebaba2172c8",
+    "59b8322e2f981155e3d7bbb5812c99aa29dc207f",
+    "fab259334279a7dc30eed85f3ecaf59a8506b6f2",
+    "591595a99a1439744bdddceaeba99cd5d950f8df",
+    "1c2d8ee95decacdc35d0d7b79b6d8eb48cd2ff6f",
+    "af86d81b35121f822c15ce004682a40b18ee9217",
+    "3196e0040e813375f5ebc3b143892e1105ce3965",
+    "439b5295d051e9c0d0a677f298aa69d816351f5f",
+    "f5880a1d2b0dce4125765a974bbe49a72f418b8c",
+    "63470c638affa7da9ed64b0e4355ad65f9673564",
+    "be388fb9059c223c97be2bea43d467d598ef4bf0",
+    "5c8fe9a0412a078e30eb7e5eeb0068655b673e86",
+    "f16841e022038e94a59f7e0a82002102b78d79a4",
+    "eda90bd43f4256986688e525b45b833a3addab97",
+    "c02dfd94b11933093c797c362e2f8f6a3b9b8012",
+    "e8480bca4664e9944fdd473e08bb9bcafea0551c",
+    "131acc0e0b0d9ddfaa9d73f9840513c1e6c0e683",
+    "af2edd2109491d13fccfbf4878dc38b0f8f4c89b",
+    "733edc7568374cb028bba3780b5ab99344c06654",
+    "4ea98667c3357be8ac7758e86e2be7eb2b1d1de2",
+    "67a97bd72ef1ee582b2d1fe07c1554b0de8d4f93",
+    "ee6edd08e62d7920aafb04aa7543a0d81028707f",
+    "4074556",
+    "8985633",
+    "18391625",
+    "2633705",
+    "234788",
+    "2859495",
+    "8220924",
+    "8220933",
+    "346914723",
+    "df763328b6343ed4210315ca26a514fcbd2e3c8b",
+    "1f7dbef856d6a90adb4b0930737cebad0ad950af",
+    "1ee2b3e99832e389c8c80d0d73f50d8b2ebadd52",
+    "c5798f2ed97cc14e9fd5cfefa412426bc8d4c71b",
+    "a7ad82d4fe864f764ec385d0dc9dd95742ef0d2c",
+    "c35134cddf15b833d4f9e5b9a984b286a199ddb4",
+    "a3e6556804251e1112e3f3328b5e67bec824b7bb",
+    "04693f860decca513fdba5e9dd513ec6f21701e3",
+    "b678c914e4d9b74c12d120f36392af8d9c936291",
+    "2695191",
+    "4516595",
+    "37910261",
+    "15342254",
+    "2612991",
+    "2646880",
+    "2482953",
+    "2690554",
+    "2725419"
+  ],
+  "generated_at": "2026-09-15T07:04:27.101256+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

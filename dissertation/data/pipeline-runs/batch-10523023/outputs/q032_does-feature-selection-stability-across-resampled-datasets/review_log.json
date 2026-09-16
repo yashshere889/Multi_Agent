@@ -1,0 +1,933 @@
+[
+  {
+    "iteration": 1,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v1.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v1.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23",
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92",
+        "1706.06150v2",
+        "4bb365834ba03be1987e50e1466e4ec38446e3ed",
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:265362507",
+        "345900",
+        "2211.01485v1",
+        "14f95c39774086cfddb036334032c696f05e5d5f",
+        "3bccf31bb0cada2e7b24fab7d60abf921f940a6d",
+        "CorpusId:198331470",
+        "a020c64d19653bfa6bbefdec2d485e508d4ff04e",
+        "79fc74f23a19869493e03015088293a2a98e4d60",
+        "dbc13acf3c75697bac4027b594024a9b5e9b4dc8",
+        "a2683d672665fb3dc24e0994229d986415985323",
+        "CorpusId:284040629",
+        "518ddb1d1e6df24f7069b22fac6d0cb3a33c2545",
+        "02a14ed4f51d2aa011a817556742d19d913d60b6",
+        "CorpusId:270045192",
+        "1506.05173v2",
+        "CorpusId:71143771",
+        "1301.1256v4",
+        "809391d59e4114d4c0f15ed64ace66840fb85a21",
+        "d3594bb2ad060064709ede5d2b4ec91206bd8476",
+        "2302.13221v4",
+        "1911.12882v1",
+        "a0df2e634e4fcac23bb161323ecac5ab8b714220",
+        "1804.05589v1",
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+        "7bf2a2347e89898dce640d528168222210da5fb7",
+        "4aa7c9511fe3fcb72e1655eced45b115b00b1904"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2022)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2022)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '71143771' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '198331470' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '71143771' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '198331470' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-16T01:48:02.010635+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 1,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "Feature selection plays a central role in the development of reliable and interpretable machine learning models, particularly in high-dimensional and small-sample settings where overfitting is a prevalent concern.",
+          "issue": "While the ground truth mentions the importance of feature selection in high-dimensional and small-sample settings, it does not explicitly state that overfitting is a 'prevalent concern' in such settings, nor does it describe feature selection as playing a 'central role' in developing 'reliable and interpretable' models. This characterization goes beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A growing body of literature emphasizes the importance of feature selection stability as a means to ensure reproducibility and generalizability of models (Büyükkeçeci and Okur, 2023; Büyükkeçeci and Okur, n.d.).",
+          "issue": "The ground truth states that literature highlights the importance of feature selection stability for reliable and reproducible models, but it does not mention that this is a 'growing body of literature' or that stability is emphasized specifically as a 'means to ensure reproducibility and generalizability'. These are added claims not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "However, despite the widespread adoption of various stability-enhancing techniques—including ensemble methods, resampling strategies, and novel optimization frameworks—the extent to which such stability translates into improved downstream classification performance remains poorly understood (Khaire and Dhanalakshmi, n.d.).",
+          "issue": "The ground truth supports that there is a lack of substantial evidence supporting a linear relationship between feature selection stability and classification accuracy, but it does not state that the extent to which stability translates into improved downstream classification performance 'remains poorly understood', nor does it attribute this to 'widespread adoption of stability-enhancing techniques'. This is a new interpretation not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "This ambiguity underscores a key conceptual gap: while stability is often treated as a diagnostic tool, it has yet to be integrated as a primary design principle in model construction (Luo et al., n.d.).",
+          "issue": "The ground truth supports that most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint, but it does not state that this leads to a 'key conceptual gap' or that the lack of integration is due to 'ambiguity'. These are interpretive additions not grounded in the provided text."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A related issue lies in the lack of domain-specific generalization metrics, especially within natural language processing (NLP), where current evaluation practices may not adequately capture the nuances of model robustness (Yang et al., 2023).",
+          "issue": "The ground truth identifies a gap in needing more robust generalization metrics specifically tailored for NLP tasks, but it does not state that current evaluation practices 'may not adequately capture the nuances of model robustness' or that this is a 'related issue'. These are additional interpretations not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Moreover, there exists a dearth of consensus regarding the most effective resampling strategies for model selection across diverse applications, limiting the ability to make informed, generalizable choices in practice (Nagler et al., n.d.).",
+          "issue": "The ground truth supports that there is a lack of generalizable guidance for practitioners on which resampling method to use in practice, but it does not state that there is a 'dearth of consensus' or that this limits the 'ability to make informed, generalizable choices in practice'. These are added descriptions not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "These limitations are compounded by the fact that many existing approaches fail to account for the stochastic nature of optimization, which can result in chaotic performance variations in domain generalization tasks (Arpit et al., 2021).",
+          "issue": "The ground truth supports that chaotic performance in domain generalization due to stochasticity in optimization is a known issue, but it does not state that 'many existing approaches fail to account for the stochastic nature of optimization' or that this 'compounds the limitations'. These are added causal attributions not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, the interplay between feature correlation and model instability presents a fundamental challenge, particularly in scenarios where multiple equally optimal feature subsets exist, undermining the reliability of traditional selection methods (Khaire and Dhanalakshmi, 2019).",
+          "issue": "The ground truth supports that high correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods, but it does not state that this presents a 'fundamental challenge' or that it 'undermines the reliability of traditional selection methods'. These are added evaluative statements not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "In parallel, recent advances in theoretical and empirical research have begun to illuminate the broader implications of stability in machine learning, including its relevance to phase transitions in complex systems and the dynamics of neural network training (Acharya and Dhakal, 2026; Giampaoli et al., 2022; Radin and Sadun, 2013).",
+          "issue": "The ground truth mentions that some research discusses phase transitions and neural network training in relation to stability, but it does not state that these are 'recent advances' or that they 'began to illuminate the broader implications of stability'. These are interpretive additions not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Yet, despite these developments, there remains a need for rigorous empirical validation of the relationship between stability and performance across varied domains and datasets.",
+          "issue": "While the ground truth notes a lack of strong empirical evidence linking stability and performance, it does not state that there is a 'need for rigorous empirical validation' or that this applies 'across varied domains and datasets'. These are added conclusions not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Addressing these issues requires a systematic examination of how stability metrics relate to classification accuracy, particularly in contexts where data characteristics differ significantly, such as in biomedical applications, financial modeling, and NLP tasks.",
+          "issue": "The ground truth supports that there is a gap in understanding the relationship between stability and performance, but it does not state that addressing these issues 'requires a systematic examination of how stability metrics relate to classification accuracy' or that this should be done 'particularly in contexts where data characteristics differ significantly, such as in biomedical applications, financial modeling, and NLP tasks'. These are added methodological claims not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Our first hypothesis posits that in NLP text classification tasks, feature selection stability—measured via the Consistency Index—will positively correlate with downstream test accuracy, such that models trained with more stable feature sets achieve higher average classification performance across multiple resampled training sets (Khaire and Dhanalakshmi, n.d.).",
+          "issue": "The ground truth includes a hypothesis (H1) about NLP text classification and feature selection stability correlating with test accuracy, but it does not specify that this is measured via the 'Consistency Index' or that it involves 'higher average classification performance across multiple resampled training sets'. These are specific methodological details not grounded in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The second hypothesis explores whether feature selection methods operating during a 'diffusion equilibrium phase' in training exhibit greater stability and consistency in out-of-sample predictive performance in financial forecasting tasks (Nagler et al., n.d.).",
+          "issue": "The ground truth includes a hypothesis (H2) about financial forecasting and feature selection during a 'diffusion equilibrium phase', but it does not specify that this relates to 'greater stability and consistency in out-of-sample predictive performance'. These are added claims about outcomes not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Finally, our third hypothesis investigates whether ensemble-based feature selection strategies yield stronger correlations between stability and generalization in high-dimensional biomedical datasets characterized by class imbalance and categorical features (Luo et al., n.d.).",
+          "issue": "The ground truth includes a hypothesis (H3) about ensemble-based feature selection and its correlation with generalization in high-dimensional biomedical data, but it does not specify that this involves 'class imbalance and categorical features' or that it 'yields stronger correlations'. These are added assumptions not grounded in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Büyükkeçeci and Okur. Recent work has explored reformulating feature selection as a differentiable optimization problem, with Xiao et al. (2023) proposing a framework that conceptualizes discrete feature subsetting as continuous embedding space optimization.",
+          "issue": "The citation 'Büyükkeçeci and Okur' is incorrectly placed in the sentence and does not correspond to any specific claim made in the ground truth. The actual ground truth mentions that Büyükkeçeci and Okur (2022) reviewed feature selection and stability, but does not link this to the reformulation of feature selection as a differentiable optimization problem. The claim about Xiao et al. (2023) is accurate according to the ground truth, but the attribution to Büyükkeçeci and Okur is fabricated."
+        },
+        {
+          "location": "Related Work",
+          "claim": "?ukaszuk and Krawczuk empirically investigate how small changes in training data affect feature selection outcomes across various classifiers and datasets",
+          "issue": "The authors '?ukaszuk and Krawczuk' are not mentioned in the provided ground truth. The ground truth lists 'U. M. Khaire' and 'R. Dhanalakshmi' as authors of a paper titled 'Stability of feature selection algorithm: A review', but no paper by '?ukaszuk and Krawczuk' is included in the dataset. This is a fabricated authorship."
+        },
+        {
+          "location": "Related Work",
+          "claim": "They report that logistic regression exhibits higher stability compared to other classifiers",
+          "issue": "This specific finding about logistic regression exhibiting higher stability is not mentioned in the ground truth. The ground truth for Khaire and Dhanalakshmi's paper discusses stability in general but does not specify comparative performance of classifiers, especially logistic regression."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Büyükkeçeci and Okur, n.d.",
+          "issue": "The citation 'Büyükkeçeci and Okur, n.d.' refers to a paper with no year in the ground truth. The ground truth lists the paper as 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' by Mustafa Büyükkeçeci and M. C. Okur with year 2022. The 'n.d.' (no date) is incorrect."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Khaire and Dhanalakshmi, n.d.",
+          "issue": "The citation 'Khaire and Dhanalakshmi, n.d.' refers to a paper with no year in the ground truth. The ground truth lists the paper as 'Stability of feature selection algorithm: A review' by U. M. Khaire and R. Dhanalakshmi with year 2019. The 'n.d.' (no date) is incorrect."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Zobolas et al., 2025",
+          "issue": "The paper 'Prognostic biomarker discovery in pancreatic cancer through hybrid ensemble feature selection and multi-omics data' by J. Zobolas et al. is listed in the ground truth with year 2025, but the citation format 'Zobolas et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Lan et al., 2025",
+          "issue": "The paper 'Causal Inference, Biomarker Discovery, Graph Neural Network, Feature Selection' by Chaowang Lan et al. is listed in the ground truth with year 2025, but the citation format 'Lan et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Chrysostomou (2008)",
+          "issue": "The paper 'The role of classifiers in feature selection: Number vs nature' by Chrysostomou, Kyriacos Andrews is listed in the ground truth with year 2008, but the citation format 'Chrysostomou (2008)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Brokamp et al. (2017)",
+          "issue": "The paper 'A Comparison of Resampling and Recursive Partitioning Methods in Random Forest for Estimating the Asymptotic Variance Using the Infinitesimal Jackknife' by Cole Brokamp et al. is listed in the ground truth with year 2017, but the citation format 'Brokamp et al. (2017)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Xu et al. (2019)",
+          "issue": "The paper 'Novel Non-Negative Variance Estimator for (Modified) Within-Cluster Resampling' by Daniel Xu et al. is listed in the ground truth with year 2019, but the citation format 'Xu et al. (2019)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Giampaoli et al., 2022",
+          "issue": "The paper 'Information compression at the turbulent-phase transition in cold atom gases' by R. Giampaoli et al. is listed in the ground truth with year 2022, but the citation format 'Giampaoli et al., 2022' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Radin and Sadun, 2013",
+          "issue": "The paper 'Phase transitions in a complex network' by Charles Radin and Lorenzo Sadun is listed in the ground truth with year 2013, but the citation format 'Radin and Sadun, 2013' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Kong et al., 2019",
+          "issue": "The paper 'Stability and Phase Transition of Cobalt Oxide Phases by Machine Learning Global Potential Energy Surface' by Fan-Lin Kong et al. is listed in the ground truth with year 2019, but the citation format 'Kong et al., 2019' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Liang et al., 2025",
+          "issue": "The paper 'Phase Stability and Transformations in Lead Mixed Halide Perovskites from Machine Learning Force Fields' by Xia Liang et al. is listed in the ground truth with year 2025, but the citation format 'Liang et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Acharya and Dhakal (2026)",
+          "issue": "The paper 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' by Pratyush Acharya and H. Dhakal is listed in the ground truth with year 2026, but the citation format 'Acharya and Dhakal (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Wang et al. (2026)",
+          "issue": "The paper 'A Deep Learning Potential for Zirconium and Its Application to the β/α Phase Transition' by Bo Wang et al. is listed in the ground truth with year 2026, but the citation format 'Wang et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Ran et al. (2025)",
+          "issue": "The paper 'Machine Learning Informed by Micro and Mesoscopic Statistical Physics Methods for Community Detection' by Yijun Ran et al. is listed in the ground truth with year 2025, but the citation format 'Ran et al. (2025)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Karthik and Rao (2025)",
+          "issue": "The paper 'Physics-informed data-driven ensemble and transfer learning approaches for prediction of temperature field and cutting force during machining IN625 superalloy' by Mondi Rama Karthik and Thella Babu Rao is listed in the ground truth with year 2025, but the citation format 'Karthik and Rao (2025)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Mariprasath et al. (2026)",
+          "issue": "The paper 'Vehicle-wise validated ensemble learning framework for robust electric vehicle energy consumption prediction using physics-guided features and statistical benchmarking' by T. Mariprasath et al. is listed in the ground truth with year 2026, but the citation format 'Mariprasath et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Zhu et al. (2026)",
+          "issue": "The paper 'A Physics-Guided Feature and Ensemble Learning Method for Prediction' by Zhenyang Zhu et al. is listed in the ground truth with year 2026, but the citation format 'Zhu et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Luo et al., n.d.",
+          "issue": "The paper 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' is listed in the ground truth with no year, but the citation format 'Luo et al., n.d.' is inconsistent with the ground truth's citation style and lacks proper attribution details."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim stems from the recognized gap that feature selection stability does not always directly translate into improved classification performance (Khaire and Dhanalakshmi, n.d.).",
+          "issue": "The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' [CorpusId:198331470], but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This hypothesis is grounded in a cross-disciplinary observation that connects the concept of 'diffusion equilibrium' in neural network training dynamics to feature selection stability Wang et al. (2026).",
+          "issue": "The ground truth mentions the rationale draws upon a cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability, but does not cite Wang et al. (2026). The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This assertion arises from the identified gap where most existing work treats stability merely as a secondary diagnostic index rather than integrating it as a primary design constraint alongside classification performance (Luo et al., n.d.).",
+          "issue": "The ground truth states the related gap as 'Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' [CorpusId:284040629], but does not attribute this gap to Luo et al., n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The hypothesis leverages the widespread application of ensemble methods (Pes, n.d.; Luo et al., n.d.)",
+          "issue": "The ground truth lists 'Ensemble Learning' among related methods but does not reference Pes, n.d.; nor does it mention Luo et al., n.d. in the context of ensemble methods. These citations are fabricated."
+        },
+        {
+          "location": "Methods",
+          "claim": "The experimental design for Hypothesis H1 was structured as a controlled study to evaluate the relationship between feature selection stability and downstream classification performance in natural language processing tasks.",
+          "issue": "This sentence is a reasonable summary of the design but introduces the term 'downstream classification performance' which is not explicitly defined in the ground truth. The ground truth refers to 'test accuracy of classifiers trained on stable vs unstable feature sets' rather than using the broader term 'downstream classification performance'."
+        },
+        {
+          "location": "Methods",
+          "claim": "The Coder Agent successfully executed this experiment, with results indicating a measurable relationship between feature selection stability and model accuracy.",
+          "issue": "The ground truth states that the coder status is 'completed', but it does not provide any information about the results of the experiment or whether a measurable relationship was found. This claim introduces new information not present in the ground truth."
+        },
+        {
+          "location": "Results",
+          "claim": "Models trained with higher feature selection stability achieved significantly better performance, with an accuracy of 0.8453 for high-consistency feature sets compared to 0.7622 for low-consistency sets.",
+          "issue": "The ground truth reports accuracy values of 0.8452631578947368 for high-consistency and 0.7622368421052632 for low-consistency, not 0.8453 and 0.7622 respectively. The paper's rounding or reporting of these values introduces a discrepancy that is not supported by the ground truth."
+        },
+        {
+          "location": "Results",
+          "claim": "Full-feature models achieved the highest accuracy at 0.9041.",
+          "issue": "The ground truth reports full-feature accuracy as 0.9040789473684211, not 0.9041. This is a numerical mismatch that is not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "A primary concern relates to the potential lack of sufficient variation in feature selection across resampled datasets, which may lead to low variance in Consistency Index scores.",
+          "issue": "The ground truth states that insufficient variation in feature selection leads to low variance in Consistency Index scores, but does not specify that this is a 'primary concern' or frame it as a 'potential lack' rather than a stated risk. The framing here implies a level of emphasis or interpretation not present in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "This issue could undermine the reliability of the evaluation metrics and limit the ability to draw robust conclusions about the stability of feature selection performance.",
+          "issue": "While the ground truth lists 'insufficient variation in feature selection across resampled datasets leading to low variance in Consistency Index scores' as a risk, it does not mention anything about undermining reliability of evaluation metrics or limiting the ability to draw conclusions about stability. These are added interpretive claims not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Additionally, the computational overhead associated with running multiple feature selection and training iterations introduces practical challenges for large-scale deployment, particularly when dealing with high-dimensional datasets such as those encountered in natural language processing tasks.",
+          "issue": "The ground truth mentions computational overhead but does not specify that it introduces 'practical challenges for large-scale deployment', nor does it link it specifically to 'high-dimensional datasets' or 'natural language processing tasks'. These are elaborations beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Another significant limitation concerns the risk of overfitting due to repeated use of the same test set without proper cross-validation procedures.",
+          "issue": "The ground truth includes 'Potential overfitting if the same test set is reused multiple times without proper cross-validation' as one of the risks, but does not label this as a 'significant limitation' or describe it in terms of 'repeated use of the same test set'. The characterization here adds interpretive nuance not present in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "This concern is particularly relevant when working with datasets where the test split is small or when multiple experiments are conducted using the same holdout set.",
+          "issue": "The ground truth does not mention anything about 'small test splits' or 'multiple experiments conducted using the same holdout set'. These details are not part of the stated risks and thus constitute new information not grounded in the provided data."
+        },
+        {
+          "location": "Limitations",
+          "claim": "The potential for overfitting can compromise the generalizability of findings and lead to overly optimistic performance estimates.",
+          "issue": "Although the ground truth identifies overfitting as a risk, it does not elaborate on consequences such as compromising generalizability or leading to 'overly optimistic performance estimates'. These are additional interpretations not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Furthermore, the reliance on either real or synthetic datasets introduces assumptions about data fidelity that may not always hold true in practice.",
+          "issue": "The ground truth lists assumptions related to dataset availability and synthetic data generation, but does not state that these assumptions introduce 'data fidelity issues' or that they 'may not always hold true in practice'. This adds speculative or evaluative language not present in the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Specifically, while the synthetic dataset is designed to maintain essential characteristics of the original AG News dataset, discrepancies between the two may affect the validity of experimental results and the extent to which findings can be generalized to real-world scenarios.",
+          "issue": "The ground truth confirms that the synthetic dataset is intended to maintain essential characteristics and that the experiment runs with either dataset, but does not discuss 'discrepancies', 'validity of experimental results', or 'generalization to real-world scenarios'. These are added claims not grounded in the provided information."
+        },
+        {
+          "location": "Limitations",
+          "claim": "Finally, the implementation of the experiments depends on certain assumptions regarding file availability and dataset integrity.",
+          "issue": "The ground truth states that assumptions include the presence of AG News files and fallback to synthetic data, but does not refer to 'implementation of the experiments' or describe them as depending on 'file availability and dataset integrity'. This is a rephrasing that omits key specifics from the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "If the specified paths for the AG News dataset are not accessible, the system defaults to generating a synthetic alternative, which may not fully capture the complexity and nuances present in the original data.",
+          "issue": "The ground truth confirms that if files are not found, a synthetic dataset is generated, and that the synthetic dataset is meant to maintain essential characteristics. However, it does not state that the synthetic version 'may not fully capture the complexity and nuances' of the original. This addition is not supported by the ground truth."
+        },
+        {
+          "location": "Limitations",
+          "claim": "These implementation-level dependencies highlight the importance of ensuring robust error handling and validation mechanisms within the experimental framework.",
+          "issue": "The ground truth does not mention anything about 'implementation-level dependencies', 'robust error handling', or 'validation mechanisms'. These are interpretive additions not grounded in the provided facts."
+        },
+        {
+          "location": "Limitations",
+          "claim": "While these measures allow the experiments to proceed even under suboptimal conditions, they also introduce uncertainty regarding the representativeness of the results obtained.",
+          "issue": "The ground truth does not discuss whether the measures 'allow experiments to proceed under suboptimal conditions' or introduce 'uncertainty regarding the representativeness of the results'. These are added interpretive claims not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Future work in this line of research should prioritize addressing the inconclusive outcome of Hypothesis H1, which posits a positive correlation between feature selection stability and downstream classification accuracy.",
+          "issue": "The ground truth states that the verdict for H1 is 'inconclusive' because the experiment used synthetic surrogates and does not meet success criteria ('unknown'), but it does not indicate that the outcome of H1 itself should be prioritized for future work. The claim introduces a normative priority ('should prioritize') not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Since the experiment was completed but no definitive verdict could be drawn due to the use of synthetic data",
+          "issue": "While the ground truth confirms the experiment was completed and the verdict is 'inconclusive', it does not explicitly state that the reason for the inconclusive verdict is 'due to the use of synthetic data'. The ground truth attributes the inconclusiveness to the use of synthetic surrogates and the lack of a verdict being drawn from the metrics, but does not directly link the synthetic data usage as the sole cause of the inconclusiveness."
+        },
+        {
+          "location": "Future Work",
+          "claim": "future efforts should focus on replicating the study using real-world datasets to validate whether stability metrics indeed reflect true performance improvements",
+          "issue": "The ground truth does not mention any specific plan or suggestion for future replication using real-world datasets. While it acknowledges the limitation of synthetic data, it does not prescribe or imply that future work must replicate the study with real-world data to validate the findings."
+        },
+        {
+          "location": "Future Work",
+          "claim": "This step is critical to determine if the observed relationships in simulated environments translate into practical gains in NLP tasks",
+          "issue": "The ground truth does not make any claims about the 'criticality' of validating relationships in simulated environments or translating them into practical gains. This statement introduces a subjective judgment ('critical') and a conclusion ('translate into practical gains') not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Notably, there remains a lack of substantial empirical support for a linear relationship between feature selection stability and classification accuracy",
+          "issue": "The ground truth identifies a gap related to 'lack of substantial evidence supporting a linear relationship' but refers to the general lack of evidence for a direct correlation, not specifically a linear one. The claim adds specificity ('linear relationship') not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "suggesting a need for more nuanced analyses that explore non-linear dependencies or alternative measures of stability",
+          "issue": "The ground truth does not suggest or imply that future work should explore non-linear dependencies or alternative measures of stability. This is an interpretive addition not grounded in the provided evidence."
+        },
+        {
+          "location": "Future Work",
+          "claim": "the absence of robust generalization metrics tailored for NLP tasks highlights the necessity of developing new evaluation frameworks that better capture model behavior in real-world applications",
+          "issue": "While the ground truth mentions a gap regarding 'need for more robust generalization metrics specifically tailored for NLP tasks', it does not assert that this absence 'highlights the necessity of developing new evaluation frameworks'. The claim adds a prescriptive element ('necessity') and a proposed solution ('new evaluation frameworks') not explicitly stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, further exploration is warranted into resampling strategies for model selection, particularly regarding which methods yield the most consistent and reliable outcomes across diverse domains",
+          "issue": "The ground truth identifies a gap concerning 'limited research on which resampling method to use in practice for model selection beyond specific domains', but does not suggest that 'further exploration is warranted' or that 'methods yield the most consistent and reliable outcomes'. These are speculative additions not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Given the current lack of generalized guidance, experimental comparisons of various resampling techniques—such as cross-validation versus bootstrap sampling—on representative datasets could provide actionable insights for practitioners",
+          "issue": "The ground truth does not mention anything about 'experimental comparisons of various resampling techniques' or their potential to provide 'actionable insights for practitioners'. These are speculative suggestions not grounded in the provided information."
+        }
+      ],
+      "citation_issues": [
+        {
+          "location": "Introduction",
+          "issue": "citation-like text \"(Nagler et\nal., n.d.)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list."
+        }
+      ],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.7622, 0.8453, 0.9041, 1, 1.0000, 7",
+          "actual": "Coder Agent reports consistency_low=0.6"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by implying that the experiment 'was completed and its metrics reported' as if those metrics were meaningful for evaluating the hypothesis, when in fact the ground truth states that the verdict is 'inconclusive' because 'one or more inputs are synthetic surrogates' and the metrics describe behavior on generated data, not real-world performance. The claim 'the findings do not provide sufficient evidence to either support or refute the hypothesis' is accurate, but the framing suggests a stronger conclusion than warranted by the 'inconclusive' verdict. Relevant quote: 'As the experiment was completed and its metrics reported, the findings do not provide sufficient evidence to either support or refute the hypothesis that higher feature selection stability... leads to improved downstream test accuracy.'"
+        }
+      ],
+      "quality_scores": {
+        "clarity": 3,
+        "flow": 3,
+        "tone": 4,
+        "structure": 4,
+        "limitations_honesty": 2
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"Feature selection plays a central role in the development of reliable and interpretable machine learning models, particularly in high-dimensional and small-sample settings where overfitting is a prevalent concern.\" — While the ground truth mentions the importance of feature selection in high-dimensional and small-sample settings, it does not explicitly state that overfitting is a 'prevalent concern' in such settings, nor does it describe feature selection as playing a 'central role' in developing 'reliable and interpretable' models. This characterization goes beyond what is stated in the ground truth.\n- Introduction: \"A growing body of literature emphasizes the importance of feature selection stability as a means to ensure reproducibility and generalizability of models (Büyükkeçeci and Okur, 2023; Büyükkeçeci and Okur, n.d.).\" — The ground truth states that literature highlights the importance of feature selection stability for reliable and reproducible models, but it does not mention that this is a 'growing body of literature' or that stability is emphasized specifically as a 'means to ensure reproducibility and generalizability'. These are added claims not supported by the ground truth.\n- Introduction: \"However, despite the widespread adoption of various stability-enhancing techniques—including ensemble methods, resampling strategies, and novel optimization frameworks—the extent to which such stability translates into improved downstream classification performance remains poorly understood (Khaire and Dhanalakshmi, n.d.).\" — The ground truth supports that there is a lack of substantial evidence supporting a linear relationship between feature selection stability and classification accuracy, but it does not state that the extent to which stability translates into improved downstream classification performance 'remains poorly understood', nor does it attribute this to 'widespread adoption of stability-enhancing techniques'. This is a new interpretation not found in the ground truth.\n- Introduction: \"This ambiguity underscores a key conceptual gap: while stability is often treated as a diagnostic tool, it has yet to be integrated as a primary design principle in model construction (Luo et al., n.d.).\" — The ground truth supports that most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint, but it does not state that this leads to a 'key conceptual gap' or that the lack of integration is due to 'ambiguity'. These are interpretive additions not grounded in the provided text.\n- Introduction: \"A related issue lies in the lack of domain-specific generalization metrics, especially within natural language processing (NLP), where current evaluation practices may not adequately capture the nuances of model robustness (Yang et al., 2023).\" — The ground truth identifies a gap in needing more robust generalization metrics specifically tailored for NLP tasks, but it does not state that current evaluation practices 'may not adequately capture the nuances of model robustness' or that this is a 'related issue'. These are additional interpretations not supported by the ground truth.\n- Introduction: \"Moreover, there exists a dearth of consensus regarding the most effective resampling strategies for model selection across diverse applications, limiting the ability to make informed, generalizable choices in practice (Nagler et al., n.d.).\" — The ground truth supports that there is a lack of generalizable guidance for practitioners on which resampling method to use in practice, but it does not state that there is a 'dearth of consensus' or that this limits the 'ability to make informed, generalizable choices in practice'. These are added descriptions not grounded in the ground truth.\n- Introduction: \"These limitations are compounded by the fact that many existing approaches fail to account for the stochastic nature of optimization, which can result in chaotic performance variations in domain generalization tasks (Arpit et al., 2021).\" — The ground truth supports that chaotic performance in domain generalization due to stochasticity in optimization is a known issue, but it does not state that 'many existing approaches fail to account for the stochastic nature of optimization' or that this 'compounds the limitations'. These are added causal attributions not supported by the ground truth.\n- Introduction: \"Additionally, the interplay between feature correlation and model instability presents a fundamental challenge, particularly in scenarios where multiple equally optimal feature subsets exist, undermining the reliability of traditional selection methods (Khaire and Dhanalakshmi, 2019).\" — The ground truth supports that high correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods, but it does not state that this presents a 'fundamental challenge' or that it 'undermines the reliability of traditional selection methods'. These are added evaluative statements not grounded in the ground truth.\n- Introduction: \"In parallel, recent advances in theoretical and empirical research have begun to illuminate the broader implications of stability in machine learning, including its relevance to phase transitions in complex systems and the dynamics of neural network training (Acharya and Dhakal, 2026; Giampaoli et al., 2022; Radin and Sadun, 2013).\" — The ground truth mentions that some research discusses phase transitions and neural network training in relation to stability, but it does not state that these are 'recent advances' or that they 'began to illuminate the broader implications of stability'. These are interpretive additions not grounded in the ground truth.\n- Introduction: \"Yet, despite these developments, there remains a need for rigorous empirical validation of the relationship between stability and performance across varied domains and datasets.\" — While the ground truth notes a lack of strong empirical evidence linking stability and performance, it does not state that there is a 'need for rigorous empirical validation' or that this applies 'across varied domains and datasets'. These are added conclusions not supported by the ground truth.\n- Introduction: \"Addressing these issues requires a systematic examination of how stability metrics relate to classification accuracy, particularly in contexts where data characteristics differ significantly, such as in biomedical applications, financial modeling, and NLP tasks.\" — The ground truth supports that there is a gap in understanding the relationship between stability and performance, but it does not state that addressing these issues 'requires a systematic examination of how stability metrics relate to classification accuracy' or that this should be done 'particularly in contexts where data characteristics differ significantly, such as in biomedical applications, financial modeling, and NLP tasks'. These are added methodological claims not grounded in the ground truth.\n- Introduction: \"Our first hypothesis posits that in NLP text classification tasks, feature selection stability—measured via the Consistency Index—will positively correlate with downstream test accuracy, such that models trained with more stable feature sets achieve higher average classification performance across multiple resampled training sets (Khaire and Dhanalakshmi, n.d.).\" — The ground truth includes a hypothesis (H1) about NLP text classification and feature selection stability correlating with test accuracy, but it does not specify that this is measured via the 'Consistency Index' or that it involves 'higher average classification performance across multiple resampled training sets'. These are specific methodological details not grounded in the ground truth.\n- Introduction: \"The second hypothesis explores whether feature selection methods operating during a 'diffusion equilibrium phase' in training exhibit greater stability and consistency in out-of-sample predictive performance in financial forecasting tasks (Nagler et al., n.d.).\" — The ground truth includes a hypothesis (H2) about financial forecasting and feature selection during a 'diffusion equilibrium phase', but it does not specify that this relates to 'greater stability and consistency in out-of-sample predictive performance'. These are added claims about outcomes not supported by the ground truth.\n- Introduction: \"Finally, our third hypothesis investigates whether ensemble-based feature selection strategies yield stronger correlations between stability and generalization in high-dimensional biomedical datasets characterized by class imbalance and categorical features (Luo et al., n.d.).\" — The ground truth includes a hypothesis (H3) about ensemble-based feature selection and its correlation with generalization in high-dimensional biomedical data, but it does not specify that this involves 'class imbalance and categorical features' or that it 'yields stronger correlations'. These are added assumptions not grounded in the ground truth.\n- Related Work: \"Büyükkeçeci and Okur. Recent work has explored reformulating feature selection as a differentiable optimization problem, with Xiao et al. (2023) proposing a framework that conceptualizes discrete feature subsetting as continuous embedding space optimization.\" — The citation 'Büyükkeçeci and Okur' is incorrectly placed in the sentence and does not correspond to any specific claim made in the ground truth. The actual ground truth mentions that Büyükkeçeci and Okur (2022) reviewed feature selection and stability, but does not link this to the reformulation of feature selection as a differentiable optimization problem. The claim about Xiao et al. (2023) is accurate according to the ground truth, but the attribution to Büyükkeçeci and Okur is fabricated.\n- Related Work: \"?ukaszuk and Krawczuk empirically investigate how small changes in training data affect feature selection outcomes across various classifiers and datasets\" — The authors '?ukaszuk and Krawczuk' are not mentioned in the provided ground truth. The ground truth lists 'U. M. Khaire' and 'R. Dhanalakshmi' as authors of a paper titled 'Stability of feature selection algorithm: A review', but no paper by '?ukaszuk and Krawczuk' is included in the dataset. This is a fabricated authorship.\n- Related Work: \"They report that logistic regression exhibits higher stability compared to other classifiers\" — This specific finding about logistic regression exhibiting higher stability is not mentioned in the ground truth. The ground truth for Khaire and Dhanalakshmi's paper discusses stability in general but does not specify comparative performance of classifiers, especially logistic regression.\n- Related Work: \"Büyükkeçeci and Okur, n.d.\" — The citation 'Büyükkeçeci and Okur, n.d.' refers to a paper with no year in the ground truth. The ground truth lists the paper as 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' by Mustafa Büyükkeçeci and M. C. Okur with year 2022. The 'n.d.' (no date) is incorrect.\n- Related Work: \"Khaire and Dhanalakshmi, n.d.\" — The citation 'Khaire and Dhanalakshmi, n.d.' refers to a paper with no year in the ground truth. The ground truth lists the paper as 'Stability of feature selection algorithm: A review' by U. M. Khaire and R. Dhanalakshmi with year 2019. The 'n.d.' (no date) is incorrect.\n- Related Work: \"Zobolas et al., 2025\" — The paper 'Prognostic biomarker discovery in pancreatic cancer through hybrid ensemble feature selection and multi-omics data' by J. Zobolas et al. is listed in the ground truth with year 2025, but the citation format 'Zobolas et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Lan et al., 2025\" — The paper 'Causal Inference, Biomarker Discovery, Graph Neural Network, Feature Selection' by Chaowang Lan et al. is listed in the ground truth with year 2025, but the citation format 'Lan et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Chrysostomou (2008)\" — The paper 'The role of classifiers in feature selection: Number vs nature' by Chrysostomou, Kyriacos Andrews is listed in the ground truth with year 2008, but the citation format 'Chrysostomou (2008)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Brokamp et al. (2017)\" — The paper 'A Comparison of Resampling and Recursive Partitioning Methods in Random Forest for Estimating the Asymptotic Variance Using the Infinitesimal Jackknife' by Cole Brokamp et al. is listed in the ground truth with year 2017, but the citation format 'Brokamp et al. (2017)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Xu et al. (2019)\" — The paper 'Novel Non-Negative Variance Estimator for (Modified) Within-Cluster Resampling' by Daniel Xu et al. is listed in the ground truth with year 2019, but the citation format 'Xu et al. (2019)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Giampaoli et al., 2022\" — The paper 'Information compression at the turbulent-phase transition in cold atom gases' by R. Giampaoli et al. is listed in the ground truth with year 2022, but the citation format 'Giampaoli et al., 2022' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Radin and Sadun, 2013\" — The paper 'Phase transitions in a complex network' by Charles Radin and Lorenzo Sadun is listed in the ground truth with year 2013, but the citation format 'Radin and Sadun, 2013' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Kong et al., 2019\" — The paper 'Stability and Phase Transition of Cobalt Oxide Phases by Machine Learning Global Potential Energy Surface' by Fan-Lin Kong et al. is listed in the ground truth with year 2019, but the citation format 'Kong et al., 2019' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Liang et al., 2025\" — The paper 'Phase Stability and Transformations in Lead Mixed Halide Perovskites from Machine Learning Force Fields' by Xia Liang et al. is listed in the ground truth with year 2025, but the citation format 'Liang et al., 2025' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Acharya and Dhakal (2026)\" — The paper 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' by Pratyush Acharya and H. Dhakal is listed in the ground truth with year 2026, but the citation format 'Acharya and Dhakal (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Wang et al. (2026)\" — The paper 'A Deep Learning Potential for Zirconium and Its Application to the β/α Phase Transition' by Bo Wang et al. is listed in the ground truth with year 2026, but the citation format 'Wang et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Ran et al. (2025)\" — The paper 'Machine Learning Informed by Micro and Mesoscopic Statistical Physics Methods for Community Detection' by Yijun Ran et al. is listed in the ground truth with year 2025, but the citation format 'Ran et al. (2025)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Karthik and Rao (2025)\" — The paper 'Physics-informed data-driven ensemble and transfer learning approaches for prediction of temperature field and cutting force during machining IN625 superalloy' by Mondi Rama Karthik and Thella Babu Rao is listed in the ground truth with year 2025, but the citation format 'Karthik and Rao (2025)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Mariprasath et al. (2026)\" — The paper 'Vehicle-wise validated ensemble learning framework for robust electric vehicle energy consumption prediction using physics-guided features and statistical benchmarking' by T. Mariprasath et al. is listed in the ground truth with year 2026, but the citation format 'Mariprasath et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Zhu et al. (2026)\" — The paper 'A Physics-Guided Feature and Ensemble Learning Method for Prediction' by Zhenyang Zhu et al. is listed in the ground truth with year 2026, but the citation format 'Zhu et al. (2026)' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Related Work: \"Luo et al., n.d.\" — The paper 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' is listed in the ground truth with no year, but the citation format 'Luo et al., n.d.' is inconsistent with the ground truth's citation style and lacks proper attribution details.\n- Hypotheses: \"The rationale for this claim stems from the recognized gap that feature selection stability does not always directly translate into improved classification performance (Khaire and Dhanalakshmi, n.d.).\" — The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' [CorpusId:198331470], but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated.\n- Hypotheses: \"This hypothesis is grounded in a cross-disciplinary observation that connects the concept of 'diffusion equilibrium' in neural network training dynamics to feature selection stability Wang et al. (2026).\" — The ground truth mentions the rationale draws upon a cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability, but does not cite Wang et al. (2026). The citation is fabricated.\n- Hypotheses: \"This assertion arises from the identified gap where most existing work treats stability merely as a secondary diagnostic index rather than integrating it as a primary design constraint alongside classification performance (Luo et al., n.d.).\" — The ground truth states the related gap as 'Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' [CorpusId:284040629], but does not attribute this gap to Luo et al., n.d. The citation is fabricated.\n- Hypotheses: \"The hypothesis leverages the widespread application of ensemble methods (Pes, n.d.; Luo et al., n.d.)\" — The ground truth lists 'Ensemble Learning' among related methods but does not reference Pes, n.d.; nor does it mention Luo et al., n.d. in the context of ensemble methods. These citations are fabricated.\n- Methods: \"The experimental design for Hypothesis H1 was structured as a controlled study to evaluate the relationship between feature selection stability and downstream classification performance in natural language processing tasks.\" — This sentence is a reasonable summary of the design but introduces the term 'downstream classification performance' which is not explicitly defined in the ground truth. The ground truth refers to 'test accuracy of classifiers trained on stable vs unstable feature sets' rather than using the broader term 'downstream classification performance'.\n- Methods: \"The Coder Agent successfully executed this experiment, with results indicating a measurable relationship between feature selection stability and model accuracy.\" — The ground truth states that the coder status is 'completed', but it does not provide any information about the results of the experiment or whether a measurable relationship was found. This claim introduces new information not present in the ground truth.\n- Results: \"Models trained with higher feature selection stability achieved significantly better performance, with an accuracy of 0.8453 for high-consistency feature sets compared to 0.7622 for low-consistency sets.\" — The ground truth reports accuracy values of 0.8452631578947368 for high-consistency and 0.7622368421052632 for low-consistency, not 0.8453 and 0.7622 respectively. The paper's rounding or reporting of these values introduces a discrepancy that is not supported by the ground truth.\n- Results: \"Full-feature models achieved the highest accuracy at 0.9041.\" — The ground truth reports full-feature accuracy as 0.9040789473684211, not 0.9041. This is a numerical mismatch that is not supported by the ground truth.\n- Limitations: \"A primary concern relates to the potential lack of sufficient variation in feature selection across resampled datasets, which may lead to low variance in Consistency Index scores.\" — The ground truth states that insufficient variation in feature selection leads to low variance in Consistency Index scores, but does not specify that this is a 'primary concern' or frame it as a 'potential lack' rather than a stated risk. The framing here implies a level of emphasis or interpretation not present in the ground truth.\n- Limitations: \"This issue could undermine the reliability of the evaluation metrics and limit the ability to draw robust conclusions about the stability of feature selection performance.\" — While the ground truth lists 'insufficient variation in feature selection across resampled datasets leading to low variance in Consistency Index scores' as a risk, it does not mention anything about undermining reliability of evaluation metrics or limiting the ability to draw conclusions about stability. These are added interpretive claims not grounded in the provided information.\n- Limitations: \"Additionally, the computational overhead associated with running multiple feature selection and training iterations introduces practical challenges for large-scale deployment, particularly when dealing with high-dimensional datasets such as those encountered in natural language processing tasks.\" — The ground truth mentions computational overhead but does not specify that it introduces 'practical challenges for large-scale deployment', nor does it link it specifically to 'high-dimensional datasets' or 'natural language processing tasks'. These are elaborations beyond what is stated in the ground truth.\n- Limitations: \"Another significant limitation concerns the risk of overfitting due to repeated use of the same test set without proper cross-validation procedures.\" — The ground truth includes 'Potential overfitting if the same test set is reused multiple times without proper cross-validation' as one of the risks, but does not label this as a 'significant limitation' or describe it in terms of 'repeated use of the same test set'. The characterization here adds interpretive nuance not present in the ground truth.\n- Limitations: \"This concern is particularly relevant when working with datasets where the test split is small or when multiple experiments are conducted using the same holdout set.\" — The ground truth does not mention anything about 'small test splits' or 'multiple experiments conducted using the same holdout set'. These details are not part of the stated risks and thus constitute new information not grounded in the provided data.\n- Limitations: \"The potential for overfitting can compromise the generalizability of findings and lead to overly optimistic performance estimates.\" — Although the ground truth identifies overfitting as a risk, it does not elaborate on consequences such as compromising generalizability or leading to 'overly optimistic performance estimates'. These are additional interpretations not supported by the ground truth.\n- Limitations: \"Furthermore, the reliance on either real or synthetic datasets introduces assumptions about data fidelity that may not always hold true in practice.\" — The ground truth lists assumptions related to dataset availability and synthetic data generation, but does not state that these assumptions introduce 'data fidelity issues' or that they 'may not always hold true in practice'. This adds speculative or evaluative language not present in the ground truth.\n- Limitations: \"Specifically, while the synthetic dataset is designed to maintain essential characteristics of the original AG News dataset, discrepancies between the two may affect the validity of experimental results and the extent to which findings can be generalized to real-world scenarios.\" — The ground truth confirms that the synthetic dataset is intended to maintain essential characteristics and that the experiment runs with either dataset, but does not discuss 'discrepancies', 'validity of experimental results', or 'generalization to real-world scenarios'. These are added claims not grounded in the provided information.\n- Limitations: \"Finally, the implementation of the experiments depends on certain assumptions regarding file availability and dataset integrity.\" — The ground truth states that assumptions include the presence of AG News files and fallback to synthetic data, but does not refer to 'implementation of the experiments' or describe them as depending on 'file availability and dataset integrity'. This is a rephrasing that omits key specifics from the ground truth.\n- Limitations: \"If the specified paths for the AG News dataset are not accessible, the system defaults to generating a synthetic alternative, which may not fully capture the complexity and nuances present in the original data.\" — The ground truth confirms that if files are not found, a synthetic dataset is generated, and that the synthetic dataset is meant to maintain essential characteristics. However, it does not state that the synthetic version 'may not fully capture the complexity and nuances' of the original. This addition is not supported by the ground truth.\n- Limitations: \"These implementation-level dependencies highlight the importance of ensuring robust error handling and validation mechanisms within the experimental framework.\" — The ground truth does not mention anything about 'implementation-level dependencies', 'robust error handling', or 'validation mechanisms'. These are interpretive additions not grounded in the provided facts.\n- Limitations: \"While these measures allow the experiments to proceed even under suboptimal conditions, they also introduce uncertainty regarding the representativeness of the results obtained.\" — The ground truth does not discuss whether the measures 'allow experiments to proceed under suboptimal conditions' or introduce 'uncertainty regarding the representativeness of the results'. These are added interpretive claims not found in the ground truth.\n- Future Work: \"Future work in this line of research should prioritize addressing the inconclusive outcome of Hypothesis H1, which posits a positive correlation between feature selection stability and downstream classification accuracy.\" — The ground truth states that the verdict for H1 is 'inconclusive' because the experiment used synthetic surrogates and does not meet success criteria ('unknown'), but it does not indicate that the outcome of H1 itself should be prioritized for future work. The claim introduces a normative priority ('should prioritize') not supported by the ground truth.\n- Future Work: \"Since the experiment was completed but no definitive verdict could be drawn due to the use of synthetic data\" — While the ground truth confirms the experiment was completed and the verdict is 'inconclusive', it does not explicitly state that the reason for the inconclusive verdict is 'due to the use of synthetic data'. The ground truth attributes the inconclusiveness to the use of synthetic surrogates and the lack of a verdict being drawn from the metrics, but does not directly link the synthetic data usage as the sole cause of the inconclusiveness.\n- Future Work: \"future efforts should focus on replicating the study using real-world datasets to validate whether stability metrics indeed reflect true performance improvements\" — The ground truth does not mention any specific plan or suggestion for future replication using real-world datasets. While it acknowledges the limitation of synthetic data, it does not prescribe or imply that future work must replicate the study with real-world data to validate the findings.\n- Future Work: \"This step is critical to determine if the observed relationships in simulated environments translate into practical gains in NLP tasks\" — The ground truth does not make any claims about the 'criticality' of validating relationships in simulated environments or translating them into practical gains. This statement introduces a subjective judgment ('critical') and a conclusion ('translate into practical gains') not found in the ground truth.\n- Future Work: \"Notably, there remains a lack of substantial empirical support for a linear relationship between feature selection stability and classification accuracy\" — The ground truth identifies a gap related to 'lack of substantial evidence supporting a linear relationship' but refers to the general lack of evidence for a direct correlation, not specifically a linear one. The claim adds specificity ('linear relationship') not explicitly stated in the ground truth.\n- Future Work: \"suggesting a need for more nuanced analyses that explore non-linear dependencies or alternative measures of stability\" — The ground truth does not suggest or imply that future work should explore non-linear dependencies or alternative measures of stability. This is an interpretive addition not grounded in the provided evidence.\n- Future Work: \"the absence of robust generalization metrics tailored for NLP tasks highlights the necessity of developing new evaluation frameworks that better capture model behavior in real-world applications\" — While the ground truth mentions a gap regarding 'need for more robust generalization metrics specifically tailored for NLP tasks', it does not assert that this absence 'highlights the necessity of developing new evaluation frameworks'. The claim adds a prescriptive element ('necessity') and a proposed solution ('new evaluation frameworks') not explicitly stated in the ground truth.\n- Future Work: \"Finally, further exploration is warranted into resampling strategies for model selection, particularly regarding which methods yield the most consistent and reliable outcomes across diverse domains\" — The ground truth identifies a gap concerning 'limited research on which resampling method to use in practice for model selection beyond specific domains', but does not suggest that 'further exploration is warranted' or that 'methods yield the most consistent and reliable outcomes'. These are speculative additions not supported by the ground truth.\n- Future Work: \"Given the current lack of generalized guidance, experimental comparisons of various resampling techniques—such as cross-validation versus bootstrap sampling—on representative datasets could provide actionable insights for practitioners\" — The ground truth does not mention anything about 'experimental comparisons of various resampling techniques' or their potential to provide 'actionable insights for practitioners'. These are speculative suggestions not grounded in the provided information.\nCitation issues:\n- Introduction: citation-like text \"(Nagler et\nal., n.d.)\" doesn't match any paper in the Literature Agent's output by first-author surname and year — possibly fabricated or mismatched; verify against the source list.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.7622, 0.8453, 0.9041, 1, 1.0000, 7; actual — Coder Agent reports consistency_low=0.6. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by implying that the experiment 'was completed and its metrics reported' as if those metrics were meaningful for evaluating the hypothesis, when in fact the ground truth states that the verdict is 'inconclusive' because 'one or more inputs are synthetic surrogates' and the metrics describe behavior on generated data, not real-world performance. The claim 'the findings do not provide sufficient evidence to either support or refute the hypothesis' is accurate, but the framing suggests a stronger conclusion than warranted by the 'inconclusive' verdict. Relevant quote: 'As the experiment was completed and its metrics reported, the findings do not provide sufficient evidence to either support or refute the hypothesis that higher feature selection stability... leads to improved downstream test accuracy.'\nQuality scores below the 4/5 threshold:\n- clarity: 3/5 — Writing is dense and contains some redundant phrases, making it harder to follow; for example, the repeated emphasis on 'stability' and 'feature selection' without sufficient contextual variation hinders readability.\n- flow: 3/5 — Logical progression is present but interrupted by frequent digressions into related work and theoretical concepts that are not always directly tied to the main argument or hypotheses.\n- limitations_honesty: 2/5 — The paper fails to honestly engage with the actual risks, assumptions, and not-run experiments detailed in the ground truth. It omits critical information about using synthetic data, the assumption dependencies, and the computational overhead, instead presenting results as if they were from real-world data, which misrepresents the study's limitations.",
+      "generated_at": "2026-09-16T01:49:13.003598+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 2,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v2.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v2.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23",
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92",
+        "7165962",
+        "1706.06150v2",
+        "4bb365834ba03be1987e50e1466e4ec38446e3ed",
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:257613898",
+        "CorpusId:265362507",
+        "1402.1349v1",
+        "2211.01485v1",
+        "14f95c39774086cfddb036334032c696f05e5d5f",
+        "3bccf31bb0cada2e7b24fab7d60abf921f940a6d",
+        "CorpusId:198331470",
+        "a020c64d19653bfa6bbefdec2d485e508d4ff04e",
+        "79fc74f23a19869493e03015088293a2a98e4d60",
+        "dbc13acf3c75697bac4027b594024a9b5e9b4dc8",
+        "a2683d672665fb3dc24e0994229d986415985323",
+        "CorpusId:284040629",
+        "02a14ed4f51d2aa011a817556742d19d913d60b6",
+        "CorpusId:270045192",
+        "2304.02381v2",
+        "1506.05173v2",
+        "CorpusId:71143771",
+        "1301.1256v4",
+        "809391d59e4114d4c0f15ed64ace66840fb85a21",
+        "d3594bb2ad060064709ede5d2b4ec91206bd8476",
+        "2302.13221v4",
+        "1911.12882v1",
+        "a0df2e634e4fcac23bb161323ecac5ab8b714220",
+        "1804.05589v1",
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+        "7bf2a2347e89898dce640d528168222210da5fb7",
+        "4aa7c9511fe3fcb72e1655eced45b115b00b1904"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Okur (2022)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2022)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (n.d.)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (n.d.)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Dropped a citation to unknown paper id '71143771' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+        "Dropped a citation to unknown paper id '198331470' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-16T01:50:50.514206+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 2,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "The literature consistently highlights the importance of feature selection stability in ensuring reliable and reproducible models (Büyükkeçeci and Okur, n.d.b).",
+          "issue": "The ground truth lists a paper by Büyükkeçeci and Okur titled 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' with CorpusId:257613898, but does not list a paper with the identifier 'n.d.b' or indicate that this particular paper is about 'reliable and reproducible models'. The citation format implies a publication year of 'n.d.' (no date), which is not supported by the provided ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "empirical evidence linking stability metrics to classification accuracy is inconclusive (Luo et al., n.d.).",
+          "issue": "The ground truth includes a paper by Luo et al. titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' with CorpusId:284040629, but does not indicate that this paper discusses the 'inconclusiveness' of empirical evidence linking stability metrics to classification accuracy. The citation format implies a publication year of 'n.d.', which is not supported by the provided ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A notable limitation lies in the lack of domain-specific generalization metrics, especially within natural language processing (NLP), where current evaluation practices may not fully capture model robustness (Yang et al., 2023).",
+          "issue": "The ground truth includes a paper by Yang et al. titled 'Test Accuracy vs. Generalization Gap: Model Selection in NLP without Accessing Training or Testing Data' with CorpusId:a0df2e634e4fcac23bb161323ecac5ab8b714220, but does not mention anything about 'domain-specific generalization metrics' or 'current evaluation practices not fully capturing model robustness'. The year 2023 is not explicitly confirmed in the ground truth for this paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Similarly, there is insufficient guidance for practitioners regarding the most effective resampling strategies for model selection across diverse applications (Nagler et al., n.d.).",
+          "issue": "The ground truth includes a paper by Nagler et al. titled 'Reshuffling Resampling Splits Can Improve Generalization of Hyperparameter Optimization' with CorpusId:270045192, but does not mention anything about 'insufficient guidance for practitioners' or 'most effective resampling strategies for model selection across diverse applications'. The citation format implies a publication year of 'n.d.', which is not supported by the provided ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another fundamental issue is the presence of high correlation among features, which can result in multiple equally optimal feature subsets, thereby undermining the reliability of traditional selection methods (Khaire and Dhanalakshmi, 2019).",
+          "issue": "The ground truth includes a paper by Khaire and Dhanalakshmi titled 'Stability of feature selection algorithm: A review' with CorpusId:3bccf31bb0cada2e7b24fab7d60abf921f940a6d, but does not mention anything about 'high correlation among features', 'multiple equally optimal feature subsets', or 'undermining the reliability of traditional selection methods'. The year 2019 is not explicitly confirmed in the ground truth for this paper."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Recent theoretical and empirical work has begun to explore the implications of stability in machine learning, including its relevance to phase transitions and neural network training dynamics (Acharya and Dhakal, 2026).",
+          "issue": "The ground truth includes a paper by Acharya and Dhakal titled 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' with CorpusId:c2147631e18b304b30b4738b72dc4fb946058f23, but does not mention anything about 'phase transitions' or 'neural network training dynamics' being explored in relation to stability. The year 2026 is not confirmed in the ground truth for this paper."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Büyükkeçeci and Okur",
+          "issue": "The citation 'Büyükkeçeci and Okur' appears in the text but is not linked to a specific paper title or abstract in the provided ground truth. The ground truth lists papers by these authors as 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' (2022) and 'An Empirical Evaluation of Feature Selection Stability and Classification Accuracy' (2023), but the text refers to them as a single entity without specifying which paper is being referenced."
+        },
+        {
+          "location": "Related Work",
+          "claim": "?ukaszuk and Krawczuk",
+          "issue": "The citation '?ukaszuk and Krawczuk' is not present in the ground truth data. The ground truth includes papers by Büyükkeçeci and Okur, but no paper by 'Ukaszuk and Krawczuk'. This appears to be a fabricated reference."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Luo et al. (n.d.)",
+          "issue": "The citation 'Luo et al. (n.d.)' is not present in the ground truth data. While there is a paper titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' by Luo et al., it is listed with a year of null, and the citation format 'n.d.' implies no date, which is inconsistent with the ground truth's structured data. The paper is also not cited in the text in a way that would allow tracing to the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In the context of high-dimensional biomedical data, recent efforts have focused on developing robust and reproducible feature selection frameworks that balance predictive performance, sparsity, and stability Zobolas et al. (2025).",
+          "issue": "The ground truth lists a paper titled 'Prognostic biomarker discovery in pancreatic cancer through hybrid ensemble feature selection and multi-omics data' by Zobolas et al. (2025), but the text attributes to it a focus on 'developing robust and reproducible feature selection frameworks that balance predictive performance, sparsity, and stability', which is not explicitly stated in the abstract of the ground-truth paper. The abstract mentions hybrid ensemble feature selection (hEFS), sparsity, stability, and discrimination, but does not mention 'robust and reproducible feature selection frameworks' as a whole."
+        },
+        {
+          "location": "Related Work",
+          "claim": "This method demonstrates superior stability and reduced feature redundancy compared to traditional techniques like CoxLasso, while maintaining comparable discrimination performance Zobolas et al. (2025).",
+          "issue": "While the ground truth paper by Zobolas et al. (2025) discusses hEFS's superior stability and reduced feature redundancy compared to CoxLasso, and mentions comparable discrimination performance, the specific phrase 'superior stability and reduced feature redundancy compared to traditional techniques like CoxLasso' is not directly verbatim or explicitly stated in the abstract. The abstract states that hEFS selected fewer and more stable features than CoxLasso (~10 vs. ~60 per modality) with lower variance, but does not use the exact phrasing 'superior stability and reduced feature redundancy'."
+        },
+        {
+          "location": "Related Work",
+          "claim": "In parallel, Zhu et al. (2026) apply ensemble learning techniques to electric vehicle energy consumption prediction, employing vehicle-wise data splitting to mitigate information leakage and ensure realistic model evaluation.",
+          "issue": "The ground truth includes a paper titled 'A Physics-Guided Feature and Ensemble Learning Method for Prediction' by Zhu et al. (2026), but the abstract of that paper does not mention anything about 'electric vehicle energy consumption prediction' or 'vehicle-wise data splitting'. The abstract discusses dissolved oxygen prediction in aquaculture using a physics-guided ensemble learning method, not EV energy consumption."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Together, these works illustrate how modern computational methods are expanding the scope of phase transition analysis beyond traditional theoretical frameworks.",
+          "issue": "The statement is too general and lacks specificity tied to the ground truth. While the ground truth includes papers on phase transitions in materials and networks, it does not contain a direct statement or conclusion that 'modern computational methods are expanding the scope of phase transition analysis beyond traditional theoretical frameworks'. This is a synthesized interpretation not explicitly supported by the ground truth."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim builds upon the identified gap that 'feature selection stability is not always directly correlated with classification performance' (Khaire and Dhanalakshmi, n.d.),",
+          "issue": "The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "which quantifies the similarity between feature subsets derived from different training sets (Pes, n.d.)",
+          "issue": "The ground truth mentions the Consistency Index method for quantifying similarity between feature subsets, but does not cite Pes, n.d. as the source of this method. This citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This hypothesis draws upon the cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability.",
+          "issue": "While the ground truth mentions the cross-disciplinary bridge insight, it does not specify that this insight connects 'diffusion equilibrium' in neural network training dynamics to feature selection stability. This specific framing is not grounded."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It connects to the gap regarding the lack of understanding of how specific physical mechanisms drive phase transitions in complex systems (Wang et al., 2026).",
+          "issue": "The ground truth lists the related gap as 'There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium', but does not mention Wang et al., 2026 as the source of this gap. This citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This assertion arises from the identified gap that 'most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (Luo et al., n.d.).",
+          "issue": "The ground truth correctly identifies this gap but does not attribute it to Luo et al., n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The hypothesis leverages the common usage of ensemble methods (Pes, n.d.; Luo et al., n.d.)",
+          "issue": "While the ground truth lists 'Ensemble Learning' among related methods, it does not cite Pes, n.d. or Luo et al., n.d. as sources for the common usage of ensemble methods. These citations are fabricated."
+        },
+        {
+          "location": "Future Work",
+          "claim": "A key area for further investigation is the lack of substantial empirical support for a direct relationship—whether linear or otherwise—between feature selection stability and classification accuracy",
+          "issue": "While the ground truth identifies a gap regarding 'lack of substantial evidence supporting a linear relationship between feature selection stability and classification accuracy' (gap #1), it does not support the claim that this is a 'key area for further investigation' in the Future Work section. The ground truth only lists the gap without explicitly stating that this constitutes a primary focus for future research."
+        },
+        {
+          "location": "Future Work",
+          "claim": "This gap underscores the need for additional studies that explore diverse dependency structures and alternative measures of stability, particularly within NLP contexts where model behavior can vary significantly",
+          "issue": "The ground truth mentions the gap related to stability and classification accuracy but does not mention anything about 'diverse dependency structures', 'alternative measures of stability', or the specific variability of model behavior in NLP contexts. These details are not supported by the provided ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Similarly, the need for robust generalization metrics tailored to NLP tasks remains unaddressed, highlighting a practical limitation in evaluating model performance in real-world applications",
+          "issue": "Although the ground truth includes a gap about 'Need for more robust generalization metrics specifically tailored for NLP tasks', it does not state that this is a 'practical limitation in evaluating model performance in real-world applications'. This added interpretation is not found in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Another important direction for future research concerns the choice of resampling methods in model selection",
+          "issue": "The ground truth identifies a gap concerning 'Limited research on which resampling method to use in practice for model selection beyond specific domains', but it does not label this as 'another important direction for future research'. The framing of this gap as a distinct research direction is not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Addressing this gap would benefit from comparative studies that evaluate resampling strategies on representative datasets, aiming to offer more principled recommendations for practitioners",
+          "issue": "The ground truth mentions the lack of generalized guidance on resampling methods but does not suggest that 'comparative studies that evaluate resampling strategies on representative datasets' would be beneficial or that they aim to 'offer more principled recommendations for practitioners'. These specific suggestions are not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "These efforts would help bridge the divide between theoretical understanding and practical deployment in machine learning workflows",
+          "issue": "The ground truth does not mention anything about 'bridging the divide between theoretical understanding and practical deployment in machine learning workflows'. This statement introduces a new conceptual framing not present in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Finally, while the current study did not yield a definitive verdict on the primary hypothesis due to the use of synthetic surrogates, it nonetheless contributes to the broader context of evaluating feature selection methods",
+          "issue": "The ground truth confirms that the experiment was inconclusive due to synthetic surrogates and that it relates to evaluating feature selection methods, but it does not state that the study 'nonetheless contributes to the broader context of evaluating feature selection methods'. This evaluative conclusion is not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The inconclusiveness reflects the challenges inherent in applying such methods to simulated environments and emphasizes the importance of grounding evaluations in real-world data",
+          "issue": "While the ground truth notes the use of synthetic surrogates and the inconclusive nature of the results, it does not explicitly state that the inconclusiveness 'reflects the challenges inherent in applying such methods to simulated environments' or that it 'emphasizes the importance of grounding evaluations in real-world data'. These interpretations are not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Further exploration along these lines, including replication studies with authentic datasets, could help clarify whether observed patterns in synthetic settings align with practical outcomes",
+          "issue": "The ground truth does not mention 'replication studies with authentic datasets' or the idea that 'observed patterns in synthetic settings align with practical outcomes'. These speculative extensions are not supported by the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "However, no specific experimental plans were outlined in the current work to pursue such directions",
+          "issue": "The ground truth does not contain any information about whether 'specific experimental plans were outlined in the current work'. This claim introduces a new assertion about the content of the current work that is not present in the ground truth."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [
+        {
+          "location": "Results > H1",
+          "claimed": "figure(s) actually present in the text: 0.7622368421052632, 0.8452631578947368, 0.9040789473684211, 1, 1.0000",
+          "actual": "Coder Agent reports consistency_low=0.6"
+        }
+      ],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by asserting that the experiment 'remains inconclusive due to the use of synthetic surrogate data' and that 'the findings cannot be used to assess the validity of the hypothesis.' This overstates the verdict because the ground truth explicitly states that the experiment 'ran to completion (status \\'completed\\') and its metrics are reported,' and only that 'no verdict is drawn from them (meets_success_criteria=\\\"unknown\\\").' The paper's framing implies a stronger conclusion about the experiment's inability to assess the hypothesis, whereas the actual verdict is simply that the experiment did not reach a conclusion due to insufficient information (i.e., the metrics are uninterpretable due to synthetic data)."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 4,
+        "flow": 3,
+        "tone": 5,
+        "structure": 4,
+        "limitations_honesty": 3
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"The literature consistently highlights the importance of feature selection stability in ensuring reliable and reproducible models (Büyükkeçeci and Okur, n.d.b).\" — The ground truth lists a paper by Büyükkeçeci and Okur titled 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' with CorpusId:257613898, but does not list a paper with the identifier 'n.d.b' or indicate that this particular paper is about 'reliable and reproducible models'. The citation format implies a publication year of 'n.d.' (no date), which is not supported by the provided ground truth.\n- Introduction: \"empirical evidence linking stability metrics to classification accuracy is inconclusive (Luo et al., n.d.).\" — The ground truth includes a paper by Luo et al. titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' with CorpusId:284040629, but does not indicate that this paper discusses the 'inconclusiveness' of empirical evidence linking stability metrics to classification accuracy. The citation format implies a publication year of 'n.d.', which is not supported by the provided ground truth.\n- Introduction: \"A notable limitation lies in the lack of domain-specific generalization metrics, especially within natural language processing (NLP), where current evaluation practices may not fully capture model robustness (Yang et al., 2023).\" — The ground truth includes a paper by Yang et al. titled 'Test Accuracy vs. Generalization Gap: Model Selection in NLP without Accessing Training or Testing Data' with CorpusId:a0df2e634e4fcac23bb161323ecac5ab8b714220, but does not mention anything about 'domain-specific generalization metrics' or 'current evaluation practices not fully capturing model robustness'. The year 2023 is not explicitly confirmed in the ground truth for this paper.\n- Introduction: \"Similarly, there is insufficient guidance for practitioners regarding the most effective resampling strategies for model selection across diverse applications (Nagler et al., n.d.).\" — The ground truth includes a paper by Nagler et al. titled 'Reshuffling Resampling Splits Can Improve Generalization of Hyperparameter Optimization' with CorpusId:270045192, but does not mention anything about 'insufficient guidance for practitioners' or 'most effective resampling strategies for model selection across diverse applications'. The citation format implies a publication year of 'n.d.', which is not supported by the provided ground truth.\n- Introduction: \"Another fundamental issue is the presence of high correlation among features, which can result in multiple equally optimal feature subsets, thereby undermining the reliability of traditional selection methods (Khaire and Dhanalakshmi, 2019).\" — The ground truth includes a paper by Khaire and Dhanalakshmi titled 'Stability of feature selection algorithm: A review' with CorpusId:3bccf31bb0cada2e7b24fab7d60abf921f940a6d, but does not mention anything about 'high correlation among features', 'multiple equally optimal feature subsets', or 'undermining the reliability of traditional selection methods'. The year 2019 is not explicitly confirmed in the ground truth for this paper.\n- Introduction: \"Recent theoretical and empirical work has begun to explore the implications of stability in machine learning, including its relevance to phase transitions and neural network training dynamics (Acharya and Dhakal, 2026).\" — The ground truth includes a paper by Acharya and Dhakal titled 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' with CorpusId:c2147631e18b304b30b4738b72dc4fb946058f23, but does not mention anything about 'phase transitions' or 'neural network training dynamics' being explored in relation to stability. The year 2026 is not confirmed in the ground truth for this paper.\n- Related Work: \"Büyükkeçeci and Okur\" — The citation 'Büyükkeçeci and Okur' appears in the text but is not linked to a specific paper title or abstract in the provided ground truth. The ground truth lists papers by these authors as 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' (2022) and 'An Empirical Evaluation of Feature Selection Stability and Classification Accuracy' (2023), but the text refers to them as a single entity without specifying which paper is being referenced.\n- Related Work: \"?ukaszuk and Krawczuk\" — The citation '?ukaszuk and Krawczuk' is not present in the ground truth data. The ground truth includes papers by Büyükkeçeci and Okur, but no paper by 'Ukaszuk and Krawczuk'. This appears to be a fabricated reference.\n- Related Work: \"Luo et al. (n.d.)\" — The citation 'Luo et al. (n.d.)' is not present in the ground truth data. While there is a paper titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' by Luo et al., it is listed with a year of null, and the citation format 'n.d.' implies no date, which is inconsistent with the ground truth's structured data. The paper is also not cited in the text in a way that would allow tracing to the ground truth.\n- Related Work: \"In the context of high-dimensional biomedical data, recent efforts have focused on developing robust and reproducible feature selection frameworks that balance predictive performance, sparsity, and stability Zobolas et al. (2025).\" — The ground truth lists a paper titled 'Prognostic biomarker discovery in pancreatic cancer through hybrid ensemble feature selection and multi-omics data' by Zobolas et al. (2025), but the text attributes to it a focus on 'developing robust and reproducible feature selection frameworks that balance predictive performance, sparsity, and stability', which is not explicitly stated in the abstract of the ground-truth paper. The abstract mentions hybrid ensemble feature selection (hEFS), sparsity, stability, and discrimination, but does not mention 'robust and reproducible feature selection frameworks' as a whole.\n- Related Work: \"This method demonstrates superior stability and reduced feature redundancy compared to traditional techniques like CoxLasso, while maintaining comparable discrimination performance Zobolas et al. (2025).\" — While the ground truth paper by Zobolas et al. (2025) discusses hEFS's superior stability and reduced feature redundancy compared to CoxLasso, and mentions comparable discrimination performance, the specific phrase 'superior stability and reduced feature redundancy compared to traditional techniques like CoxLasso' is not directly verbatim or explicitly stated in the abstract. The abstract states that hEFS selected fewer and more stable features than CoxLasso (~10 vs. ~60 per modality) with lower variance, but does not use the exact phrasing 'superior stability and reduced feature redundancy'.\n- Related Work: \"In parallel, Zhu et al. (2026) apply ensemble learning techniques to electric vehicle energy consumption prediction, employing vehicle-wise data splitting to mitigate information leakage and ensure realistic model evaluation.\" — The ground truth includes a paper titled 'A Physics-Guided Feature and Ensemble Learning Method for Prediction' by Zhu et al. (2026), but the abstract of that paper does not mention anything about 'electric vehicle energy consumption prediction' or 'vehicle-wise data splitting'. The abstract discusses dissolved oxygen prediction in aquaculture using a physics-guided ensemble learning method, not EV energy consumption.\n- Related Work: \"Together, these works illustrate how modern computational methods are expanding the scope of phase transition analysis beyond traditional theoretical frameworks.\" — The statement is too general and lacks specificity tied to the ground truth. While the ground truth includes papers on phase transitions in materials and networks, it does not contain a direct statement or conclusion that 'modern computational methods are expanding the scope of phase transition analysis beyond traditional theoretical frameworks'. This is a synthesized interpretation not explicitly supported by the ground truth.\n- Hypotheses: \"The rationale for this claim builds upon the identified gap that 'feature selection stability is not always directly correlated with classification performance' (Khaire and Dhanalakshmi, n.d.),\" — The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated.\n- Hypotheses: \"which quantifies the similarity between feature subsets derived from different training sets (Pes, n.d.)\" — The ground truth mentions the Consistency Index method for quantifying similarity between feature subsets, but does not cite Pes, n.d. as the source of this method. This citation is fabricated.\n- Hypotheses: \"This hypothesis draws upon the cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability.\" — While the ground truth mentions the cross-disciplinary bridge insight, it does not specify that this insight connects 'diffusion equilibrium' in neural network training dynamics to feature selection stability. This specific framing is not grounded.\n- Hypotheses: \"It connects to the gap regarding the lack of understanding of how specific physical mechanisms drive phase transitions in complex systems (Wang et al., 2026).\" — The ground truth lists the related gap as 'There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium', but does not mention Wang et al., 2026 as the source of this gap. This citation is fabricated.\n- Hypotheses: \"This assertion arises from the identified gap that 'most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (Luo et al., n.d.).\" — The ground truth correctly identifies this gap but does not attribute it to Luo et al., n.d. The citation is fabricated.\n- Hypotheses: \"The hypothesis leverages the common usage of ensemble methods (Pes, n.d.; Luo et al., n.d.)\" — While the ground truth lists 'Ensemble Learning' among related methods, it does not cite Pes, n.d. or Luo et al., n.d. as sources for the common usage of ensemble methods. These citations are fabricated.\n- Future Work: \"A key area for further investigation is the lack of substantial empirical support for a direct relationship—whether linear or otherwise—between feature selection stability and classification accuracy\" — While the ground truth identifies a gap regarding 'lack of substantial evidence supporting a linear relationship between feature selection stability and classification accuracy' (gap #1), it does not support the claim that this is a 'key area for further investigation' in the Future Work section. The ground truth only lists the gap without explicitly stating that this constitutes a primary focus for future research.\n- Future Work: \"This gap underscores the need for additional studies that explore diverse dependency structures and alternative measures of stability, particularly within NLP contexts where model behavior can vary significantly\" — The ground truth mentions the gap related to stability and classification accuracy but does not mention anything about 'diverse dependency structures', 'alternative measures of stability', or the specific variability of model behavior in NLP contexts. These details are not supported by the provided ground truth.\n- Future Work: \"Similarly, the need for robust generalization metrics tailored to NLP tasks remains unaddressed, highlighting a practical limitation in evaluating model performance in real-world applications\" — Although the ground truth includes a gap about 'Need for more robust generalization metrics specifically tailored for NLP tasks', it does not state that this is a 'practical limitation in evaluating model performance in real-world applications'. This added interpretation is not found in the ground truth.\n- Future Work: \"Another important direction for future research concerns the choice of resampling methods in model selection\" — The ground truth identifies a gap concerning 'Limited research on which resampling method to use in practice for model selection beyond specific domains', but it does not label this as 'another important direction for future research'. The framing of this gap as a distinct research direction is not supported by the ground truth.\n- Future Work: \"Addressing this gap would benefit from comparative studies that evaluate resampling strategies on representative datasets, aiming to offer more principled recommendations for practitioners\" — The ground truth mentions the lack of generalized guidance on resampling methods but does not suggest that 'comparative studies that evaluate resampling strategies on representative datasets' would be beneficial or that they aim to 'offer more principled recommendations for practitioners'. These specific suggestions are not grounded in the provided information.\n- Future Work: \"These efforts would help bridge the divide between theoretical understanding and practical deployment in machine learning workflows\" — The ground truth does not mention anything about 'bridging the divide between theoretical understanding and practical deployment in machine learning workflows'. This statement introduces a new conceptual framing not present in the ground truth.\n- Future Work: \"Finally, while the current study did not yield a definitive verdict on the primary hypothesis due to the use of synthetic surrogates, it nonetheless contributes to the broader context of evaluating feature selection methods\" — The ground truth confirms that the experiment was inconclusive due to synthetic surrogates and that it relates to evaluating feature selection methods, but it does not state that the study 'nonetheless contributes to the broader context of evaluating feature selection methods'. This evaluative conclusion is not supported by the ground truth.\n- Future Work: \"The inconclusiveness reflects the challenges inherent in applying such methods to simulated environments and emphasizes the importance of grounding evaluations in real-world data\" — While the ground truth notes the use of synthetic surrogates and the inconclusive nature of the results, it does not explicitly state that the inconclusiveness 'reflects the challenges inherent in applying such methods to simulated environments' or that it 'emphasizes the importance of grounding evaluations in real-world data'. These interpretations are not grounded in the provided text.\n- Future Work: \"Further exploration along these lines, including replication studies with authentic datasets, could help clarify whether observed patterns in synthetic settings align with practical outcomes\" — The ground truth does not mention 'replication studies with authentic datasets' or the idea that 'observed patterns in synthetic settings align with practical outcomes'. These speculative extensions are not supported by the ground truth.\n- Future Work: \"However, no specific experimental plans were outlined in the current work to pursue such directions\" — The ground truth does not contain any information about whether 'specific experimental plans were outlined in the current work'. This claim introduces a new assertion about the content of the current work that is not present in the ground truth.\nResults accuracy issues:\n- Results > H1: claimed — figure(s) actually present in the text: 0.7622368421052632, 0.8452631578947368, 0.9040789473684211, 1, 1.0000; actual — Coder Agent reports consistency_low=0.6. Correct this.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by asserting that the experiment 'remains inconclusive due to the use of synthetic surrogate data' and that 'the findings cannot be used to assess the validity of the hypothesis.' This overstates the verdict because the ground truth explicitly states that the experiment 'ran to completion (status \\'completed\\') and its metrics are reported,' and only that 'no verdict is drawn from them (meets_success_criteria=\\\"unknown\\\").' The paper's framing implies a stronger conclusion about the experiment's inability to assess the hypothesis, whereas the actual verdict is simply that the experiment did not reach a conclusion due to insufficient information (i.e., the metrics are uninterpretable due to synthetic data).\nQuality scores below the 4/5 threshold:\n- flow: 3/5 — Logical progression is present but weakened by abrupt shifts between sections and inconsistent transitions, particularly between related work and methods.\n- limitations_honesty: 3/5 — The paper acknowledges the use of synthetic data and its implications, but fails to fully engage with the specific risks and assumptions listed in the ground truth, such as insufficient variation in feature selection or computational overhead, instead presenting them superficially without detailed analysis of their impact on findings.",
+      "generated_at": "2026-09-16T01:51:28.910612+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  },
+  {
+    "iteration": 3,
+    "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v3.pdf",
+    "paper_summary": {
+      "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q032_does-feature-selection-stability-across-resampled-datasets/v3.pdf",
+      "sections_generated": [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Related Work",
+        "Hypotheses",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Limitations",
+        "Future Work",
+        "References"
+      ],
+      "hypotheses_supported": [],
+      "hypotheses_refuted": [],
+      "hypotheses_inconclusive": [
+        "H1"
+      ],
+      "citations_used": [
+        "c2147631e18b304b30b4738b72dc4fb946058f23",
+        "8dc51e275d3bb7342368ad58bf8cd1ea4de05f92",
+        "4bb365834ba03be1987e50e1466e4ec38446e3ed",
+        "714a0b9a0977cc86d844eb5a59c9b999d4e56379",
+        "CorpusId:257613898",
+        "CorpusId:265362507",
+        "2211.01485v1",
+        "3bccf31bb0cada2e7b24fab7d60abf921f940a6d",
+        "CorpusId:198331470",
+        "a020c64d19653bfa6bbefdec2d485e508d4ff04e",
+        "dbc13acf3c75697bac4027b594024a9b5e9b4dc8",
+        "a2683d672665fb3dc24e0994229d986415985323",
+        "CorpusId:284040629",
+        "518ddb1d1e6df24f7069b22fac6d0cb3a33c2545",
+        "02a14ed4f51d2aa011a817556742d19d913d60b6",
+        "CorpusId:270045192",
+        "1506.05173v2",
+        "CorpusId:71143771",
+        "1301.1256v4",
+        "809391d59e4114d4c0f15ed64ace66840fb85a21",
+        "1905.10573v5",
+        "d3594bb2ad060064709ede5d2b4ec91206bd8476",
+        "2302.13221v4",
+        "1911.12882v1",
+        "a0df2e634e4fcac23bb161323ecac5ab8b714220",
+        "1804.05589v1",
+        "a11bb2353dc83789aa395d60de24e4023dcbfa96",
+        "4aa7c9511fe3fcb72e1655eced45b115b00b1904"
+      ],
+      "notes_for_review": [
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (n.d.)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Krawczuk (2024)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Removed fabricated-looking citation text \"Okur (2022)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+        "Dropped a citation to unknown paper id '198331470' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+      ],
+      "generated_at": "2026-09-16T01:53:00.456210+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    "review": {
+      "iteration": 3,
+      "hallucinations": [
+        {
+          "location": "Introduction",
+          "claim": "A recurring theme in the literature is the importance of feature selection stability for ensuring model reliability and reproducibility (Luo et al., n.d.).",
+          "issue": "The ground truth lists a cited paper 'CorpusId:284040629' titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' as being related to the topic, but does not indicate that this paper explicitly discusses 'model reliability and reproducibility' in the context of feature selection stability. The claim attributes a specific thematic focus to the cited paper that is not supported by the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Most existing studies treat stability as a secondary diagnostic tool rather than a core design principle, and empirical support for a direct link between stability metrics and classification accuracy is inconclusive (Khaire and Dhanalakshmi, n.d.).",
+          "issue": "While the ground truth mentions that 'Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (supporting evidence CorpusId:284040629), it does not specify that this applies to 'empirical support for a direct link between stability metrics and classification accuracy'. The claim expands beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "A key limitation concerns the lack of robust generalization metrics tailored specifically for certain domains, such as natural language processing (NLP), where current evaluation practices may fall short of capturing model robustness (Yang et al., 2023).",
+          "issue": "The ground truth supports the existence of a gap regarding 'Need for more robust generalization metrics specifically tailored for NLP tasks' (supporting evidence a0df2e634e4fcac23bb161323ecac5ab8b714220), but does not mention anything about 'current evaluation practices may fall short of capturing model robustness'. This addition is not grounded in the provided information."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Additionally, there is a scarcity of generalizable guidance for practitioners regarding effective resampling methods for model selection across diverse applications (Nagler et al., n.d.).",
+          "issue": "The ground truth includes a gap stating 'Limited research on which resampling method to use in practice for model selection beyond specific domains' (supporting evidence CorpusId:270045192), but does not describe this as a 'scarcity of generalizable guidance for practitioners'. The claim introduces a new framing not found in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "The stochasticity inherent in optimization processes further complicates matters, contributing to chaotic performance in domain generalization tasks (Arpit et al., 2021).",
+          "issue": "The ground truth identifies a gap related to 'Chaotic performance in domain generalization due to stochasticity in optimization' (supporting evidence 8dc51e275d3bb7342368ad58bf8cd1ea4de05f92), but does not attribute this to 'complicating matters' or describe it as contributing to 'chaotic performance in domain generalization tasks'. The claim adds interpretive language not present in the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Another fundamental challenge arises from the presence of high correlation among features, which can yield multiple equally optimal feature subsets and thus compromise the consistency of traditional selection approaches (Khaire and Dhanalakshmi, 2019).",
+          "issue": "The ground truth confirms that 'High correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods' (supporting evidence 3bccf31bb0cada2e7b24fab7d60abf921f940a6d), but does not specify the year 2019 or refer to Khaire and Dhanalakshmi as the authors of this idea. The citation and year are incorrect according to the ground truth."
+        },
+        {
+          "location": "Introduction",
+          "claim": "Recent theoretical and empirical investigations have started to examine the implications of stability in machine learning, particularly in relation to training dynamics and phase transitions (Acharya and Dhakal, 2026).",
+          "issue": "The ground truth includes a paper 'c2147631e18b304b30b4738b72dc4fb946058f23' titled 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' by Pratyush Acharya and H. Dhakal, published in 2026, which aligns with the claim. However, the claim implies that this work examines 'implications of stability in machine learning, particularly in relation to training dynamics and phase transitions', whereas the ground truth only states that the paper explores 'grokking as a variance-limited phase transition' without specifying its relevance to broader stability implications in ML."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Büyükkeçeci and Okur",
+          "issue": "The citation 'Büyükkeçeci and Okur' appears in the text but does not correspond to any specific paper title or author list in the provided ground truth that matches this exact reference. The ground truth includes papers titled 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' by Büyükkeçeci and Okur (2022) and 'An Empirical Evaluation of Feature Selection Stability and Classification Accuracy' by Büyükkeçeci and Okur (2023), but the citation format 'Büyükkeçeci and Okur' without year or title is not traceable to a specific entry in the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "?ukaszuk and Krawczuk",
+          "issue": "The citation '?ukaszuk and Krawczuk' is not traceable to any specific paper in the ground truth. While the ground truth mentions 'Büyükkeçeci and Okur' and 'Lazebnik and Rosenfeld', there is no mention of 'Ukaszuk and Krawczuk' or any paper by these authors in the provided list of papers."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Lazebnik and Rosenfeld (2024)",
+          "issue": "The ground truth lists a paper titled 'A new definition for feature selection stability analysis' by T. Lazebnik and Avi Rosenfeld with year 2024, but the abstract provided for this paper is incomplete ('A new definition for feature selection stability analysis') and does not contain enough information to confirm that it discusses Lyapunov stability or the specific aspects mentioned in the section text. Therefore, the claim about the content of this paper cannot be verified from the ground truth."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Arpit et al. (2021)",
+          "issue": "The ground truth includes a paper titled 'Ensemble of Averages: Improving Model Selection and Boosting Performance in Domain Generalization' by Devansh Arpit et al. with year 2021. However, the abstract provided for this paper does not mention anything about chaotic behavior in domain generalization or the specific ensemble of averages (EoA) approach described in the section text. The abstract focuses on domain generalization, model averaging, and early stopping, but lacks details on the chaotic behavior and stochasticity aspects mentioned in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Giampaoli et al., 2022",
+          "issue": "The ground truth includes a paper titled 'Information compression at the turbulent-phase transition in cold atom gases' by R. Giampaoli et al. with year 2022. However, the abstract provided for this paper does not mention anything about information compression at criticality or fluctuations organizing into low-entropy patterns. The abstract focuses on statistical properties of physical systems and Shannon entropy computation, but does not specify the criticality or pattern formation aspects described in the section text."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Radin and Sadun, 2013",
+          "issue": "The ground truth includes a paper titled 'Phase transitions in a complex network' by Charles Radin and Lorenzo Sadun with year 2013. However, the abstract provided for this paper does not mention anything about entropy density optimization, optimizing graphs, or the specific phase transitions described in the section text. The abstract focuses on mean field models and edge/triangle densities, but does not elaborate on the entropy density optimization or phase transition mechanisms mentioned in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Kong et al., 2019",
+          "issue": "The ground truth includes a paper titled 'Stability and Phase Transition of Cobalt Oxide Phases by Machine Learning Global Potential Energy Surface' by Fan-Lin Kong et al. with year 2019. However, the abstract provided for this paper does not mention anything about exploring global potential energy surfaces or thermodynamic and kinetic properties of cobalt oxides in the context of phase transitions. The abstract focuses on thermodynamic stability and decomposition, but does not describe the machine learning approach to global potential energy surface exploration as stated in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Liang et al., 2025",
+          "issue": "The ground truth includes a paper titled 'Phase Stability and Transformations in Lead Mixed Halide Perovskites from Machine Learning Force Fields' by Xia Liang et al. with year 2025. However, the abstract provided for this paper does not mention anything about equivariant message-passing neural-network potential or large-scale molecular dynamics simulations. The abstract focuses on perovskite systems and phase diagrams, but does not describe the specific machine learning methods used in the section text."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Mariprasath et al. (2026)",
+          "issue": "The ground truth includes a paper titled 'Vehicle-wise validated ensemble learning framework for robust electric vehicle energy consumption prediction using physics-guided features and statistical benchmarking' by T. Mariprasath et al. with year 2026. However, the abstract provided for this paper does not mention anything about vehicle-wise data splitting or preventing information leakage. The abstract focuses on ensemble learning models and real electric vehicle data, but does not describe the specific data splitting technique mentioned in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Ran et al. (2025)",
+          "issue": "The ground truth includes a paper titled 'Machine Learning Informed by Micro and Mesoscopic Statistical Physics Methods for Community Detection' by Yijun Ran et al. with year 2025. However, the abstract provided for this paper does not mention anything about integrating machine learning with statistical physics methods for community detection. The abstract focuses on low-complexity framework and ensemble learning models, but does not describe the specific hybrid approach involving node-pair similarities and mesoscopic structures as stated in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Wang et al. (2026)",
+          "issue": "The ground truth includes a paper titled 'An Adaptive Physics-Guided Ensemble Learning Framework for Dynamic Object Detection' by Chang-Qiang Wang et al. with year 2026. However, the abstract provided for this paper does not mention anything about predicting temperature fields and cutting forces during machining processes. The abstract focuses on dynamic object detection and physics-guided feature calibration, but does not describe the specific application to machining processes as stated in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Xu et al. (2019)",
+          "issue": "The ground truth includes a paper titled 'Novel Non-Negative Variance Estimator for (Modified) Within-Cluster Resampling' by Daniel Xu et al. with year 2019. However, the abstract provided for this paper does not mention anything about conditional inference trees or subsampling instead of traditional CART trees and bootstrap sampling. The abstract focuses on variance estimation and resampling methods, but does not describe the specific comparison with CART trees and bootstrap sampling as stated in the section."
+        },
+        {
+          "location": "Related Work",
+          "claim": "Terada and Shimodaira (2019)",
+          "issue": "The ground truth includes a paper titled 'Selective inference after feature selection via multiscale bootstrap' by Yoshikazu Terada and Hidetoshi Shimodaira with year 2019. However, the abstract provided for this paper does not mention anything about multiscale bootstrap approach for selective inference or its accuracy compared to classical bootstrap methods. The abstract focuses on resampling methods and selective inference, but does not describe the specific multiscale bootstrap approach as stated in the section."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The rationale for this claim builds upon the identified gap that 'feature selection stability is not always directly correlated with classification performance' (Khaire and Dhanalakshmi, n.d.).",
+          "issue": "The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "By employing the Consistency Index method, which quantifies the similarity between feature subsets derived from different training sets (Pes, n.d.), this hypothesis aims to establish a direct relationship between the stability of selected features and the average classification performance across multiple resampled training sets.",
+          "issue": "While the ground truth mentions the Consistency Index method, it does not reference Pes, n.d. as the source for the method's description. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This hypothesis draws upon the cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability.",
+          "issue": "The ground truth describes the rationale as drawing upon a cross-disciplinary bridge insight, but does not specify that it connects 'diffusion equilibrium' in neural network training dynamics to feature selection stability. This specific framing is not grounded in the provided text."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "It connects to the gap regarding the lack of understanding of how specific physical mechanisms drive phase transitions in complex systems (Wang et al., 2026).",
+          "issue": "The ground truth lists the related gap as 'There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium', but does not cite Wang et al., 2026. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "This assertion arises from the identified gap that 'most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (Luo et al., n.d.).",
+          "issue": "The ground truth correctly identifies this gap but does not attribute it to Luo et al., n.d. The citation is fabricated."
+        },
+        {
+          "location": "Hypotheses",
+          "claim": "The hypothesis leverages the common usage of ensemble methods (Pes, n.d.; Luo et al., n.d.)",
+          "issue": "While the ground truth lists 'Ensemble Learning' among related methods, it does not cite Pes, n.d. or Luo et al., n.d. as sources for the common usage of ensemble methods. These citations are fabricated."
+        },
+        {
+          "location": "Results",
+          "claim": "In particular, the reported consistency score for the low-stability condition was 0.6, not 1.0, as previously stated.",
+          "issue": "The ground truth explicitly states that the consistency score for the low-stability condition was 0.6 and for the high-stability condition was 1.0. The section text incorrectly claims that 1.0 was previously stated for the low-stability condition, which contradicts the ground truth data."
+        },
+        {
+          "location": "Future Work",
+          "claim": "The current study's primary hypothesis regarding the relationship between feature selection stability and classification accuracy remains inconclusive due to the use of synthetic surrogates, which precludes drawing definitive conclusions about real-world applicability.",
+          "issue": "While the ground truth states that the experiment used synthetic surrogates and that the verdict is 'unknown', it does not explicitly state that the use of synthetic surrogates 'precludes drawing definitive conclusions about real-world applicability'. This interpretation goes beyond what is stated in the ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Additional research is needed to determine whether patterns observed in simulated environments translate to practical performance gains in NLP tasks.",
+          "issue": "The ground truth does not mention anything about 'patterns observed in simulated environments' or their translation to 'practical performance gains in NLP tasks'. This statement introduces new speculative content not supported by the provided ground truth."
+        },
+        {
+          "location": "Future Work",
+          "claim": "No explicit justification is provided in the data to frame this as a critical limitation in evaluating model performance in real-world applications.",
+          "issue": "The ground truth mentions a recognized need for more robust generalization metrics tailored to NLP tasks, but does not specify whether this was explicitly justified within the data or framed as a 'critical limitation'. This addition is not grounded in the provided information."
+        },
+        {
+          "location": "Future Work",
+          "claim": "It does not support framing it as a distinct research direction or suggesting that comparative studies on representative datasets would be particularly beneficial.",
+          "issue": "The ground truth identifies a gap related to resampling methods but does not indicate that this gap supports or does not support framing it as a 'distinct research direction' or making claims about 'comparative studies on representative datasets'. These assertions are not grounded in the provided text."
+        },
+        {
+          "location": "Future Work",
+          "claim": "Yet no specific experimental plans for such investigations were outlined in the current work.",
+          "issue": "The ground truth does not contain any information about 'experimental plans for such investigations' being outlined or not outlined in the current work. This is an ungrounded claim about the scope of the current study's future work planning."
+        }
+      ],
+      "citation_issues": [],
+      "results_accuracy_issues": [],
+      "hypothesis_coverage_issues": [
+        {
+          "hypothesis_id": "H1",
+          "location": "Discussion > H1",
+          "issue": "The text overstated the outcome by implying that the experiment's failure to support the hypothesis was due to methodological flaws, when the ground truth explicitly states that the verdict is 'inconclusive' because the metrics are uninformative due to synthetic inputs, not because of any flaw in methodology. The relevant phrase is: 'This limitation stems from the use of generated data rather than authentic dataset instances, preventing a meaningful interpretation of the observed outcomes in terms of the stated hypothesis.' This phrasing incorrectly suggests that the experiment itself was flawed, whereas the actual reason for inconclusiveness is the data provenance issue, not the experimental design."
+        }
+      ],
+      "quality_scores": {
+        "clarity": 3,
+        "flow": 3,
+        "tone": 4,
+        "structure": 3,
+        "limitations_honesty": 2
+      },
+      "overall_pass": false,
+      "feedback_for_writer": "Hallucinations / ungrounded claims:\n- Introduction: \"A recurring theme in the literature is the importance of feature selection stability for ensuring model reliability and reproducibility (Luo et al., n.d.).\" — The ground truth lists a cited paper 'CorpusId:284040629' titled 'A Stability-Oriented Biomarker Selection Framework Synergistically Driven by Robust Rank Aggregation and L1-Sparse Modeling' as being related to the topic, but does not indicate that this paper explicitly discusses 'model reliability and reproducibility' in the context of feature selection stability. The claim attributes a specific thematic focus to the cited paper that is not supported by the ground truth.\n- Introduction: \"Most existing studies treat stability as a secondary diagnostic tool rather than a core design principle, and empirical support for a direct link between stability metrics and classification accuracy is inconclusive (Khaire and Dhanalakshmi, n.d.).\" — While the ground truth mentions that 'Most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (supporting evidence CorpusId:284040629), it does not specify that this applies to 'empirical support for a direct link between stability metrics and classification accuracy'. The claim expands beyond what is stated in the ground truth.\n- Introduction: \"A key limitation concerns the lack of robust generalization metrics tailored specifically for certain domains, such as natural language processing (NLP), where current evaluation practices may fall short of capturing model robustness (Yang et al., 2023).\" — The ground truth supports the existence of a gap regarding 'Need for more robust generalization metrics specifically tailored for NLP tasks' (supporting evidence a0df2e634e4fcac23bb161323ecac5ab8b714220), but does not mention anything about 'current evaluation practices may fall short of capturing model robustness'. This addition is not grounded in the provided information.\n- Introduction: \"Additionally, there is a scarcity of generalizable guidance for practitioners regarding effective resampling methods for model selection across diverse applications (Nagler et al., n.d.).\" — The ground truth includes a gap stating 'Limited research on which resampling method to use in practice for model selection beyond specific domains' (supporting evidence CorpusId:270045192), but does not describe this as a 'scarcity of generalizable guidance for practitioners'. The claim introduces a new framing not found in the ground truth.\n- Introduction: \"The stochasticity inherent in optimization processes further complicates matters, contributing to chaotic performance in domain generalization tasks (Arpit et al., 2021).\" — The ground truth identifies a gap related to 'Chaotic performance in domain generalization due to stochasticity in optimization' (supporting evidence 8dc51e275d3bb7342368ad58bf8cd1ea4de05f92), but does not attribute this to 'complicating matters' or describe it as contributing to 'chaotic performance in domain generalization tasks'. The claim adds interpretive language not present in the ground truth.\n- Introduction: \"Another fundamental challenge arises from the presence of high correlation among features, which can yield multiple equally optimal feature subsets and thus compromise the consistency of traditional selection approaches (Khaire and Dhanalakshmi, 2019).\" — The ground truth confirms that 'High correlation among features can lead to multiple equally optimal signatures, causing instability in traditional feature selection methods' (supporting evidence 3bccf31bb0cada2e7b24fab7d60abf921f940a6d), but does not specify the year 2019 or refer to Khaire and Dhanalakshmi as the authors of this idea. The citation and year are incorrect according to the ground truth.\n- Introduction: \"Recent theoretical and empirical investigations have started to examine the implications of stability in machine learning, particularly in relation to training dynamics and phase transitions (Acharya and Dhakal, 2026).\" — The ground truth includes a paper 'c2147631e18b304b30b4738b72dc4fb946058f23' titled 'Grokking as a Variance-Limited Phase Transition: Spectral Gating and the Epsilon-Stability Threshold' by Pratyush Acharya and H. Dhakal, published in 2026, which aligns with the claim. However, the claim implies that this work examines 'implications of stability in machine learning, particularly in relation to training dynamics and phase transitions', whereas the ground truth only states that the paper explores 'grokking as a variance-limited phase transition' without specifying its relevance to broader stability implications in ML.\n- Related Work: \"Büyükkeçeci and Okur\" — The citation 'Büyükkeçeci and Okur' appears in the text but does not correspond to any specific paper title or author list in the provided ground truth that matches this exact reference. The ground truth includes papers titled 'A Comprehensive Review of Feature Selection and Feature Selection Stability in Machine Learning' by Büyükkeçeci and Okur (2022) and 'An Empirical Evaluation of Feature Selection Stability and Classification Accuracy' by Büyükkeçeci and Okur (2023), but the citation format 'Büyükkeçeci and Okur' without year or title is not traceable to a specific entry in the ground truth.\n- Related Work: \"?ukaszuk and Krawczuk\" — The citation '?ukaszuk and Krawczuk' is not traceable to any specific paper in the ground truth. While the ground truth mentions 'Büyükkeçeci and Okur' and 'Lazebnik and Rosenfeld', there is no mention of 'Ukaszuk and Krawczuk' or any paper by these authors in the provided list of papers.\n- Related Work: \"Lazebnik and Rosenfeld (2024)\" — The ground truth lists a paper titled 'A new definition for feature selection stability analysis' by T. Lazebnik and Avi Rosenfeld with year 2024, but the abstract provided for this paper is incomplete ('A new definition for feature selection stability analysis') and does not contain enough information to confirm that it discusses Lyapunov stability or the specific aspects mentioned in the section text. Therefore, the claim about the content of this paper cannot be verified from the ground truth.\n- Related Work: \"Arpit et al. (2021)\" — The ground truth includes a paper titled 'Ensemble of Averages: Improving Model Selection and Boosting Performance in Domain Generalization' by Devansh Arpit et al. with year 2021. However, the abstract provided for this paper does not mention anything about chaotic behavior in domain generalization or the specific ensemble of averages (EoA) approach described in the section text. The abstract focuses on domain generalization, model averaging, and early stopping, but lacks details on the chaotic behavior and stochasticity aspects mentioned in the section.\n- Related Work: \"Giampaoli et al., 2022\" — The ground truth includes a paper titled 'Information compression at the turbulent-phase transition in cold atom gases' by R. Giampaoli et al. with year 2022. However, the abstract provided for this paper does not mention anything about information compression at criticality or fluctuations organizing into low-entropy patterns. The abstract focuses on statistical properties of physical systems and Shannon entropy computation, but does not specify the criticality or pattern formation aspects described in the section text.\n- Related Work: \"Radin and Sadun, 2013\" — The ground truth includes a paper titled 'Phase transitions in a complex network' by Charles Radin and Lorenzo Sadun with year 2013. However, the abstract provided for this paper does not mention anything about entropy density optimization, optimizing graphs, or the specific phase transitions described in the section text. The abstract focuses on mean field models and edge/triangle densities, but does not elaborate on the entropy density optimization or phase transition mechanisms mentioned in the section.\n- Related Work: \"Kong et al., 2019\" — The ground truth includes a paper titled 'Stability and Phase Transition of Cobalt Oxide Phases by Machine Learning Global Potential Energy Surface' by Fan-Lin Kong et al. with year 2019. However, the abstract provided for this paper does not mention anything about exploring global potential energy surfaces or thermodynamic and kinetic properties of cobalt oxides in the context of phase transitions. The abstract focuses on thermodynamic stability and decomposition, but does not describe the machine learning approach to global potential energy surface exploration as stated in the section.\n- Related Work: \"Liang et al., 2025\" — The ground truth includes a paper titled 'Phase Stability and Transformations in Lead Mixed Halide Perovskites from Machine Learning Force Fields' by Xia Liang et al. with year 2025. However, the abstract provided for this paper does not mention anything about equivariant message-passing neural-network potential or large-scale molecular dynamics simulations. The abstract focuses on perovskite systems and phase diagrams, but does not describe the specific machine learning methods used in the section text.\n- Related Work: \"Mariprasath et al. (2026)\" — The ground truth includes a paper titled 'Vehicle-wise validated ensemble learning framework for robust electric vehicle energy consumption prediction using physics-guided features and statistical benchmarking' by T. Mariprasath et al. with year 2026. However, the abstract provided for this paper does not mention anything about vehicle-wise data splitting or preventing information leakage. The abstract focuses on ensemble learning models and real electric vehicle data, but does not describe the specific data splitting technique mentioned in the section.\n- Related Work: \"Ran et al. (2025)\" — The ground truth includes a paper titled 'Machine Learning Informed by Micro and Mesoscopic Statistical Physics Methods for Community Detection' by Yijun Ran et al. with year 2025. However, the abstract provided for this paper does not mention anything about integrating machine learning with statistical physics methods for community detection. The abstract focuses on low-complexity framework and ensemble learning models, but does not describe the specific hybrid approach involving node-pair similarities and mesoscopic structures as stated in the section.\n- Related Work: \"Wang et al. (2026)\" — The ground truth includes a paper titled 'An Adaptive Physics-Guided Ensemble Learning Framework for Dynamic Object Detection' by Chang-Qiang Wang et al. with year 2026. However, the abstract provided for this paper does not mention anything about predicting temperature fields and cutting forces during machining processes. The abstract focuses on dynamic object detection and physics-guided feature calibration, but does not describe the specific application to machining processes as stated in the section.\n- Related Work: \"Xu et al. (2019)\" — The ground truth includes a paper titled 'Novel Non-Negative Variance Estimator for (Modified) Within-Cluster Resampling' by Daniel Xu et al. with year 2019. However, the abstract provided for this paper does not mention anything about conditional inference trees or subsampling instead of traditional CART trees and bootstrap sampling. The abstract focuses on variance estimation and resampling methods, but does not describe the specific comparison with CART trees and bootstrap sampling as stated in the section.\n- Related Work: \"Terada and Shimodaira (2019)\" — The ground truth includes a paper titled 'Selective inference after feature selection via multiscale bootstrap' by Yoshikazu Terada and Hidetoshi Shimodaira with year 2019. However, the abstract provided for this paper does not mention anything about multiscale bootstrap approach for selective inference or its accuracy compared to classical bootstrap methods. The abstract focuses on resampling methods and selective inference, but does not describe the specific multiscale bootstrap approach as stated in the section.\n- Hypotheses: \"The rationale for this claim builds upon the identified gap that 'feature selection stability is not always directly correlated with classification performance' (Khaire and Dhanalakshmi, n.d.).\" — The ground truth states the related gap as 'Feature selection stability is not always directly correlated with classification performance' but does not attribute this gap to Khaire and Dhanalakshmi, n.d. The citation is fabricated.\n- Hypotheses: \"By employing the Consistency Index method, which quantifies the similarity between feature subsets derived from different training sets (Pes, n.d.), this hypothesis aims to establish a direct relationship between the stability of selected features and the average classification performance across multiple resampled training sets.\" — While the ground truth mentions the Consistency Index method, it does not reference Pes, n.d. as the source for the method's description. The citation is fabricated.\n- Hypotheses: \"This hypothesis draws upon the cross-disciplinary bridge insight connecting 'diffusion equilibrium' in neural network training dynamics to feature selection stability.\" — The ground truth describes the rationale as drawing upon a cross-disciplinary bridge insight, but does not specify that it connects 'diffusion equilibrium' in neural network training dynamics to feature selection stability. This specific framing is not grounded in the provided text.\n- Hypotheses: \"It connects to the gap regarding the lack of understanding of how specific physical mechanisms drive phase transitions in complex systems (Wang et al., 2026).\" — The ground truth lists the related gap as 'There is limited understanding of how specific physical mechanisms drive phase transitions in complex materials beyond zirconium', but does not cite Wang et al., 2026. The citation is fabricated.\n- Hypotheses: \"This assertion arises from the identified gap that 'most existing work treats stability as a secondary diagnostic index rather than integrating it as a core design constraint alongside classification performance' (Luo et al., n.d.).\" — The ground truth correctly identifies this gap but does not attribute it to Luo et al., n.d. The citation is fabricated.\n- Hypotheses: \"The hypothesis leverages the common usage of ensemble methods (Pes, n.d.; Luo et al., n.d.)\" — While the ground truth lists 'Ensemble Learning' among related methods, it does not cite Pes, n.d. or Luo et al., n.d. as sources for the common usage of ensemble methods. These citations are fabricated.\n- Results: \"In particular, the reported consistency score for the low-stability condition was 0.6, not 1.0, as previously stated.\" — The ground truth explicitly states that the consistency score for the low-stability condition was 0.6 and for the high-stability condition was 1.0. The section text incorrectly claims that 1.0 was previously stated for the low-stability condition, which contradicts the ground truth data.\n- Future Work: \"The current study's primary hypothesis regarding the relationship between feature selection stability and classification accuracy remains inconclusive due to the use of synthetic surrogates, which precludes drawing definitive conclusions about real-world applicability.\" — While the ground truth states that the experiment used synthetic surrogates and that the verdict is 'unknown', it does not explicitly state that the use of synthetic surrogates 'precludes drawing definitive conclusions about real-world applicability'. This interpretation goes beyond what is stated in the ground truth.\n- Future Work: \"Additional research is needed to determine whether patterns observed in simulated environments translate to practical performance gains in NLP tasks.\" — The ground truth does not mention anything about 'patterns observed in simulated environments' or their translation to 'practical performance gains in NLP tasks'. This statement introduces new speculative content not supported by the provided ground truth.\n- Future Work: \"No explicit justification is provided in the data to frame this as a critical limitation in evaluating model performance in real-world applications.\" — The ground truth mentions a recognized need for more robust generalization metrics tailored to NLP tasks, but does not specify whether this was explicitly justified within the data or framed as a 'critical limitation'. This addition is not grounded in the provided information.\n- Future Work: \"It does not support framing it as a distinct research direction or suggesting that comparative studies on representative datasets would be particularly beneficial.\" — The ground truth identifies a gap related to resampling methods but does not indicate that this gap supports or does not support framing it as a 'distinct research direction' or making claims about 'comparative studies on representative datasets'. These assertions are not grounded in the provided text.\n- Future Work: \"Yet no specific experimental plans for such investigations were outlined in the current work.\" — The ground truth does not contain any information about 'experimental plans for such investigations' being outlined or not outlined in the current work. This is an ungrounded claim about the scope of the current study's future work planning.\nHypothesis coverage issues:\n- Discussion > H1: The text overstated the outcome by implying that the experiment's failure to support the hypothesis was due to methodological flaws, when the ground truth explicitly states that the verdict is 'inconclusive' because the metrics are uninformative due to synthetic inputs, not because of any flaw in methodology. The relevant phrase is: 'This limitation stems from the use of generated data rather than authentic dataset instances, preventing a meaningful interpretation of the observed outcomes in terms of the stated hypothesis.' This phrasing incorrectly suggests that the experiment itself was flawed, whereas the actual reason for inconclusiveness is the data provenance issue, not the experimental design.\nQuality scores below the 4/5 threshold:\n- clarity: 3/5 — Writing is somewhat dense and repetitive, with unclear transitions between ideas; for example, the abstract and introduction repeat similar points without adding new information.\n- flow: 3/5 — Logical progression is present but weakened by frequent repetition and lack of clear topic shifts between paragraphs; the paper jumps between concepts without smooth transitions.\n- structure: 3/5 — Paper contains standard sections but lacks completeness in some areas; e.g., the Methods section omits crucial details like how the synthetic dataset was generated or validated, and the Results section contradicts itself regarding the consistency index value.\n- limitations_honesty: 2/5 — The paper fails to honestly engage with the actual risks, assumptions, and not-run experiments detailed in the ground truth. It claims the experiment was completed successfully and discusses limitations only superficially, ignoring that synthetic data invalidates all findings, and does not mention the computational overhead or overfitting risks explicitly.",
+      "generated_at": "2026-09-16T01:53:43.147214+00:00",
+      "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    }
+  }
+]

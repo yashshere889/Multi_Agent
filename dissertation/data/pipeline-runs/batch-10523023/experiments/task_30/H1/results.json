@@ -1,0 +1,16 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To empirically demonstrate that Physics-Informed Neural Networks (PINNs) with physical loss terms achieve better extrapolation performance on molecular solubility data compared to standard neural networks trained without physical constraints, as measured by lower mean squared error on out-of-distribution test points.",
+  "author": "coder-agent",
+  "baseline": "Performance of a standard neural network trained without physical constraints",
+  "success_criteria": "If the PINN achieves a lower MSE on out-of-distribution test points than the standard neural network, this supports the hypothesis that physics-informed loss terms improve extrapolation performance. Conversely, if the standard network performs better or similarly, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T00:43:20.387681+00:00",
+  "status": "failure",
+  "elapsed_seconds": 0.0188,
+  "resumed": false,
+  "metrics": {},
+  "meets_success_criteria": "unknown",
+  "notes": "Experiment raised an exception before evaluation completed \u2014 see 'error'.",
+  "error": "Traceback (most recent call last):\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/run.py\", line 668, in run\n    data = load_data()\n  File \"/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/run.py\", line 257, in load_data\n    train_mw_min = df['Molecular Weight'].iloc[X_train[:, 1] > 0].min()\n                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1207, in __getitem__\n    return self._getitem_axis(maybe_callable, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1760, in _getitem_axis\n    return self._getbool_axis(key, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1225, in _getbool_axis\n    key = check_bool_indexer(labels, key)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n    return check_array_indexer(index, result)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n    raise IndexError(\n    ...<2 lines>...\n    )\nIndexError: Boolean index has wrong length: 789 instead of 1128\n"
+}

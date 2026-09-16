@@ -1,0 +1,110 @@
+{
+  "inputs": [
+    {
+      "name": "moleculenet_esol_delaney_solubility.csv",
+      "kind": "real_local",
+      "uri": "",
+      "local_path": "/mnt/fastscratch/users/sgyshere/coder-data/moleculenet_esol_delaney_solubility.csv",
+      "reason": "staged locally at /mnt/fastscratch/users/sgyshere/coder-data/moleculenet_esol_delaney_solubility.csv",
+      "credentials": [],
+      "preview": {
+        "data_format": "csv",
+        "read_hint": "comma-separated, with a header row (pandas.read_csv)",
+        "columns": [
+          "Compound ID",
+          "ESOL predicted log solubility in mols per litre",
+          "Minimum Degree",
+          "Molecular Weight",
+          "Number of H-Bond Donors",
+          "Number of Rings",
+          "Number of Rotatable Bonds",
+          "Polar Surface Area",
+          "measured log solubility in mols per litre",
+          "smiles"
+        ],
+        "sample_rows": [
+          {
+            "Compound ID": "Amigdalin",
+            "ESOL predicted log solubility in mols per litre": "-0.9740000000000001",
+            "Minimum Degree": "1",
+            "Molecular Weight": "457.4320000000001",
+            "Number of H-Bond Donors": "7",
+            "Number of Rings": "3",
+            "Number of Rotatable Bonds": "7",
+            "Polar Surface Area": "202.31999999999996",
+            "measured log solubility in mols per litre": "-0.77",
+            "smiles": "OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O "
+          },
+          {
+            "Compound ID": "Fenfuram",
+            "ESOL predicted log solubility in mols per litre": "-2.885",
+            "Minimum Degree": "1",
+            "Molecular Weight": "201.22500000000002",
+            "Number of H-Bond Donors": "1",
+            "Number of Rings": "2",
+            "Number of Rotatable Bonds": "2",
+            "Polar Surface Area": "42.24",
+            "measured log solubility in mols per litre": "-3.3",
+            "smiles": "Cc1occc1C(=O)Nc2ccccc2"
+          },
+          {
+            "Compound ID": "citral",
+            "ESOL predicted log solubility in mols per litre": "-2.5789999999999997",
+            "Minimum Degree": "1",
+            "Molecular Weight": "152.237",
+            "Number of H-Bond Donors": "0",
+            "Number of Rings": "0",
+            "Number of Rotatable Bonds": "4",
+            "Polar Surface Area": "17.07",
+            "measured log solubility in mols per litre": "-2.06",
+            "smiles": "CC(C)=CCCC(C)=CC(=O)"
+          }
+        ],
+        "notes": "moleculenet_esol_delaney_solubility.csv  (1128 rows)\n  Source: MoleculeNet ESOL (Delaney) via the DeepChem repository, unmodified.\n  Columns include \"Compound ID\", \"measured log solubility in mols per litre\"\n  (the regression target), \"ESOL predicted log solubility in mols per litre\"\n  (a published baseline prediction, NOT a feature \u2014 using it as input leaks\n  the target), \"smiles\", and computed descriptors.",
+        "row_count": 1128,
+        "last_rows": [
+          {
+            "Compound ID": "Thiometon",
+            "ESOL predicted log solubility in mols per litre": "-3.323",
+            "Minimum Degree": "1",
+            "Molecular Weight": "246.35899999999998",
+            "Number of H-Bond Donors": "0",
+            "Number of Rings": "0",
+            "Number of Rotatable Bonds": "7",
+            "Polar Surface Area": "18.46",
+            "measured log solubility in mols per litre": "-3.091",
+            "smiles": "CCSCCSP(=S)(OC)OC"
+          },
+          {
+            "Compound ID": "2-Methylbutane",
+            "ESOL predicted log solubility in mols per litre": "-2.245",
+            "Minimum Degree": "1",
+            "Molecular Weight": "72.151",
+            "Number of H-Bond Donors": "0",
+            "Number of Rings": "0",
+            "Number of Rotatable Bonds": "1",
+            "Polar Surface Area": "0.0",
+            "measured log solubility in mols per litre": "-3.18",
+            "smiles": "CCC(C)C"
+          },
+          {
+            "Compound ID": "Stirofos",
+            "ESOL predicted log solubility in mols per litre": "-4.32",
+            "Minimum Degree": "1",
+            "Molecular Weight": "365.96400000000006",
+            "Number of H-Bond Donors": "0",
+            "Number of Rings": "1",
+            "Number of Rotatable Bonds": "5",
+            "Polar Surface Area": "44.760000000000005",
+            "measured log solubility in mols per litre": "-4.522",
+            "smiles": "COP(=O)(OC)OC(=CCl)c1cc(Cl)c(Cl)cc1Cl"
+          }
+        ]
+      }
+    }
+  ],
+  "methodological_validity": "real data \u2014 findings are interpretable as evidence for the hypothesis",
+  "all_inputs_real": true,
+  "surrogate_count": 0,
+  "unconfirmed_discovered_inputs": []
+}

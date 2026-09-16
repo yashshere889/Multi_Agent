@@ -1,0 +1,1177 @@
+{
+  "literature_summary": "The literature demonstrates that active learning (AL) is widely recognized as an effective strategy for reducing the number of simulations or experiments required in materials science and related domains. AL techniques, including uncertainty sampling, Bayesian optimization, and leverage score-based querying, consistently show advantages over random sampling in terms of data efficiency and model accuracy. However, the effectiveness of AL varies significantly depending on the domain, the quality of initial data, and the specific implementation details. While many studies report gains in efficiency, there are recurring concerns about the robustness of AL in the presence of noisy data, the lack of standardized benchmarks, and the dependence on domain-specific assumptions. Additionally, while AL shows promise in accelerating materials property mapping, challenges remain in generalizing across diverse materials systems and ensuring reliable performance in complex, multi-dimensional spaces.",
+  "methods_overview": [
+    {
+      "method": "Active Learning",
+      "papers_using_it": [
+        "1811.05660v1",
+        "2010.06896v1",
+        "1208.3561v3",
+        "2110.08265v4",
+        "1507.04155v1",
+        "00dbeb37019e116a473705736c11175545408d01",
+        "20f731bf9b62914ba4930c39e0215f8aab88053a",
+        "290090530",
+        "8982988",
+        "d2473e7ef4100ff53dae3f7e1674d4b59db502a8",
+        "283a1e2effd563016256d5d85c902b1902fdb9b6",
+        "aab35106c0e414250c4a27dee9ebea5fefe8a0d1",
+        "93af00a2ae6ad82f66d269268e24d9bd8889bd2c",
+        "a3c425f466800b013bb5812f03f80d9d70686282",
+        "5792fb6309ddad35029c2654c26f83e348d38ba6",
+        "c921b850c0d78c70c1502994ee561ebf9a5eb615",
+        "fce9d90af1eed23a0e5ddd12b8b503040cc41d04",
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9",
+        "9ff3d42f9a424d6b8d4e2a0188d0e137073b3989",
+        "004b9ee0b64894fa7e563402f47eb06a13caedda",
+        "bbfc53d461f82a816e95260218731e1c98f8cf42",
+        "ad1d037945e1f189ce8fddbbc564f4531d319d68",
+        "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd",
+        "231f00a70f5f3f03f1d2fbd42df7abe5c14f0d1c",
+        "09e3a1f1e1439811a28d20643bfd668e028c35ba",
+        "4c7dd83d9ec3fc757fa4dc2c02d074ef781b68c6",
+        "f5edf08dddf592d70f9efda1724d369cd3a3ed06",
+        "f0261626d017efede742c918708542cf82bb50b2",
+        "63c3af0c67a83e7fe9eef34198da030dce99f809",
+        "16581098d860554e4d4b5d15a8db6e8bce2a89e8",
+        "7456dea3a3646f2df6392773a196a5abd0d53b11",
+        "1903.05480v3",
+        "1309.1799v4",
+        "1508.00279v1",
+        "1512.01013v1",
+        "1402.5723v5",
+        "1805.03924v8",
+        "2204.09337v2",
+        "2203.16942v1",
+        "8f79332b1361e9eaa9da3327f83f57dcac5cd11d",
+        "ec37ae28907638a87c8b229a296f57a6539e6838",
+        "5c94c89546b4e497300c05a72b652e61620521a1",
+        "78156e7d0542b658c04e6f50f753f948e17e9088",
+        "0f0f75ff4607096bc0c3637d68cfd5b0076a9a45",
+        "58675ec2ecdcb1410deba60c7ccc26975d83d39a",
+        "3be60571c2befc478b37f2a0d902a8a277023423",
+        "c14e4584b5a9c51a94f39ca4b52a84d88fa71d9e",
+        "fc6acc66c7c85e28e506e5efc38a59a1c6d3bf14",
+        "19892254",
+        "333801692",
+        "2501012",
+        "231043",
+        "2502227",
+        "346774096",
+        "223256",
+        "2306.08001v1",
+        "2302.08893v4",
+        "2107.10804v2",
+        "2307.02719v5",
+        "1304.1083v1",
+        "2608.18429v1",
+        "1612.07827v2",
+        "1b5db3170c195508ff24fee8eda0d4987e806f0b",
+        "650ebb41a110b3d661a8c6ebe8c08b130c99132a",
+        "76b29404aa7a417c950ce4c6e89defe09764ca41",
+        "7cdc6acf3dd9c6829e0709408b1c27200ce1a3d0",
+        "19895183",
+        "340528059",
+        "138040405",
+        "17484321",
+        "11702773",
+        "16819320",
+        "1810.05633v2",
+        "2307.09574v1",
+        "1808.06100v6",
+        "2501.00258v1",
+        "2303.08710v1",
+        "1801.00121v1",
+        "2104.05781v1",
+        "2506.17929v1",
+        "1206.6557v1",
+        "1906.03919v5",
+        "a6cb366736791bcccc5c8639de5a8f9636bf87e8",
+        "413c1142de9d91804d6d11c67ff3fed59c9fc279",
+        "1b1c9b31dde42a8818a255866db50b0a026b106e",
+        "4dabfd108c13cd730d3cc583e474b5d8bdf4685f",
+        "44b3b3bb40a9055eccdf86ea1702f6ae8b38934c",
+        "5ee33d0d1b54875665ced3345ee3a23ff4f409eb",
+        "a829d9fe353478f5ffa122db01e9f0e8646520d0",
+        "17396603",
+        "155367952",
+        "2472623",
+        "340544136",
+        "2972931"
+      ],
+      "notes": "Common. Used across diverse domains to reduce data labeling efforts and computational costs by selecting informative samples iteratively."
+    },
+    {
+      "method": "Uncertainty Sampling",
+      "papers_using_it": [
+        "2010.06896v1",
+        "290090530",
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9",
+        "ad1d037945e1f189ce8fddbbc564f4531d319d68",
+        "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd",
+        "4c7dd83d9ec3fc757fa4dc2c02d074ef781b68c6",
+        "138040405",
+        "1304.1083v1",
+        "1612.07827v2",
+        "650ebb41a110b3d661a8c6ebe8c08b130c99132a",
+        "76b29404aa7a417c950ce4c6e89defe09764ca41",
+        "7cdc6acf3dd9c6829e0709408b1c27200ce1a3d0",
+        "19895183",
+        "340528059",
+        "2307.02719v5"
+      ],
+      "notes": "Common. A standard query strategy in AL where the model selects the least confident predictions for labeling."
+    },
+    {
+      "method": "Bayesian Optimization",
+      "papers_using_it": [
+        "a3c425f466800b013bb5812f03f80d9d70686282",
+        "63c3af0c67a83e7fe9eef34198da030dce99f809",
+        "16581098d860554e4d4b5d15a8db6e8bce2a89e8"
+      ],
+      "notes": "Moderately common. Applied in materials discovery for efficient exploration of property spaces using uncertainty-based sampling."
+    },
+    {
+      "method": "Gaussian Process Regression",
+      "papers_using_it": [
+        "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd",
+        "231f00a70f5f3f03f1d2fbd42df7abe5c14f0d1c",
+        "4c7dd83d9ec3fc757fa4dc2c02d074ef781b68c6",
+        "2010.06896v1"
+      ],
+      "notes": "Moderately common. Used as a predictive model in AL frameworks for regression tasks."
+    },
+    {
+      "method": "Query-by-committee",
+      "papers_using_it": [
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9",
+        "ad1d037945e1f189ce8fddbbc564f4531d319d68",
+        "09cf6297e73021bb09a3cbbbde7597fc737a8e3a"
+      ],
+      "notes": "Moderately common. An AL technique involving multiple models trained on different subsets of data to identify informative samples."
+    },
+    {
+      "method": "Knowledge-driven Active Learning (KAL)",
+      "papers_using_it": [
+        "2110.08265v4"
+      ],
+      "notes": "Rare. Incorporates domain knowledge into AL via logic constraints for sample selection."
+    },
+    {
+      "method": "Statistical Leverage Sampling",
+      "papers_using_it": [
+        "1507.04155v1"
+      ],
+      "notes": "Rare. Queries data points with high statistical leverage scores for improved AL performance."
+    },
+    {
+      "method": "Curiosity-Driven Exploration",
+      "papers_using_it": [
+        "00dbeb37019e116a473705736c11175545408d01"
+      ],
+      "notes": "Rare. Lightweight algorithm that samples regions with unexplored structure-property relations using a surrogate model."
+    },
+    {
+      "method": "Multitask Learning with Crystal Graph Convolutional Neural Networks (MT-CGCNN)",
+      "papers_using_it": [
+        "1811.05660v1"
+      ],
+      "notes": "Rare. Integrates CGCNN with multitask learning for simultaneous prediction of multiple material properties."
+    },
+    {
+      "method": "Active Learning via Maximum Variance Sampling",
+      "papers_using_it": [
+        "2010.06896v1"
+      ],
+      "notes": "Rare. Uses Kriging-based models and directed exploration to optimize sampling for curve/surface estimation."
+    },
+    {
+      "method": "Aggressive Active Learning for Halfspaces",
+      "papers_using_it": [
+        "1208.3561v3"
+      ],
+      "notes": "Rare. Efficient approach for active learning of half-spaces with theoretical guarantees under separability assumptions."
+    },
+    {
+      "method": "Feature Engineering for Microstructure-Property Mapping",
+      "papers_using_it": [
+        "86e91b1a2576123a78fb03a8414a8e67919a080c"
+      ],
+      "notes": "Rare. Utilizes digital image processing and distance-based metrics for efficient feature extraction in OPV systems."
+    },
+    {
+      "method": "Machine learning based sub-pixel processing",
+      "papers_using_it": [
+        "1cc45180041b684ffe279e31a8b4449f8e7bd26f"
+      ],
+      "notes": "Rare. Used K-means clustering and denoising techniques to achieve sub-pixel accuracy in atomic structure analysis."
+    },
+    {
+      "method": "Knowledge-based sampling method (KBSM)",
+      "papers_using_it": [
+        "3d8051fd30071223589739d02e5732fbdbd6f61e"
+      ],
+      "notes": "Rare. Proposed KBSM to optimize training data dimensionality and volume for deep learning in antenna array design."
+    },
+    {
+      "method": "Hierarchical Correlation Learning for Multi-property Prediction (H-CLMP)",
+      "papers_using_it": [
+        "150694997"
+      ],
+      "notes": "Rare. Integrated composition-based prediction, property correlation learning, and generative transfer learning for multi-property prediction."
+    },
+    {
+      "method": "Generative adversarial networks (GANs)",
+      "papers_using_it": [
+        "150694997"
+      ],
+      "notes": "Rare. Used GANs for transfer learning from density of states data to predict optical absorption."
+    },
+    {
+      "method": "Pool-based sampling",
+      "papers_using_it": [
+        "e9d3d683fdbd72e9ea1572768ea1c38b66e2d00d"
+      ],
+      "notes": "Rare. Standard AL technique where an initial dataset is queried and a pool of candidate points is evaluated iteratively."
+    },
+    {
+      "method": "Batch querying",
+      "papers_using_it": [
+        "e44f4c253192e357038a2123c3243e954f747c06"
+      ],
+      "notes": "Rare. Involves querying multiple points simultaneously, with a mix of AL and exploratory sampling."
+    },
+    {
+      "method": "Variance reduction",
+      "papers_using_it": [
+        "ad1d037945e1f189ce8fddbbc564f4531d319d68"
+      ],
+      "notes": "Rare. Strategy aimed at minimizing the variance in predictions to guide data selection."
+    },
+    {
+      "method": "Greedy sampling",
+      "papers_using_it": [
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9"
+      ],
+      "notes": "Rare. Sampling strategy that selects data points to optimize predictive accuracy with minimal computational overhead."
+    },
+    {
+      "method": "Neural Network-based Acquisition Function",
+      "papers_using_it": [
+        "09e3a1f1e1439811a28d20643bfd668e028c35ba"
+      ],
+      "notes": "Rare. Proposed method to replace costly model training and acquisition function optimization in AL."
+    },
+    {
+      "method": "Cost-Aware Active Learning",
+      "papers_using_it": [
+        "f5edf08dddf592d70f9efda1724d369cd3a3ed06"
+      ],
+      "notes": "Rare. Approach that considers varying simulation costs during sampling in design space exploration."
+    },
+    {
+      "method": "Active Learning Kriging (AK-MCS)",
+      "papers_using_it": [
+        "f0261626d017efede742c918708542cf82bb50b2"
+      ],
+      "notes": "Rare. Used for structural reliability analysis with iterative sample selection to improve metamodel accuracy."
+    },
+    {
+      "method": "Importance Sampling with Active Learning (AK-IS)",
+      "papers_using_it": [
+        "f0261626d017efede742c918708542cf82bb50b2"
+      ],
+      "notes": "Rare. Combines adaptive Kriging with importance sampling to focus on failure regions and reduce computational cost."
+    },
+    {
+      "method": "Dropout as Bayesian Approximation",
+      "papers_using_it": [
+        "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6"
+      ],
+      "notes": "Rare. Uses dropout training in deep networks to approximate Bayesian inference for uncertainty quantification."
+    },
+    {
+      "method": "Deep Ensembles",
+      "papers_using_it": [
+        "802168a81571dde28f5ddb94d84677bc007afa7b"
+      ],
+      "notes": "Rare. Ensemble of neural networks used for scalable predictive uncertainty estimation."
+    },
+    {
+      "method": "E(3)-equivariant graph neural networks",
+      "papers_using_it": [
+        "7456dea3a3646f2df6392773a196a5abd0d53b11"
+      ],
+      "notes": "Rare. Used for learning interatomic potentials with high data efficiency and accuracy."
+    },
+    {
+      "method": "Variational Bayesian Optimal Experimental Design",
+      "papers_using_it": [
+        "1903.05480v3"
+      ],
+      "notes": "Rare. Introduces fast estimators for expected information gain in Bayesian optimal experimental design."
+    },
+    {
+      "method": "Bayesian nonparametric weighted sampling inference",
+      "papers_using_it": [
+        "1309.1799v4"
+      ],
+      "notes": "Rare. Models inverse-probability weights using hierarchical Bayesian and Gaussian process regression."
+    },
+    {
+      "method": "Bayesian optimal discriminating designs",
+      "papers_using_it": [
+        "1508.00279v1"
+      ],
+      "notes": "Rare. Develops an efficient algorithm for determining Bayesian optimal designs under Kullback-Leibler criterion."
+    },
+    {
+      "method": "Bayesian group lasso with spike and slab priors",
+      "papers_using_it": [
+        "1512.01013v1"
+      ],
+      "notes": "Rare. Applies Bayesian variable selection and estimation for group lasso with oracle properties."
+    },
+    {
+      "method": "Bayesian hierarchical model for functional data smoothing",
+      "papers_using_it": [
+        "1402.5723v5"
+      ],
+      "notes": "Rare. Uses Gaussian process priors for joint mean-covariance estimation and simultaneous smoothing."
+    },
+    {
+      "method": "Nested sampling via sequential Monte Carlo",
+      "papers_using_it": [
+        "1805.03924v8"
+      ],
+      "notes": "Rare. Reformulates nested sampling using sequential Monte Carlo techniques for unbiased marginal likelihood estimates."
+    },
+    {
+      "method": "Sequential point cloud analysis",
+      "papers_using_it": [
+        "2204.09337v2"
+      ],
+      "notes": "Rare. Reviews deep learning methods for dynamic point cloud tasks such as object detection and forecasting."
+    },
+    {
+      "method": "User Evolving Preference Decomposition",
+      "papers_using_it": [
+        "2203.16942v1"
+      ],
+      "notes": "Rare. A reinforcement learning-based approach to decompose user preferences in sequential recommendation."
+    },
+    {
+      "method": "Bayesian Experimental Design (BED)",
+      "papers_using_it": [
+        "8f79332b1361e9eaa9da3327f83f57dcac5cd11d",
+        "ec37ae28907638a87c8b229a296f57a6539e6838",
+        "5c94c89546b4e497300c05a72b652e61620521a1",
+        "78156e7d0542b658c04e6f50f753f948e17e9088",
+        "0f0f75ff4607096bc0c3637d68cfd5b0076a9a45"
+      ],
+      "notes": "Rare. Various approaches to amortized and adaptive BED including policy-based methods and deep learning integration."
+    },
+    {
+      "method": "Deep Adaptive Design (DAD)",
+      "papers_using_it": [
+        "0f0f75ff4607096bc0c3637d68cfd5b0076a9a45"
+      ],
+      "notes": "Rare. Amortized sequential BED using neural networks for fast decision-making in real-time experiments."
+    },
+    {
+      "method": "Step-DAD",
+      "papers_using_it": [
+        "5c94c89546b4e497300c05a72b652e61620521a1"
+      ],
+      "notes": "Rare. Semi-amortized BED with test-time adaptation for improved robustness."
+    },
+    {
+      "method": "Gradient and Uncertainty Enhanced Sequential Sampling (GUESS)",
+      "papers_using_it": [
+        "c14e4584b5a9c51a94f39ca4b52a84d88fa71d9e"
+      ],
+      "notes": "Rare. Adaptive sampling strategy combining uncertainty and gradient information for surrogate modeling."
+    },
+    {
+      "method": "Hybrid Metric Sequential Sampling",
+      "papers_using_it": [
+        "fc6acc66c7c85e28e506e5efc38a59a1c6d3bf14"
+      ],
+      "notes": "Rare. Sampling method using integrated metrics for exploration and exploitation in surrogate modeling."
+    },
+    {
+      "method": "Sequential Monte Carlo Sampling",
+      "papers_using_it": [
+        "58675ec2ecdcb1410deba60c7ccc26975d83d39a"
+      ],
+      "notes": "Rare. Methods for Bayesian filtering using sequential sampling techniques."
+    },
+    {
+      "method": "Sequential Boltzmann Generators (SBG)",
+      "papers_using_it": [
+        "3be60571c2befc478b37f2a0d902a8a277023423"
+      ],
+      "notes": "Rare. Efficient equilibrium sampling using normalizing flows and sequential Monte Carlo."
+    },
+    {
+      "method": "Bayesian experimental design",
+      "papers_using_it": [
+        "19892254",
+        "333801692",
+        "2501012"
+      ],
+      "notes": "Rare. Incorporates prior distributions and utility functions to optimize designs under uncertainty and model misspecification."
+    },
+    {
+      "method": "Sequential Monte Carlo (SMC)",
+      "papers_using_it": [
+        "231043",
+        "2502227"
+      ],
+      "notes": "Rare. Used for sampling from sequences of distributions and implementing efficient algorithms for statistical inference."
+    },
+    {
+      "method": "Triple sampling sequential inference",
+      "papers_using_it": [
+        "346774096",
+        "223256"
+      ],
+      "notes": "Rare. Applied for point estimation and confidence interval construction under normality assumptions and deviations."
+    },
+    {
+      "method": "Bag-class pair based active learning approach",
+      "papers_using_it": [
+        "2107.10804v2"
+      ],
+      "notes": "Rare. Proposed for incomplete-label MIML setting using discriminative graphical model and stochastic gradient descent."
+    },
+    {
+      "method": "Equivalent loss framework",
+      "papers_using_it": [
+        "2307.02719v5"
+      ],
+      "notes": "Rare. Provides unified framework for uncertainty sampling with theoretical guarantees."
+    },
+    {
+      "method": "Certainty factor technique",
+      "papers_using_it": [
+        "1304.1083v1"
+      ],
+      "notes": "Rare. Used for propagating uncertainty in rule-based cognitive models."
+    },
+    {
+      "method": "Bayesian neural networks",
+      "papers_using_it": [
+        "2608.18429v1"
+      ],
+      "notes": "Rare. Applied for multi-objective optimization under uncertainty in FFF process."
+    },
+    {
+      "method": "Speculative sampling with feature-level autoregression",
+      "papers_using_it": [
+        "1b5db3170c195508ff24fee8eda0d4987e806f0b"
+      ],
+      "notes": "Rare. Introduces EAGLE framework for efficient LLM decoding."
+    },
+    {
+      "method": "Evidential uncertainty sampling",
+      "papers_using_it": [
+        "76b29404aa7a417c950ce4c6e89defe09764ca41"
+      ],
+      "notes": "Rare. Utilizes evidential reasoning for active learning."
+    },
+    {
+      "method": "Halton Sampling",
+      "papers_using_it": [
+        "16819320"
+      ],
+      "notes": "Rare. Quasi-random sampling technique used in image registration to improve mutual information estimation and avoid grid effects."
+    },
+    {
+      "method": "Monte Carlo Sampling",
+      "papers_using_it": [
+        "17484321"
+      ],
+      "notes": "Rare. Used in spatial uncertainty propagation analysis to estimate output uncertainty and assess sampling efficiency."
+    },
+    {
+      "method": "Stochastic Proximal Point Methods",
+      "papers_using_it": [
+        "1810.05633v2"
+      ],
+      "notes": "Rare. Model-based stochastic optimization techniques that offer improved convergence and adaptivity compared to standard subgradient methods."
+    },
+    {
+      "method": "Coiled Tubing Drilling",
+      "papers_using_it": [
+        "11702773"
+      ],
+      "notes": "Rare. Sampling method in mineral exploration for efficient and reliable delivery of samples from deep zones."
+    },
+    {
+      "method": "Multiple Hypotheses",
+      "papers_using_it": [
+        "340528059"
+      ],
+      "notes": "Rare. Used in autonomous experimentation to handle erroneous observations by maintaining competing hypotheses."
+    },
+    {
+      "method": "Gumbel-Softmax method",
+      "papers_using_it": [
+        "2501.00258v1"
+      ],
+      "notes": "Rare. Used for differentiable sampling from categorical distributions in gradient-based optimization."
+    },
+    {
+      "method": "Two-scale optimization with asymptotic homogenization",
+      "papers_using_it": [
+        "2303.08710v1"
+      ],
+      "notes": "Rare. Applied to optimize graded lattice structures considering both micro- and macroscale buckling."
+    },
+    {
+      "method": "Frank-Wolfe type theorem and Eaves type theorem",
+      "papers_using_it": [
+        "1808.06100v6"
+      ],
+      "notes": "Rare. Theoretical tools for analyzing solution existence and stability in polynomial optimization."
+    },
+    {
+      "method": "Censored semi-bandits",
+      "papers_using_it": [
+        "2104.05781v1"
+      ],
+      "notes": "Rare. Model for sequential resource allocation with unknown thresholds and loss distributions."
+    },
+    {
+      "method": "Adaptive Spatio-Temporal Early Decision model (ASTER)",
+      "papers_using_it": [
+        "2506.17929v1"
+      ],
+      "notes": "Rare. Framework integrating forecasting and decision-making for dynamic resource allocation."
+    },
+    {
+      "method": "Apriori-like algorithm and association rule mining",
+      "papers_using_it": [
+        "1206.6557v1"
+      ],
+      "notes": "Rare. Used to extract frequent patterns and resource allocation rules from event logs."
+    },
+    {
+      "method": "Maximum entropy principle",
+      "papers_using_it": [
+        "1906.03919v5"
+      ],
+      "notes": "Rare. Applied to model dynamic metabolic resource allocation under environmental uncertainty."
+    },
+    {
+      "method": "Adam",
+      "papers_using_it": [
+        "a6cb366736791bcccc5c8639de5a8f9636bf87e8"
+      ],
+      "notes": "Rare. A first-order stochastic optimization method based on adaptive estimates of lower-order moments."
+    },
+    {
+      "method": "Slime Mould Algorithm (SMA)",
+      "papers_using_it": [
+        "1b1c9b31dde42a8818a255866db50b0a026b106e"
+      ],
+      "notes": "Rare. A bio-inspired stochastic optimizer with adaptive weights simulating oscillation modes of slime mould."
+    },
+    {
+      "method": "CHOCO-SGD",
+      "papers_using_it": [
+        "44b3b3bb40a9055eccdf86ea1702f6ae8b38934c"
+      ],
+      "notes": "Rare. A decentralized stochastic gradient descent algorithm with compressed communication for distributed optimization."
+    },
+    {
+      "method": "CHOCO-GOSSIP",
+      "papers_using_it": [
+        "44b3b3bb40a9055eccdf86ea1702f6ae8b38934c"
+      ],
+      "notes": "Rare. A gossip-based algorithm for average consensus with compressed messages and linear convergence."
+    },
+    {
+      "method": "Lyapunov Optimization",
+      "papers_using_it": [
+        "a829d9fe353478f5ffa122db01e9f0e8646520d0"
+      ],
+      "notes": "Rare. Used for solving stochastic optimization problems in federated learning client scheduling and resource allocation."
+    },
+    {
+      "method": "Bayesian Hessian Approximation",
+      "papers_using_it": [
+        "155367952"
+      ],
+      "notes": "Rare. A Bayesian approach to approximate Hessian matrices in stochastic optimization to improve convergence."
+    },
+    {
+      "method": "Stochastic programming with optimal control decomposition",
+      "papers_using_it": [
+        "2472623"
+      ],
+      "notes": "Rare. Uses discrete time optimal control formulation to achieve time and nodal decomposition of multistage stochastic programs."
+    },
+    {
+      "method": "Level function methods",
+      "papers_using_it": [
+        "340544136"
+      ],
+      "notes": "Rare. Applied to solve penalized stochastic dominance problems and robust reward-risk optimization."
+    },
+    {
+      "method": "Cutting plane method",
+      "papers_using_it": [
+        "340544136"
+      ],
+      "notes": "Rare. Used for solving multivariate stochastic dominance constraints and compared to cutting surface method."
+    },
+    {
+      "method": "Discrete-time stochastic dynamics",
+      "papers_using_it": [
+        "2972931"
+      ],
+      "notes": "Rare. Employs discrete-time logistic growth model for resource management under uncertainty."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Need for more robust handling of noisy data in active learning frameworks for material property prediction",
+      "supporting_evidence": [
+        "2010.06896v1"
+      ],
+      "notes": "Repeated issue across multiple domains, particularly in materials science."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing active learning strategies across diverse materials domains",
+      "supporting_evidence": [
+        "1507.04155v1",
+        "2110.08265v4"
+      ],
+      "notes": "Identified as a major limitation in materials science and general AL research."
+    },
+    {
+      "gap": "Insufficient exploration of how domain knowledge interacts with uncertainty-based active learning in materials science",
+      "supporting_evidence": [
+        "2110.08265v4"
+      ],
+      "notes": "Specifically noted in the context of materials science applications."
+    },
+    {
+      "gap": "Limited understanding of which AL strategies generalize across diverse materials systems",
+      "supporting_evidence": [
+        "93af00a2ae6ad82f66d269268e24d9bd8889bd2c"
+      ],
+      "notes": "Highlighted in materials discovery and related domains."
+    },
+    {
+      "gap": "Need for more extensive evaluation of AL's effectiveness beyond early training phases where differences are most pronounced",
+      "supporting_evidence": [
+        "c921b850c0d78c70c1502994ee561ebf9a5eb615"
+      ],
+      "notes": "Points to a gap in long-term performance assessment."
+    },
+    {
+      "gap": "The effectiveness of active learning varies depending on the domain and sampling strategy, with no single strategy consistently outperforming others across all scenarios",
+      "supporting_evidence": [
+        "a2e000b121970c8bc3c75dbf742b4c5a882c7fc7"
+      ],
+      "notes": "A broad observation across multiple domains."
+    },
+    {
+      "gap": "Limited discussion on how to handle mislabeled data in active learning frameworks, despite its potential to erode performance gains",
+      "supporting_evidence": [
+        "e44f4c253192e357038a2123c3243e954f747c06"
+      ],
+      "notes": "A recurring concern in simulation-based environments."
+    },
+    {
+      "gap": "The impact of hyperparameters such as pool size and batch size on active learning performance is not thoroughly explored",
+      "supporting_evidence": [
+        "e9d3d683fdbd72e9ea1572768ea1c38b66e2d00d"
+      ],
+      "notes": "Points to a lack of systematic tuning guidance."
+    },
+    {
+      "gap": "There is no universal active learning strategy that outperforms all others for every class of problems due to 'no free lunch' theorems",
+      "supporting_evidence": [
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9"
+      ],
+      "notes": "A fundamental limitation acknowledged in multiple domains."
+    },
+    {
+      "gap": "The effectiveness of different active learning strategies varies depending on the evaluation metrics and application domain, suggesting a lack of universal best practices",
+      "supporting_evidence": [
+        "231f00a70f5f3f03f1d2fbd42df7abe5c14f0d1c",
+        "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd"
+      ],
+      "notes": "A key finding in materials and general AL contexts."
+    },
+    {
+      "gap": "The curse of dimensionality makes exhaustive grid searches computationally infeasible in moderately complex systems",
+      "supporting_evidence": [
+        "82bd847685b571816bfb28c6bac9aa2ff9cea9c9"
+      ],
+      "notes": "A computational limitation affecting AL in high-dimensional spaces."
+    },
+    {
+      "gap": "Most studies assume uniform simulation costs, but in practice, costs can vary significantly across the design space, complicating optimal sampling strategies",
+      "supporting_evidence": [
+        "f5edf08dddf592d70f9efda1724d369cd3a3ed06"
+      ],
+      "notes": "A practical constraint in real-world applications."
+    },
+    {
+      "gap": "The computational expense of optimizing acquisition functions remains a challenge in practical deployment of active learning methods",
+      "supporting_evidence": [
+        "09e3a1f1e1439811a28d20643bfd668e028c35ba"
+      ],
+      "notes": "A technical bottleneck in AL implementation."
+    },
+    {
+      "gap": "Active learning methods like AK-IS are limited to single failure regions because they rely on FORM to find the MPP",
+      "supporting_evidence": [
+        "f0261626d017efede742c918708542cf82bb50b2"
+      ],
+      "notes": "A limitation in reliability analysis applications."
+    },
+    {
+      "gap": "The effectiveness of active learning in multi-objective or multi-fidelity materials design remains underexplored",
+      "supporting_evidence": [
+        "63c3af0c67a83e7fe9eef34198da030dce99f809",
+        "16581098d860554e4d4b5d15a8db6e8bce2a89e8"
+      ],
+      "notes": "A gap in advanced materials design applications."
+    },
+    {
+      "gap": "While dropout approximates Bayesian inference, its theoretical grounding and practical calibration for uncertainty remain areas of ongoing investigation",
+      "supporting_evidence": [
+        "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6"
+      ],
+      "notes": "A theoretical and practical gap in uncertainty quantification."
+    },
+    {
+      "gap": "The need for more efficient and accurate methods for handling sequential point cloud data remains underexplored",
+      "supporting_evidence": [
+        "2204.09337v2"
+      ],
+      "notes": "A gap in computer vision and dynamic data processing."
+    },
+    {
+      "gap": "Existing Bayesian optimal experimental design methods struggle with accurate estimation of expected information gain",
+      "supporting_evidence": [
+        "1903.05480v3"
+      ],
+      "notes": "A limitation in Bayesian design optimization."
+    },
+    {
+      "gap": "There is limited discussion on how to handle complex covariance structures in functional data analysis without parametric assumptions",
+      "supporting_evidence": [
+        "1402.5723v5"
+      ],
+      "notes": "A gap in statistical modeling."
+    },
+    {
+      "gap": "The assumption of independence in nested sampling may not hold in practice, though recent methods attempt to relax this",
+      "supporting_evidence": [
+        "1805.03924v8"
+      ],
+      "notes": "A theoretical and practical limitation in sampling methods."
+    },
+    {
+      "gap": "The computational complexity of Bayesian experimental design remains a major barrier to its practical application in real-time settings",
+      "supporting_evidence": [
+        "78156e7d0542b658c04e6f50f753f948e17e9088"
+      ],
+      "notes": "A practical limitation in real-time applications."
+    },
+    {
+      "gap": "There is limited discussion on how to effectively integrate user feedback or environmental dynamics into sequential sampling strategies for surrogate modeling",
+      "supporting_evidence": [
+        "c14e4584b5a9c51a94f39ca4b52a84d88fa71d9e",
+        "fc6acc66c7c85e28e506e5efc38a59a1c6d3bf14"
+      ],
+      "notes": "A gap in adaptive and interactive modeling."
+    },
+    {
+      "gap": "Limited exploration of fully Bayesian methods in multifactor experiments despite prior knowledge being commonly available",
+      "supporting_evidence": [
+        "333801692"
+      ],
+      "notes": "A gap in experimental design methodology."
+    },
+    {
+      "gap": "Sensitivity of normal-based triple sampling procedures to departures from normality remains understudied beyond assumptions of finite moments",
+      "supporting_evidence": [
+        "346774096",
+        "223256"
+      ],
+      "notes": "A gap in statistical inference theory."
+    },
+    {
+      "gap": "Lack of unified formalism for active learning across different paradigms such as pool-based and stream-based approaches",
+      "supporting_evidence": [
+        "2306.08001v1",
+        "2302.08893v4"
+      ],
+      "notes": "A conceptual gap in AL theory and practice."
+    },
+    {
+      "gap": "Model uncertainty in Bayesian design is addressed through two-stage procedures, but optimal stage ratios and minimum sample sizes require further empirical validation",
+      "supporting_evidence": [
+        "2501012"
+      ],
+      "notes": "A gap in Bayesian design methodology."
+    },
+    {
+      "gap": "Limited research on combining transformers with active learning due to runtime overhead",
+      "supporting_evidence": [
+        "d6cbe7986a15a3d697213c8541c97dec9e65240b"
+      ],
+      "notes": "A technological limitation in modern AI applications."
+    },
+    {
+      "gap": "Lack of clear theoretical understanding of how uncertainty sampling translates to statistical objectives",
+      "supporting_evidence": [
+        "2307.02719v5"
+      ],
+      "notes": "A theoretical gap in AL foundations."
+    },
+    {
+      "gap": "Insufficient investigation of uncertainty handling in rule-based reasoning systems",
+      "supporting_evidence": [
+        "1304.1083v1"
+      ],
+      "notes": "A gap in knowledge representation and reasoning."
+    },
+    {
+      "gap": "Need for better handling of epistemic and aleatory uncertainties in multi-objective optimization",
+      "supporting_evidence": [
+        "2608.18429v1"
+      ],
+      "notes": "A gap in optimization under uncertainty."
+    },
+    {
+      "gap": "Unreliability of traditional uncertainty-based query strategies when applied to modern deep learning architectures",
+      "supporting_evidence": [
+        "d6cbe7986a15a3d697213c8541c97dec9e65240b"
+      ],
+      "notes": "A practical limitation in modern DL applications."
+    },
+    {
+      "gap": "Lack of standardized evaluation of uncertainty measures in uncertainty sampling for active learning",
+      "supporting_evidence": [
+        "138040405"
+      ],
+      "notes": "A gap in AL evaluation methodology."
+    },
+    {
+      "gap": "Limited empirical validation of DKI's effectiveness in reducing annotation effort in clinical settings",
+      "supporting_evidence": [
+        "19895183"
+      ],
+      "notes": "A gap in clinical applications of AL."
+    },
+    {
+      "gap": "Need for better integration of uncertainty in active learning for high-dimensional biological systems",
+      "supporting_evidence": [
+        "340528059"
+      ],
+      "notes": "A gap in biological and medical applications."
+    },
+    {
+      "gap": "Insufficient discussion on the trade-off between sampling speed and sample quality in coiled tubing drilling for mineral exploration",
+      "supporting_evidence": [
+        "11702773"
+      ],
+      "notes": "A gap in resource exploration applications."
+    },
+    {
+      "gap": "Lack of explicit treatment of cross-modes between scales in two-scale buckling optimization",
+      "supporting_evidence": [
+        "2303.08710v1"
+      ],
+      "notes": "A gap in multi-scale optimization."
+    },
+    {
+      "gap": "Assumption of known thresholds in censored semi-bandits may not hold in practice",
+      "supporting_evidence": [
+        "2104.05781v1"
+      ],
+      "notes": "A practical limitation in resource allocation."
+    },
+    {
+      "gap": "Limited discussion on scalability of the Gumbel-Softmax method for very high-dimensional categorical spaces",
+      "supporting_evidence": [
+        "2501.00258v1"
+      ],
+      "notes": "A computational limitation in optimization."
+    },
+    {
+      "gap": "No direct comparison of the proposed ASTER framework with traditional forecasting-decision decoupled approaches in real-world applications",
+      "supporting_evidence": [
+        "2506.17929v1"
+      ],
+      "notes": "A gap in practical validation of decision-making frameworks."
+    },
+    {
+      "gap": "High-probability convergence bounds for stochastic optimization methods often rely on restrictive assumptions such as bounded gradient noise variance or objective gradient",
+      "supporting_evidence": [
+        "4dabfd108c13cd730d3cc583e474b5d8bdf4685f"
+      ],
+      "notes": "A theoretical limitation in optimization theory."
+    },
+    {
+      "gap": "Existing stochastic optimization methods may struggle with non-stationary objectives and noisy or sparse gradients without proper adaptation mechanisms",
+      "supporting_evidence": [
+        "a6cb366736791bcccc5c8639de5a8f9636bf87e8"
+      ],
+      "notes": "A practical limitation in optimization."
+    },
+    {
+      "gap": "Decentralized stochastic optimization with compressed communication still faces challenges in maintaining performance when communication quality is low",
+      "supporting_evidence": [
+        "44b3b3bb40a9055eccdf86ea1702f6ae8b38934c"
+      ],
+      "notes": "A gap in distributed optimization."
+    },
+    {
+      "gap": "Online resource allocation under horizon uncertainty lacks algorithms that achieve constant asymptotic competitive ratios independent of horizon uncertainty",
+      "supporting_evidence": [
+        "5ee33d0d1b54875665ced3345ee3a23ff4f409eb"
+      ],
+      "notes": "A gap in online optimization."
+    },
+    {
+      "gap": "Limited comparison of computational efficiency between different decomposition approaches in stochastic programming",
+      "supporting_evidence": [
+        "2472623"
+      ],
+      "notes": "A gap in computational methods."
+    },
+    {
+      "gap": "Lack of empirical validation of theoretical results in resource management under uncertainty",
+      "supporting_evidence": [
+        "2972931"
+      ],
+      "notes": "A gap in practical validation of theoretical models."
+    },
+    {
+      "gap": "No direct comparison of performance between stochastic dominance models and traditional mean-variance optimization in portfolio context",
+      "supporting_evidence": [
+        "340544136"
+      ],
+      "notes": "A gap in financial modeling."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Using active learning with uncertainty sampling based on Gaussian Process Regression to select simulations for mapping materials property landscapes will reduce the number of required simulations by at least 30% compared to random sampling, when evaluated on the MoleculeNet ESOL dataset.",
+      "rationale": "This hypothesis builds on the widespread adoption of uncertainty sampling and Gaussian Process Regression in active learning frameworks for materials science, as evidenced by multiple papers using these methods. It addresses the gap regarding the need for more robust handling of noisy data and standardized benchmarks, while leveraging the real-world applicability of the ESOL dataset for solubility prediction. The hypothesis is specific enough to be tested against actual simulation data and can be falsified if the reduction in simulations does not meet the threshold.",
+      "related_gaps": [
+        "Need for more robust handling of noisy data in active learning frameworks for material property prediction",
+        "Lack of standardized benchmarks for comparing active learning strategies across diverse materials domains"
+      ],
+      "related_methods": [
+        "Uncertainty Sampling",
+        "Gaussian Process Regression",
+        "Active Learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "sampling_strategy",
+          "number_of_simulations"
+        ],
+        "dependent": [
+          "reduction_in_simulations"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Implementing Bayesian Optimization within an active learning framework for materials property mapping will lead to a statistically significant improvement in model accuracy (measured by R²) after 50 iterations compared to uncertainty sampling alone, using the UCI Adult Census Income dataset.",
+      "rationale": "This hypothesis leverages the bridge insight connecting Bayesian Optimization to active learning, specifically focusing on how Bayesian methods can improve model accuracy through informed sampling. It addresses the gap in understanding how domain knowledge interacts with uncertainty-based active learning and targets a real-world dataset where classification accuracy can be measured. The hypothesis is testable using real data and can be falsified if Bayesian Optimization does not outperform uncertainty sampling in terms of accuracy.",
+      "related_gaps": [
+        "Insufficient exploration of how domain knowledge interacts with uncertainty-based active learning in materials science",
+        "Need for more extensive evaluation of AL's effectiveness beyond early training phases"
+      ],
+      "related_methods": [
+        "Bayesian Optimization",
+        "Active Learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "optimization_method",
+          "iteration_number"
+        ],
+        "dependent": [
+          "model_accuracy"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Active learning strategies incorporating statistical leverage scores (as in ALEVS) will require fewer simulations to achieve a target level of predictive accuracy in materials property landscapes compared to standard uncertainty sampling, when validated on the UCI Air Quality dataset.",
+      "rationale": "This hypothesis directly applies the cross-disciplinary bridge insight from statistics that uses statistical leverage to identify informative samples. It addresses the gap in lack of standardized benchmarks and focuses on a real-world dataset where air quality measurements can be modeled. The hypothesis is grounded in the literature showing that leverage-based sampling improves AL performance and can be empirically tested using real data to determine whether leverage scores indeed reduce simulation requirements.",
+      "related_gaps": [
+        "Lack of standardized benchmarks for comparing active learning strategies across diverse materials domains",
+        "The effectiveness of different active learning strategies varies depending on the evaluation metrics and application domain"
+      ],
+      "related_methods": [
+        "Statistical Leverage Sampling",
+        "Active Learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "sampling_method",
+          "target_accuracy"
+        ],
+        "dependent": [
+          "number_of_simulations"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is the strongest candidate because it directly addresses the core research question about active learning reducing simulations needed for materials property mapping. It uses the MoleculeNet ESOL dataset, which is real, publicly available, and contains the necessary molecular descriptors and solubility targets for testing. The hypothesis is specific enough to be falsified—requiring a 30% reduction in simulations to validate—and grounded in established methods (uncertainty sampling, GP regression) with clear variables (sampling strategy, number of simulations). It also connects well with the literature's emphasis on robust handling of noisy data and standardized benchmarks, making it both feasible and testable in a university GPU setting."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H3 introduces the cross-disciplinary bridge insight from statistical leverage scores (ALEVS), which is theoretically sound and relevant to reducing simulation costs. However, it relies on the UCI Air Quality dataset, which is less ideal for materials property mapping compared to the ESOL dataset. While the hypothesis is testable and coherent, it lacks the direct relevance to the core research question and is somewhat indirect in its application to materials science. Its grounding is solid but not as strong as H1’s connection to established literature and real-world datasets."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H2 proposes Bayesian Optimization within active learning for improving model accuracy on the UCI Adult Census Income dataset. While this is a valid approach and connects to the bridge insight from Bayesian optimal experimental design, it shifts focus from simulation reduction to model accuracy improvement—a departure from the stated research question. The dataset is real and suitable, but the hypothesis is less aligned with the core problem of minimizing simulations. Additionally, the claim is more ambiguous in terms of what constitutes 'statistically significant improvement,' making it harder to clearly support or refute."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "1811.05660v1",
+    "2010.06896v1",
+    "1208.3561v3",
+    "2110.08265v4",
+    "1507.04155v1",
+    "be2c0a615ac1bb028a4d7b92c52f15d10ca8326d",
+    "86e91b1a2576123a78fb03a8414a8e67919a080c",
+    "00dbeb37019e116a473705736c11175545408d01",
+    "1cc45180041b684ffe279e31a8b4449f8e7bd26f",
+    "20f731bf9b62914ba4930c39e0215f8aab88053a",
+    "3d8051fd30071223589739d02e5732fbdbd6f61e",
+    "150694997",
+    "290090530",
+    "8982988",
+    "d2473e7ef4100ff53dae3f7e1674d4b59db502a8",
+    "283a1e2effd563016256d5d85c902b1902fdb9b6",
+    "aab35106c0e414250c4a27dee9ebea5fefe8a0d1",
+    "93af00a2ae6ad82f66d269268e24d9bd8889bd2c",
+    "a3c425f466800b013bb5812f03f80d9d70686282",
+    "5792fb6309ddad35029c2654c26f83e348d38ba6",
+    "c921b850c0d78c70c1502994ee561ebf9a5eb615",
+    "fce9d90af1eed23a0e5ddd12b8b503040cc41d04",
+    "09cf6297e73021bb09a3cbbbde7597fc737a8e3a",
+    "e9d3d683fdbd72e9ea1572768ea1c38b66e2d00d",
+    "a2e000b121970c8bc3c75dbf742b4c5a882c7fc7",
+    "e44f4c253192e357038a2123c3243e954f747c06",
+    "82bd847685b571816bfb28c6bac9aa2ff9cea9c9",
+    "9ff3d42f9a424d6b8d4e2a0188d0e137073b3989",
+    "004b9ee0b64894fa7e563402f47eb06a13caedda",
+    "bbfc53d461f82a816e95260218731e1c98f8cf42",
+    "ad1d037945e1f189ce8fddbbc564f4531d319d68",
+    "c3cda481fa692543c94cda42a5160fb4416ba08c",
+    "ec625b81ef30e375b55fd9e1a3ca0a93069e53dd",
+    "231f00a70f5f3f03f1d2fbd42df7abe5c14f0d1c",
+    "09e3a1f1e1439811a28d20643bfd668e028c35ba",
+    "4c7dd83d9ec3fc757fa4dc2c02d074ef781b68c6",
+    "f5edf08dddf592d70f9efda1724d369cd3a3ed06",
+    "f0261626d017efede742c918708542cf82bb50b2",
+    "6989f920b7721615fcbf3ef5c44d067e9cbb6551",
+    "63c3af0c67a83e7fe9eef34198da030dce99f809",
+    "16581098d860554e4d4b5d15a8db6e8bce2a89e8",
+    "ad4fd2c149f220a62441576af92a8a669fe81246",
+    "f35de4f9b1a7c4d3fa96a0d2ab1bf8937671f6b6",
+    "802168a81571dde28f5ddb94d84677bc007afa7b",
+    "7456dea3a3646f2df6392773a196a5abd0d53b11",
+    "941ef255d31b5becbf0a3281bcf7ac0122e4c833",
+    "1903.05480v3",
+    "1309.1799v4",
+    "1508.00279v1",
+    "1512.01013v1",
+    "1402.5723v5",
+    "1805.03924v8",
+    "2204.09337v2",
+    "2203.16942v1",
+    "8f79332b1361e9eaa9da3327f83f57dcac5cd11d",
+    "ec37ae28907638a87c8b229a296f57a6539e6838",
+    "5c94c89546b4e497300c05a72b652e61620521a1",
+    "78156e7d0542b658c04e6f50f753f948e17e9088",
+    "0f0f75ff4607096bc0c3637d68cfd5b0076a9a45",
+    "58675ec2ecdcb1410deba60c7ccc26975d83d39a",
+    "3be60571c2befc478b37f2a0d902a8a277023423",
+    "ebac1f8e13b879fe13d48c41ac34c9a8a0f7ad9d",
+    "c14e4584b5a9c51a94f39ca4b52a84d88fa71d9e",
+    "fc6acc66c7c85e28e506e5efc38a59a1c6d3bf14",
+    "19892254",
+    "333801692",
+    "2501012",
+    "231043",
+    "2502227",
+    "346774096",
+    "223256",
+    "2306.08001v1",
+    "2302.08893v4",
+    "2107.10804v2",
+    "2307.02719v5",
+    "1304.1083v1",
+    "2608.18429v1",
+    "1612.07827v2",
+    "8263b6073c7cb41c87ac5596b1d39181d38abdcf",
+    "6cda0baf790a0ff1bd3a8ae03dd11bf1ac27329b",
+    "d6cbe7986a15a3d697213c8541c97dec9e65240b",
+    "eed25d0819ccd2c4beb6d3d00132742393162938",
+    "0fb2392919ed02e52ae6b14d426022d94a9d28b1",
+    "1b5db3170c195508ff24fee8eda0d4987e806f0b",
+    "650ebb41a110b3d661a8c6ebe8c08b130c99132a",
+    "76b29404aa7a417c950ce4c6e89defe09764ca41",
+    "7cdc6acf3dd9c6829e0709408b1c27200ce1a3d0",
+    "19895183",
+    "340528059",
+    "138040405",
+    "17484321",
+    "11702773",
+    "16819320",
+    "1810.05633v2",
+    "2307.09574v1",
+    "1808.06100v6",
+    "2501.00258v1",
+    "2303.08710v1",
+    "1801.00121v1",
+    "2104.05781v1",
+    "2506.17929v1",
+    "1206.6557v1",
+    "1906.03919v5",
+    "a6cb366736791bcccc5c8639de5a8f9636bf87e8",
+    "413c1142de9d91804d6d11c67ff3fed59c9fc279",
+    "1b1c9b31dde42a8818a255866db50b0a026b106e",
+    "4dabfd108c13cd730d3cc583e474b5d8bdf4685f",
+    "44b3b3bb40a9055eccdf86ea1702f6ae8b38934c",
+    "5ee33d0d1b54875665ced3345ee3a23ff4f409eb",
+    "a829d9fe353478f5ffa122db01e9f0e8646520d0",
+    "17396603",
+    "155367952",
+    "2472623",
+    "340544136",
+    "2972931"
+  ],
+  "generated_at": "2026-09-16T00:04:05.003477+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

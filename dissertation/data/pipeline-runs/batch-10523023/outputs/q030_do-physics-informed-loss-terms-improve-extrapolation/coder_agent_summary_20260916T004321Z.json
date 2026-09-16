@@ -1,0 +1,142 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "Execution failed: run.py exited with code 1: n3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n        return check_array_indexer(index, result)\n      File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n        raise IndexError(\n        ...<2 lines>...\n        )\n    IndexError: Boolean index has wrong length: 789 instead of 1128\n========================================================================\n\n\ne, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1760, in _getitem_axis\n    return self._getbool_axis(key, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1225, in _getbool_axis\n    key = check_bool_indexer(labels, key)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n    return check_array_indexer(index, result)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n    raise IndexError(\n    ...<2 lines>...\n    )\nIndexError: Boolean index has wrong length: 789 instead of 1128 after 4 fix attempt(s)",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1",
+      "assumptions_made": [
+        "The out-of-distribution test selection logic correctly identifies samples outside the training distribution range",
+        "The PINN loss function implementation properly incorporates physical constraints through gradient regularization",
+        "The dataset provides sufficient variation to meaningfully evaluate extrapolation performance",
+        "The training process converges properly for both standard and PINN models"
+      ],
+      "results": null,
+      "fix_attempts": 4,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "missing_data_fallback",
+          "error_summary": "load_data() assumes its data will be present: line 3: read_csv(...) reads a local file with no try/except around it, so the experiment dies if that file doesn't exist. Wrap the read, log the failure, and fall back to a small synthesized stand-in dataset (recording that in assumptions_made and the README) — or fetch the data over HTTP instead",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "load_data_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The physical constraint in the PINN is implemented as a smoothness penalty on gradients, which is a simplified approximation of physical principles governing solubility.",
+            "The out-of-distribution test set is defined by molecular weight and polar surface area ranges outside the training distribution.",
+            "The experiment uses a fixed architecture and training procedure for both models to ensure fair comparison.",
+            "The dataset provides sufficient variation in molecular descriptors to create meaningful out-of-distribution test cases.",
+            "The training process uses early stopping with patience to avoid overfitting while allowing sufficient learning time."
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: n3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n        return check_array_indexer(index, result)\n      File \"/tmp/users/sgyshere/coder-venvs-10536058/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n        raise IndexError(\n        ...<2 lines>...\n        )\n    IndexError: Boolean index has wrong length: 789 instead of 1128\n========================================================================\n\n\ne, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1431, in _getitem_axis\n    return self._getbool_axis(key, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1225, in _getbool_axis\n    key = check_bool_indexer(labels, key)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n    return check_array_indexer(index, result)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/2eab879c1502e6a6/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n    raise IndexError(\n    ...<2 lines>...\n    )\nIndexError: Boolean index has wrong length: 789 instead of 1128",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The experiment falls back to a synthetic dataset if the real data file is not found at the expected path",
+            "The synthetic dataset maintains the essential statistical properties of the real molecular solubility dataset for the purposes of this experiment",
+            "The PINN implementation uses a basic gradient-based smoothness penalty as a proxy for physical constraints, which is a simplified version of what would be used in a full physics-informed approach",
+            "The out-of-distribution test set is created by selecting molecules with extreme values in molecular weight or polar surface area relative to the training distribution"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: n3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n        return check_array_indexer(index, result)\n      File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n        raise IndexError(\n        ...<2 lines>...\n        )\n    IndexError: Boolean index has wrong length: 789 instead of 1128\n========================================================================\n\n\ne, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1431, in _getitem_axis\n    return self._getbool_axis(key, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1225, in _getbool_axis\n    key = check_bool_indexer(labels, key)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n    return check_array_indexer(index, result)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n    raise IndexError(\n    ...<2 lines>...\n    )\nIndexError: Boolean index has wrong length: 789 instead of 1128",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The boolean indexing issue in the original code was caused by a mismatch between the length of the boolean mask and the DataFrame being filtered. This was fixed by ensuring the boolean mask is properly aligned with the full DataFrame.",
+            "The PINN implementation uses a simplified gradient-based smoothness penalty as a proxy for physical constraints, which is a reasonable approximation for this experiment.",
+            "The dataset provides sufficient variation to create meaningful out-of-distribution test cases."
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "run_experiment",
+          "error_summary": "Execution failed: run.py exited with code 1: n3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n        return check_array_indexer(index, result)\n      File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n        raise IndexError(\n        ...<2 lines>...\n        )\n    IndexError: Boolean index has wrong length: 789 instead of 1128\n========================================================================\n\n\ne, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1431, in _getitem_axis\n    return self._getbool_axis(key, axis=axis)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 1225, in _getbool_axis\n    key = check_bool_indexer(labels, key)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexing.py\", line 2696, in check_bool_indexer\n    return check_array_indexer(index, result)\n  File \"/tmp/users/sgyshere/coder-venvs-10536058/67072f043cecc924/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py\", line 570, in check_array_indexer\n    raise IndexError(\n    ...<2 lines>...\n    )\nIndexError: Boolean index has wrong length: 789 instead of 1128",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "The out-of-distribution test set is created by filtering molecules whose Molecular Weight or Polar Surface Area fall outside the training distribution range",
+            "The PINN loss function uses a simple gradient-based smoothness penalty to enforce physical constraints",
+            "The experiment uses a fixed random seed for reproducibility",
+            "The dataset is sufficiently large and diverse to support meaningful extrapolation testing",
+            "The training process uses early stopping to prevent overfitting",
+            "The evaluation metrics are computed on the standardized (normalized) data space"
+          ],
+          "same_error_streak": 3
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "2509.05117",
+          "title": "HyPINO: Multi-Physics Neural Operators via HyperPINNs and the Method of\n  Manufactured Solutions",
+          "year": "2025",
+          "citation_count": 6,
+          "tldr": "HyPINO, a multi-physics neural operator using a Swin Transformer-based hypernetwork, achieves zero-shot generalization across parametric PDEs and outperforms existing methods with iterative refinement and efficient fine-tuning.",
+          "url_abs": "https://arxiv.org/abs/2509.05117",
+          "repositories": [
+            {
+              "url": "https://github.com/rbischof/hypino",
+              "is_official": true,
+              "stars": 21
+            }
+          ],
+          "methods": [
+            "Fine-tuning",
+            "HyperNetwork",
+            "Transformer",
+            "U-Net"
+          ]
+        },
+        {
+          "paper_id": "2203.07404",
+          "title": "Respecting causality is all you need for training physics-informed neural networks",
+          "year": "2022",
+          "citation_count": 271,
+          "tldr": "Proposed modifications to PINN loss functions improve accuracy and convergence by explicitly accounting for physical causality, enabling successful simulation of chaotic and turbulent systems.",
+          "url_abs": "https://arxiv.org/abs/2203.07404",
+          "repositories": [
+            {
+              "url": "https://github.com/predictiveintelligencelab/causalpinns",
+              "is_official": true,
+              "stars": 221
+            },
+            {
+              "url": "https://github.com/predictiveintelligencelab/jaxpi",
+              "is_official": false,
+              "stars": 356
+            }
+          ],
+          "methods": []
+        }
+      ],
+      "reported_attempt": 5
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_30/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T00:43:21.091411+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

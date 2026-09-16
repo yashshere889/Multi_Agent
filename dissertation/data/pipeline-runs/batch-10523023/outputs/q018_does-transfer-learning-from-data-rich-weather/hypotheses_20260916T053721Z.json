@@ -1,0 +1,602 @@
+{
+  "literature_summary": "The literature demonstrates that transfer learning is widely applied across meteorological and environmental forecasting domains to address data scarcity, improve model generalization, and enhance predictive accuracy, particularly in scenarios with limited observational histories. Studies utilize diverse architectures such as LSTMs, CNNs, U-Nets, Transformers, and hybrid models, often integrating pre-trained models with fine-tuning strategies. While transfer learning shows promise in improving forecasting performance, several gaps and limitations persist, including insufficient comparative evaluations, lack of robustness analysis under adversarial or dynamic conditions, limited geographical generalization, and challenges in handling data heterogeneity and domain shifts. Additionally, there is a recurring theme of needing better benchmarks, clearer validation protocols, and more nuanced understanding of when and how transfer learning provides benefits versus introducing negative transfer.",
+  "methods_overview": [
+    {
+      "method": "Transfer Learning",
+      "papers_using_it": [
+        "2207.02337v1",
+        "2502.01654v1",
+        "359d0c71751352b55537fa994037d826ac793ba3",
+        "5719274ed7c2ddf7da7e8fafbb90ebab2a365461",
+        "00afb63be945b82f215459c97fefa4bab334a86e",
+        "7fa4aaecd8c6f831c357a5f3ba77b9f834f28d8c",
+        "aa1cdf863770b00027c6ddbef4a9aa869a859248",
+        "679759377fb68309e7e078de9526f0853d1c4798",
+        "c6d202ae0f3bafdff350084290b78b9e1a99d92d",
+        "bfce41d57b32718f023f863aaf80505c52650776",
+        "8a8ac2467aee4d70866a1b2410e59565ef6ae292",
+        "3fe836502e0180ff6b26e77f3e38b9fe89b377d3",
+        "ff6dafb8ed33c3420f3c5b047e616004605f79ea",
+        "6cd56316db06350aef52d536dc5a5fe56a3d0804",
+        "10ac67af91d7f2484debe9e3213a4994a6634378",
+        "4d5bd8c6e5e2e9cf694e1b1ff3792575655fbc75",
+        "be01718f80788e9dc64c0a6e943fce240a199ccb",
+        "65a88245642fefdcea3b05ab5a6b2280fd827ae6",
+        "1fec6115cc7c0174ff14f62f0c4c963cab834a17",
+        "a5483f2fdf7cb4ac864c4462f023be1c47f6bf58",
+        "190b59dbdf08696819bf6b5374ae8aac0b23342a",
+        "1f54d7ac663a60edbc6c29590aac6b816680ecef",
+        "b44264fad91a109037573b083bcde73eec8bfff7",
+        "02de0f1cbf4d2e3d09961ece23dfae9ccf76287e",
+        "b464c3b672ab70f88d88f91ff96796e44c99de17",
+        "21d874a39ffd84a4cf38df1d4ae046185c7f87b5",
+        "d9b0af095aa61da197a053b1407da4b30c364503",
+        "93939503b2e7e20661307a74ef6897b6a99b2b2c",
+        "2204.12833v3",
+        "2403.19646v3",
+        "2505.14361v1",
+        "2508.11919v3",
+        "fb7d5b8fb752a188d94f950adad877e0dab8679d",
+        "dbbf9858f0a9eceefd21a7faa0e4f2f6e9bd9726",
+        "c86061b1c7e4c5ca8e15d663ac2c647c73176fd2",
+        "18e485ee51e3ec6a98bf6569d35afd8e42ed1e93",
+        "3de8249c79b3fdd01150a872af554c5a4ab766e4",
+        "bacf6e51f162a8706b7cf41adb3694a5ad35a962",
+        "59f47b8f97b47e3a73368e3db5be399e844cc6de",
+        "4664734",
+        "1811.11400v2",
+        "1910.02578v3",
+        "baedbe5549c24649698fbff3ee61770e7feb9979",
+        "19fe90f1e2cde4b4d53bcb4d967535f7ad7e74c5",
+        "0e8ebf54dccca462f12dc6d0d12260088a1c1e85",
+        "86ada60c6dab07421118f5b49e8bb5ab3f2653c9",
+        "c1bd7a4a79faf76b9f9c0551a6e4dc1c4a84191f",
+        "8847979",
+        "231733",
+        "358412",
+        "298274825",
+        "2010.01177v4",
+        "2205.04675v2",
+        "2107.14072v2",
+        "2410.21361v2",
+        "2403.14534v2",
+        "2103.16889v1",
+        "2505.13784v2",
+        "ba3d752296d1c37b45b72cf34bd5adcad1d581aa",
+        "cafcee20d282a346e923965cfad8d689f4c6c92a",
+        "345afa0e85cb2f5cb438ae44027499ff2c392409",
+        "d057428b14a7a09aa1778d0e7ec7dbf3c47158dd",
+        "d0611891b9e8a7c5731146097b6f201578f47b2f",
+        "c8c901b597a3a7b6d7e8e11d43c1d7ed81399b6e",
+        "1b10d9049c56b3462f82387f719853dfdd464b53",
+        "02fdc2de5f8929d58f5ae2830e0c5c99b4250e16",
+        "15794011",
+        "34121246",
+        "321665271",
+        "310798715",
+        "87849110",
+        "14036661",
+        "13805316",
+        "8849944",
+        "8857093"
+      ],
+      "notes": "Common; used extensively across diverse domains including weather forecasting, environmental modeling, and computer vision to leverage pre-trained models and improve performance under data scarcity or domain shifts."
+    },
+    {
+      "method": "Long Short-Term Memory (LSTM)",
+      "papers_using_it": [
+        "2502.01654v1",
+        "aa1cdf863770b00027c6ddbef4a9aa869a859248",
+        "679759377fb68309e7e078de9526f0853d1c4798",
+        "1bd3ece38861875082be6191c6552fa590d95432",
+        "be01718f80788e9dc64c0a6e943fce240a199ccb",
+        "10ac67af91d7f2484debe9e3213a4994a6634378"
+      ],
+      "notes": "Common; frequently applied in time-series forecasting tasks such as air quality, rainfall, solar irradiance, and temperature prediction."
+    },
+    {
+      "method": "Vision Transformer (ViT)",
+      "papers_using_it": [
+        "c1c0fbc6af64fdcad25a630b4bcb89d1a2e0bdbb"
+      ],
+      "notes": "Rare; used primarily for weather scene identification through transfer learning and fine-tuning."
+    },
+    {
+      "method": "Recurrent Convolutional Networks (RCNs)",
+      "papers_using_it": [
+        "359d0c71751352b55537fa994037d826ac793ba3"
+      ],
+      "notes": "Rare; applied in weather forecasting competitions for video frame prediction."
+    },
+    {
+      "method": "U-Net Architecture",
+      "papers_using_it": [
+        "359d0c71751352b55537fa994037d826ac793ba3"
+      ],
+      "notes": "Rare; employed in weather forecasting competitions for spatial transfer learning."
+    },
+    {
+      "method": "Ensemble Methods",
+      "papers_using_it": [
+        "679759377fb68309e7e078de9526f0853d1c4798",
+        "8a8ac2467aee4d70866a1b2410e59565ef6ae292",
+        "10ac67af91d7f2484debe9e3213a4994a6634378"
+      ],
+      "notes": "Moderate; combined with other models to enhance forecasting performance in precipitation and general weather prediction."
+    },
+    {
+      "method": "Convolutional Neural Networks (CNN)",
+      "papers_using_it": [
+        "4d5bd8c6e5e2e9cf694e1b1ff3792575655fbc75",
+        "1e46189c6970e1198c34344d6c3db3d551644e87",
+        "6cd56316db06350aef52d536dc5a5fe56a3d0804",
+        "c8c901b597a3a7b6d7e8e11d43c1d7ed81399b6e"
+      ],
+      "notes": "Common; widely used in image classification, weather image recognition, and underwater target recognition."
+    },
+    {
+      "method": "Temporal Convolutional Network (TCN)",
+      "papers_using_it": [
+        "be01718f80788e9dc64c0a6e943fce240a199ccb"
+      ],
+      "notes": "Rare; used in conjunction with transfer learning for offshore visibility forecasting."
+    },
+    {
+      "method": "Retrieval-Augmented Learning",
+      "papers_using_it": [
+        "378feb97d91589bd994b876ace41fc3fdcad6496"
+      ],
+      "notes": "Rare; applied for zero-shot microclimate forecasting using attention mechanisms."
+    },
+    {
+      "method": "Fine-tuning",
+      "papers_using_it": [
+        "0ba3fbf4f9dc41b1e29e5303e137d12b01eeb472",
+        "02de0f1cbf4d2e3d09961ece23dfae9ccf76287e",
+        "b464c3b672ab70f88d88f91ff96796e44c99de17",
+        "b44264fad91a109037573b083bcde73eec8bfff7"
+      ],
+      "notes": "Common; involves continuing training of pre-trained models on smaller, task-specific datasets to capture local patterns."
+    },
+    {
+      "method": "Attention Mechanisms",
+      "papers_using_it": [
+        "02fdc2de5f8929d58f5ae2830e0c5c99b4250e16"
+      ],
+      "notes": "Rare; integrated with MobileNetv1-YOLOv4 for adaptive feature optimization."
+    },
+    {
+      "method": "Graph Neural Networks (GNNs)",
+      "papers_using_it": [
+        "baedbe5549c24649698fbff3ee61770e7feb9979"
+      ],
+      "notes": "Rare; applied to predict NO2 concentrations using satellite and meteorological data."
+    },
+    {
+      "method": "Variational Autoencoder",
+      "papers_using_it": [
+        "0e8ebf54dccca462f12dc6d0d12260088a1c1e85"
+      ],
+      "notes": "Rare; used to augment target-domain fault samples and alleviate class imbalance."
+    },
+    {
+      "method": "Class-level adversarial alignment",
+      "papers_using_it": [
+        "0e8ebf54dccca462f12dc6d0d12260088a1c1e85"
+      ],
+      "notes": "Rare; applied to reduce cross-domain distribution shifts in fault diagnosis."
+    },
+    {
+      "method": "Entropy-guided transfer learning",
+      "papers_using_it": [
+        "c1bd7a4a79faf76b9f9c0551a6e4dc1c4a84191f"
+      ],
+      "notes": "Rare; integrates Shannon's entropy to weight source data and mitigate negative transfer."
+    },
+    {
+      "method": "Sparse Representation and Dictionary Learning",
+      "papers_using_it": [
+        "8847979",
+        "298274825",
+        "231733",
+        "358412"
+      ],
+      "notes": "Rare; used for feature selection and signal reconstruction in various contexts."
+    },
+    {
+      "method": "Global Adaptive Filtering Layer",
+      "papers_using_it": [
+        "2010.01177v4"
+      ],
+      "notes": "Rare; automatically selects optimal frequencies for image processing tasks."
+    },
+    {
+      "method": "Multi-view Multi-Instance Learning (MVMI)",
+      "papers_using_it": [
+        "13805316"
+      ],
+      "notes": "Rare; empirically investigates MVMI for supervised image classification."
+    },
+    {
+      "method": "Generative Probabilistic Topic Modeling",
+      "papers_using_it": [
+        "8849944"
+      ],
+      "notes": "Rare; proposes unsupervised learning approach to discover salient image patches for person re-identification."
+    },
+    {
+      "method": "Multimodal Latent Attributes Learning",
+      "papers_using_it": [
+        "8857093"
+      ],
+      "notes": "Rare; introduces semi-latent attribute space and probabilistic topic models for learning multi-modal attributes."
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "Lack of comparative studies evaluating different transfer learning strategies in the same domain or dataset",
+      "supporting_evidence": [
+        "2207.02337v1",
+        "2502.01654v1",
+        "359d0c71751352b55537fa994037d826ac793ba3",
+        "5719274ed7c2ddf7da7e8fafbb90ebab2a365461",
+        "7fa4aaecd8c6f831c357a5f3ba77b9f834f28d8c"
+      ],
+      "notes": "Repeated across multiple domains, indicating a significant methodological gap."
+    },
+    {
+      "gap": "Limited evaluation of transfer learning effectiveness across diverse geographical regions and varying climatic conditions",
+      "supporting_evidence": [
+        "aa1cdf863770b00027c6ddbef4a9aa869a859248",
+        "679759377fb68309e7e078de9526f0853d1c4798",
+        "c6d202ae0f3bafdff350084290b78b9e1a99d92d"
+      ],
+      "notes": "Indicates a need for broader validation beyond specific basins or regions."
+    },
+    {
+      "gap": "Lack of standardized benchmarks for comparing transfer learning performance across different weather prediction tasks",
+      "supporting_evidence": [
+        "8a8ac2467aee4d70866a1b2410e59565ef6ae292"
+      ],
+      "notes": "Highlights the absence of consistent metrics for assessing model performance."
+    },
+    {
+      "gap": "Insufficient discussion on how temporal characteristics of time-series data affect the applicability of transfer learning in weather forecasting",
+      "supporting_evidence": [
+        "0a8f46f7d2561727c84f21950277148e42ac91e3",
+        "8a8ac2467aee4d70866a1b2410e59565ef6ae292"
+      ],
+      "notes": "Points to a gap in understanding temporal dynamics in transfer learning."
+    },
+    {
+      "gap": "Need for more comprehensive and interactive tools for remote sensing change interpretation beyond traditional change detection and captioning",
+      "supporting_evidence": [
+        "2403.19646v3"
+      ],
+      "notes": "Reflects a gap in developing advanced remote sensing analysis tools."
+    },
+    {
+      "gap": "Lack of comparative studies on the robustness of sparse representation methods under varying levels of noise or data corruption",
+      "supporting_evidence": [
+        "8847979",
+        "231733",
+        "358412",
+        "298274825"
+      ],
+      "notes": "Indicates a need for more rigorous testing of sparse representation techniques."
+    },
+    {
+      "gap": "Limited exploration of domain adaptation techniques for handling large-scale domain shifts in synthetic-to-real scenarios beyond weather classification",
+      "supporting_evidence": [
+        "310798715"
+      ],
+      "notes": "Points to a gap in applying synthetic-to-real domain adaptation broadly."
+    },
+    {
+      "gap": "No clear comparison of the effectiveness of tensor-based domain adaptation versus traditional vector-based methods in real-world applications",
+      "supporting_evidence": [
+        "34121246"
+      ],
+      "notes": "Highlights a lack of direct comparisons in domain adaptation methods."
+    },
+    {
+      "gap": "Limited discussion on how domain adaptation techniques generalize across different types of computer vision tasks",
+      "supporting_evidence": [
+        "87849110"
+      ],
+      "notes": "Indicates a lack of broad applicability assessment in domain adaptation."
+    },
+    {
+      "gap": "No explicit evaluation of MVMI's effectiveness in scenarios with highly imbalanced or sparse data across views",
+      "supporting_evidence": [
+        "13805316"
+      ],
+      "notes": "Points to a gap in understanding MVMI behavior under data imbalance."
+    },
+    {
+      "gap": "The scalability and generalizability of the proposed multimodal attribute learning framework to non-social media domains remains underexplored",
+      "supporting_evidence": [
+        "8857093"
+      ],
+      "notes": "Shows a lack of cross-domain validation for multimodal learning."
+    },
+    {
+      "gap": "Lack of explicit discussion on negative transfer risks in low-similarity task regimes in the context of transfer learning for NWP calibration",
+      "supporting_evidence": [
+        "190b59dbdf08696819bf6b5374ae8aac0b23342a"
+      ],
+      "notes": "Highlights a concern about potential harm from inappropriate transfers."
+    },
+    {
+      "gap": "Insufficient exploration of how transfer learning impacts model generalization across diverse geographical regions beyond the scope of the training data",
+      "supporting_evidence": [
+        "a5483f2fdf7cb4ac864c4462f023be1c47f6bf58"
+      ],
+      "notes": "Points to a need for better understanding of geographical generalization."
+    },
+    {
+      "gap": "Need for more robust validation of AI-based tropospheric delay forecasts in extreme weather conditions",
+      "supporting_evidence": [
+        "59f47b8f97b47e3a73368e3db5be399e844cc6de"
+      ],
+      "notes": "Indicates a gap in validating models under stress conditions."
+    },
+    {
+      "gap": "Lack of detailed analysis on the impact of sensor geometry on fusion quality in urban environments",
+      "supporting_evidence": [
+        "4664734"
+      ],
+      "notes": "Points to a gap in understanding sensor configuration effects."
+    },
+    {
+      "gap": "Insufficient discussion on ethical implications of using NDVI-based index insurance in agriculture",
+      "supporting_evidence": [
+        "2749434"
+      ],
+      "notes": "Highlights a gap in considering socio-economic impacts."
+    },
+    {
+      "gap": "Limited evaluation of transfer learning frameworks in real-world clinical environments beyond controlled datasets",
+      "supporting_evidence": [
+        "f181213458c5ad89c07798ea9ad76a3305dbb445"
+      ],
+      "notes": "Points to a gap in clinical deployment validation."
+    },
+    {
+      "gap": "Lack of comparative analysis between various attention mechanisms in the context of wind turbine blade defect detection",
+      "supporting_evidence": [
+        "02fdc2de5f8929d58f5ae2830e0c5c99b4250e16"
+      ],
+      "notes": "Indicates a need for mechanism-specific comparisons."
+    },
+    {
+      "gap": "Limited evaluation of domain adaptation methods specifically tailored for wind turbine blade damage detection using UAV imagery",
+      "supporting_evidence": [
+        "1b10d9049c56b3462f82387f719853dfdd464b53",
+        "02fdc2de5f8929d58f5ae2830e0c5c99b4250e16"
+      ],
+      "notes": "Points to a gap in domain-specific adaptation for industrial applications."
+    },
+    {
+      "gap": "Few studies specifically address the challenges of few-shot learning in highly specialized domains like on-orbit service manipulation",
+      "supporting_evidence": [
+        "d057428b14a7a09aa1778d0e7ec7dbf3c47158dd"
+      ],
+      "notes": "Highlights a niche area requiring more attention."
+    },
+    {
+      "gap": "Limited exploration of how self-supervised techniques perform in open-set target domains",
+      "supporting_evidence": [
+        "14f7c494218efe7aaac5250997e6aa44503a1cb2",
+        "cafcee20d282a346e923965cfad8d689f4c6c92a"
+      ],
+      "notes": "Points to a gap in open-domain performance evaluation."
+    },
+    {
+      "gap": "No clear comparison of the effectiveness of domain adaptation methods in scenarios with highly imbalanced or sparse data",
+      "supporting_evidence": [
+        "13805316"
+      ],
+      "notes": "Indicates a need for robustness testing under data scarcity."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Transfer learning from a data-rich weather station to a data-scarce station improves forecasting accuracy for 24-hour temperature predictions, as measured by mean absolute error (MAE), compared to a baseline model trained solely on the data-scarce station's history.",
+      "rationale": "This hypothesis directly addresses the core research question regarding whether transfer learning from data-rich to data-scarce weather stations enhances forecasting performance. It leverages the common use of transfer learning in meteorological forecasting and builds on the identified gap of insufficient comparative studies evaluating different transfer learning strategies in the same domain. The hypothesis is grounded in the literature showing that transfer learning is widely applied in weather forecasting to overcome data scarcity.",
+      "related_gaps": [
+        "Lack of comparative studies evaluating different transfer learning strategies in the same domain or dataset"
+      ],
+      "related_methods": [
+        "Transfer Learning",
+        "Fine-tuning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "source station data richness",
+          "target station data history length"
+        ],
+        "dependent": [
+          "mean absolute error (MAE) of temperature forecast"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "statement": "Using a graph neural network (GNN) architecture with temporal convolution layers to transfer knowledge from a densely monitored region to a sparsely observed region results in lower forecasting error for hourly precipitation rates at the target station compared to a standalone LSTM model trained only on the target station data.",
+      "rationale": "This hypothesis draws upon the cross-disciplinary bridge insight that graph pruning techniques combined with transfer learning in spatio-temporal graph convolutional networks can improve forecasting accuracy. It also builds on the gap concerning limited exploration of domain adaptation techniques for handling large-scale domain shifts. The hypothesis tests a specific architectural approach that combines spatial and temporal dependencies, which is relevant to weather forecasting where both aspects are critical.",
+      "related_gaps": [
+        "Limited exploration of domain adaptation techniques for handling large-scale domain shifts in synthetic-to-real scenarios beyond weather classification",
+        "Insufficient discussion on how temporal characteristics of time-series data affect the applicability of transfer learning in weather forecasting"
+      ],
+      "related_methods": [
+        "Graph Neural Networks",
+        "Temporal Convolutional Network",
+        "Transfer Learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "spatial proximity of source/target stations",
+          "temporal consistency of data"
+        ],
+        "dependent": [
+          "forecasting error for hourly precipitation rates"
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "statement": "Applying canonical correlation analysis (CCA)-based transfer learning to align feature representations between a data-rich station and a data-scarce station reduces domain shift and leads to improved forecasting performance for relative humidity compared to a model without domain alignment.",
+      "rationale": "This hypothesis utilizes the cross-disciplinary bridge insight that CCA-based transfer learning frameworks can align feature representations between source and target domains, making them suitable for transferring weather forecasting models. It directly addresses the gap in understanding how domain shift affects forecasting performance and how to mitigate it. The hypothesis focuses on a measurable outcome—relative humidity forecasting—which is a common variable in meteorological models.",
+      "related_gaps": [
+        "Lack of comparative studies evaluating different transfer learning strategies in the same domain or dataset",
+        "Insufficient discussion on how temporal characteristics of time-series data affect the applicability of transfer learning in weather forecasting"
+      ],
+      "related_methods": [
+        "Canonical Correlation Analysis",
+        "Transfer Learning"
+      ],
+      "suggested_variables": {
+        "independent": [
+          "domain similarity score",
+          "feature representation alignment"
+        ],
+        "dependent": [
+          "accuracy of relative humidity forecast"
+        ]
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "score": 8.5,
+      "justification": "H1 is most feasible because it directly relates to weather forecasting using real data from the UCI Air Quality dataset (uci_air_quality_hourly.csv), which contains hourly temperature and other meteorological variables. It's testable since it makes a specific claim about MAE improvement with transfer learning versus baseline models, and the outcome could go either way. The hypothesis is coherent as it focuses on the system (weather forecasting) rather than methodology alone, and the data directly supports or refutes the claim. It is well-grounded in the literature's emphasis on transfer learning for data-scarce weather stations."
+    },
+    {
+      "hypothesis_id": "H2",
+      "rank": 2,
+      "score": 6.0,
+      "justification": "H2 introduces complex architectures (GNN + Temporal Convolution) and a specific application (hourly precipitation rates), but lacks a real dataset that includes precipitation data with sufficient temporal resolution and spatial coverage to evaluate the proposed method. While it draws on cross-disciplinary insights, its testability is weakened by the absence of appropriate data and the complexity of the model architecture. It is less grounded in the actual datasets available compared to H1."
+    },
+    {
+      "hypothesis_id": "H3",
+      "rank": 3,
+      "score": 4.0,
+      "justification": "H3 proposes using Canonical Correlation Analysis for domain alignment in relative humidity forecasting, but does not specify a real dataset that contains the necessary paired feature representations for CCA to be meaningfully applied. Its testability is limited because the required data structure isn't present in the listed datasets. Although it references cross-disciplinary insights, it fails to connect adequately with real-world data sources, making it less grounded and less testable than H1."
+    }
+  ],
+  "selected_hypothesis_id": "H1",
+  "source_paper_ids": [
+    "2207.02337v1",
+    "2502.01654v1",
+    "1911.08967v1",
+    "359d0c71751352b55537fa994037d826ac793ba3",
+    "5719274ed7c2ddf7da7e8fafbb90ebab2a365461",
+    "00afb63be945b82f215459c97fefa4bab334a86e",
+    "7fa4aaecd8c6f831c357a5f3ba77b9f834f28d8c",
+    "1bd3ece38861875082be6191c6552fa590d95432",
+    "aa1cdf863770b00027c6ddbef4a9aa869a859248",
+    "679759377fb68309e7e078de9526f0853d1c4798",
+    "c6d202ae0f3bafdff350084290b78b9e1a99d92d",
+    "0a8f46f7d2561727c84f21950277148e42ac91e3",
+    "c1c0fbc6af64fdcad25a630b4bcb89d1a2e0bdbb",
+    "bfce41d57b32718f023f863aaf80505c52650776",
+    "8a8ac2467aee4d70866a1b2410e59565ef6ae292",
+    "946f7395c5d87975d8ad7d0d001de2e02d561d56",
+    "3fe836502e0180ff6b26e77f3e38b9fe89b377d3",
+    "ff6dafb8ed33c3420f3c5b047e616004605f79ea",
+    "6cd56316db06350aef52d536dc5a5fe56a3d0804",
+    "1e46189c6970e1198c34344d6c3db3d551644e87",
+    "10ac67af91d7f2484debe9e3213a4994a6634378",
+    "4d5bd8c6e5e2e9cf694e1b1ff3792575655fbc75",
+    "4176fc3ca45ea61f19b765d4d83eb08efc2c430f",
+    "be01718f80788e9dc64c0a6e943fce240a199ccb",
+    "378feb97d91589bd994b876ace41fc3fdcad6496",
+    "8d442e0496f529d2d9ec3e3035e97c5d16224db0",
+    "e1ffa69c13bcd70f3c935745fd8e741381aed214",
+    "e4cb86574956863e94346842a656ffdd0e1ce99e",
+    "0b3164ce4aca591f9a1b8a748bb3b3b0d2e5f37e",
+    "75f617441d27577473954650963fbfee690574f8",
+    "3182de2084f00452f99746807c7544a71f86f827",
+    "65a88245642fefdcea3b05ab5a6b2280fd827ae6",
+    "1fec6115cc7c0174ff14f62f0c4c963cab834a17",
+    "a5483f2fdf7cb4ac864c4462f023be1c47f6bf58",
+    "190b59dbdf08696819bf6b5374ae8aac0b23342a",
+    "1f54d7ac663a60edbc6c29590aac6b816680ecef",
+    "b44264fad91a109037573b083bcde73eec8bfff7",
+    "0ba3fbf4f9dc41b1e29e5303e137d12b01eeb472",
+    "2d5c46fe6d075a4fca0060c2f07de074d627760a",
+    "02de0f1cbf4d2e3d09961ece23dfae9ccf76287e",
+    "b464c3b672ab70f88d88f91ff96796e44c99de17",
+    "ba73c8328d75eff46d35a5c443d961d364743c8d",
+    "21d874a39ffd84a4cf38df1d4ae046185c7f87b5",
+    "d9b0af095aa61da197a053b1407da4b30c364503",
+    "93939503b2e7e20661307a74ef6897b6a99b2b2c",
+    "2204.12833v3",
+    "1903.09469v1",
+    "2403.19646v3",
+    "2505.14361v1",
+    "2508.11919v3",
+    "2412.02573v3",
+    "fb7d5b8fb752a188d94f950adad877e0dab8679d",
+    "dbbf9858f0a9eceefd21a7faa0e4f2f6e9bd9726",
+    "c86061b1c7e4c5ca8e15d663ac2c647c73176fd2",
+    "18e485ee51e3ec6a98bf6569d35afd8e42ed1e93",
+    "3de8249c79b3fdd01150a872af554c5a4ab766e4",
+    "bacf6e51f162a8706b7cf41adb3694a5ad35a962",
+    "59f47b8f97b47e3a73368e3db5be399e844cc6de",
+    "fa8926b8bc315b552b754572c10156eb2b532bed",
+    "4663054",
+    "2916186",
+    "2749434",
+    "4664734",
+    "1811.11400v2",
+    "1910.02578v3",
+    "1907.02664v2",
+    "2005.07866v1",
+    "2404.04398v2",
+    "1812.04606v3",
+    "1911.00817v3",
+    "baedbe5549c24649698fbff3ee61770e7feb9979",
+    "19fe90f1e2cde4b4d53bcb4d967535f7ad7e74c5",
+    "0e8ebf54dccca462f12dc6d0d12260088a1c1e85",
+    "86ada60c6dab07421118f5b49e8bb5ab3f2653c9",
+    "c1bd7a4a79faf76b9f9c0551a6e4dc1c4a84191f",
+    "f181213458c5ad89c07798ea9ad76a3305dbb445",
+    "8847979",
+    "231733",
+    "358412",
+    "298274825",
+    "2010.01177v4",
+    "2205.04675v2",
+    "2107.14072v2",
+    "2410.21361v2",
+    "2403.14534v2",
+    "2103.16889v1",
+    "2505.13784v2",
+    "ba3d752296d1c37b45b72cf34bd5adcad1d581aa",
+    "14f7c494218efe7aaac5250997e6aa44503a1cb2",
+    "cafcee20d282a346e923965cfad8d689f4c6c92a",
+    "345afa0e85cb2f5cb438ae44027499ff2c392409",
+    "a3de7e229cdb988c0f55b00613feb69ea265c412",
+    "d057428b14a7a09aa1778d0e7ec7dbf3c47158dd",
+    "d0611891b9e8a7c5731146097b6f201578f47b2f",
+    "c8c901b597a3a7b6d7e8e11d43c1d7ed81399b6e",
+    "1b10d9049c56b3462f82387f719853dfdd464b53",
+    "02fdc2de5f8929d58f5ae2830e0c5c99b4250e16",
+    "15794011",
+    "34121246",
+    "321665271",
+    "310798715",
+    "87849110",
+    "14036661",
+    "13805316",
+    "8849944",
+    "8857093"
+  ],
+  "generated_at": "2026-09-16T05:37:21.741334+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

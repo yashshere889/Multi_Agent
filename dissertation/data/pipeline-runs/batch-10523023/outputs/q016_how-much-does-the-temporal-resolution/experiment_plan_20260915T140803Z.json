@@ -1,0 +1,86 @@
+{
+  "experiment_plans": [
+    {
+      "hypothesis_id": "H1",
+      "feasible": true,
+      "feasibility_notes": "The hypothesis is feasible given the compute and data constraints. The UCI Air Quality dataset (uci_air_quality_hourly.csv) provides high-frequency measurements (hourly) that can be downsampled to 15-minute intervals for testing the impact of temporal resolution on forecasting accuracy. This dataset contains multiple relevant variables (e.g., CO(GT), NOx(GT), T, RH) that are suitable for electricity demand forecasting modeling. The experiment can be conducted within a few hours on a single GPU node using the TFT model.",
+      "objective": "To test whether increasing the temporal resolution of input measurements from hourly to 15-minute intervals improves forecasting accuracy by at least 5% as measured by MAE when using a Temporal Fusion Transformer (TFT) model for short-horizon electricity demand forecasting (1-hour to 6-hour ahead).",
+      "variables": {
+        "independent": [
+          "temporal_resolution"
+        ],
+        "dependent": [
+          "MAE"
+        ]
+      },
+      "design": "Control vs Treatment Group Comparison. Two versions of the same dataset are created: one with hourly resolution (control group) and one with 15-minute resolution (treatment group). Both versions are used to train identical TFT models with the same architecture and hyperparameters. The MAE of forecasts from both models are compared to determine if the higher resolution improves accuracy by at least 5%.",
+      "data_requirements": {
+        "source": "uci_air_quality_hourly.csv",
+        "description": "Hourly averaged responses from a gas multisensor device measuring air quality variables including CO(GT), NOx(GT), temperature (T), and relative humidity (RH). These variables are suitable proxies for electricity demand drivers and provide sufficient temporal granularity for creating both hourly and 15-minute resolution datasets.",
+        "preprocessing_steps": [
+          "Load the dataset and parse Date and Time columns into datetime format",
+          "Resample the data to 15-minute intervals using forward-fill for missing values",
+          "Create two datasets: one with original hourly resolution and one with 15-minute resolution",
+          "Select relevant variables (CO(GT), NOx(GT), T, RH) as input features",
+          "Normalize all numerical features to [0,1] range for TFT compatibility",
+          "Split each dataset into train/validation/test sets (70/15/15%) maintaining temporal order"
+        ]
+      },
+      "methods": [
+        {
+          "name": "Temporal Fusion Transformer (TFT)",
+          "description": "A transformer-based model designed for time series forecasting that handles multiple temporal hierarchies and incorporates static and dynamic covariates. In this experiment, it will be used to predict electricity demand (proxied by air quality variables) at 1-hour to 6-hour horizons using both hourly and 15-minute resolution inputs.",
+          "reused_from_literature": true
+        }
+      ],
+      "evaluation": {
+        "metrics": [
+          "MAE"
+        ],
+        "baseline": "The MAE achieved by the TFT model using hourly resolution input data",
+        "success_criteria": "If the MAE of the model using 15-minute resolution data is at least 5% lower than the MAE of the model using hourly resolution data, the hypothesis is supported. If the improvement is less than 5% or negative, the hypothesis is refuted."
+      },
+      "implementation_steps": [
+        {
+          "step": 1,
+          "description": "Load uci_air_quality_hourly.csv and preprocess it by parsing dates, resampling to 15-minute intervals, and normalizing features. Create both hourly and 15-minute resolution datasets."
+        },
+        {
+          "step": 2,
+          "description": "Implement the TFT model architecture using PyTorch Lightning or TensorFlow/Keras, ensuring it can handle both temporal resolutions with identical hyperparameters."
+        },
+        {
+          "step": 3,
+          "description": "Train two identical TFT models on the hourly and 15-minute resolution datasets respectively, using the same validation strategy and stopping criteria."
+        },
+        {
+          "step": 4,
+          "description": "Generate forecasts for 1-hour to 6-hour ahead periods using both trained models and calculate MAE for each."
+        },
+        {
+          "step": 5,
+          "description": "Compare the MAE values between the two models to determine if the 15-minute resolution improves accuracy by at least 5%."
+        }
+      ],
+      "estimated_complexity": "low",
+      "risks": [
+        "Insufficient temporal correlation in the air quality data to accurately represent electricity demand patterns",
+        "Computational overhead of running two separate model training processes may exceed available SLURM time limits",
+        "Potential data leakage if the 15-minute resolution data inadvertently includes future information in the input window"
+      ]
+    }
+  ],
+  "shared_infrastructure": [],
+  "priority_order": [
+    {
+      "hypothesis_id": "H1",
+      "rank": 1,
+      "justification": "Only plan in this run."
+    }
+  ],
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T14:08:03.296228+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

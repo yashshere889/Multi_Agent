@@ -1,0 +1,25 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "skipped",
+      "reason": "Marked infeasible by the Experiment Planner: The hypothesis requires real-world industrial sensor data with known degradation timelines to compare multivariate control charts against fixed-threshold alarms. None of the provided datasets match this requirement. The closest potential fit is uci_air_quality_hourly.csv, which contains multivariate time series sensor data, but lacks labeled degradation events or RUL information necessary to define 'time-to-detection'. To make this feasible, we simplify the hypothesis to test whether multivariate control charts can detect anomalies in a synthetic degradation scenario derived from the air quality dataset's structure, without relying on real degradation timelines.",
+      "code_path": null,
+      "assumptions_made": [],
+      "results": null,
+      "fix_attempts": 0,
+      "fix_history": [],
+      "slurm_job_id": null,
+      "starter_used": "",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": []
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_17/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-15T14:25:10.784325+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

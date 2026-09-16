@@ -1,0 +1,199 @@
+{
+  "experiments": [
+    {
+      "hypothesis_id": "H1",
+      "status": "code_generated_not_run",
+      "reason": "results.json's metrics look hollow: metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data after 6 fix attempt(s). Reporting attempt 2, which failed at implausible_results — further than the final attempt, which regressed to resource_limit. The code on disk is attempt 2's.",
+      "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1",
+      "assumptions_made": [
+        "Using a simple TF-IDF + Logistic Regression approach for computational efficiency on HPC resources",
+        "The AG News dataset is already preprocessed with normalized whitespace and integer labels mapped to category names",
+        "The experiment will run within the allocated wall-clock budget using this lightweight approach",
+        "No additional network access is required beyond reading the provided CSV files",
+        "The experiment uses a single CPU core and does not require GPU acceleration"
+      ],
+      "results": null,
+      "fix_attempts": 6,
+      "fix_history": [
+        {
+          "attempt": 1,
+          "error_source": "resource_limit",
+          "error_summary": "The experiment exceeded its wall-clock budget and was killed.",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_1/run.py",
+          "resolved": true,
+          "regenerated_sections": [],
+          "assumptions_made": [
+            "Using a simple TF-IDF + Logistic Regression model instead of more complex transformers due to time constraints and HPC environment limitations",
+            "Performing 5-fold cross-validation with stratified sampling to maintain class distribution",
+            "Using accuracy and F1-score as the primary performance metrics for ranking models",
+            "Treating the test set as a single holdout evaluation rather than multiple runs",
+            "Using Spearman correlation to measure the agreement between rankings",
+            "Assuming the provided CSV files are correctly formatted and accessible",
+            "Using a fixed random seed for reproducibility",
+            "Not implementing early stopping since we're using a simple logistic regression model that converges quickly",
+            "Not using GPU acceleration since the model is simple enough to run efficiently on CPU"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 2,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_2/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "Using a simple TF-IDF + Logistic Regression approach for computational efficiency on HPC resources",
+            "The AG News dataset is already preprocessed with normalized whitespace and integer labels mapped to category names",
+            "The experiment will run within the allocated wall-clock budget using this lightweight approach",
+            "No additional network access is required beyond reading the provided CSV files",
+            "The experiment uses a single CPU core and does not require GPU acceleration"
+          ],
+          "same_error_streak": 1
+        },
+        {
+          "attempt": 3,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_3/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The experiment uses a simple TF-IDF + Logistic Regression approach for text classification, which is computationally efficient and suitable for the HPC environment",
+            "The AG News dataset is properly formatted with normalized whitespace and integer labels mapped to category names",
+            "Cross-validation and test set evaluation are performed correctly with proper data splitting",
+            "The Spearman correlation computation handles edge cases where rankings might be constant or contain invalid values",
+            "The experiment produces valid numerical results for both CV and test set performance metrics"
+          ],
+          "same_error_streak": 2
+        },
+        {
+          "attempt": 4,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: metric 'spearman_correlation' is nan — usually a division by zero or a computation that never actually ran on real data; metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_4/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The experiment uses a simple TF-IDF + Logistic Regression approach for text classification, which is computationally efficient and suitable for the HPC environment",
+            "The AG News dataset is properly formatted with text and label columns as specified",
+            "Cross-validation is performed correctly with stratified splits to maintain class distribution",
+            "The Spearman correlation computation handles edge cases appropriately to avoid NaN results",
+            "The model rankings are computed correctly from both cross-validation and test set evaluations"
+          ],
+          "same_error_streak": 3
+        },
+        {
+          "attempt": 5,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: metric 'spearman_correlation' is nan — usually a division by zero or a computation that never actually ran on real data; metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_5/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The experiment uses a simple TF-IDF + Logistic Regression approach for text classification, which is computationally efficient and suitable for the HPC environment",
+            "The AG News dataset is properly loaded and preprocessed with whitespace normalization and label mapping",
+            "Cross-validation is performed correctly with stratified splits maintaining class distribution",
+            "The Spearman correlation is computed between model rankings from 5-fold CV and held-out test set",
+            "The experiment handles edge cases where correlation computation might fail due to insufficient variation or invalid data",
+            "The evaluation function returns proper NaN values when correlation cannot be computed rather than crashing"
+          ],
+          "same_error_streak": 4
+        },
+        {
+          "attempt": 6,
+          "error_source": "implausible_results",
+          "error_summary": "results.json's metrics look hollow: metric 'spearman_correlation' is nan — usually a division by zero or a computation that never actually ran on real data; metric 'p_value' is nan — usually a division by zero or a computation that never actually ran on real data",
+          "code_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/H1/fix_attempts/attempt_6/run.py",
+          "resolved": false,
+          "regenerated_sections": [
+            "imports",
+            "configuration",
+            "evaluate_function",
+            "helpers"
+          ],
+          "assumptions_made": [
+            "The experiment uses a simple TF-IDF + Logistic Regression approach for text classification, which is lightweight and suitable for the HPC environment",
+            "The AG News dataset is properly loaded and preprocessed with whitespace normalization and label mapping",
+            "Cross-validation is performed correctly with 5 folds maintaining class distribution",
+            "Test set evaluation is done using the last trained model from cross-validation",
+            "Spearman correlation is computed correctly between CV and test set rankings",
+            "The experiment handles edge cases like constant rankings or insufficient data gracefully",
+            "All required dependencies are available in the environment"
+          ],
+          "same_error_streak": 5
+        }
+      ],
+      "slurm_job_id": null,
+      "starter_used": "text_classification",
+      "data_provenance": {},
+      "compute_provenance": {},
+      "reference_implementations": [
+        {
+          "paper_id": "1811.12808",
+          "title": "Model Evaluation, Model Selection, and Algorithm Selection in Machine Learning",
+          "year": "2018",
+          "citation_count": 1098,
+          "tldr": "The article reviews various techniques for model evaluation, selection, and algorithm selection, discussing their advantages, disadvantages, and optimal use cases.",
+          "url_abs": "https://arxiv.org/abs/1811.12808v3",
+          "repositories": [
+            {
+              "url": "https://github.com/rasbt/model-eval-article-supplementary",
+              "is_official": true,
+              "stars": 70
+            },
+            {
+              "url": "https://github.com/yaroslav-moiseev/evidence-based-possibly-best-practices-in-classical-ML",
+              "is_official": false,
+              "stars": 3
+            }
+          ],
+          "methods": []
+        },
+        {
+          "paper_id": "2305.02995",
+          "title": "Accuracy on the Curve: On the Nonlinear Correlation of ML Performance Between Data Subpopulations",
+          "year": "2023",
+          "citation_count": 9,
+          "tldr": "Empirical studies show a nonlinear \"moon shape\" correlation between in-distribution and out-of-distribution performance under subpopulation shifts, contradicting previous linear correlation assumptions.",
+          "url_abs": "https://arxiv.org/abs/2305.02995v2",
+          "repositories": [
+            {
+              "url": "https://github.com/yining-mao/moon-shape-icml-2023",
+              "is_official": true,
+              "stars": 7
+            }
+          ],
+          "methods": []
+        }
+      ],
+      "reported_attempt": 2
+    }
+  ],
+  "shared_infrastructure_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/experiments/task_34/_shared",
+  "source_hypothesis_ids": [
+    "H1"
+  ],
+  "generated_at": "2026-09-16T03:20:16.627146+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

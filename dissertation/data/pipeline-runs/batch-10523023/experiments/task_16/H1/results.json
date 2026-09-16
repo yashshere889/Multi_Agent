@@ -1,0 +1,36 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To test whether increasing the temporal resolution of input measurements from hourly to 15-minute intervals improves forecasting accuracy by at least 5% as measured by MAE when using a Temporal Fusion Transformer (TFT) model for short-horizon electricity demand forecasting (1-hour to 6-hour ahead).",
+  "author": "coder-agent",
+  "baseline": "The MAE achieved by the TFT model using hourly resolution input data",
+  "success_criteria": "If the MAE of the model using 15-minute resolution data is at least 5% lower than the MAE of the model using hourly resolution data, the hypothesis is supported. If the improvement is less than 5% or negative, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-16T05:00:28.274748+00:00",
+  "status": "success",
+  "elapsed_seconds": 79.2232,
+  "resumed": false,
+  "metrics": {
+    "mae_hourly": "0.13242656",
+    "mae_15min": "0.05857299",
+    "improvement_percentage": "55.76945",
+    "training_history": {
+      "hourly": [
+        0.2025044895168664,
+        0.1624961606618287,
+        0.14472928492055423,
+        0.13315630768952164,
+        0.12368009692948798
+      ],
+      "15min": [
+        0.10994700017871567,
+        0.06844470790419423,
+        0.060387927907970526,
+        0.05794562036891313,
+        0.055754181922389415
+      ]
+    }
+  },
+  "meets_success_criteria": true,
+  "notes": "Hourly Resolution MAE: 0.1324\n15-Minute Resolution MAE: 0.0586\nImprovement: 55.77%\nSuccess criteria (\u22655% improvement): Met",
+  "error": null
+}

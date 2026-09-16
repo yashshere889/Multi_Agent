@@ -1,0 +1,57 @@
+{
+  "paper_path": "/mnt/fastscratch/users/sgyshere/pipeline-runs/batch-10523023/outputs/q008_does-quantile-regression-give-better-tail-risk/v1.pdf",
+  "sections_generated": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Related Work",
+    "Hypotheses",
+    "Methods",
+    "Results",
+    "Discussion",
+    "Limitations",
+    "Future Work",
+    "References"
+  ],
+  "hypotheses_supported": [],
+  "hypotheses_refuted": [],
+  "hypotheses_inconclusive": [
+    "H1"
+  ],
+  "citations_used": [
+    "f4718d6407ac91dfee65fc1d37fbdddf157095a3",
+    "1612.06850v2",
+    "2009.00436v1",
+    "3106245",
+    "2687898",
+    "2012.05187v2",
+    "4cfe01af0b25a7dc0ac613bd8e22da972057aa18",
+    "0d9edc627a80bdd31d24649cdaaf7739d28f0f7e",
+    "2657633",
+    "f7afcdd70aed6592d8c3e0e6697b5138f6c15698",
+    "9b42a4096fac2ea20834a23a97789da0d441bdfc",
+    "85d492db335fa602fc954893f048f22c3f7738d1",
+    "1710.05204v2",
+    "2469861",
+    "16fe124f4edcd5b95c1aee94fea0f3f643f200c6",
+    "b03f3a79fd80551ed523acd6886dc7a4ebc3baed",
+    "29807896abc8650777fe52f4ab66bb509d20149b",
+    "992e2f5557ccf4a1dbda2db0db173553160c5890",
+    "2859241",
+    "f6cefdf27a93f311c0e7c227f8f1a6b5f4f44dc1",
+    "d15562d07d9591a39a21c052ff93a812a0c18ccc",
+    "e2d1a30dcfac33548572e23f291b95242afe4d8b"
+  ],
+  "notes_for_review": [
+    "Removed fabricated-looking citation text \"Huber (2023)\" in the Related Work section (author/year not present in the Literature Agent's output) — stripped the year, kept the surrounding text.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Methods section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id 'H1' in the Results section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1706.03762' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed.",
+    "Dropped a citation to unknown paper id '1810.04805' in the Discussion section (not present in the Literature Agent's output) — removed from the text rather than printed."
+  ],
+  "generated_at": "2026-09-15T08:27:34.756782+00:00",
+  "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+}

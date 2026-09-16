@@ -1,0 +1,24 @@
+{
+  "experiment_id": "H1",
+  "experiment_name": "Experiment H1",
+  "hypothesis": "To determine whether gradient-boosted models trained on historical weather records achieve higher seasonal crop yield prediction accuracy than a simple degree-day growth model when evaluated on a real-world agricultural dataset with diverse climatic conditions and crop types.",
+  "author": "coder-agent",
+  "baseline": "Degree-day model performance on the same dataset",
+  "success_criteria": "If the gradient-boosted model achieves lower MAE, RMSE, and higher R\u00b2 scores compared to the degree-day model, the hypothesis is supported. If the degree-day model performs equally well or better, the hypothesis is refuted.",
+  "timestamp_utc": "2026-09-15T12:48:05.367745+00:00",
+  "status": "success",
+  "elapsed_seconds": 1.1942,
+  "resumed": false,
+  "metrics": {
+    "xgboost_mae": 0.16108535581111774,
+    "xgboost_rmse": 0.20029381014682204,
+    "xgboost_r2": 0.5696766962031513,
+    "degree_day_mae": 0.2469855016439772,
+    "degree_day_rmse": 0.3056983811275222,
+    "degree_day_r2": -0.0019536028630139147,
+    "training_history": {}
+  },
+  "meets_success_criteria": true,
+  "notes": "XGBoost model achieved better performance than the degree-day model on at least 2 out of 3 metrics (MAE, RMSE, R\u00b2). The hypothesis is supported.",
+  "error": null
+}
