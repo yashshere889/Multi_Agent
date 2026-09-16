@@ -1135,6 +1135,13 @@ def _degenerate_statistics(metrics: dict, source: str = "") -> list[str]:
         p_value = next((fields[key] for key in _P_VALUE_KEYS if key in fields), None)
         stderr = next((fields[key] for key in _STDERR_KEYS if key in fields), None)
         statistic = next((fields[key] for key in _STATISTIC_KEYS if key in fields), None)
+        # The group's own value is its point estimate when the metrics are flat:
+        # job 10523041 named it "sensitivity_difference" rather than anything
+        # ending in _statistic, so the p = 1 rule had nothing to compare against.
+        if statistic is None:
+            own = metrics.get(group)
+            if _is_real_number(own):
+                statistic = float(own)
 
         # Zero variance in the resampled quantity, which is the dangerous
         # direction: it drives t to infinity and p to exactly 0, so the run
@@ -1235,6 +1242,7 @@ def _censoring_hint(metrics: dict, source: str) -> str:
 # paper then repeated that wording six times with nothing behind it. A verdict
 # may rest on a difference; calling the difference significant may not.
 _SIGNIFICANCE_RE = re.compile(r"\bsignifican(?:t|tly|ce)\b", re.IGNORECASE)
+_SIGNIFICANCE_ALPHA = 0.05
 _TEST_EVIDENCE_TOKENS = (
     "p_value",
     "pvalue",
@@ -1266,14 +1274,88 @@ def check_significance_claim(results: dict) -> list[str]:
     claim = " ".join(str(results.get(key) or "") for key in ("notes", "success_notes"))
     if not _SIGNIFICANCE_RE.search(claim):
         return []
-    names = " ".join(_metric_names(results.get("metrics") or {})).lower()
-    if any(token in names for token in _TEST_EVIDENCE_TOKENS):
-        return []
-    return [
-        "the reported outcome calls the difference significant but no test is among the metrics "
-        "— report a p-value, a confidence interval or a standard error computed over the "
-        "per-path values of each arm, or state the difference without calling it significant"
+    metrics = results.get("metrics") or {}
+    names = " ".join(_metric_names(metrics)).lower()
+    if not any(token in names for token in _TEST_EVIDENCE_TOKENS):
+        return [
+            "the reported outcome calls the difference significant but no test is among the "
+            "metrics — report a p-value, a confidence interval or a standard error computed over "
+            "the per-path values of each arm, or state the difference without calling it "
+            "significant"
+        ]
+    # A test is present, so the claim now has to agree with it. Barkla job
+    # 10523041 reported sensitivity_difference = 0.0 at p = 1.0 and still wrote
+    # "shows significantly lower sensitivity": the previous check passed because
+    # it asked only whether a p-value existed, not what it said.
+    contradicted = [
+        f"{group} (p = {fields[key]})"
+        for group, fields in _statistic_groups(metrics).items()
+        for key in _P_VALUE_KEYS
+        if key in fields and fields[key] >= _SIGNIFICANCE_ALPHA
     ]
+    if contradicted:
+        return [
+            "the reported outcome calls the difference significant, but the test it rests on says "
+            f"it is not: {', '.join(sorted(contradicted))}, which is at or above the conventional "
+            f"{_SIGNIFICANCE_ALPHA} threshold. Either report the difference without calling it "
+            "significant, or fix the test if the p-value itself is wrong"
+        ]
+    return []
+
+
+# How a reported aggregate difference is spelled, against the measure it
+# summarises ("sensitivity" -> "sensitivity_difference", "delta_sensitivity").
+_DIFFERENCE_TEMPLATES = (
+    "{measure}_difference",
+    "{measure}_diff",
+    "{measure}_delta",
+    "{measure}_gap",
+    "difference_in_{measure}",
+    "delta_{measure}",
+    "diff_{measure}",
+)
+
+
+def _contradicted_differences(metrics: dict) -> list[str]:
+    """A reported difference that cannot be true of the arms beside it.
+
+    Barkla job 10523041 reported fixed_sensitivity = 1.1667 and
+    dynamic_sensitivity = 1.0833 and, in the same metrics object,
+    sensitivity_difference = 0.0 at p = 1.0 — then called the difference
+    significant. Only the two contradiction directions are flagged, never a
+    mismatch in magnitude: a difference expressed as a ratio or a percentage
+    change is scaled differently and is nobody's defect, but zero-versus-unequal
+    is a contradiction under every definition of "difference".
+    """
+    findings: list[str] = []
+    lowered = {str(name).lower(): name for name in metrics}
+    for grouping in saturation._arm_groupings(metrics):
+        for measure, arms in grouping.items():
+            if len(arms) != 2:
+                continue
+            (left, left_name), (right, right_name) = (
+                (value, reported) for value, reported in arms.values()
+            )
+            for template in _DIFFERENCE_TEMPLATES:
+                key = lowered.get(template.format(measure=measure).lower())
+                if key is None or not _is_real_number(metrics[key]):
+                    continue
+                reported_difference = float(metrics[key])
+                if reported_difference == 0.0 and left != right:
+                    findings.append(
+                        f"{key!r} is exactly 0, but {left_name!r} is {left:.6g} and "
+                        f"{right_name!r} is {right:.6g} — a difference of zero contradicts the "
+                        "arms it summarises. Report the difference actually computed from the "
+                        "per-path values, and do not call an outcome significant that the test "
+                        "beside it does not support"
+                    )
+                elif reported_difference != 0.0 and left == right:
+                    findings.append(
+                        f"{key!r} is {reported_difference:.6g}, but {left_name!r} and "
+                        f"{right_name!r} are both {left:.6g} — identical arms cannot have a "
+                        "non-zero difference"
+                    )
+    return findings
 
 
 def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
@@ -1349,6 +1431,7 @@ def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
     # regeneration can fix, unlike a saturated result from a sound build of an
     # unsound plan.
     findings.extend(_degenerate_statistics(metrics, source))
+    findings.extend(_contradicted_differences(metrics))
 
     identical = saturation.indistinguishable(metrics)
     if identical:

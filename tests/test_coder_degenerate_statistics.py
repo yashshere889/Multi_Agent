@@ -95,3 +95,49 @@ def test_an_enormous_effect_whose_p_value_underflowed_is_not_rejected():
         }
     )
     assert findings == []
+
+
+# --- Barkla job 10523041: what the model produced once p = 0.0 was rejected ---
+#
+# The zero-variance guard worked — the fabricated p = 0.0 is gone and the fix
+# loop ran 11 attempts instead of 6. The run then published a verdict on a
+# difference of exactly 0.0 at p = 1.0, contradicting both its own arms and its
+# own note, "shows significantly lower sensitivity".
+R13_METRICS = {
+    "fixed_mean_longevity": 29.037875,
+    "dynamic_mean_longevity": 28.924133333333337,
+    "fixed_success_probability": 0.8828,
+    "dynamic_success_probability": 0.8857,
+    "fixed_sensitivity": 1.1666666666666665,
+    "dynamic_sensitivity": 1.0833333333333335,
+    "sensitivity_difference": 0.0,
+    "sensitivity_difference_p_value": 1.0,
+}
+R13_NOTES = (
+    "Dynamic withdrawal strategy shows significantly lower sensitivity to early negative "
+    "returns (smaller decrease in longevity with worsening early returns) compared to fixed 4% rule."
+)
+
+
+def test_a_zero_difference_that_contradicts_its_own_arms_is_rejected():
+    findings = _findings(R13_METRICS)
+
+    complaint = next(f for f in findings if "contradicts the arms" in f)
+    assert "'sensitivity_difference' is exactly 0" in complaint
+    assert "1.16667" in complaint and "1.08333" in complaint
+
+
+def test_p_equals_one_fires_even_when_the_estimate_is_not_called_a_statistic():
+    findings = _findings({"sensitivity_difference": 0.0, "sensitivity_difference_p_value": 1.0})
+    assert any("statistic of exactly 0 with p = 1.0" in f for f in findings)
+
+
+def test_identical_arms_cannot_carry_a_non_zero_difference():
+    findings = _findings({"fixed_score": 0.5, "dynamic_score": 0.5, "score_difference": 0.2})
+    assert any("identical arms cannot have a" in f for f in findings)
+
+
+def test_a_difference_scaled_differently_from_its_arms_is_left_alone():
+    """A difference reported as a percentage change is not a contradiction."""
+    findings = _findings({"fixed_score": 0.40, "dynamic_score": 0.50, "score_difference": 25.0})
+    assert findings == []

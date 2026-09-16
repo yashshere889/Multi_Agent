@@ -51,9 +51,14 @@ paper that its ground-truth text does not state is always a hallucination.
 Return ONLY a JSON object with this exact shape:
 {{
   "hallucinations": [
-    {{"claim": "the specific claim/sentence from the section text", "issue": "concretely what's wrong / not grounded, referencing what the ground truth actually says instead"}}
+    {{"claim": "the specific claim/sentence from the section text", "grounded": false, "issue": "concretely what's wrong / not grounded, referencing what the ground truth actually says instead"}}
   ]
 }}
+Set "grounded" to true for a claim that does trace back to the ground truth \
+after all — a faithful paraphrase, a different choice of verb, shorter \
+phrasing, or a reasonable generalisation. Entries marked grounded are \
+discarded, so never reword one into an issue to keep it: a different verb for \
+the same fact is grounded, not a hallucination.
 If nothing is ungrounded, return {{"hallucinations": []}}.
 """
 
@@ -70,7 +75,9 @@ Discussion text as printed in the paper:
 
 Do two things:
 1. Flag every claim in the text not grounded in the ground truth above \
-(fabricated facts/numbers — not reasonable interpretive language).
+(fabricated facts/numbers — not reasonable interpretive language). Set \
+"grounded" to true for any claim that does trace back to the ground truth; \
+those entries are discarded.
 2. For each hypothesis, judge whether the text's characterization of the \
 outcome is honest and consistent with its given verdict. Flag it if the text \
 overstates the result (claims support/refutation more strongly than an \
@@ -80,7 +87,7 @@ genuinely "supported"/"refuted" result).
 
 Return ONLY a JSON object with this exact shape:
 {{
-  "hallucinations": [{{"claim": "...", "issue": "..."}}],
+  "hallucinations": [{{"claim": "...", "grounded": false, "issue": "..."}}],
   "framing_issues": [{{"hypothesis_id": "...", "issue": "concretely how the text overstates or understates the given verdict, quoting the relevant phrase"}}]
 }}
 """
