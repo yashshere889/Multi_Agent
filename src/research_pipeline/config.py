@@ -73,6 +73,7 @@ class Settings:
     coder_pwc_api_url: str
     coder_require_real_data: bool
     coder_enable_fix_pattern_store: bool
+    coder_save_transcripts: bool
     coder_fix_store_backend: str
     coder_fix_store_sqlite_path: str
     coder_fix_store_postgres_uri: str
@@ -459,6 +460,14 @@ def load_settings() -> Settings:
         # the pipeline's most common usage pattern. See
         # agents/coder/fix_pattern_store.py's module docstring.
         coder_enable_fix_pattern_store=_env_bool("CODER_ENABLE_FIX_PATTERN_STORE", True),
+        # On by default: every attempt's prompt and raw response is the one
+        # artefact the fix_attempts snapshots do not already carry, and the
+        # only one a later fine-tune can be built from — the snapshots hold
+        # the *rendered* run.py, which is not what the model was asked to
+        # emit. Off is for a run where the experiment directory is not worth
+        # the extra ~100KB per attempt, or where the prompts must not be
+        # written to shared storage. See agents/coder/transcript.py.
+        coder_save_transcripts=_env_bool("CODER_SAVE_TRANSCRIPTS", True),
         coder_fix_store_backend=os.environ.get("CODER_FIX_STORE_BACKEND", "sqlite"),
         coder_fix_store_sqlite_path=os.environ.get(
             "CODER_FIX_STORE_SQLITE_PATH", "coder_fix_patterns.db"
