@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
@@ -200,6 +200,7 @@ def invoke_sections(
     *,
     max_tokens: int | None = None,
     temperature: float | None = None,
+    on_raw_response: Callable[[str], None] | None = None,
 ) -> dict[str, str]:
     """Invokes chat_model expecting the delimited format back; on a parse
     failure, retries once with an explicit repair prompt naming the sections
@@ -221,6 +222,19 @@ def invoke_sections(
     was constructed with (see llm.get_chat_model) — mirroring invoke_json's own
     two optional parameters. Both default to None, and when both are None this
     is byte-for-byte the same invocation as before they existed.
+
+    `on_raw_response` is called once per model turn with that turn's text,
+    reasoning already stripped, *before* it is parsed — so it sees the repair
+    turn as well as the first, and it sees a response that never parsed at all.
+    This function is the only place the raw text exists: everything above it
+    receives a parsed dict, and the one thing a parsed dict cannot represent is
+    the malformed answer that failed to parse, which is exactly the answer worth
+    keeping when these exchanges are collected as training data (see
+    agents/coder/transcript.py). It is a callback rather than a second return
+    value so the contract this module shares with llm_json.invoke_json — return
+    the parsed payload or raise — is unchanged, and so a caller that does not
+    pass one is byte-for-byte unaffected. It is called for its side effect only;
+    anything it raises propagates, so a recorder must swallow its own errors.
     """
     messages = [("system", system_prompt), ("human", user_prompt)]
     invoke_kwargs: dict = {}
@@ -234,6 +248,8 @@ def invoke_sections(
     # would crowd the malformed answer out of the excerpt below and give the
     # model nothing useful to repair. Same reasoning as invoke_json's.
     previous = strip_reasoning(_response_text(response))
+    if on_raw_response is not None:
+        on_raw_response(previous)
     try:
         return parse_sections(previous, field_names)
     except SectionFormatError as exc:
@@ -255,6 +271,8 @@ def invoke_sections(
         )
         response = chat_model.invoke(messages, **invoke_kwargs)
         stripped = strip_reasoning(_response_text(response))
+        if on_raw_response is not None:
+            on_raw_response(stripped)
         try:
             return parse_sections(stripped, field_names)
         except SectionFormatError as exc2:

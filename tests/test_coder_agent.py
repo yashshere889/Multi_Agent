@@ -17,6 +17,7 @@ from research_pipeline.agents.coder import (
     sandbox,
     schema,
     slurm_submit,
+    transcript,
 )
 from research_pipeline.agents.coder.coder_agent import (
     _CHARS_PER_TOKEN_ESTIMATE,
@@ -4801,3 +4802,121 @@ def test_a_dataset_the_code_ignores_still_withholds_the_verdict(tmp_path):
 
     assert not any("acme/sleep-survey" in s.name for s in sources)
     assert provenance.all_real(sources) is False
+
+
+# ---------------------------------------------------------------------------
+# Transcripts — the prompt and raw response behind each attempt
+# (see agents/coder/transcript.py)
+# ---------------------------------------------------------------------------
+
+
+def _read_transcript(directory):
+    return json.loads((directory / transcript.TRANSCRIPT_FILENAME).read_text())
+
+
+def test_transcript_records_the_prompt_and_raw_response(tmp_path):
+    response = _codegen_response()
+    model = ScriptedChatModel(codegen=[response])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    record = _read_transcript(tmp_path / "experiments" / "H1")
+    assert record["kind"] == transcript.KIND_GENERATE
+    # The response is kept verbatim, not re-rendered from the parsed sections:
+    # a canonicalized version would be a completion the model never wrote.
+    assert record["raw_responses"] == [response]
+    # The prompt is the whole thing that was sent, which is the half that
+    # exists nowhere else on disk.
+    assert "H1" in record["user_prompt"]
+    assert record["system_prompt"] == prompts.SYSTEM_PROMPT
+    assert record["field_names"] == list(prompts.EXPERIMENT_FIELD_NAMES)
+    assert record["error"] == ""
+
+
+def test_each_fix_attempt_snapshot_carries_its_own_transcript(tmp_path):
+    broken = _codegen_response(sections=BROKEN_SYNTAX_SECTIONS)
+    fixed = _codegen_response()
+    model = ScriptedChatModel(codegen=[broken], fix=[fixed])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    experiment_dir = tmp_path / "experiments" / "H1"
+    # The snapshot holds the exchange that produced the code beside it...
+    failed = _read_transcript(experiment_dir / "fix_attempts" / "attempt_1")
+    assert failed["kind"] == transcript.KIND_GENERATE
+    assert failed["raw_responses"] == [broken]
+    # ...and the experiment directory holds the one that ended the loop, so the
+    # accepted generation is identifiable without re-deriving which attempt won.
+    accepted = _read_transcript(experiment_dir)
+    assert accepted["kind"] == transcript.KIND_FIX
+    assert accepted["raw_responses"] == [fixed]
+    # The fix prompt names the failure it was answering — this pairing is the
+    # whole point of keeping it.
+    assert "syntax error" in accepted["user_prompt"]
+
+
+def test_transcript_is_written_even_when_no_code_could_be_parsed(tmp_path):
+    """The failure that leaves nothing else behind. An unparseable response
+    returns before run.py is written, so without this the two format-failure
+    categories — the ones where the response *is* the defect — would be the
+    only ones with no artefact at all."""
+    unparseable = _unparseable_sections_response()
+    model = ScriptedChatModel(codegen=[unparseable], fix=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    failed = _read_transcript(tmp_path / "experiments" / "H1" / "fix_attempts" / "attempt_1")
+    # Both turns: the original and invoke_sections' repair round-trip, which is
+    # how a dataset can tell "parsed first time" from "only after being asked
+    # again". Recorded post-strip_reasoning — the text that was actually parsed,
+    # not the wire content with a trace and trailing whitespace still on it.
+    assert failed["raw_responses"] == [unparseable.strip(), unparseable.strip()]
+    assert "did not return the required delimited format" in failed["error"]
+    assert not (tmp_path / "experiments" / "H1" / "fix_attempts" / "attempt_1" / "run.py").exists()
+
+
+def test_transcripts_can_be_switched_off(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        transcript,
+        "settings",
+        dataclasses.replace(transcript.settings, coder_save_transcripts=False),
+    )
+    model = ScriptedChatModel(codegen=[_codegen_response()])
+    _agent(tmp_path, model).run(_planner_output([_plan("H1")]))
+
+    assert not (tmp_path / "experiments" / "H1" / transcript.TRANSCRIPT_FILENAME).exists()
+
+
+def test_restoring_an_attempt_restores_its_transcript_too(tmp_path):
+    """_best_candidate can report an earlier attempt's code (see
+    _node_give_up_current_plan). The transcript left beside it has to be that
+    attempt's, or it claims the wrong prompt and response produced the run.py
+    it sits next to — which is exactly the pairing anything reading these
+    artefacts as training data relies on."""
+    experiment_dir = tmp_path / "H1"
+    snapshot_dir = experiment_dir / "fix_attempts" / "attempt_1"
+    snapshot_dir.mkdir(parents=True)
+    (snapshot_dir / "run.py").write_text("# attempt 1\n")
+    (snapshot_dir / transcript.TRANSCRIPT_FILENAME).write_text('{"kind": "generate"}')
+    (experiment_dir / "run.py").write_text("# the last attempt\n")
+    (experiment_dir / transcript.TRANSCRIPT_FILENAME).write_text('{"kind": "fix"}')
+
+    CoderAgent._restore_attempt(experiment_dir, snapshot_dir / "run.py")
+
+    assert (experiment_dir / "run.py").read_text() == "# attempt 1\n"
+    assert json.loads((experiment_dir / transcript.TRANSCRIPT_FILENAME).read_text()) == {
+        "kind": "generate"
+    }
+
+
+def test_restoring_an_attempt_that_has_no_transcript_removes_the_stale_one(tmp_path):
+    """The same asymmetry results.json already had: an attempt that never
+    recorded an exchange must not inherit a later attempt's, which describes
+    code that is no longer on disk."""
+    experiment_dir = tmp_path / "H1"
+    snapshot_dir = experiment_dir / "fix_attempts" / "attempt_1"
+    snapshot_dir.mkdir(parents=True)
+    (snapshot_dir / "run.py").write_text("# attempt 1\n")
+    (experiment_dir / "run.py").write_text("# the last attempt\n")
+    (experiment_dir / transcript.TRANSCRIPT_FILENAME).write_text('{"kind": "fix"}')
+
+    CoderAgent._restore_attempt(experiment_dir, snapshot_dir / "run.py")
+
+    assert not (experiment_dir / transcript.TRANSCRIPT_FILENAME).exists()

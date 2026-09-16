@@ -123,6 +123,7 @@ from research_pipeline.agents.coder import (
     sandbox,
     slurm_submit,
     starters,
+    transcript,
 )
 from research_pipeline.agents.coder.schema import (
     ERROR_SUMMARY_MAX_CHARS,
@@ -637,6 +638,15 @@ class CoderAgent:
         # future webapp) injects its own callable instead.
         self.slurm_review_prompt = slurm_review_prompt or _default_slurm_review_prompt
         self._slurm_jobs_submitted = 0
+        # The most recent code-generating exchange (see transcript.py), held
+        # between `_call_sections` producing it and `_attempt_once` writing it
+        # into the experiment directory a moment later. A plain attribute for
+        # the same reason _slurm_jobs_submitted is one: the plan loop and the
+        # fix loop are both strictly sequential, so exactly one generation is
+        # ever in flight. Not in graph state — state is checkpointed, and a
+        # full prompt plus response in every checkpoint would dwarf everything
+        # else in it for something nothing downstream reads.
+        self._pending_transcript: dict | None = None
 
     def run(self, planner_output: dict) -> dict:
         """Runs the agent's graph end to end. Same signature, same returned dict,
@@ -1283,6 +1293,12 @@ class CoderAgent:
         "error_text"} describing a failure the fix loop can regenerate
         against."""
         hypothesis_id = plan["hypothesis_id"]
+        # Written first, ahead of every early return below: the two checks that
+        # return soonest — a response that didn't parse, one missing required
+        # sections — are exactly the ones where no run.py is ever written, so an
+        # exchange recorded any later would be missing for the failures whose
+        # whole defect is the response itself. See transcript.py.
+        self._flush_transcript(experiment_dir)
         generation_error = generation.get("generation_error")
         if generation_error:
             return {
@@ -1935,14 +1951,34 @@ class CoderAgent:
         except Exception as exc:  # noqa: BLE001 — see the docstring
             logger.warning("Could not persist a fix pattern for %s: %s", error_source, exc)
 
+    def _flush_transcript(self, experiment_dir: Path) -> None:
+        """Write whichever exchange `_call_sections` last recorded into this
+        experiment's directory, and forget it.
+
+        Cleared after writing so a later attempt can never inherit an earlier
+        one's transcript: `_attempt_once` is also reached without a fresh
+        generation having happened (a restored best candidate), and a stale
+        exchange sitting next to code it did not produce would be worse than no
+        exchange at all — it would read as ground truth."""
+        record, self._pending_transcript = self._pending_transcript, None
+        if record is not None:
+            transcript.write(experiment_dir, record)
+
     @staticmethod
     def _snapshot_attempt(experiment_dir: Path, attempt: int) -> Path:
         """Preserves the code that just failed before it's overwritten, so a
         failed run is still inspectable (and usable as training data) rather
-        than only the last attempt surviving on disk."""
+        than only the last attempt surviving on disk.
+
+        `.transcript.json` is copied with it, so each snapshot carries the
+        prompt and raw response that produced the code beside it — the pairing
+        a preference dataset needs, and one that cannot be reconstructed later
+        (see transcript.py). It is copied rather than moved: the experiment
+        directory's own copy stays put and is overwritten by the next
+        generation, so the one left at the end is the accepted attempt's."""
         snapshot_dir = experiment_dir / "fix_attempts" / f"attempt_{attempt}"
         snapshot_dir.mkdir(parents=True, exist_ok=True)
-        for name in ("run.py", "requirements.txt", "results.json"):
+        for name in ("run.py", "requirements.txt", "results.json", transcript.TRANSCRIPT_FILENAME):
             source = experiment_dir / name
             if source.exists():
                 (snapshot_dir / name).write_text(source.read_text())
@@ -1952,11 +1988,15 @@ class CoderAgent:
     def _restore_attempt(experiment_dir: Path, snapshot_run_py: Path) -> None:
         """Put a snapshotted attempt's files back as the experiment's own.
 
-        The inverse of _snapshot_attempt, and it restores the same three files
-        so the directory ends up matching that attempt exactly. results.json is
-        handled asymmetrically on purpose: an attempt that never produced one
-        must not inherit the *final* attempt's, which was written by code that
-        is no longer on disk and would read as this experiment's own output.
+        The inverse of _snapshot_attempt, and it restores the same files so the
+        directory ends up matching that attempt exactly. results.json and
+        .transcript.json are both handled asymmetrically on purpose, for the
+        same reason: an attempt that never produced one must not inherit the
+        *final* attempt's, which belongs to code that is no longer on disk.
+        For results.json that would read as this experiment's own output; for
+        the transcript it would claim the wrong prompt and response produced
+        the run.py sitting beside it, which is precisely the pairing anything
+        reading these artefacts as training data relies on.
         """
         snapshot_dir = snapshot_run_py.parent
         for name in ("run.py", "requirements.txt"):
@@ -1964,11 +2004,12 @@ class CoderAgent:
             if source.exists():
                 (experiment_dir / name).write_text(source.read_text())
 
-        results = snapshot_dir / "results.json"
-        if results.exists():
-            (experiment_dir / "results.json").write_text(results.read_text())
-        else:
-            (experiment_dir / "results.json").unlink(missing_ok=True)
+        for name in ("results.json", transcript.TRANSCRIPT_FILENAME):
+            source = snapshot_dir / name
+            if source.exists():
+                (experiment_dir / name).write_text(source.read_text())
+            else:
+                (experiment_dir / name).unlink(missing_ok=True)
 
     @staticmethod
     def _result(
@@ -2058,6 +2099,7 @@ class CoderAgent:
         field_names: Sequence[str] | None = None,
         *,
         temperature: float | None = None,
+        kind: str = "",
     ) -> dict[str, str]:
         """For every response that carries generated source code.
 
@@ -2070,19 +2112,54 @@ class CoderAgent:
         needs since it names its sections after files it hasn't picked yet.
 
         `temperature` overrides the constructor's for this call only — the fix
-        paths pass _FIX_TEMPERATURE; initial generation leaves it None."""
+        paths pass _FIX_TEMPERATURE; initial generation leaves it None.
+
+        `kind` names which half of the fix loop is asking, and is what makes the
+        exchange recordable: a call tagged `generate` or `fix` belongs to one
+        experiment attempt, so `_attempt_once` can write it next to the code it
+        produced. The untagged caller (shared infrastructure) has no experiment
+        directory of its own and is recorded nowhere, same as before.
+
+        The exchange is captured whether the call returns or raises. The raising
+        case is the one worth having: it means no parser could read the
+        response, so the code that would otherwise be the only evidence of this
+        attempt is never written — see transcript.py."""
         max_tokens = self._bounded_max_tokens(user_prompt)
+        raw_responses: list[str] = []
+
+        def record_raw(text: str) -> None:
+            raw_responses.append(text)
+
+        def remember(error: str = "") -> None:
+            if not kind:
+                return
+            self._pending_transcript = transcript.build(
+                kind=kind,
+                system_prompt=prompts.SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                raw_responses=raw_responses,
+                field_names=list(field_names) if field_names is not None else None,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                model=settings.llm_model,
+                error=error,
+            )
+
         try:
-            return invoke_sections(
+            sections = invoke_sections(
                 self.chat_model,
                 prompts.SYSTEM_PROMPT,
                 user_prompt,
                 field_names,
                 max_tokens=max_tokens,
                 temperature=temperature,
+                on_raw_response=record_raw,
             )
         except LLMSectionsError as exc:
+            remember(str(exc))
             raise CoderAgentError(str(exc)) from exc
+        remember()
+        return sections
 
     @staticmethod
     def _assemble_generation(sections: dict[str, str], previous: dict | None = None) -> dict:
@@ -2424,7 +2501,9 @@ class CoderAgent:
             ),
         )
         return self._assemble_generation(
-            self._call_sections(prompt, prompts.EXPERIMENT_FIELD_NAMES)
+            self._call_sections(
+                prompt, prompts.EXPERIMENT_FIELD_NAMES, kind=transcript.KIND_GENERATE
+            )
         )
 
     def _regenerate_with_fix(
@@ -2501,7 +2580,9 @@ class CoderAgent:
             ),
         )
         return self._assemble_generation(
-            self._call_sections(prompt, requested, temperature=_FIX_TEMPERATURE),
+            self._call_sections(
+                prompt, requested, temperature=_FIX_TEMPERATURE, kind=transcript.KIND_FIX
+            ),
             previous=previous_generation if target_sections is not None else None,
         )
 
