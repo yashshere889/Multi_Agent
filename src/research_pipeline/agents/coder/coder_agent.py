@@ -392,6 +392,33 @@ def _provenance_on_disk(experiment_dir: str) -> dict:
     return document if isinstance(document, dict) else {}
 
 
+def _structural_retries_spent(fix_history: list[dict]) -> int:
+    """Structural failures the model never recovered from.
+
+    The structural budget exists for a model that will not return a program at
+    all, and `current_structural_retries` used to count every malformed response
+    a plan ever saw, never resetting. Barkla job 10537067 died of that: it
+    produced `invalid_format` at attempts 1 and 3 and *recovered from both*
+    (`resolved` is true on each), yet those two hiccups spent the whole default
+    budget of 2 and ended the plan with ten fix attempts untouched, while the
+    failure actually blocking it — an unguarded read the model would not
+    wrap — was never the reason it stopped.
+
+    A response the next regeneration fixed cost one round trip and nothing else:
+    it rendered, provisioned and executed nothing, which is the same argument
+    that gave structural failures their own budget in the first place. What the
+    budget should bound is the model failing to produce the format *and not
+    recovering*, so only unresolved failures are counted — which leaves every
+    case the budget was written for unchanged, since a model that cannot return
+    a program resolves none of them.
+    """
+    return sum(
+        1
+        for entry in fix_history
+        if entry.get("error_source") in _STRUCTURAL_ERROR_SOURCES and not entry.get("resolved")
+    )
+
+
 def _identical_failure_streak(fix_history: list[dict]) -> int:
     """How many trailing attempts failed in the *same* way, not merely at the same stage.
 
@@ -1087,7 +1114,10 @@ class CoderAgent:
             self.max_structural_retries > 0
             and state["current_outcome"]["error_source"] in _STRUCTURAL_ERROR_SOURCES
         ):
-            if state.get("current_structural_retries", 0) < self.max_structural_retries:
+            if (
+                _structural_retries_spent(state.get("current_fix_history") or [])
+                < self.max_structural_retries
+            ):
                 return "regenerate"
             # Budget spent: end the plan rather than falling through to the fix
             # budget. Both readings were implemented independently, and this one
@@ -1120,7 +1150,9 @@ class CoderAgent:
 
         target_sections = _target_sections(outcome)
         structural = outcome["error_source"] in _STRUCTURAL_ERROR_SOURCES
-        structural_retries = state.get("current_structural_retries", 0)
+        # Derived from the history rather than carried, so "spent" has exactly
+        # one definition and cannot drift from the routing decision above.
+        structural_retries = _structural_retries_spent(state["current_fix_history"])
         # Only one of the two budgets moves, and only the one this failure
         # actually drew on — see _route_after_attempt.
         spends_structural_budget = structural and structural_retries < self.max_structural_retries
