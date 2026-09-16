@@ -372,6 +372,26 @@ def _failure_signature(entry: dict) -> str:
     return f"{entry.get('error_source')}|{' '.join(summary.split())}"
 
 
+# Failures raised only *after* a program ran and wrote metrics — the code works
+# and what the fix loop rejected was the statistic laid over it. Giving up on
+# one of these used to report code_generated_not_run with `results: null`,
+# throwing away numbers that were correct: every one of Barkla job 10536963's
+# 14 attempts produced the same 29.04-vs-28.92-year longevities off real staged
+# data, and the run published none of them. Must stay a subset of
+# schema.VALID_ERROR_SOURCES.
+_RESULTS_LEVEL_ERROR_SOURCES = frozenset({"implausible_results", "unsupported_significance_claim"})
+
+
+def _provenance_on_disk(experiment_dir: str) -> dict:
+    """The data_provenance.json the attempt node wrote, or {} if unreadable."""
+    path = Path(experiment_dir) / "data_provenance.json"
+    try:
+        document = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return document if isinstance(document, dict) else {}
+
+
 def _identical_failure_streak(fix_history: list[dict]) -> int:
     """How many trailing attempts failed in the *same* way, not merely at the same stage.
 
@@ -1242,14 +1262,29 @@ class CoderAgent:
                 outcome["error_source"],
             )
 
+        # A program that ran and produced metrics is reported with them, and only
+        # its verdict withheld — the same resolution the data, compute and
+        # saturation gates reach, and for the same reason: regeneration cannot
+        # fix a measure the plan chose.
+        reported_source = best["error_source"] if best is not None else outcome["error_source"]
+        withheld = self._withheld_results(state, best, reported_source)
         experiment = {
             **self._result(
                 state["current_plan"]["hypothesis_id"],
-                status="code_generated_not_run",
-                reason=reason,
+                status="code_generated_not_run" if withheld is None else "completed",
+                reason=reason
+                if withheld is None
+                else f"{reason} {withheld['verdict_withheld_because']}",
                 code_path=state["current_experiment_dir"],
                 assumptions_made=assumptions,
+                results=withheld,
                 starter_used=state.get("current_starter_id", ""),
+                # Read back off disk rather than threaded through state: the
+                # attempt node already wrote it, and reconcile.py reads the same
+                # document for the same reason.
+                data_provenance={}
+                if withheld is None
+                else _provenance_on_disk(state["current_experiment_dir"]),
             ),
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
@@ -1263,6 +1298,45 @@ class CoderAgent:
             "experiments": [*state["experiments"], experiment],
             "plan_index": state["plan_index"] + 1,
         }
+
+    def _withheld_results(
+        self, state: CoderState, best: dict | None, error_source: str
+    ) -> dict | None:
+        """The reported attempt's own metrics, verdict withheld, or None.
+
+        None whenever this give-up has no numbers to stand behind: the failure
+        was not a results-level one, or results.json is missing or metric-less.
+        Read from the attempt's snapshot rather than the experiment directory,
+        because _restore_attempt copies code and a later attempt's results.json
+        may still be sitting there.
+        """
+        if error_source not in _RESULTS_LEVEL_ERROR_SOURCES:
+            return None
+        source_dir = (
+            Path(best["code_path"]) if best is not None else Path(state["current_experiment_dir"])
+        )
+        results, _diagnosis = sandbox.read_results_json_for_diagnosis(source_dir)
+        metrics = (results or {}).get("metrics") or {}
+        if not results or not metrics:
+            return None
+        # "Measured but undecidable" only. An evaluate() returning all zeros, a
+        # NaN, or a placeholder measured nothing, and reporting that as a
+        # completed experiment would be the over-claiming this whole area
+        # guards — so those keep code_generated_not_run.
+        if sandbox.hollow_metrics(metrics):
+            return None
+        withheld = saturation.withhold(
+            results,
+            saturation.VERDICT_UNDECIDABLE,
+            saturation.WITHHELD_UNDECIDABLE.format(names=error_source),
+        )
+        logger.info(
+            "[%s] fix budget spent at %s, but the run produced metrics — reporting them with the "
+            "verdict withheld rather than discarding them",
+            state["current_plan"]["hypothesis_id"],
+            error_source,
+        )
+        return withheld
 
     def _node_assemble_and_validate(self, state: CoderState) -> dict:
         result: dict = {

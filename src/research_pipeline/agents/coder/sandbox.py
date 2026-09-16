@@ -1358,8 +1358,19 @@ def _contradicted_differences(metrics: dict) -> list[str]:
     return findings
 
 
-def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
-    """Sanity-checks a completed experiment's own reported metrics before
+def hollow_metrics(metrics: dict) -> list[str]:
+    """The findings that mean nothing was measured, as opposed to measured but
+    undecidable — no metrics at all, a NaN or Infinity (almost always a division
+    by zero or a computation that never touched real data), every number exactly
+    0, or a placeholder string standing in for one.
+
+    Split out of check_results_plausibility so the fix loop's give-up path can
+    tell the two apart: an all-zero evaluate() must never be reported as a
+    completed experiment, while a program whose numbers are real and whose only
+    unfixable problem is the statistic laid over them should be reported with
+    its metrics and no verdict.
+
+    Originally documented as: sanity-checks a completed experiment's own reported metrics before
     read_results_json_for_diagnosis's success is trusted as a real result.
     Returns human-readable findings; empty means clean.
 
@@ -1424,6 +1435,15 @@ def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
             findings.append(
                 f"metric '{name}' is the placeholder value {value!r}, not a real number"
             )
+
+    return findings
+
+
+def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
+    """Every plausibility finding: the hollow ones, then the statistical ones."""
+    findings = hollow_metrics(metrics)
+    if findings and not metrics:
+        return findings
 
     # Sent back to the model rather than only withheld (saturation.apply_to_results
     # withholds it too, for results that never pass through here): the defect this
