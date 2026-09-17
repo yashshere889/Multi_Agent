@@ -273,47 +273,19 @@ not run. Of the completed ones, 9 reported a hypothesis supported, 7 refuted, an
 9 had their verdict withheld.
 
 \subsection{A verification mechanism that failed by over-reporting}
+\label{sec:citation-overreport}
 
 Every one of the 36 runs exhausted its three writer/reviewer iterations without
-passing review, and mean issue counts \emph{rose} across iterations, from 34.8 to
-36.0 to 36.8. Revision improved 17 runs, worsened 17 and left 2 unchanged.
-
-The cause was a false-positive storm in the deterministic citation check.
-Table~\ref{tab:citation-issues} gives the breakdown.
-
-\begin{table}[htbp]
-\centering\small
-\caption{Review issues across 36 runs and 108 drafts.}
-\label{tab:citation-issues}
-\begin{tabularx}{\textwidth}{Xr}
-\toprule
-\textbf{Issue source} & \textbf{Count} \\
-\midrule
-Citation issues located in the References section & 3{,}514 \\
-Citation issues anywhere else & 4 \\
-All other categories (results accuracy, hypothesis coverage) & 353 \\
-\midrule
-\textbf{Total} & \textbf{3{,}871} \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The checker was scanning the paper's own reference list. Entries render as
-\emph{``Riccardo Alberti and Sven Karbach (2026). Title\ldots''}, so the
-narrative-citation pattern captured the \emph{last} author's surname before the
-year, while the lookup is keyed on the \emph{first}. Every multi-author reference
-therefore failed to resolve and was reported as possibly fabricated. A single
-paper produced 55 spurious issues from its reference list against 44
-citation-shaped matches in its entire body.
-
-Two conclusions follow. The Writer's citation grounding was working essentially
-perfectly: four genuine citation issues across 108 drafts. And the failure mode of
-a verification mechanism matters as much as its coverage --- by over-reporting,
-this check made \texttt{overall\_pass} unreachable, rendered the revision loop
-inert, and made a guarantee that \emph{was} holding impossible to confirm. A
-checker that cries wolf is not merely noisy; it destroys the signal it exists to
-provide. Reference entries are rendered mechanically from the retrieved paper
-index and so cannot be fabricated by construction; they are now excluded.
+passing review, and mean issue counts \emph{rose} across them. The cause was a
+false-positive storm in the deterministic citation check, which was scanning the
+paper's own reference list: 3{,}514 of 3{,}871 findings came from there, against
+four genuine citation issues across 108 drafts.
+Appendix~\ref{app:citation-check} gives the breakdown and the regex that caused
+it. Two conclusions carry forward. The Writer's citation grounding was working
+essentially perfectly. And by over-reporting, this check made
+\texttt{overall\_pass} unreachable, rendered the revision loop inert, and made a
+guarantee that \emph{was} holding impossible to confirm --- a checker that cries
+wolf destroys the signal it exists to provide.
 
 \section{Four sweeps of the same questions}
 \label{sec:three-sweeps}
@@ -512,18 +484,11 @@ be measured before submission is a claim, not a result.
 \subsection{Two failures that never reached the model}
 
 Nineteen experiments ran in sweep~4 against twenty-six in sweep~3. Of the twelve
-that did not, eight exhausted the fix budget on a traceback and one on metrics that
-failed the plausibility check, which is the loop working as designed. Two never
-reached the model's code at all. One asked for \texttt{gensim} in an environment
-\texttt{uv} had resolved to Python~3.14.7, for which no wheel is published, and the
-fallback source build failed compiling a C extension. The other requested
-\texttt{skopt} and \texttt{sklearn} --- the \emph{import} names of
-\texttt{scikit-optimize} and \texttt{scikit-learn}, both of which the same
-requirements list also names correctly --- and resolution failed as unsatisfiable,
-because no distribution called \texttt{skopt} exists.
-
-Both are deterministic defects in the layer beneath the agent: an interpreter floor
-nobody set, and a missing import-name-to-distribution mapping. Neither is visible in
+that did not, nine exhausted the fix budget on a traceback or on implausible
+metrics, which is the loop working as designed. Two never reached the model's code
+at all: one asked for a package with no wheel for the interpreter \texttt{uv} had
+resolved to, and one named two \emph{import} names as though they were
+distributions. Appendix~\ref{app:env-failures} gives both. Neither is visible in
 any metric this chapter reports except as a lower completion count, which is how a
 systemic cause disguises itself as model weakness.
 
