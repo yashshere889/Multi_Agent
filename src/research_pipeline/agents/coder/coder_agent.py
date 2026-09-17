@@ -374,6 +374,53 @@ def _failure_signature(entry: dict) -> str:
     return f"{entry.get('error_source')}|{' '.join(summary.split())}"
 
 
+# Failures raised only *after* a program ran and wrote metrics — the code works
+# and what the fix loop rejected was the statistic laid over it. Giving up on
+# one of these used to report code_generated_not_run with `results: null`,
+# throwing away numbers that were correct: every one of Barkla job 10536963's
+# 14 attempts produced the same 29.04-vs-28.92-year longevities off real staged
+# data, and the run published none of them. Must stay a subset of
+# schema.VALID_ERROR_SOURCES.
+_RESULTS_LEVEL_ERROR_SOURCES = frozenset({"implausible_results", "unsupported_significance_claim"})
+
+
+def _provenance_on_disk(experiment_dir: str) -> dict:
+    """The data_provenance.json the attempt node wrote, or {} if unreadable."""
+    path = Path(experiment_dir) / "data_provenance.json"
+    try:
+        document = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return document if isinstance(document, dict) else {}
+
+
+def _structural_retries_spent(fix_history: list[dict]) -> int:
+    """Structural failures the model never recovered from.
+
+    The structural budget exists for a model that will not return a program at
+    all, and `current_structural_retries` used to count every malformed response
+    a plan ever saw, never resetting. Barkla job 10537067 died of that: it
+    produced `invalid_format` at attempts 1 and 3 and *recovered from both*
+    (`resolved` is true on each), yet those two hiccups spent the whole default
+    budget of 2 and ended the plan with ten fix attempts untouched, while the
+    failure actually blocking it — an unguarded read the model would not
+    wrap — was never the reason it stopped.
+
+    A response the next regeneration fixed cost one round trip and nothing else:
+    it rendered, provisioned and executed nothing, which is the same argument
+    that gave structural failures their own budget in the first place. What the
+    budget should bound is the model failing to produce the format *and not
+    recovering*, so only unresolved failures are counted — which leaves every
+    case the budget was written for unchanged, since a model that cannot return
+    a program resolves none of them.
+    """
+    return sum(
+        1
+        for entry in fix_history
+        if entry.get("error_source") in _STRUCTURAL_ERROR_SOURCES and not entry.get("resolved")
+    )
+
+
 def _identical_failure_streak(fix_history: list[dict]) -> int:
     """How many trailing attempts failed in the *same* way, not merely at the same stage.
 
@@ -1107,7 +1154,10 @@ class CoderAgent:
             self.max_structural_retries > 0
             and state["current_outcome"]["error_source"] in _STRUCTURAL_ERROR_SOURCES
         ):
-            if state.get("current_structural_retries", 0) < self.max_structural_retries:
+            if (
+                _structural_retries_spent(state.get("current_fix_history") or [])
+                < self.max_structural_retries
+            ):
                 return "regenerate"
             # Budget spent: end the plan rather than falling through to the fix
             # budget. Both readings were implemented independently, and this one
@@ -1140,7 +1190,9 @@ class CoderAgent:
 
         target_sections = _target_sections(outcome)
         structural = outcome["error_source"] in _STRUCTURAL_ERROR_SOURCES
-        structural_retries = state.get("current_structural_retries", 0)
+        # Derived from the history rather than carried, so "spent" has exactly
+        # one definition and cannot drift from the routing decision above.
+        structural_retries = _structural_retries_spent(state["current_fix_history"])
         # Only one of the two budgets moves, and only the one this failure
         # actually drew on — see _route_after_attempt.
         spends_structural_budget = structural and structural_retries < self.max_structural_retries
@@ -1288,15 +1340,30 @@ class CoderAgent:
                 outcome["error_source"],
             )
 
+        # A program that ran and produced metrics is reported with them, and only
+        # its verdict withheld — the same resolution the data, compute and
+        # saturation gates reach, and for the same reason: regeneration cannot
+        # fix a measure the plan chose.
+        reported_source = best["error_source"] if best is not None else outcome["error_source"]
+        withheld = self._withheld_results(state, best, reported_source)
         experiment = {
             **self._result(
                 state["current_plan"]["hypothesis_id"],
-                status="code_generated_not_run",
-                reason=reason,
+                status="code_generated_not_run" if withheld is None else "completed",
+                reason=reason
+                if withheld is None
+                else f"{reason} {withheld['verdict_withheld_because']}",
                 code_path=state["current_experiment_dir"],
                 assumptions_made=assumptions,
+                results=withheld,
                 starter_used=state.get("current_starter_id", ""),
                 reference_implementations=state.get("current_reference_implementations") or [],
+                # Read back off disk rather than threaded through state: the
+                # attempt node already wrote it, and reconcile.py reads the same
+                # document for the same reason.
+                data_provenance={}
+                if withheld is None
+                else _provenance_on_disk(state["current_experiment_dir"]),
             ),
             "fix_attempts": len(fix_history),
             "fix_history": fix_history,
@@ -1310,6 +1377,45 @@ class CoderAgent:
             "experiments": [*state["experiments"], experiment],
             "plan_index": state["plan_index"] + 1,
         }
+
+    def _withheld_results(
+        self, state: CoderState, best: dict | None, error_source: str
+    ) -> dict | None:
+        """The reported attempt's own metrics, verdict withheld, or None.
+
+        None whenever this give-up has no numbers to stand behind: the failure
+        was not a results-level one, or results.json is missing or metric-less.
+        Read from the attempt's snapshot rather than the experiment directory,
+        because _restore_attempt copies code and a later attempt's results.json
+        may still be sitting there.
+        """
+        if error_source not in _RESULTS_LEVEL_ERROR_SOURCES:
+            return None
+        source_dir = (
+            Path(best["code_path"]) if best is not None else Path(state["current_experiment_dir"])
+        )
+        results, _diagnosis = sandbox.read_results_json_for_diagnosis(source_dir)
+        metrics = (results or {}).get("metrics") or {}
+        if not results or not metrics:
+            return None
+        # "Measured but undecidable" only. An evaluate() returning all zeros, a
+        # NaN, or a placeholder measured nothing, and reporting that as a
+        # completed experiment would be the over-claiming this whole area
+        # guards — so those keep code_generated_not_run.
+        if sandbox.hollow_metrics(metrics):
+            return None
+        withheld = saturation.withhold(
+            results,
+            saturation.VERDICT_UNDECIDABLE,
+            saturation.WITHHELD_UNDECIDABLE.format(names=error_source),
+        )
+        logger.info(
+            "[%s] fix budget spent at %s, but the run produced metrics — reporting them with the "
+            "verdict withheld rather than discarding them",
+            state["current_plan"]["hypothesis_id"],
+            error_source,
+        )
+        return withheld
 
     def _node_assemble_and_validate(self, state: CoderState) -> dict:
         result: dict = {
@@ -1459,6 +1565,23 @@ class CoderAgent:
                 "error_text": f"Model did not return this experiment's code in the required delimited section format: {generation_error}",
             }
         sections = generation.get("run_py_sections", {})
+
+        # Guard an unguarded read before anything is rendered, so the patched
+        # section flows through the template, the span map and every check
+        # below. Deterministic and idempotent (see repair.guard_data_read), and
+        # a no-op when there is nothing to guard — which is why it sits here
+        # rather than behind the missing_data_fallback check further down: by
+        # the time that check fires there is no loop left to re-render from, and
+        # returning its error_source would spend a fix attempt on a rewrite
+        # Python can do itself.
+        if sections.get("load_data_function"):
+            guarded, guard_changes = repair.guard_data_read(
+                sections["load_data_function"],
+                self._input_columns(plan, network_available, hf_dataset, acquisitions, discoveries),
+            )
+            if guard_changes:
+                sections = {**sections, "load_data_function": guarded}
+                logger.info("[%s] %s", hypothesis_id, "; ".join(guard_changes))
         assumptions_made = generation.get("assumptions_made", [])
         needs_gpu = bool(generation.get("needs_gpu", False))
 

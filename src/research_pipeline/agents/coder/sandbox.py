@@ -1048,36 +1048,129 @@ def _nonfinite_within(value: object, _depth: int = 0) -> list[str]:
 # 0.0, p exactly 1.0, and a "confidence interval" whose bounds were equal. The
 # numbers around it were sound, so no other gate had anything to say, and the
 # model declined to judge its own hypothesis.
-_INTERVAL_KEYS = (("lower", "upper"), ("ci_lower", "ci_upper"), ("low", "high"))
-_STATISTIC_KEYS = ("t_statistic", "statistic", "z_statistic", "f_statistic")
+_INTERVAL_KEYS = (
+    ("ci_lower", "ci_upper"),
+    ("ci_low", "ci_high"),
+    ("lower", "upper"),
+    ("low", "high"),
+)
+_STATISTIC_KEYS = (
+    "t_statistic",
+    "z_statistic",
+    "f_statistic",
+    "t_stat",
+    "z_stat",
+    "f_stat",
+    "statistic",
+)
+_P_VALUE_KEYS = ("p_value", "pvalue", "p")
+# A standard error of exactly 0 is the whole tell, so every spelling of it counts.
+_STDERR_KEYS = ("standard_error", "std_err", "stderr", "sem")
+
+# Longest first, so "sensitivity_ci_lower" splits at "ci_lower" rather than
+# leaving a stray "_ci" on the group name.
+_LEAF_NAMES = tuple(
+    sorted(
+        {name for pair in _INTERVAL_KEYS for name in pair}
+        | set(_STATISTIC_KEYS)
+        | set(_P_VALUE_KEYS)
+        | set(_STDERR_KEYS),
+        key=len,
+        reverse=True,
+    )
+)
 
 
-def _degenerate_statistics(metrics: dict, prefix: str = "") -> list[str]:
-    """Intervals with equal bounds and tests reporting no difference at all."""
-    findings: list[str] = []
+def _split_leaf(path: str) -> tuple[str, str] | None:
+    """Split "sensitivity_difference_ci_lower" into its test and its field."""
+    for leaf in _LEAF_NAMES:
+        if path == leaf:
+            return "", leaf
+        for separator in (".", "_"):
+            if path.endswith(f"{separator}{leaf}"):
+                return path[: -len(leaf) - 1], leaf
+    return None
+
+
+def _statistic_groups(metrics: dict, prefix: str = "") -> dict[str, dict[str, float]]:
+    """Collect each test's fields, whether they are nested under one key or flat.
+
+    Both shapes are produced by real runs — `{"diff": {"ci_lower": ...}}` and
+    `{"diff_ci_lower": ...}` — and a check that understood only the first had
+    nothing whatsoever to say about Barkla job 10522992, whose entirely flat
+    metrics carried a zero-width interval, a standard error of 0 and p = 0.0.
+    The Reviewer's own metric check needed `_flatten_metrics` for exactly this
+    reason; this is the same lesson arriving on the Coder side.
+    """
+    groups: dict[str, dict[str, float]] = {}
     for name, value in metrics.items():
         path = f"{prefix}{name}"
-        if not isinstance(value, dict):
+        if isinstance(value, dict):
+            for group, fields in _statistic_groups(value, f"{path}.").items():
+                groups.setdefault(group, {}).update(fields)
             continue
-        findings.extend(_degenerate_statistics(value, f"{path}."))
-        for low_key, high_key in _INTERVAL_KEYS:
-            low, high = value.get(low_key), value.get(high_key)
-            if _is_real_number(low) and _is_real_number(high) and float(low) == float(high):
-                findings.append(
-                    f"the interval {path!r} has {low_key} == {high_key} ({low}) — resampling a "
-                    "single number cannot produce an interval. Compute the quantity once per "
-                    "simulated path and resample those paths, not the aggregate"
-                )
-        p_value = value.get("p_value")
-        statistic = next((value[key] for key in _STATISTIC_KEYS if key in value), None)
-        if (
-            _is_real_number(p_value)
-            and _is_real_number(statistic)
-            and float(p_value) == 1.0
-            and float(statistic) == 0.0
-        ):
+        if not _is_real_number(value):
+            continue
+        split = _split_leaf(path)
+        if split is None:
+            continue
+        group, leaf = split
+        groups.setdefault(group or path, {})[leaf] = float(value)
+    return groups
+
+
+def _degenerate_statistics(metrics: dict, source: str = "") -> list[str]:
+    """Intervals with equal bounds, and tests whose numbers carry no inference."""
+    findings: list[str] = []
+    for group, fields in _statistic_groups(metrics).items():
+        bounds = next(
+            (
+                (fields[low_key], fields[high_key], low_key, high_key)
+                for low_key, high_key in _INTERVAL_KEYS
+                if low_key in fields and high_key in fields
+            ),
+            None,
+        )
+        equal_bounds = bounds is not None and bounds[0] == bounds[1]
+        p_value = next((fields[key] for key in _P_VALUE_KEYS if key in fields), None)
+        stderr = next((fields[key] for key in _STDERR_KEYS if key in fields), None)
+        statistic = next((fields[key] for key in _STATISTIC_KEYS if key in fields), None)
+        # The group's own value is its point estimate when the metrics are flat:
+        # job 10523041 named it "sensitivity_difference" rather than anything
+        # ending in _statistic, so the p = 1 rule had nothing to compare against.
+        if statistic is None:
+            own = metrics.get(group)
+            if _is_real_number(own):
+                statistic = float(own)
+
+        # Zero variance in the resampled quantity, which is the dangerous
+        # direction: it drives t to infinity and p to exactly 0, so the run
+        # publishes a claim of perfect significance instead of withholding one.
+        # Requiring the zero-width interval alongside p == 0 keeps a genuinely
+        # enormous effect that merely underflowed the p-value out of scope.
+        if stderr == 0.0 or (p_value == 0.0 and equal_bounds):
             findings.append(
-                f"the test {path!r} reports a statistic of exactly 0 with p = 1.0 — the signature "
+                f"the test {group!r} has no variance to test: its standard error is exactly 0 and "
+                f"p is {p_value}, so every resampled value came out identical and the p-value is "
+                "an artefact of dividing by zero rather than evidence of anything. The usual "
+                "cause is a measured quantity that is capped, with nearly every path reaching the "
+                f"cap{_ceiling_hint(metrics, source) or _censoring_hint(metrics, source)}. Measure "
+                "something that still varies across "
+                "paths — terminal wealth, or the failure probability itself — or widen the "
+                "scenarios until the paths actually differ, and never report a p-value computed "
+                "from a constant"
+            )
+        elif equal_bounds:
+            low, _high, low_key, high_key = bounds  # type: ignore[misc]
+            findings.append(
+                f"the interval {group!r} has {low_key} == {high_key} ({low}) — resampling a "
+                "single number cannot produce an interval. Compute the quantity once per "
+                "simulated path and resample those paths, not the aggregate"
+            )
+
+        if p_value == 1.0 and statistic == 0.0:
+            findings.append(
+                f"the test {group!r} reports a statistic of exactly 0 with p = 1.0 — the signature "
                 "of comparing two single numbers rather than two samples. Compare the per-path "
                 "values of each arm"
             )
@@ -1116,12 +1209,40 @@ def _ceiling_hint(metrics: dict, source: str) -> str:
     return ""
 
 
+def _censoring_hint(metrics: dict, source: str) -> str:
+    """ " (NAME = N, and <metric> is M)" when a metric sits just under a cap.
+
+    `_ceiling_hint` speaks only when a metric *equals* the cap, which is the
+    right bar for saturation: "every path reached it" must be true to be said.
+    Censoring is the weaker, commoner case — Barkla job 10522992's mean
+    longevity was 29.04 against a 30-year cap because 88% of its paths survived
+    and the rest did not, which flattens a spread without pinning a mean.
+    """
+    if not source:
+        return ""
+    scalars = {
+        name: float(value)
+        for name, value in metrics.items()
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    }
+    for name, literal in _CONSTANT_ASSIGNMENT_RE.findall(source):
+        cap = float(literal)
+        if cap < 1.0:
+            continue
+        for metric, value in scalars.items():
+            if value == cap or not 0.9 * cap <= value < cap:
+                continue
+            return f" ({name} = {literal}, and {metric!r} is {value:.4g})"
+    return ""
+
+
 # "Significantly" is a claim about a test, not about a difference. Barkla job
 # 10510547 removed the degenerate t-test its predecessor had reported rather
 # than fixing it, kept the note "shows significantly lower sensitivity", and the
 # paper then repeated that wording six times with nothing behind it. A verdict
 # may rest on a difference; calling the difference significant may not.
 _SIGNIFICANCE_RE = re.compile(r"\bsignifican(?:t|tly|ce)\b", re.IGNORECASE)
+_SIGNIFICANCE_ALPHA = 0.05
 _TEST_EVIDENCE_TOKENS = (
     "p_value",
     "pvalue",
@@ -1153,18 +1274,103 @@ def check_significance_claim(results: dict) -> list[str]:
     claim = " ".join(str(results.get(key) or "") for key in ("notes", "success_notes"))
     if not _SIGNIFICANCE_RE.search(claim):
         return []
-    names = " ".join(_metric_names(results.get("metrics") or {})).lower()
-    if any(token in names for token in _TEST_EVIDENCE_TOKENS):
-        return []
-    return [
-        "the reported outcome calls the difference significant but no test is among the metrics "
-        "— report a p-value, a confidence interval or a standard error computed over the "
-        "per-path values of each arm, or state the difference without calling it significant"
+    metrics = results.get("metrics") or {}
+    names = " ".join(_metric_names(metrics)).lower()
+    if not any(token in names for token in _TEST_EVIDENCE_TOKENS):
+        return [
+            "the reported outcome calls the difference significant but no test is among the "
+            "metrics — report a p-value, a confidence interval or a standard error computed over "
+            "the per-path values of each arm, or state the difference without calling it "
+            "significant"
+        ]
+    # A test is present, so the claim now has to agree with it. Barkla job
+    # 10523041 reported sensitivity_difference = 0.0 at p = 1.0 and still wrote
+    # "shows significantly lower sensitivity": the previous check passed because
+    # it asked only whether a p-value existed, not what it said.
+    contradicted = [
+        f"{group} (p = {fields[key]})"
+        for group, fields in _statistic_groups(metrics).items()
+        for key in _P_VALUE_KEYS
+        if key in fields and fields[key] >= _SIGNIFICANCE_ALPHA
     ]
+    if contradicted:
+        return [
+            "the reported outcome calls the difference significant, but the test it rests on says "
+            f"it is not: {', '.join(sorted(contradicted))}, which is at or above the conventional "
+            f"{_SIGNIFICANCE_ALPHA} threshold. Either report the difference without calling it "
+            "significant, or fix the test if the p-value itself is wrong"
+        ]
+    return []
 
 
-def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
-    """Sanity-checks a completed experiment's own reported metrics before
+# How a reported aggregate difference is spelled, against the measure it
+# summarises ("sensitivity" -> "sensitivity_difference", "delta_sensitivity").
+_DIFFERENCE_TEMPLATES = (
+    "{measure}_difference",
+    "{measure}_diff",
+    "{measure}_delta",
+    "{measure}_gap",
+    "difference_in_{measure}",
+    "delta_{measure}",
+    "diff_{measure}",
+)
+
+
+def _contradicted_differences(metrics: dict) -> list[str]:
+    """A reported difference that cannot be true of the arms beside it.
+
+    Barkla job 10523041 reported fixed_sensitivity = 1.1667 and
+    dynamic_sensitivity = 1.0833 and, in the same metrics object,
+    sensitivity_difference = 0.0 at p = 1.0 — then called the difference
+    significant. Only the two contradiction directions are flagged, never a
+    mismatch in magnitude: a difference expressed as a ratio or a percentage
+    change is scaled differently and is nobody's defect, but zero-versus-unequal
+    is a contradiction under every definition of "difference".
+    """
+    findings: list[str] = []
+    lowered = {str(name).lower(): name for name in metrics}
+    for grouping in saturation._arm_groupings(metrics):
+        for measure, arms in grouping.items():
+            if len(arms) != 2:
+                continue
+            (left, left_name), (right, right_name) = (
+                (value, reported) for value, reported in arms.values()
+            )
+            for template in _DIFFERENCE_TEMPLATES:
+                key = lowered.get(template.format(measure=measure).lower())
+                if key is None or not _is_real_number(metrics[key]):
+                    continue
+                reported_difference = float(metrics[key])
+                if reported_difference == 0.0 and left != right:
+                    findings.append(
+                        f"{key!r} is exactly 0, but {left_name!r} is {left:.6g} and "
+                        f"{right_name!r} is {right:.6g} — a difference of zero contradicts the "
+                        "arms it summarises. Report the difference actually computed from the "
+                        "per-path values, and do not call an outcome significant that the test "
+                        "beside it does not support"
+                    )
+                elif reported_difference != 0.0 and left == right:
+                    findings.append(
+                        f"{key!r} is {reported_difference:.6g}, but {left_name!r} and "
+                        f"{right_name!r} are both {left:.6g} — identical arms cannot have a "
+                        "non-zero difference"
+                    )
+    return findings
+
+
+def hollow_metrics(metrics: dict) -> list[str]:
+    """The findings that mean nothing was measured, as opposed to measured but
+    undecidable — no metrics at all, a NaN or Infinity (almost always a division
+    by zero or a computation that never touched real data), every number exactly
+    0, or a placeholder string standing in for one.
+
+    Split out of check_results_plausibility so the fix loop's give-up path can
+    tell the two apart: an all-zero evaluate() must never be reported as a
+    completed experiment, while a program whose numbers are real and whose only
+    unfixable problem is the statistic laid over them should be reported with
+    its metrics and no verdict.
+
+    Originally documented as: sanity-checks a completed experiment's own reported metrics before
     read_results_json_for_diagnosis's success is trusted as a real result.
     Returns human-readable findings; empty means clean.
 
@@ -1230,12 +1436,22 @@ def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
                 f"metric '{name}' is the placeholder value {value!r}, not a real number"
             )
 
+    return findings
+
+
+def check_results_plausibility(metrics: dict, source: str = "") -> list[str]:
+    """Every plausibility finding: the hollow ones, then the statistical ones."""
+    findings = hollow_metrics(metrics)
+    if findings and not metrics:
+        return findings
+
     # Sent back to the model rather than only withheld (saturation.apply_to_results
     # withholds it too, for results that never pass through here): the defect this
     # shape has shown is in the code — a simulation whose paths never vary — which
     # regeneration can fix, unlike a saturated result from a sound build of an
     # unsound plan.
-    findings.extend(_degenerate_statistics(metrics))
+    findings.extend(_degenerate_statistics(metrics, source))
+    findings.extend(_contradicted_differences(metrics))
 
     identical = saturation.indistinguishable(metrics)
     if identical:

@@ -131,6 +131,24 @@ def build_paper_index(raw_papers: List[dict]) -> Dict[str, IndexedPaper]:
     return index
 
 
+# Generational and post-nominal suffixes, which are not surnames. "Melvin
+# Stephens Jr." cited as "(Jr. and Haider, ...)" in Barkla job 10550577's paper,
+# and the Reviewer flagged it — correctly — as a citation to an author who does
+# not exist: "the ground truth does not list any paper by 'Jr. and Haider'.
+# This citation appears to be fabricated or misattributed." A name-parsing bug
+# manufacturing a hallucination, in the paper and in the flag count alike.
+_NAME_SUFFIXES = frozenset(
+    {"jr", "sr", "ii", "iii", "iv", "phd", "md", "dphil", "esq", "dds", "msc", "ma", "bsc"}
+)
+
+
+def _without_suffixes(tokens: list[str]) -> list[str]:
+    """`tokens` minus any trailing suffix, never emptied."""
+    while len(tokens) > 1 and tokens[-1].strip(".,").lower() in _NAME_SUFFIXES:
+        tokens = tokens[:-1]
+    return tokens
+
+
 def surname_of(author: str) -> str:
     # CORE writes names surname-first ("Horneff, Wolfram J."), arXiv and S2
     # given-name-first ("Wolfram J. Horneff"). Taking the last token of the
@@ -138,8 +156,8 @@ def surname_of(author: str) -> str:
     name = author.strip()
     head = name.split(",", 1)[0].strip()
     if "," in name and head:
-        return head.split()[-1]
-    parts = name.split()
+        return _without_suffixes(head.split())[-1]
+    parts = _without_suffixes(name.split())
     return parts[-1].rstrip(",") if parts else "Unknown"
 
 

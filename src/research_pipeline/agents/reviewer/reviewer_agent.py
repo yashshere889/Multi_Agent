@@ -177,6 +177,38 @@ def _estimate_tokens(text: str) -> int:
     return len(text) // _CHARS_PER_TOKEN_ESTIMATE
 
 
+# The hallucination passes return the claims they examined, and a model that has
+# just talked itself out of a flag still hands it back: 11 of the 51 entries in
+# the draft Barkla job 10522992 handed over ended "Therefore, this is not a
+# hallucination", and 9 of v3's 102 did. Counting those costs three things at
+# once — the reported number, `best_iteration`, which hands over whichever draft
+# has the fewest counted issues, and the revision itself, since the Writer is
+# told to fix sentences the Reviewer just agreed with, which is how a revision
+# adds flags. The prompt asks for the verdict as a field so Python can drop
+# them; `_CLEARED_RE` is the backstop for a response that omits it, and is kept
+# to explicit exonerations only — "grounded in the ground truth, but the draft
+# adds ..." is a real finding, and a looser pattern would silently discard it.
+_CLEARED_RE = re.compile(
+    r"\b(?:is|this is|it is)\s+not\s+(?:a\s+)?(?:hallucination|ungrounded|fabricated)\b"
+    r"|\bno\s+hallucination\b"
+    r"|\bnot\s+a\s+hallucination\b",
+    re.IGNORECASE,
+)
+
+
+def _ungrounded_only(location: str, entries: object) -> List[dict]:
+    """Keep the claims the Reviewer says are ungrounded, and only those."""
+    kept: List[dict] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        issue = str(entry.get("issue", ""))
+        if entry.get("grounded") is True or _CLEARED_RE.search(issue):
+            continue
+        kept.append({"location": location, "claim": str(entry.get("claim", "")), "issue": issue})
+    return kept
+
+
 class ReviewerAgentError(RuntimeError):
     """Raised when the agent can't produce a valid review, even after retries."""
 
@@ -530,17 +562,14 @@ class ReviewerAgent:
             section_name=heading, grounding_block=json.dumps(grounding, indent=2, default=str), section_text=section_text
         )
         response = self._call_json(prompt)
-        return [{"location": heading, "claim": h.get("claim", ""), "issue": h.get("issue", "")} for h in response.get("hallucinations", [])]
+        return _ungrounded_only(heading, response.get("hallucinations", []))
 
     def _check_discussion(self, section_text: str, verdicts: Dict[str, dict], expected_ids: List[str]) -> Tuple[List[dict], List[dict]]:
         prompt = prompts.DISCUSSION_REVIEW_PROMPT.format(
             verdicts_block=json.dumps([verdicts[hid] for hid in expected_ids], indent=2), section_text=section_text
         )
         response = self._call_json(prompt)
-        hallucinations = [
-            {"location": "Discussion", "claim": h.get("claim", ""), "issue": h.get("issue", "")}
-            for h in response.get("hallucinations", [])
-        ]
+        hallucinations = _ungrounded_only("Discussion", response.get("hallucinations", []))
         framing_issues = [
             {
                 "hypothesis_id": f.get("hypothesis_id", ""),

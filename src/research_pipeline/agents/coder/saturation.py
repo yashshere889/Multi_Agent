@@ -263,6 +263,39 @@ def indistinguishable(metrics: dict) -> list[str]:
     return []
 
 
+# The fix loop's own verdict, for a program that ran and produced stable metrics
+# but never a statistic those metrics could support. Barkla job 10536963 spent
+# all 14 attempts alternating between implausible_results and
+# unsupported_significance_claim on a plan measuring the spread of a longevity
+# capped at 30 years, and was reported as code_generated_not_run with no metrics
+# at all — discarding numbers that had been identical and correct since attempt
+# 5 (29.04 vs 28.92 years, 0.8828 vs 0.8857 success). Regeneration cannot fix a
+# measure the plan chose, which is the same reason saturation withholds rather
+# than routing to the fix loop.
+VERDICT_UNDECIDABLE = "undecidable_statistic"
+WITHHELD_UNDECIDABLE = (
+    "the experiment ran and its metrics are reported, but no statistic the fix loop produced "
+    "could support a verdict from them ({names}), so the verdict is withheld rather than resting "
+    "on one the run never earned"
+)
+
+
+def withhold(results: dict, validity: str, reason: str) -> dict:
+    """Stamp a withheld verdict, preserving whatever an earlier gate recorded."""
+    stamped = dict(results)
+    # setdefault, not assignment, for the reason compute_provenance gives: an
+    # earlier gate may already have withheld this verdict and recorded the
+    # model's real claim here, and assigning would overwrite it with "unknown".
+    stamped.setdefault(
+        "model_reported_meets_success_criteria", results.get("meets_success_criteria")
+    )
+    stamped["meets_success_criteria"] = "unknown"
+    stamped["measurement_validity"] = validity
+    existing = stamped.get("verdict_withheld_because")
+    stamped["verdict_withheld_because"] = f"{existing} {reason}" if existing else reason
+    return stamped
+
+
 def apply_to_results(results: dict) -> dict:
     """Withhold the verdict when the metrics could not have come out otherwise:
     every bounded metric at its perfect value, or arms that never differed.
@@ -276,22 +309,16 @@ def apply_to_results(results: dict) -> dict:
     if not pinned and not identical:
         return results
 
-    stamped = dict(results)
-    # setdefault, not assignment, for the reason compute_provenance gives: an
-    # earlier gate may already have withheld this verdict and recorded the
-    # model's real claim here, and assigning would overwrite it with "unknown".
-    stamped.setdefault(
-        "model_reported_meets_success_criteria", results.get("meets_success_criteria")
-    )
-    stamped["meets_success_criteria"] = "unknown"
     if pinned:
-        stamped["measurement_validity"] = VERDICT_SATURATED
+        stamped = withhold(
+            results, VERDICT_SATURATED, WITHHELD_BECAUSE.format(names=", ".join(pinned))
+        )
         stamped["saturated_metrics"] = pinned
-        reason = WITHHELD_BECAUSE.format(names=", ".join(pinned))
     else:
-        stamped["measurement_validity"] = VERDICT_INDISTINGUISHABLE
+        stamped = withhold(
+            results,
+            VERDICT_INDISTINGUISHABLE,
+            WITHHELD_INDISTINGUISHABLE.format(names=", ".join(identical)),
+        )
         stamped["indistinguishable_metrics"] = identical
-        reason = WITHHELD_INDISTINGUISHABLE.format(names=", ".join(identical))
-    existing = stamped.get("verdict_withheld_because")
-    stamped["verdict_withheld_because"] = f"{existing} {reason}" if existing else reason
     return stamped
