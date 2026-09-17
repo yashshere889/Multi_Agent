@@ -171,6 +171,93 @@ twelve cases. It is the cheapest check in the system, and
 Chapter~\ref{ch:po} reports it as the most productive single source of
 preference data for the same reason.
 
+\chapter{Component Testing}
+\label{app:component-testing}
+
+The suite comprises 1{,}190 tests across 33 files. Its organising principle is
+NFR5: all non-model logic must be testable without a language model present.
+Table~\ref{tab:deterministic-modules} lists the modules this applies to --- some
+4{,}900 lines of logic that runs with no model, no network and no cluster.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Deterministic modules, all tested with no language model present.}
+\label{tab:deterministic-modules}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{Module} & \textbf{Lines} & \textbf{Responsibility} \\
+\midrule
+\texttt{coder/sandbox} & 1862 & environment probes, venv provisioning, execution, static checks \\
+\texttt{coder/provenance} & 774 & resolving inputs to real or surrogate; withholding the verdict \\
+\texttt{coder/repair} & 342 & the repairs needing no model call \\
+\texttt{coder/diagnose} & 317 & classifying a failure by kind \\
+\texttt{writer/citations} & 337 & citation resolution and disambiguation \\
+\texttt{reviewer/checks} & 330 & citation, results-accuracy and coverage checking \\
+\texttt{literature/nodes} & 386 & deduplication, screening, merging \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two conventions make this possible. Every environment dependency is injected
+through a constructor rather than patched: tests pass
+\texttt{network\_check=lambda: False} and a fake dataset lookup instead of
+monkeypatching four HTTP endpoints. And the modules above read no settings and
+call no model, so they behave identically on a laptop and a compute node.
+
+Tests are written against observed failures wherever one exists. The regression
+tests for verdict normalisation use the exact values a benchmark run recorded;
+those for the citation checker use the exact reference-list line that produced
+thousands of spurious issues. This keeps the suite a record of what actually went
+wrong rather than a catalogue of what might.
+
+
+\chapter{Ablation: Dataset Discovery}
+\label{app:ablation}
+
+Section~\ref{sec:wrong-data} shows the dataset discovery mechanism attaching
+irrelevant data to experiments. The natural question is whether the pipeline
+would be more trustworthy without it. Following the ablation methodology
+AutoMETA~\cite{lee2026autometa} applies to its own protocol enforcement, discovery
+was disabled and the frozen corpus re-run four times.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Dataset discovery enabled versus disabled, on identical plans.
+Mean with observed range; ranges rather than standard deviations, since four to
+five runs cannot support an interval estimate.}
+\label{tab:ablation}
+\begin{tabularx}{\textwidth}{Xcc}
+\toprule
+& \textbf{Discovery on} ($n{=}5$) & \textbf{Discovery off} ($n{=}4$) \\
+\midrule
+Completed                  & 10.2 [10--11] & 7.2 [7--8] \\
+Interpretable (corrected)  & 3.6 [2--6]    & 0.0 [0--0] \\
+Real data only             & 5.0 [4--8]    & 0.2 [0--1] \\
+Fix attempts               & 14.6 [12--17] & 36.0 [34--41] \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The interpretable column must not be read as a quality difference. With discovery
+off, every resolved input becomes a surrogate, and a surrogate withholds the
+verdict by design, so a score of zero is what the provenance mechanism is
+\emph{supposed} to produce when no real data exists. Comparing the arms on that
+metric is close to tautological.
+
+The informative comparison is throughput, and there the result is unambiguous.
+Experiments that never ran at all rose from 2 to 8, and repair effort rose from
+14.6 fix attempts to 36.0 --- two and a half times the work for fewer finished
+experiments. Offering the model one concrete dataset, with real column names and
+real sample rows, is load-bearing for its ability to write working code,
+independently of whether that dataset is the right one.
+
+This is the opposite of the expected result, and it settles the design question
+the next section raises. Disabling discovery is not the remedy for wrong data: it
+costs roughly a third of completions and more than doubles the repair effort while
+producing nothing interpretable at all. The remedy has to be stricter matching,
+not removal.
+
+
 \chapter{A Complete Generated Paper}
 \label{app:generated-paper}
 
