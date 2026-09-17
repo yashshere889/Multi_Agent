@@ -1,19 +1,436 @@
 \chapter{Requirements Analysis Instrument}
 \label{app:ra-instrument}
-[TODO -- questionnaire verbatim, including the information and consent page.]
+
+\textbf{To be inserted: the questionnaire as administered, verbatim, together
+with its information and consent page.} The instrument is described in
+Chapter~\ref{ch:requirements}: five sections --- background, current workflow,
+reactions to the proposed system, prospective use cases, and desired features
+--- combining five-point Likert items with free-text questions, preceded by an
+information page and an explicit consent gate, and taking 10--15 minutes to
+complete. Its attitudinal items are reproduced verbatim in
+Table~\ref{tab:ra-likert}.
+
+The wording is not reconstructed here from that description, because an
+appendix that presented a paraphrase as the administered instrument would
+misrepresent how the responses in Appendix~\ref{app:ra-responses} were
+obtained.
 
 \chapter{Requirements Analysis Responses}
 \label{app:ra-responses}
-[TODO -- anonymised responses.]
+
+\textbf{To be inserted: the anonymised response export.} Both respondents'
+Likert scores are reproduced in Table~\ref{tab:ra-likert}, and their free-text
+answers are quoted throughout Chapter~\ref{ch:requirements} at the points where
+each changed a design decision. What belongs here is the complete set of
+answers rather than the excerpts the argument required, with identifying detail
+removed and disciplines generalised as described in that chapter's method
+section.
 
 \chapter{Coder Benchmark: Full Results}
 \label{app:benchmark}
-[TODO -- all 12 cases.]
+
+The twelve frozen experiment plans of \texttt{agents/coder/benchmark\_plans/}
+were each run twelve times under one agent configuration, on the University of
+Liverpool's Barkla facility, between 16 and 17 September 2026 (SLURM jobs
+10537076, 10537081, 10546264, 10547551, 10548567, 10550581 and 10558212 to
+10562419). Section~\ref{sec:variance} reads these runs as a distribution;
+this appendix decomposes them by case.
+
+\begin{table}[htbp]
+\centering\small
+\caption{The twelve benchmark cases and their outcomes over twelve runs of the
+corpus under identical code. ``Real data'' counts runs in which every declared
+input resolved to a real file or download rather than a synthesised surrogate.
+``Fix attempts'' is the total across all twelve runs.}
+\label{tab:benchmark-cases}
+\begin{tabularx}{\textwidth}{lXccc}
+\toprule
+\textbf{Case} & \textbf{What it exercises} & \textbf{Ran} & \textbf{Real} & \textbf{Fixes} \\
+\midrule
+01 tabular classification & the \texttt{classification} starter, synthetic data, low complexity & 11/12 & 0 & 19 \\
+02 regression, real download & an openly downloadable source, medium complexity & 11/12 & 11 & 29 \\
+03 text classification & the \texttt{text\_classification} starter and the Hub lookup & 12/12 & 9 & 19 \\
+04 clustering & the \texttt{clustering} starter & 12/12 & 0 & 20 \\
+05 timeseries forecast & no starter match --- the general, example-free prompt & 12/12 & 0 & \textbf{0} \\
+06 deep learning, GPU & \texttt{needs\_gpu} with no GPU present: the sbatch deferral & \textbf{7/12} & 4 & \textbf{61} \\
+07 high complexity, CPU & \texttt{high} complexity deferral without a GPU requirement & 12/12 & 0 & 27 \\
+08 infeasible scale & \texttt{feasible: false} --- the skipped path & \textbf{0/12} & 0 & 0 \\
+09 restricted clinical data & a restricted source: the provenance gate withholds & 9/12 & 0 & 22 \\
+10 Monte Carlo simulation & precision knobs that downscaling may shrink & 12/12 & 0 & 8 \\
+11 bootstrap resampling & resampling knobs, low complexity & 12/12 & 0 & \textbf{0} \\
+12 embedding benchmark & a plan declaring shared infrastructure & \textbf{5/12} & 5 & 30 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Four rows carry most of the information in the table.
+
+\textbf{Case 08 was skipped in all twelve runs}, which is the correct outcome
+and the only one in the corpus that is correct by refusal: the plan declares
+itself infeasible, and the agent is supposed to decline it rather than generate
+something. A benchmark reporting ``0/12 ran'' for this case is reporting a pass.
+
+\textbf{Cases 05 and 11 completed every run with no fix attempt at all.} The
+first is the example-free general prompt and the second is bootstrap resampling
+--- between them, the plainest statistical work in the corpus. Nothing in
+twenty-four executions required a repair, which bounds how much of the fix
+loop's activity elsewhere is attributable to the model as opposed to the
+difficulty of what it was asked to build.
+
+\textbf{Cases 06 and 12 are where the agent actually struggles.} Deep learning
+on a deferred GPU plan completed seven runs of twelve and consumed 61 fix
+attempts, 52 of them against a traceback from the executed program; the
+shared-infrastructure case completed five, with a further six attempts lost to
+missing dependencies. Those two cases account for 91 of the corpus's 235 total
+fix attempts across all twelve runs.
+
+\textbf{No case produced a verdict in any run.} That is the
+\emph{interpretable}~$=0$ of Section~\ref{sec:evidence-ready} decomposed: the
+cases that reached real data (02, 03, 06, 12) reached it through keyword search,
+so the confirmation gate withheld, and the remainder ran on surrogates, so the
+provenance gate withheld. Case 09 is withheld by design --- a restricted
+clinical source is the one the agent is supposed to decline --- and its
+\texttt{unsupported\_significance\_claim} check fired in eleven of twelve runs,
+which is the check working rather than the plan failing.
+
+Across the corpus, \texttt{undefined\_name} --- pyflakes, run before any
+environment is provisioned --- was the most frequent rejection in five of the
+twelve cases. It is the cheapest check in the system, and
+Chapter~\ref{ch:po} reports it as the most productive single source of
+preference data for the same reason.
 
 \chapter{A Complete Generated Paper}
 \label{app:generated-paper}
-[TODO]
+
+What follows is a paper the pipeline produced without human intervention,
+reproduced in full apart from its reference list. It is the third and final
+draft for question~29 of the fourth sweep --- ``Does active learning reduce the
+number of simulations needed to map a materials property landscape?'' --- and it
+is included because it is one of the runs whose verdict this dissertation
+considers sound: the MoleculeNet ESOL solubility set genuinely answers the
+question asked, the experiment ran to completion on it, and the refutation it
+reports was computed from what the experiment returned rather than asserted by
+the model.
+
+It is not, however, a good paper, and it is reproduced here so that a reader can
+judge that for themselves rather than take Chapter~\ref{ch:evaluation}'s word for
+it. Three things are worth watching for. The Results section states the numbers
+the experiment actually produced. The Related Work section is where
+Section~\ref{sec:three-sweeps} locates 86\% of the reviewer's hallucination
+findings. And the paper never passed its own review: like every other draft in
+every sweep, it exhausted three writer/reviewer iterations without clearing the
+threshold, and this is the best of the three rather than an accepted one.
+
+The reference list is omitted for length. It ran to 67 entries, every one of
+them rendered mechanically from the index of papers the Literature Agent
+retrieved, each with its arXiv, Semantic Scholar or CORE URL --- which is why
+Section~\ref{sec:end-to-end} can state that reference entries cannot be
+fabricated by construction.
+
+\bigskip
+\hrule
+\bigskip
+
+\begin{center}
+{\large\bfseries Active Learning with Uncertainty Sampling Fails to Reduce
+Simulation Requirements in Materials Property Mapping Despite Expected
+Efficiency Gains\par}
+\vspace{0.4em}
+{\small Anonymous Author(s), Anonymous Institution\par}
+\end{center}
+
+\vspace{0.5em}
+
+\begin{quote}\small
+\textbf{Abstract.} Active learning (AL) has been proposed as a means to
+accelerate materials property prediction by reducing the number of required
+simulations through intelligent query strategies. This work evaluates the
+application of AL---specifically uncertainty sampling within Gaussian Process
+Regression---to efficiently map materials property landscapes using the
+MoleculeNet ESOL dataset. We test the hypothesis that AL can reduce simulation
+requirements by at least 30\% compared to random sampling. The results indicate
+that this hypothesis is refuted, as the AL approach did not meet the specified
+performance threshold. These findings suggest that while AL shows promise in
+controlled settings, its practical deployment in materials science may be
+limited by domain-specific assumptions and sensitivity to implementation
+details. The study contributes to understanding the limitations of current AL
+methodologies in complex, multi-dimensional spaces and underscores the
+importance of careful validation in practical settings.
+\end{quote}
+
+\begingroup\small
+
+\subsection*{1. Introduction}
+
+Active learning (AL) is widely recognized as an effective strategy for reducing the number of simulations or experiments required in materials science and related domains (Tian et al., 2020). AL techniques consistently show advantages over random sampling in terms of data efficiency and model accuracy (McCracken et al., 2014). However, the effectiveness of AL varies significantly depending on the domain, the quality of initial data, and the specific implementation details. While many studies report gains in efficiency, there are recurring concerns about the robustness of AL in the presence of noisy data, the lack of standardized benchmarks, and the dependence on domain-specific assumptions. Additionally, while AL shows promise in accelerating materials property mapping, challenges remain in generalizing across diverse materials systems and ensuring reliable performance in complex, multi-dimensional spaces.
+
+Several key limitations in the current literature highlight the need for more rigorous empirical evaluation. The sensitivity of AL to noisy or mislabeled data poses a significant challenge, particularly in practical applications where data quality cannot always be guaranteed (Marple et al., 2020). Furthermore, the lack of standardized benchmarks hampers meaningful comparisons among different AL approaches across materials science and related fields (Orhan and Tastan, 2015). There is also insufficient exploration of how domain knowledge interacts with uncertainty-based active learning in materials science (Ciravegna et al., 2021), and the generalizability of AL strategies across diverse materials systems remains an open question (Khan et al., 2026). Additionally, while AL methods show promise in early training phases, their long-term effectiveness and stability beyond these initial stages are not well established (Yang and Xia, 2026).
+
+This paper tests three core hypotheses regarding the efficacy of different AL strategies in materials property mapping. The hypotheses are formulated based on the identified gaps in the literature and aim to provide empirical insights into the conditions under which various AL methods perform well. Specifically, H1 examines the relative performance of uncertainty sampling in reducing simulation requirements. H2 evaluates the impact of Bayesian Optimization on model accuracy within an AL framework. H3 investigates the effectiveness of leverage score-based querying in achieving predictive accuracy. These hypotheses aim to contribute to a more nuanced understanding of AL strategies in practical applications, addressing key concerns such as robustness to noise, generalizability, and long-term performance.
+
+\subsection*{2. Related Work}
+
+Active learning has emerged as a powerful paradigm for reducing the cost of data labeling and simulation in scientific domains, particularly in materials discovery where computational resources are often scarce. Several works have explored the application of active learning to materials property prediction and structure-property mapping. Tian et al. (2020) employ Kriging-based models and directed exploration strategies to estimate material property curves and surfaces. Gonen et al. (2012) present an aggressive approach for active learning of half-spaces, showing that it can be efficient and practically useful under separability assumptions. Ciravegna et al. (2021) introduce Knowledge-driven Active Learning (KAL), which incorporates domain knowledge into sample selection, offering a framework suitable for both regression and object recognition tasks. Orhan and Tastan (2015) propose a novel querying criterion based on statistical leverage scores, indicating that sampling data instances with high leverage scores can be an effective strategy in active learning. Vatsavai et al. (2025) present a curiosity-driven algorithm that samples regions with unexplored structure-property relations using a lightweight surrogate model.
+
+In the context of materials modeling, machine learning approaches have been developed to capture complex relationships between microstructure and macroscopic properties. Hashemi et al. (2021) extend the Materials Knowledge Systems (MKS) framework by applying digital image processing and distance-based metrics for feature engineering. Han et al. (2022) propose MT-CGCNN, a model that integrates Crystal Graph Convolutional Neural Networks (CGCNN) with multitask learning to simultaneously predict multiple material properties. These developments illustrate how machine learning can be tailored to the unique challenges of materials science, such as limited data availability.
+
+The use of uncertainty-based sampling strategies is prevalent in active learning frameworks for materials science. Tian et al. (2020) observe that uncertainty sampling---selecting samples based on model confidence---is a standard approach in active learning. Gonçalves et al. (2020) and Riis et al. (2023) utilize uncertainty sampling in materials science, where it is used to identify the least confident predictions for labeling. Wafula et al. (2025) and Yue et al. (2020) employ Gaussian Process Regression as a predictive model within active learning frameworks for regression tasks. These studies emphasize the importance of uncertainty quantification in guiding the selection of informative samples.
+
+More specialized approaches to active learning have also been developed to suit the unique demands of materials science. Han et al. (2022) present a machine learning-based sub-pixel processing technique that segments atomic signals and applies denoising methods. Zhang et al. (2025) introduce a knowledge-based sampling method (KBSM) for deep learning-assisted planar antenna array design. P. et al. (2021) propose a hierarchical correlation learning framework for multi-property prediction that integrates composition-based prediction, property correlation learning, and generative transfer learning.
+
+Bayesian optimization and related techniques have also found application in materials science for efficient exploration of property spaces. Kusne et al. (2020) and Lookman et al. (2019) apply Bayesian optimization in materials discovery, using it to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space. Bassman et al. (2018) also explore Bayesian optimization for efficient exploration of property spaces. Query-by-committee methods have been used in materials science to identify samples that expose disagreements among learners, as discussed by Gonçalves et al. (2020) and Riis et al. (2023). Additionally, Jain et al. (2024) explores the use of committee-based approaches for active learning in materials science.
+
+Feature engineering and representation learning play a crucial role in materials science applications of active learning. Hashemi et al. (2021) extend the Materials Knowledge Systems (MKS) framework by applying digital image processing and distance-based metrics for feature engineering in organic photovoltaics, enabling the construction of surrogate models that link microstructures to charge transport properties. Han et al. (2022) present a machine learning-based sub-pixel processing technique that enhances the accuracy of atomic structure analysis by segmenting atomic signals and applying denoising methods. These approaches highlight the importance of appropriate data representation in enabling effective active learning in materials science.
+
+Active learning strategies have been widely applied across domains to reduce labeling costs and computational overhead by iteratively selecting informative samples. Gonçalves et al. (2020) observe that uncertainty sampling---selecting samples based on model confidence---is a standard approach in active learning, and they compare several strategies including maximum variance. Hachey et al. (2005) evaluate committee-based metrics for quantifying disagreement between classifiers in named entity recognition, demonstrating that the choice of disagreement measure can significantly affect the efficiency of active learning. In the context of materials discovery, Cang et al. (2017) note that the quality and quantity of microstructure data play a crucial role in prediction performance, supporting the value of active learning in optimizing data usage. Stolte et al. (2024) and Imberg et al. (2020) both investigate the effectiveness of uncertainty-based sampling, with the former observing that random sampling can sometimes outperform active learning when energy offsets are present, and the latter proposing modifications to sampling schemes that better account for prediction error. These contributions collectively indicate that while uncertainty sampling is a common strategy, its effectiveness varies depending on the application and the nature of the underlying data distribution. The integration of predictive models such as Gaussian Process Regression (GPR) and Bayesian optimization has become increasingly prevalent in active learning frameworks. Xin et al. (2021) demonstrates how Gaussian processes can serve as surrogate models for uncertainty-based sampling, allowing for informed decisions about which new samples to evaluate. Tian et al. (2020) employs Kriging-based models and directed exploration strategies for curve/surface estimation, while Wafula et al. (2025) and Yue et al. (2020) both utilize Gaussian Process Regression for regression tasks within AL frameworks. These methods are designed to guide the selection of samples that are most likely to improve the surrogate model's ability to generalize across the design space.
+
+Uncertainty sampling, a standard query strategy in AL, is frequently employed in materials science to select the least confident predictions for labeling Hüllermeier et al. (2022). Xin et al. (2021) notes that uncertainty sampling aims to reduce prediction variance and improve model accuracy by selecting instances where the model's confidence in its prediction is lowest. Query-by-committee methods, another common AL technique, identify samples that expose disagreements among learners Gonçalves et al. (2020). These approaches demonstrate the flexibility of active learning in adapting to different problem characteristics and computational constraints.
+
+Recent studies also emphasize the role of uncertainty sampling and ensemble-based methods in guiding active learning processes. Hachey et al. (2005) evaluate committee-based metrics for quantifying disagreement between classifiers in named entity recognition, demonstrating that the choice of disagreement measure can significantly affect the efficiency of active learning. In the context of materials discovery, Cang et al. (2017) note that the quality and quantity of microstructure data play a crucial role in prediction performance, supporting the value of active learning in optimizing data usage. Additionally, Stolte et al. (2024) and Imberg et al. (2020) both investigate the effectiveness of uncertainty-based sampling, with the former observing that random sampling can sometimes outperform active learning when energy offsets are present, and the latter proposing modifications to sampling schemes that better account for prediction error. These contributions collectively indicate that while uncertainty sampling is a common strategy, its effectiveness varies depending on the application and the nature of the underlying data distribution.
+
+Active learning has emerged as a powerful paradigm for reducing the cost of data labeling and simulation in scientific domains, particularly in materials discovery where computational resources are often scarce. This approach iteratively selects the most informative samples for labeling or simulation, aiming to maximize the utility of each labeled example Zong et al. (2022). In materials science, this is particularly valuable for navigating vast compositional and structural spaces, where the abundance of candidate materials contrasts sharply with the limited availability of experimental or computational data Kumar and Gupta (2020). AL strategies aim to maximize the utility of each labeled example by focusing on regions of high uncertainty or low representation in the training data Zong et al. (2022).
+
+Several studies have investigated the performance of different active learning strategies in terms of their ability to reduce labeling costs and improve model accuracy. For instance, Jain et al. (2024) demonstrates that intelligent querying strategies can significantly outperform random sampling. Similarly, Marple et al. (2020) shows that active learning can reduce the number of required simulations by nearly a factor of three compared to random sampling, highlighting the potential for substantial computational savings. These findings underscore the importance of carefully designed acquisition strategies in active learning frameworks.
+
+Uncertainty sampling and query-by-committee methods represent two prominent approaches for selecting informative samples Jain et al. (2024). Uncertainty sampling selects instances where the model's confidence in its prediction is lowest, aiming to reduce prediction variance and improve model accuracy Marple et al. (2020). Query-by-committee, on the other hand, involves training multiple models on different subsets of data to identify disagreements among learners, which can indicate informative samples Jain et al. (2024). These strategies are particularly useful in settings where computational resources are limited, as they allow for targeted data collection that maximizes the utility of each labeled example Caron et al. (2019). In addition to these classical approaches, recent work has explored the integration of machine learning models such as Gaussian Process Regression (GPR) and Bayesian optimization within active learning frameworks Marple et al. (2020). GPR serves as a predictive model in AL frameworks for regression tasks, providing uncertainty estimates that inform the selection of new samples Caron et al. (2019). Bayesian optimization techniques are employed for efficient exploration of property spaces, particularly in materials discovery Jain et al. (2024). These methods demonstrate the versatility of active learning in addressing complex problems across various scientific disciplines, from clinical data analysis to materials design McCracken et al. (2014).
+
+Empirical evaluations have shown that active learning can significantly improve model performance with fewer labeled samples compared to random selection Gonçalves et al. (2020). However, the effectiveness of these methods is not uniform across all settings, and no single strategy consistently outperforms others in every scenario Gonçalves et al. (2020). Comparative studies have highlighted that while some strategies such as diversity-based approaches may outperform baselines in specific contexts Gonçalves et al. (2020), others like uncertainty sampling or query-by-committee often demonstrate superior performance in practice Babjac and Hoarfrost (2026). Furthermore, active learning frameworks have been successfully applied in domains ranging from enzyme function prediction to structural health monitoring, where they have shown substantial improvements in data efficiency and model accuracy Babjac and Hoarfrost (2026). These applications underscore the versatility of active learning in addressing real-world challenges where data is scarce or costly to obtain Naik et al. (2016). The effectiveness of active learning strategies varies depending on the evaluation metrics and application domain, suggesting that no single approach universally outperforms others Yue et al. (2020). While uncertainty sampling is a standard approach, other strategies such as maximum variance sampling have also been investigated Yue et al. (2020). Furthermore, the impact of simulation duration on model performance has been studied, with active learning approaches starting with small training sets and gradually expanding them Li et al. (2024b). These findings underscore the importance of carefully selecting and evaluating active learning strategies based on the specific characteristics of the problem at hand.
+
+Active learning methods have been widely applied across diverse domains to address challenges related to data scarcity and computational cost Xue and Lyu (2025). These approaches iteratively select the most informative samples for labeling or simulation, aiming to maximize the utility of each data point Zaman et al. (2023). In materials science, active learning has proven particularly valuable for navigating vast property spaces and guiding experimental or computational efforts Lookman et al. (2019). The core idea involves using uncertainty quantification and utility functions to prioritize data collection Bassman et al. (2018). For instance, Lookman et al. (2019) highlight how uncertainty-based sampling can guide the selection of promising candidates in materials discovery. Similarly, Bassman et al. (2018) demonstrate that Bayesian optimization combined with Gaussian process regression can efficiently identify optimal heterostructures with minimal ab initio calculations. In reliability analysis, active learning methods such as AK-MCS and AK-IS have been developed to improve metamodel accuracy while reducing computational burden Xue and Lyu (2025). These methods iteratively add samples that contribute most to model improvement, allowing for accurate failure probability estimation with fewer performance function evaluations Xue and Lyu (2025). AK-IS specifically combines adaptive Kriging with importance sampling to focus on failure regions, shifting the sampling center towards the Most Probable Point (MPP) Xue and Lyu (2025). However, AK-IS is limited to single failure regions due to its reliance on FORM to locate the MPP Xue and Lyu (2025). Other variance reduction techniques such as AK-LS, AK-SS, and AK-DIS have also been proposed to enhance the efficiency of reliability analysis Xue and Lyu (2025).
+
+Machine learning techniques play a central role in modern active learning frameworks, with methods like Gaussian process regression and Bayesian optimization being frequently employed Lookman et al. (2019). Gaussian process regression serves as a predictive model in active learning settings for regression tasks Wafula et al. (2025). Query strategies such as uncertainty sampling, where samples with the lowest confidence are selected for labeling, are standard approaches in active learning Zaman et al. (2023). Additionally, query-by-committee methods identify samples that expose disagreements among multiple learners Gonçalves et al. (2020). These strategies help reduce labeling effort and computational cost by focusing on informative regions of the input space Zaman et al. (2023). Furthermore, uncertainty quantification plays a key role in guiding sample selection in materials discovery Lookman et al. (2019).
+
+Recent work has explored the integration of uncertainty quantification with deep learning models to improve predictive capabilities Gal and Ghahramani (2015). Dropout training in neural networks has been shown to approximate Bayesian inference, enabling uncertainty estimation without significant computational overhead Gal and Ghahramani (2015). Deep ensembles represent another approach for scalable predictive uncertainty estimation Lakshminarayanan et al. (2016). These methods are particularly relevant in scenarios where model uncertainty needs to be quantified reliably, such as in safety-critical applications or when dealing with limited training data Lakshminarayanan et al. (2016). The use of such uncertainty-aware models in active learning frameworks ensures that decisions are made with awareness of model limitations and potential risks Gal and Ghahramani (2015).
+
+Active learning has emerged as a powerful paradigm for reducing the cost of data labeling and simulation in scientific domains, particularly in materials discovery where computational resources are often constrained. Several approaches have been developed to guide the selection of informative samples, including uncertainty sampling, query-by-committee, and Bayesian optimization. Foster et al. (2019) introduce variational Bayesian optimal experimental design, which provides fast estimators for expected information gain in Bayesian optimal experimental design. Dette et al. (2015) develop an efficient algorithm for determining Bayesian optimal discriminating designs under the Kullback-Leibler criterion, while Xu and Ghosh (2015) apply Bayesian group lasso with spike and slab priors for variable selection and estimation. Yang et al. (2014) propose a Bayesian hierarchical model for functional data smoothing that enables simultaneous smoothing and joint mean-covariance estimation. These methods demonstrate how Bayesian frameworks can be adapted to improve sample selection and model accuracy in complex scientific applications.
+
+Equivariant neural networks have shown promise in materials science for learning interatomic potentials with high data efficiency. Batzner et al. (2021) present Neural Equivariant Interatomic Potentials (NequIP), which employs E(3)-equivariant convolutions for interactions of geometric tensors, resulting in a more information-rich representation of atomic environments. This approach achieves state-of-the-art accuracy while requiring significantly fewer training data points than conventional methods, challenging the notion that deep learning models require massive datasets. The method's ability to faithfully describe dynamics of complex systems with remarkable sample efficiency makes it particularly valuable for materials discovery where high-quality quantum chemical calculations are computationally expensive. Recent work has explored the integration of active learning with advanced sampling techniques and sequential inference methods. Salomone et al. (2018) reformulate nested sampling using sequential Monte Carlo techniques, providing unbiased marginal likelihood estimates and relaxing assumptions about sample independence. Wang and Tian (2022) survey deep learning methods for sequential point cloud analysis, covering dynamic flow estimation, object detection and tracking, and point cloud forecasting. These developments highlight the growing interest in extending active learning principles to dynamic and sequential data modalities, where traditional static approaches may be insufficient. The combination of these methodologies with established active learning strategies suggests promising directions for future research in materials science and related fields.
+
+The theoretical and practical foundations of active learning continue to evolve, with recent contributions addressing computational efficiency and uncertainty quantification. Si et al. (2013) develop a Bayesian nonparametric approach for sampling inference that models inverse-probability weights using hierarchical Bayesian methods and Gaussian process regression. Seung et al. (1992) introduce query-by-committee, a foundational active learning technique that involves training multiple models on different data subsets to identify informative samples. These approaches underscore the importance of combining statistical rigor with computational efficiency when designing active learning systems for real-world applications in materials science and beyond.
+
+Active learning has been widely applied across diverse domains to reduce the cost of data labeling and simulation by iteratively selecting informative samples Shao et al. (2022); Chaloner and Verdinelli (1995); Choudhury et al. (2025); Hedman et al. (2025); Rainforth et al. (2023); Foster et al. (2021). In sequential recommendation, Shao et al. Shao et al. (2022) propose a model that decomposes user preferences into independent components to better capture evolving tastes, using reinforcement learning to simulate preference evolution and optimize subsequence creation. Meanwhile, Bayesian experimental design (BED) approaches have been extended to integrate with large language models Choudhury et al. (2025) and deep learning frameworks Foster et al. (2021); Hedman et al. (2025), enabling adaptive and amortized decision-making in real-time settings.
+
+Sequential sampling methods have also been developed for surrogate modeling and materials discovery, where uncertainty and gradient information are combined to guide sample selection Lämmle et al. (2023); Hu et al. (2023). Lämmle et al. Lämmle et al. (2023) introduce Gradient and Uncertainty Enhanced Sequential Sampling (GUESS), which uses predictive uncertainty and gradient information to improve global surrogate modeling efficiency. Similarly, Hu et al. Hu et al. (2023) propose a hybrid metric-based approach that balances global exploration and local exploitation for more robust surrogate model construction.
+
+Bayesian optimal experimental design methods have seen significant advancement through amortization and policy-based approaches, allowing for faster deployment in real-time scenarios Foster et al. (2021); Hedman et al. (2025). Foster et al. Foster et al. (2021) present Deep Adaptive Design (DAD), which learns an amortized design network to enable rapid decision-making during experiments. Hedman et al. Hedman et al. (2025) further refine this by developing Step-DAD, a semi-amortized approach that updates policies during testing to improve robustness. These methods demonstrate how reinforcement learning and deep learning can be integrated with classical Bayesian design principles to address computational bottlenecks and improve adaptability in sequential decision-making processes.
+
+Bayesian experimental design represents a principled approach to optimizing experimental setups under uncertainty, with recent work advancing both theoretical foundations and practical implementations Ryan (2014). Ryan's thesis develops novel methodologies for Bayesian design, including approaches for nonlinear mixed effects models and rapid posterior approximation techniques Ryan (2014). Similarly, Kapoor explores Bayesian decision-theoretic methods for multifactor industrial experiments, emphasizing the incorporation of prior knowledge and the development of robust analytical frameworks that can accommodate outliers Kapoor (2011). Ruggoo and Vandebroek extend classical design theory by proposing a Bayesian two-stage approach that accounts for model uncertainty, demonstrating improved performance over traditional one-stage designs Ruggoo and Vandebroek (n.d.).
+
+Sequential Monte Carlo methods provide a flexible framework for sampling from complex distributions and have found applications in Bayesian inference and experimental design Johansen and Johansen (2009); Johansen (n.d.). Johansen introduces a C++ template library for implementing general Sequential Monte Carlo algorithms, highlighting their utility in applications such as rare event estimation and particle filtering Johansen and Johansen (2009). These methods enable efficient computation in settings where direct sampling is intractable, supporting the broader goal of scalable Bayesian inference in complex models.
+
+Active learning strategies have been widely applied across domains to reduce labeling costs and computational overhead by iteratively selecting informative samples Ijju (2023); Cacciarelli and Kulahci (2023). Ijju proposes a Markovian formalism that organizes active learning as transitions between meta-states in a partially observable Markov decision process, offering a unifying perspective on various query strategies Ijju (2023). Meanwhile, Cacciarelli and Kulahci survey approaches for online active learning in data streams, distinguishing between static pool-based and dynamic stream-based paradigms Cacciarelli and Kulahci (2023). These frameworks demonstrate the versatility of active learning in adapting to different data generation processes and application contexts.
+
+Theoretical and empirical investigations into the sensitivity of statistical procedures to distributional assumptions have also contributed to the understanding of active learning in non-standard settings Yousef (2010); Yousef et al. (2013). Yousef examines the behavior of normal-based triple sampling procedures under departures from normality, finding that asymptotic properties depend on higher moments of the underlying distribution Yousef (2010). Subsequent work by Yousef et al. confirms that these sensitivities manifest in finite-sample performance, underscoring the importance of robust inference methods in practical applications Yousef et al. (2013).
+
+Active learning has emerged as a critical paradigm for reducing labeling costs and computational expenses in scientific domains, particularly in materials discovery where data generation is often expensive Kumar and Gupta (2020). This approach iteratively selects the most informative samples for labeling or simulation, aiming to maximize the utility of each labeled example Zong et al. (2022). In the context of multiple instance multiple label learning (MIML), where each sample consists of multiple instances with only bag-level labels available, Nguyen et al. (2021) propose a bag-class pair based approach that employs a discriminative graphical model with efficient inference (Nguyen and Raich, 2021). Their method focuses on the incomplete-label setting and introduces an online stochastic gradient descent algorithm for model updates, demonstrating robustness on benchmark datasets.
+
+Uncertainty sampling represents a foundational query strategy in active learning, where samples with high uncertainty are selected for labeling Liu and Li (2023). Liu et al. (2023) introduce the concept of equivalent loss, which provides a unified framework for understanding probabilistic, margin-based, and threshold-based uncertainty rules (Liu and Li, 2023). This framework clarifies the statistical objectives induced by uncertainty sampling and establishes theoretical guarantees for finite-sample excess risk. The approach demonstrates how uncertainty weighting can preserve calibration while reshaping optimization geometry, offering both theoretical insight and practical utility in various classification tasks.
+
+The integration of uncertainty quantification with active learning has been explored in diverse domains, including materials science and optimization under uncertainty. In the context of fused filament fabrication, Kapusuzoglu et al. (2026) apply Bayesian neural networks to capture both epistemic and aleatory uncertainties in multi-objective optimization (Kapusuzoglu et al., 2026). Their methodology enables robust optimization of process parameters by accounting for model uncertainty and input variability. Similarly, Camporeale et al. (2016) present an adaptive sampling strategy for uncertainty quantification that constructs accurate interpolants using radial functions, allowing for efficient convergence in stochastic outputs (Camporeale et al., 2016). These approaches highlight the importance of carefully managing uncertainty in active learning frameworks to ensure reliable performance.
+
+Rule-based reasoning systems also benefit from uncertainty-aware active learning strategies. Shultz (2013) explores the use of certainty factor techniques for propagating uncertainty within rule-based cognitive models (Shultz, 2013). Within a single production rule, antecedent evidence is summarized using maximum and minimum operations, and the maximum certainty factor is then combined across rules using Heckerman's modified technique. This approach provides a structured way to manage uncertainty in logical reasoning systems, complementing the probabilistic approaches used in machine learning contexts. Recent work has also examined the application of evidential reasoning in active learning, with Hoarau et al. (2024) proposing evidential uncertainty sampling strategies (Hoarau et al., 2024). These methods demonstrate how alternative uncertainty formalisms can be integrated into active learning frameworks to improve robustness and interpretability.
+
+Active learning has emerged as a widely applicable paradigm across diverse domains, with uncertainty sampling serving as one of its most prevalent query strategies Hüllermeier et al. (2022). This approach selects instances for labeling based on the model's prediction uncertainty, typically targeting those where confidence is lowest Hüllermeier et al. (2022). Several works have explored variations and extensions of this basic principle, including the incorporation of domain knowledge into sample selection Nguyen et al. (2015), the use of multiple hypotheses to manage noisy observations Zauner et al. (2011), and the application of quasi-random sampling techniques to improve estimation accuracy Bierlaire et al. (2008). These methods demonstrate the flexibility of active learning in addressing specific challenges such as data contamination, computational efficiency, and estimation bias.
+
+In materials science and related fields, active learning frameworks have been adapted to address the unique demands of high-dimensional property spaces and limited data availability Kim et al. (2024). Notably, approaches such as Bayesian optimization and Gaussian process regression have been employed to guide sampling decisions in scenarios where simulations or experiments are costly Bassman et al. (2018); Tian et al. (2020). These methods often rely on uncertainty quantification to prioritize informative samples, with some studies emphasizing the importance of distinguishing between different types of uncertainty, such as epistemic and aleatoric components Hüllermeier et al. (2022). Furthermore, techniques like query-by-committee and variance reduction have been proposed to enhance the effectiveness of active learning in regression tasks Gonçalves et al. (2020).
+
+More recent developments have focused on integrating active learning with advanced modeling techniques and addressing practical considerations such as varying simulation costs and computational constraints Nikova et al. (2023). Some approaches combine uncertainty-based strategies with gradient information or hybrid metrics to balance exploration and exploitation in surrogate modeling Lämmle et al. (2023); Hu et al. (2023). Others investigate the use of stochastic optimization methods that offer improved convergence properties and adaptivity compared to classical approaches Asi and Duchi (2018). These advancements highlight the ongoing evolution of active learning methodologies to meet the demands of increasingly complex and data-scarce applications.
+
+Finally, while active learning has proven effective in numerous domains, its performance can vary significantly depending on the specific application and evaluation metrics used Yue et al. (2020). Studies have also emphasized the importance of considering the interaction between domain knowledge and uncertainty-based sampling strategies, particularly in materials science contexts Ciravegna et al. (2021). Additionally, the computational expense associated with optimizing acquisition functions and the need for careful hyperparameter tuning remain practical concerns that require further attention Li et al. (2024a). Despite these challenges, active learning continues to be a valuable tool for reducing labeling effort and computational cost in scenarios where data is scarce or expensive to obtain Rasouli et al. (2012). Active learning has been applied across diverse domains to reduce the cost of data labeling and simulation, with particular relevance in materials science where computational resources are often constrained. Several works have explored how uncertainty-based sampling strategies can guide the selection of informative data points. Hieu (2018) introduces regularity conditions for polynomial optimization problems and proves theoretical results regarding solution existence and stability, including Frank-Wolfe and Eaves type theorems. Ebrahimi et al. (2024) proposes a gradient-based optimizer for mixed categorical and continuous design variables using the Gumbel-Softmax method, enabling differentiable sampling from categorical distributions. Hübner et al. (2023) presents a two-scale optimization approach for graded lattice structures that considers both micro- and macroscale buckling behaviors through asymptotic homogenization. Verma et al. (2021) studies sequential resource allocation in a censored semi-bandits framework, where the loss depends on unknown thresholds and distributions, and establishes equivalences to existing bandit settings to derive optimal algorithms. Chen et al. (2025) introduces the ASTER framework, which integrates forecasting and decision-making for dynamic resource allocation by capturing spatio-temporal dependencies and generating actionable interventions through multi-objective reinforcement learning.
+
+The intersection of active learning with optimization and resource allocation has seen significant development, particularly in addressing challenges posed by discrete and high-dimensional design spaces. Liu et al. (2012) employs an Apriori-like algorithm and association rule mining to extract frequent patterns from event logs for workflow resource allocation, demonstrating how data mining can inform resource reservation decisions. Tourigny (2019) develops a dynamic metabolic modeling framework based on the maximum entropy principle, which allocates cellular resources among elementary flux modes under environmental uncertainty. These approaches highlight the importance of incorporating domain-specific knowledge and structural constraints into active learning frameworks. The theoretical underpinnings of optimization problems, such as those involving polynomial functions, provide foundational insights into solution existence and stability, which are crucial for designing robust active learning strategies in complex domains (Hieu, 2018). Similarly, methods like Gumbel-Softmax enable gradient-based optimization in settings with discrete variables, bridging the gap between traditional continuous optimization and combinatorial problems (Ebrahimi et al., 2024).
+
+Recent advancements in active learning have emphasized the integration of uncertainty quantification and adaptive sampling techniques to improve model performance with fewer labeled examples. Islam et al. (2017) focuses on resource allocation in NOMA systems, discussing user pairing and power allocation algorithms that balance system throughput and user fairness. Verma et al. (2021) demonstrates how censored semi-bandits can be used for sequential resource allocation, establishing connections to established multi-armed bandit formulations. Chen et al. (2025) presents a novel approach to spatio-temporal early decision making, where predictive signals are transformed into resource-efficient intervention strategies through multi-objective reinforcement learning. These developments underscore the growing interest in combining active learning with decision-making frameworks that operate under uncertainty and dynamic constraints. The use of Bayesian principles and probabilistic modeling in active learning contexts continues to evolve, with approaches ranging from variational inference to hierarchical modeling, each contributing to more informed and adaptive sampling strategies (Tourigny, 2019).
+
+The application of active learning in materials discovery and optimization has led to the development of specialized methodologies tailored to handle the unique characteristics of these domains. Hübner et al. (2023) explores two-scale optimization for lattice structures, emphasizing the need to consider both local and global buckling behaviors. Ebrahimi et al. (2024) illustrates how gradient-based methods can accommodate categorical variables, which are common in engineering design problems. Liu et al. (2012) applies association rule mining to workflow resource allocation, showing how historical data can be mined to improve future resource planning. These methods collectively demonstrate that active learning techniques can be adapted to various problem structures, whether they involve discrete variables, multi-scale phenomena, or complex decision-making processes. The integration of domain knowledge with uncertainty-based sampling strategies remains an open area of research, particularly in scenarios where the underlying structure of the data or the optimization landscape is not fully understood (Hübner et al., 2023).
+
+Stochastic optimization methods have received considerable attention for their effectiveness in handling large-scale and noisy data environments. Kingma and Ba (2014) introduce Adam, a first-order gradient-based optimization algorithm that adapts estimates of lower-order moments, offering computational efficiency and suitability for non-stationary objectives. The method is particularly effective in scenarios with noisy or sparse gradients, and its hyper-parameters are interpretable and require minimal tuning. In a similar vein, Li et al. (2020) propose the Slime Mould Algorithm (SMA), a bio-inspired stochastic optimizer that simulates the oscillation behavior of slime mould to achieve good exploration and exploitation capabilities. The SMA demonstrates competitive performance on benchmark functions and engineering problems, highlighting the potential of nature-inspired methods in optimization.
+
+Recent advances in decentralized and distributed optimization have focused on reducing communication overhead while maintaining convergence guarantees. Koloskova et al. (2019) present CHOCO-SGD and CHOCO-GOSSIP, gossip-based algorithms that support compressed communication in decentralized settings. These methods maintain convergence rates comparable to centralized approaches despite compression, demonstrating that communication efficiency can be achieved without sacrificing optimization quality. Additionally, Sadiev et al. (2023) address the challenge of high-probability convergence in stochastic optimization under less restrictive assumptions, deriving bounds that accommodate unbounded variance and extending applicability to broader classes of problems.
+
+Active learning strategies have been widely applied across domains to reduce labeling costs and improve model efficiency. Duchi et al. (2011) discuss adaptive subgradient methods for online learning and stochastic optimization, providing foundational insights into the behavior of algorithms under varying conditions. In the context of stochastic optimization, Espath et al. (2024) propose a Bayesian approach to approximate Hessian matrices, aiming to improve convergence in stochastic settings by incorporating curvature information while mitigating noise amplification. Furthermore, Wadu et al. (2021) apply Lyapunov optimization to address stochastic optimization problems in federated learning, where imperfect channel state information and limited computing resources pose significant challenges. These works collectively demonstrate the importance of adaptive and robust optimization techniques in practical machine learning applications.
+
+This body of work establishes that active learning is a versatile and powerful approach for reducing data labeling and simulation costs in materials science and related domains. It draws upon a range of strategies including uncertainty sampling, query-by-committee, and Gaussian process regression, each contributing to the broader goal of efficient data selection. The integration of domain knowledge and structured sampling techniques further enhances the effectiveness of these methods. Building upon this foundation, we posit three hypotheses concerning the comparative effectiveness of specific active learning strategies in materials property mapping. These hypotheses are formulated to evaluate the impact of different sampling criteria on simulation efficiency and model accuracy, without claiming specific quantitative improvements beyond what is supported by the existing literature.
+
+\subsection*{3. Hypotheses}
+
+H1: This hypothesis proposes that using active learning with uncertainty sampling based on Gaussian Process Regression to select simulations for mapping materials property landscapes will reduce the number of required simulations compared to random sampling, when evaluated on the MoleculeNet ESOL dataset. The rationale for this hypothesis builds on the widespread adoption of uncertainty sampling and Gaussian Process Regression in active learning frameworks for materials science, addressing the gap regarding the need for more robust handling of noisy data and standardized benchmarks. It leverages the real-world applicability of the ESOL dataset for solubility prediction. The hypothesis is specific enough to be tested against actual simulation data and can be falsified if the reduction in simulations does not meet the threshold.
+
+H2: The second hypothesis states that implementing Bayesian Optimization within an active learning framework for materials property mapping will lead to improved model accuracy (measured by R2) after 50 iterations compared to uncertainty sampling alone, using the UCI Adult Census Income dataset. This hypothesis leverages the bridge insight connecting Bayesian Optimization to active learning, focusing on how Bayesian methods can improve model accuracy through informed sampling. It addresses the gap in understanding how domain knowledge interacts with uncertainty-based active learning and targets a real-world dataset where classification accuracy can be measured. The hypothesis is testable using real data and can be falsified if Bayesian Optimization does not outperform uncertainty sampling in terms of accuracy.
+
+H3: The third hypothesis asserts that active learning strategies incorporating statistical leverage scores (as in ALEVS) will require fewer simulations to achieve a target level of predictive accuracy in materials property landscapes compared to standard uncertainty sampling, when validated on the UCI Air Quality dataset. This hypothesis directly applies the cross-disciplinary bridge insight from statistics that uses statistical leverage to identify informative samples. It addresses the gap in lack of standardized benchmarks and focuses on a real-world dataset where air quality measurements can be modeled. The hypothesis is grounded in the literature showing that leverage-based sampling improves AL performance and can be empirically tested using real data to determine whether leverage scores indeed reduce simulation requirements.
+
+\subsection*{4. Methods}
+
+\subsubsection*{4.1 H1}
+
+The experimental design for hypothesis H1 was structured as a controlled comparative experiment with two treatment groups: active learning with uncertainty sampling using Gaussian Process Regression (GPR), and random sampling. The objective was to determine whether the active learning approach reduces the number of required simulations by at least 30\% compared to random sampling when predicting materials properties on the MoleculeNet ESOL dataset. Both strategies were applied iteratively to select molecules for solubility prediction until a convergence criterion was met. The primary metric evaluated was the number of simulations required to reach stable predictions, with mean squared error (MSE) of final predictions also recorded. Data were sourced from the moleculenet\_esol\_delaney\_solubility.csv file, containing 1128 compounds with molecular descriptors and measured log solubility values. Preprocessing steps included loading the dataset using pandas, extracting molecular descriptors while excluding compound identifiers and predicted values, normalizing feature vectors to zero mean and unit variance, and splitting the data into train/validation/test sets while preserving compound integrity. A Gaussian Process Regression model was implemented using scikit-learn's GaussianProcessRegressor with an RBF kernel augmented by a WhiteKernel to account for noise in observations. The active learning protocol utilized uncertainty sampling, selecting samples with highest predictive variance for labeling, whereas the random sampling baseline selected compounds uniformly at random at each iteration. The Coder Agent completed the experiment under the following assumptions: that the dataset is representative of materials property landscapes, GPR provides reliable uncertainty estimates, convergence is determined by minimal changes in validation MSE, the initial training set size suffices for both approaches, a maximum iteration limit prevents infinite loops, preprocessing steps are correctly implemented, random seeds ensure reproducibility, and the experiment completes within allocated time limits. These assumptions inform the validity of the comparison between sampling strategies and the interpretation of the simulation count reduction.
+
+\subsection*{5. Results}
+
+\subsubsection*{5.1 H1}
+
+The results of Experiment H1, which aimed to evaluate whether active learning with uncertainty sampling based on Gaussian Process Regression reduces the number of required simulations by at least 30\% compared to random sampling on the MoleculeNet ESOL dataset, are presented below. The experiment was completed successfully. Random sampling required 22 simulations, whereas the active learning approach required 29 simulations. This corresponds to a reduction percentage of -31.82\%, which does not meet the success criterion of at least a 30\% reduction. The mean squared error (MSE) for random sampling was 2.0649, while the active learning method achieved an MSE of 2.3082.
+
+These findings indicate that, in this specific experimental setup, the active learning strategy did not achieve the targeted efficiency gain over random sampling. The results suggest that the uncertainty sampling mechanism based on Gaussian Process Regression did not sufficiently prioritize informative samples to reduce the total number of simulations required. Furthermore, the slight increase in MSE alongside the increased simulation count implies that the active learning method may not have improved prediction accuracy commensurate with the added computational cost. As such, the hypothesis is refuted according to the defined success criteria. The experiment confirms that, under the conditions tested, the proposed active learning framework did not yield the expected reduction in simulation requirements.
+
+\subsection*{6. Discussion}
+
+\subsubsection*{6.1 H1 --- refuted}
+
+The experimental evaluation of hypothesis H1, which posited that active learning with uncertainty sampling based on Gaussian Process Regression would reduce the number of required simulations by at least 30\% compared to random sampling on the MoleculeNet ESOL dataset, was found to be refuted. The Coder Agent reported that the success criteria were not met, indicating that the specified threshold for simulation reduction was not achieved. This outcome directly supports the refuted classification of the hypothesis, showing that the expected efficiency gain under the tested conditions did not occur.
+
+This result underscores the difficulty in realizing consistent performance improvements with active learning strategies in materials property prediction, particularly when applied to complex datasets such as ESOL. It highlights the need for more robust handling of noisy data and the importance of standardized benchmarks for evaluating active learning approaches across diverse materials domains. While the method did not meet the 30\% reduction criterion, the refutation specifically indicates that the proposed approach failed to deliver the targeted benefit on this particular task and dataset. The findings thus emphasize the sensitivity of active learning gains to dataset characteristics and implementation details, reinforcing the necessity of careful empirical validation in such settings.
+
+\subsection*{7. Limitations}
+
+Our work is subject to several key limitations that stem from both the experimental design and the assumptions underpinning the implementation. A primary assumption is that the MoleculeNet ESOL dataset is representative of broader materials property landscapes, which serves as the foundation for evaluating different sampling strategies. If this assumption fails, the generalizability of our findings may be limited to the specific characteristics of the dataset. Furthermore, the methodology relies on Gaussian Process Regression (GPR) providing reliable uncertainty estimates, a condition critical to the validity of the approach. The accuracy of this assumption depends on proper model configuration and implementation, which may not transfer directly to other domains or datasets.
+
+Additional limitations arise from computational and methodological constraints inherent in the experimental framework. It is assumed that convergence is determined by a small change in validation mean squared error; however, the sensitivity of this criterion to variations in dataset characteristics or model behavior has not been fully explored. Moreover, the experiment depends on a predefined maximum iteration limit to avoid infinite loops and assumes that the initial training set size is adequate for both sampling strategies. These simplifications are necessary for feasibility but may not reflect real-world scalability or robustness across diverse settings. In particular, the computational overhead of GPR poses a practical challenge, potentially limiting the number of iterations that can be performed within SLURM time constraints, thereby affecting the thoroughness of the analysis.
+
+Several implementation-specific conditions are also taken for granted during execution, including correct preprocessing of the dataset, reproducibility via fixed random seeds, and successful completion of experiments within allocated timeframes. While these are essential for maintaining consistency and validity, they introduce potential points of failure or variability that are not explicitly mitigated in the current setup. Notably, insufficient data may prevent meaningful comparisons between sampling strategies, and overly strict or lenient convergence criteria could affect the number of simulations required. Collectively, these factors suggest that the reliability of the outcomes hinges on precise adherence to the experimental conditions, which may not always be achievable in varying operational environments.
+
+\subsection*{8. Future Work}
+
+Future work in active learning for materials discovery should prioritize addressing the identified gaps and limitations in the current study. The refutation of Hypothesis H1 indicates that the specific approach tested did not meet its success criteria, although the exact nature of the method and performance benchmark were not specified in the outcome. This underscores the need for further exploration of alternative acquisition functions and uncertainty quantification techniques tailored to materials property prediction tasks. Given that no single active learning strategy has been shown to universally outperform others across all problem classes, comparative studies evaluating diverse frameworks under varying conditions remain essential. Several key areas remain underexplored within the scope of this work. Notably, there is a recognized gap concerning the generalizability of active learning strategies across different materials systems, suggesting a need for cross-domain evaluations. Additionally, while early training dynamics were examined, more extensive assessments of long-term performance and stability beyond initial training phases are warranted. Other unresolved concerns include the influence of hyperparameters such as pool size and batch size, the impact of variable simulation costs, and the handling of mislabeled data in simulation-based environments. These factors are critical for practical deployment and highlight the necessity of comprehensive empirical investigations that reflect real-world complexities.
+
+Beyond the direct findings of this study, several broader challenges persist in the field of active learning. The lack of standardized evaluation methods for uncertainty measures and the absence of clear guidelines for selecting appropriate strategies indicate a need for more systematic approaches to assessing AL effectiveness. Furthermore, the variability in AL performance across different domains emphasizes the importance of developing adaptable frameworks capable of adjusting sampling decisions according to contextual conditions. Addressing these issues will contribute to both theoretical advancements and improved practical applicability of active learning methodologies in materials science and related disciplines.\endgroup
+
+\bigskip
+\hrule
+\bigskip
 
 \chapter{Installation and Usage}
 \label{app:install}
-[TODO]
+
+\section*{Requirements}
+
+The pipeline needs \texttt{uv} for dependency management and an
+OpenAI-compatible HTTP endpoint serving a language model. Nothing in the code is
+specific to a particular server: every agent obtains its client from one factory
+(\texttt{llm.get\_chat\_model()}), and switching provider is a change to
+\texttt{LLM\_BASE\_URL} and \texttt{LLM\_MODEL}. Every result in this
+dissertation was produced against vLLM serving
+\texttt{Qwen/Qwen3-Coder-30B-A3B-Instruct} at tensor-parallel size~1 on a single
+80\,GB A100, which leaves the second GPU of the allocation free for the
+experiments the system writes.
+
+\section*{Installation}
+
+\begin{lstlisting}[language={}]
+git clone <repository>
+cd multi-agent-langraph
+uv sync
+cp .env.example .env     # then fill in LLM_BASE_URL and the search API keys
+\end{lstlisting}
+
+\texttt{SEMANTIC\_SCHOLAR\_API\_KEY} and \texttt{CORE\_API\_KEY} raise the rate
+limits on two of the four literature sources; arXiv needs no key. Optional
+extras are installed on demand: \texttt{uv sync --extra webapp} for the web
+interface, \texttt{--extra rerank} for the cross-encoder reranker (which pulls
+torch and transformers), and \texttt{--extra sqlite} or \texttt{--extra
+postgres} for durable checkpointing.
+
+\section*{Running a complete pipeline}
+
+\begin{lstlisting}[language={}]
+uv run research-pipeline orchestrate "your research question" \
+    --max-results 5 --output-dir outputs/paper
+\end{lstlisting}
+
+This runs all seven agents and the writer/reviewer cycle, printing the final
+paper path, the number of iterations, whether review converged, and any
+unresolved issues. Each stage also writes its own JSON output as it goes, so a
+run can be inspected stage by stage, or resumed from disk.
+
+Because a full run blocks for tens of minutes with no output, the web interface
+is usually the better way to watch one:
+
+\begin{lstlisting}[language={}]
+uv sync --extra webapp
+uv run research-pipeline serve      # then open http://127.0.0.1:8000
+\end{lstlisting}
+
+It shows each stage completing as it completes, opens every draft PDF as it is
+written rather than only the last, and can cancel a run. It also exposes the
+stage-range, own-papers and hypothesis-selection controls that requirement D5
+produced.
+
+Any stage can be run alone, taking the previous stage's JSON as input --- this
+is how the pipeline was developed and how each chapter's evidence was collected:
+
+\begin{lstlisting}[language={}]
+uv run research-pipeline literature "your question" --max-results 5
+uv run research-pipeline coder --plan-file outputs/plans/experiment_plan.json
+uv run research-pipeline coder-reconcile --run-dir outputs/paper
+uv run research-pipeline coder-benchmark score <run-dir>
+\end{lstlisting}
+
+\texttt{coder-reconcile} is the pass that imports results from experiments
+deferred to the cluster; it is safe to re-run, and safe to run days later from a
+different machine.
+
+\section*{Many questions at once}
+
+\begin{lstlisting}[language={}]
+uv run research-pipeline orchestrate-batch questions.txt --output-dir outputs/sweep
+\end{lstlisting}
+
+Each question is an independent graph invocation with its own thread id and
+output directory, recorded in a \texttt{flock}-guarded manifest that is
+rewritten after every question. A pre-empted job therefore resumes without
+redoing finished work, and a consecutive-failure circuit breaker stops a sweep
+when something systemic has broken. The four sweeps reported in
+Chapter~\ref{ch:evaluation} were produced this way, through
+\texttt{scripts/slurm/run\_pipeline\_batch.sbatch}.
+
+\section*{Settings that change what the system will claim}
+
+The defaults are deliberately conservative: a fresh checkout searches for
+datasets but does not fetch them, does not submit jobs to a cluster, and
+withholds more verdicts than it publishes.
+
+\begin{table}[htbp]
+\centering\small
+\caption{The settings that most affect what a run produces. Defaults are those
+of a fresh checkout; the fourth sweep's configuration is given where it differs.}
+\begin{tabularx}{\textwidth}{lcX}
+\toprule
+\textbf{Variable} & \textbf{Default} & \textbf{Effect} \\
+\midrule
+\texttt{CODER\_DATA\_DIR} & unset & Directory of datasets a human has staged. Setting it is what makes a real verdict reachable (Section~\ref{sec:staging-restores}). \\
+\texttt{CODER\_ENABLE\_DATA\_ACQUISITION} & false & Fetches declared inputs here rather than inside the generated program, so a failed download is not diagnosed as a code defect. \\
+\texttt{CODER\_ENABLE\_SOURCE\_DISCOVERY} & false & Searches catalogues for a source when the tables resolve none. Requires acquisition. Discovered inputs never carry a verdict. \\
+\texttt{CODER\_ENABLE\_MODEL\_DATA\_SOURCING} & false & Lets the model choose among pooled candidates and propose URLs. Does not change the verdict rule. \\
+\texttt{CODER\_AUTO\_SUBMIT\_SLURM} & false & Submits deferred experiments unattended, subject to a static safety check, an LLM pre-flight review and two job caps. \\
+\texttt{CODER\_MAX\_FIX\_ATTEMPTS} & 3 & Regenerations allowed per experiment. Structural failures draw on a separate budget. \\
+\texttt{CODER\_REQUIRE\_REAL\_DATA} & false & Skips a plan whose every input would be a surrogate, before any code is generated. \\
+\texttt{CHECKPOINTER\_BACKEND} & memory & \texttt{sqlite} or \texttt{postgres} make a run resumable after the process dies. \\
+\texttt{ENABLE\_RERANK} & false & Orders retrieved papers with a cross-encoder. Truncation is separate and off by default, because a dropped paper can never be cited. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{What a run does to the machine}
+
+The Coder Agent generates code and executes it. Each experiment gets an isolated
+virtual environment, shared with other experiments declaring the same
+requirements, and runs under a static safety check and a bounded timeout, with
+the first execution of any program a smoke run at minimum cost knobs. It will
+nonetheless install packages, write to its experiments directory, and --- if
+data acquisition is enabled --- make outbound HTTPS requests to fetch datasets,
+guarded per redirect hop. It does not run generated code with elevated
+privileges, and generated experiments are forbidden from fetching the reference
+repositories the prompt shows them.
+
+\section*{Tests}
+
+\begin{lstlisting}[language={}]
+uv run pytest
+uv run pre-commit run --all-files    # ruff, ruff format, mypy
+\end{lstlisting}
+
+Lint and type checking are scoped by \texttt{.pre-commit-config.yaml} to the
+Coder Agent package, which is the part of the system under active change; the
+test suite covers all seven agents and runs without a model, since every agent
+that calls one takes its client by injection.
