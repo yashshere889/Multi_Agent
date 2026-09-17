@@ -46,14 +46,27 @@ other university or degree-awarding body.
 
 % ===================== ACKNOWLEDGEMENTS =====================
 \chapter*{Acknowledgements}
-% TODO(yash): first person, personal. Suggested content:
-%   - Dr Alexei Lisitsa (supervision)
-%   - the two academic staff who completed the requirements questionnaire
-%   - the evaluation participants
-%   - Barkla / Advanced Research Computing at Liverpool for compute
-%   - family / friends
-%   - explicit acknowledgement of third-party libraries is in Ch.3, not here
-[TODO --- written last.]
+My thanks go first to my supervisor, Dr Alexei Lisitsa, whose questions were
+consistently the ones I had been avoiding. The direction this project took ---
+towards what the system can be made to \emph{refuse} to claim, rather than
+towards what it can be made to produce --- came out of those conversations.
+
+I am grateful to the two members of academic staff who completed the
+requirements questionnaire. They gave their time before there was anything to
+show them, and one remark of theirs about their own programming ability shaped
+what I decided this system was for. Both later agreed to evaluate the working
+system, and it is my regret rather than theirs that scheduling on shared
+research hardware did not permit it.
+
+This work would not have been possible without the University of Liverpool's
+Advanced Research Computing facility. Every result reported here was produced on
+Barkla, and a project of this shape --- a 30-billion-parameter model served
+locally, alongside the experiments it writes --- simply has nowhere else to run.
+I am grateful to the team who keep it available.
+
+Finally, to my family and my friends: thank you for the patience, and for
+asking how it was going even when the honest answer was that a guardrail I had
+written two weeks earlier had turned out to be doing nothing at all.
 
 % ===================== ANONYMOUS TITLE PAGE =====================
 % Nothing from this point onwards may contain personal information.
@@ -70,20 +83,52 @@ other university or degree-awarding body.
 % ===================== ABSTRACT =====================
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-% TODO(yash): write LAST. Two to three paragraphs, one page maximum.
-% Must cover, in terms a non-specialist can follow:
-%   1. The problem: research is slow, and the parts that are slow (search,
-%      implementation, write-up) are exactly the parts that exclude people
-%      who cannot program.
-%   2. What was built: a seven-agent LangGraph pipeline, self-hosted on the
-%      university's own HPC, that carries a research question through to a
-%      drafted paper, with every verifiable decision moved out of the
-%      language model into deterministic code.
-%   3. What was found: verification beats optimisation for this class of
-%      failure; the quantitative benchmark result; and what the evidence
-%      does not establish (no human evaluation was carried out).
-%   4. The honest limits.
-[TODO --- written last.]
+
+Much of academic research is necessary work that is not itself scholarship:
+finding the relevant literature, turning an idea into an experiment, implementing
+it correctly, and assembling the result into a document. That burden falls
+unevenly, because those parts are disproportionately \emph{programming} parts ---
+a researcher who cannot write code is often unable to run their experiment
+without recruiting somebody who can. Language models appear to close the gap, but
+two obstacles stand between that offer and a system a university could
+responsibly adopt. A plausible review, a plausible experiment and a plausible
+result give a non-programming reader no way to tell a correct finding from a
+fabricated one; and unpublished work is too sensitive for many institutions to
+send to a commercial API.
+
+This dissertation presents a seven-agent research pipeline that addresses both.
+It carries a plain-text question through literature retrieval, cross-disciplinary
+synthesis, hypothesis generation, experiment planning, code generation and
+execution, and a drafting and review cycle, running entirely on the university's
+own high-performance computing facility against a self-hosted open-weight model.
+Every agent is internally a graph rather than a single prompt, so each model call
+and each check is independently inspectable. The organising design rule is that
+any decision which can be verified is computed in code rather than accepted from
+the model: a hypothesis verdict is derived from what the experiment actually
+returned, a citation resolves only against a paper the system genuinely
+retrieved, and a verdict is withheld when the inputs were synthesised, when a run
+was truncated to fit its compute budget, or when its metrics could not have come
+out otherwise.
+
+Those withholding rules are what makes the system's real failures visible, and
+that is the second contribution. Across four sweeps of the same thirty-six
+research questions and twenty-one runs of a frozen twelve-case benchmark, the
+recurring failure is not an experiment that breaks but one that succeeds on the
+wrong data. The first sweep published sixteen hypothesis verdicts, nine of them
+supporting the hypothesis, computed on datasets that could not answer the
+question asked. Closing three verification gates reduced published verdicts to
+none --- an honest state, and an unusable one. Staging five real datasets
+restored seven, and four of those rest on a dataset the planner substituted for
+the one the question required: real data, correctly labelled as real, that simply
+does not fit.
+
+No human evaluation was carried out --- a participant cannot be asked to hold an
+hour open against a GPU queue that may not clear --- so whether a researcher who
+cannot program would be helped by the drafted paper, and whether they would
+understand what was withheld from them, remain open. What the work does establish
+is narrower and still worth having: that a pipeline of this shape can carry a
+question end to end unattended, and that computing verdicts in code rather than
+accepting them from a model is what made its failures visible at all.
 
 % ===================== ETHICAL COMPLIANCE =====================
 \chapter*{Statement of Ethical Compliance}
@@ -108,10 +153,6 @@ could skip any question, and could withdraw at any time. No personally identifia
 stored, or reported. All responses are presented here in anonymised and aggregated form, and
 the reported detail has been deliberately generalised where a combination of attributes could
 otherwise identify an individual within a small institution.
-
-% TODO(yash): if the evaluation ends up smaller than planned, amend the
-% paragraph above to say exactly what was and was not carried out. Doing
-% less than was declared is acceptable; describing it inaccurately is not.
 
 % ===================== CONTENTS =====================
 \tableofcontents
