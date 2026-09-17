@@ -410,7 +410,7 @@ owns, as distinct from the model-judged hallucination check.}
 \midrule
 Questions completed                & 36/36 & 33/36 & 34/36 & 34/36 \\
 Experiments that ran               & 25    & 25    & 26    & 19 \\
-Plans refused as infeasible        & 0     & 0     & 0     & \textbf{4} \\
+Plans marked infeasible, skipped   & 0     & 0     & 0     & \textbf{4} \\
 Verdicts published                 & 16    & 3     & \textbf{0} & \textbf{7} \\
 \quad of which \emph{supported}    & 9     & 1     & 0     & 1 \\
 Verdicts withheld                  & 9     & 22    & 26    & 12 \\
@@ -466,11 +466,13 @@ It is the largest single-change effect in this evaluation. Plans now name a file
 outright (\texttt{plan source: uci\_statlog\_german\_credit.csv}); seventeen of the
 twenty resolved inputs matched a staged file, \emph{none} was found by search, and
 seven verdicts were published --- six refutations and one confirmation --- against
-zero the sweep before. Four plans were additionally refused outright by the
-Experiment Planner as infeasible, the first time that path fired in any sweep, each
+zero the sweep before. Four plans were additionally marked infeasible by the
+Experiment Planner and skipped, the first time that path fired in any sweep, each
 naming data the staged set does not hold: time-to-event data with censoring,
 industrial sensor data with known degradation times, multi-station weather records,
-and a tokenizer adapted to a domain.
+and a tokenizer adapted to a domain. That looks like the system declining work it
+could not do honestly, and Section~\ref{sec:feasible-flag} reports what it
+actually was.
 
 What that demonstrates is narrower than it first appears, and more useful. It is not
 that the agent became better at finding data; nothing about its searching changed.
@@ -480,6 +482,41 @@ lifts the constraint for whichever questions the staged files happen to fit.
 Chapter~\ref{ch:conclusion} takes that as the deployment finding it is: a department
 that stages its own corpora gets verdicts, and one that expects the agent to go and
 find them does not.
+
+\subsection{A flag that described the wrong thing}
+\label{sec:feasible-flag}
+
+None of those four plans was empty. Each carries a complete body: a design
+paragraph, two or three methods, between five and seven concrete implementation
+steps, and an \texttt{estimated\_complexity} of \emph{low}. Question~17's first
+step reads ``load \texttt{uci\_air\_quality\_hourly.csv} and preprocess numeric
+columns''; question~12's proposes generating a Weibull survival dataset and
+fitting the comparison its hypothesis asks for. These are runnable experiments,
+and not one of them was run.
+
+The Planner was following its instructions exactly. The contract said that if a
+hypothesis is not practically testable as stated, set \texttt{feasible: false}
+\emph{and still produce a full plan for a reasonable simplified version of it}.
+The Coder Agent reads only the flag: an infeasible plan is skipped and its body
+discarded unread. So the flag described the \emph{hypothesis} while its only
+consumer read it as describing the \emph{plan}, and the same instruction that
+produced the body guaranteed the body would never be seen. This is the shape of
+the citation checker of Section~\ref{sec:end-to-end} and the confirmation gate of
+Section~\ref{sec:guardrail-coverage} once more: a value written in one place under
+one meaning and read in another under a different one, each half behaving exactly
+as its own tests specify.
+
+What the sweep shows is therefore not a system that learned to decline work. It is
+a contract defect that became visible only once the staged inventory gave the
+Planner a concrete list to check a hypothesis against --- before sweep~4 it had
+nothing specific to find missing, so the path never fired and the contradiction
+never surfaced. The instinct underneath it is sound: three of the four plans
+propose synthesising the data they lack, which the provenance gate would have
+refused a verdict for in any case, and the fourth proposes reading a staged file.
+\texttt{feasible} now describes the plan as written, with
+\texttt{feasibility\_notes} carrying the record of what was narrowed; like the
+repairs of Section~\ref{sec:read-not-recorded}, that change postdates the last
+sweep and is unmeasured.
 
 \subsection{The Planner substitutes what is on the shelf}
 \label{sec:planner-substitution}
@@ -631,14 +668,16 @@ comparisons in Table~\ref{tab:three-sweeps} are internal, measuring the effect o
 specific repairs on a fixed set of questions, and say nothing about how the pipeline
 compares with a researcher doing the same work unaided.
 
-Two repairs this chapter argues for were not made. The substitution of staged data
-for the data a question requires (Section~\ref{sec:planner-substitution}) is
+Three repairs this chapter argues for are unmeasured. The substitution of staged
+data for the data a question requires (Section~\ref{sec:planner-substitution}) is
 described and not fixed, so four of sweep~4's seven published verdicts should be
 read as demonstrations of the failure rather than as results. The runtime marker
 that would let provenance record which branch of a guarded read executed
-(Section~\ref{sec:read-not-recorded}) is likewise specified and not implemented. In
-both cases a repair landing after the last sweep would have been an unmeasured
-claim, and the project has already recorded what unmeasured claims cost it.
+(Section~\ref{sec:read-not-recorded}) is specified and not implemented. The
+feasibility contract of Section~\ref{sec:feasible-flag} has been repaired, but
+after the last sweep ran, so no sweep reports what it recovers. In each case a
+repair landing after the final sweep would have been an unmeasured claim, and this
+project has already recorded what unmeasured claims cost it.
 
 What the evidence does support is narrower, and still worth having: that a pipeline
 of this shape can carry a question end to end unattended; that its characteristic

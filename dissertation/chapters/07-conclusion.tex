@@ -114,7 +114,12 @@ question that is never asked is whether the named dataset can answer the named
 question, and it has to be asked of the plan, before code exists. A first version
 needs no model: a plan that assumes a property its own declared columns do not
 show --- coordinates, a timestamp, an ordering --- is asserting something
-checkable against the staged file's header.
+checkable against the staged file's header. A narrower defect on the same
+boundary has already been repaired without being measured: the Planner's
+\texttt{feasible} flag described the hypothesis while the Coder read it as
+describing the plan, so four fully-specified, low-complexity plans were skipped
+and their bodies discarded unread (Section~\ref{sec:feasible-flag}). The first
+sweep after submission should report what that recovers.
 
 \paragraph{Recording what the program did, not what it said.} A related gap is
 cheaper still. Thirteen of sweep~4's twenty inputs were downgraded to surrogate on
