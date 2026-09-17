@@ -2097,6 +2097,21 @@ GUARDED_LOAD_DATA = (
     "        logger.warning('falling back to synthetic data: %s', exc)\n"
     "        return _synthesize()\n"
 )
+def _load_data_section(run_py: str) -> str:
+    """The generated load_data definition as it appears in a rendered run.py."""
+    lines = run_py.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("def load_data("))
+    end = next(
+        (
+            i
+            for i in range(start + 1, len(lines))
+            if lines[i] and not lines[i][0].isspace() and not lines[i].startswith("def load_data(")
+        ),
+        len(lines),
+    )
+    return "\n".join(lines[start:end]) + "\n"
+
+
 BARE_LOAD_DATA = "def load_data():\n    return pd.read_csv('survey_data.csv')\n"
 
 
@@ -2313,45 +2328,54 @@ def test_check_data_fallback_ignores_unparseable_source():
     assert sandbox.check_data_fallback("def load_data(:\n    pass\n") == []
 
 
-def test_missing_data_fallback_routes_through_the_fix_loop(tmp_path):
-    # End to end: an unguarded first generation is never executed, the concrete
-    # finding goes back to the model, and a guarded second generation runs.
+def test_an_unguarded_read_is_guarded_deterministically_and_costs_no_attempt(tmp_path):
+    # Used to route through the fix loop at the cost of one attempt. Barkla job
+    # 10537067 spent two attempts there with the model writing the same bare
+    # read_csv back each time, so repair.guard_data_read now wraps it before
+    # anything is rendered. The invariant is unchanged — the unguarded read is
+    # never what executes — and it is now free.
     # `import pandas as pd` matters: without it the rendered run.py uses a name
     # it never binds, and sandbox.check_undefined_names — which runs earlier —
-    # would (correctly) fail this on undefined_name before the data-fallback
-    # check ever saw it.
+    # would (correctly) fail this on undefined_name first.
     unguarded = {
         **GOOD_SECTIONS,
         "imports": "import pandas as pd",
         "load_data_function": BARE_LOAD_DATA,
     }
-    guarded = {**GOOD_SECTIONS, "load_data_function": "def load_data():\n    return None\n"}
-    model = RecordingScriptedChatModel(
-        codegen=[_codegen_response(unguarded)], fix=[_codegen_response(guarded)]
-    )
+    model = RecordingScriptedChatModel(codegen=[_codegen_response(unguarded)], fix=[])
     result = _agent(tmp_path, model).run(_planner_output([_plan("H1", complexity="low")]))
 
     exp = result["experiments"][0]
-    assert exp["status"] == "completed"
-    assert exp["fix_attempts"] == 1
-    assert exp["fix_history"][0]["error_source"] == "missing_data_fallback"
-    assert exp["fix_history"][0]["resolved"] is True
-    assert "read_csv" in exp["fix_history"][0]["error_summary"]
-    # The model was told what to fix, in the fix prompt's error slot.
-    assert "missing_data_fallback" in model.prompts_by_kind["fix"][0]
-    # The unguarded version was preserved but never executed — the guarded one is
-    # what ended up on disk and ran.
-    snapshot = Path(exp["fix_history"][0]["code_path"])
-    assert "survey_data.csv" in snapshot.read_text()
-    assert "survey_data.csv" not in (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    # No fix attempt and no fix prompt: the wrap cost nothing at all. (The run
+    # then stops at env provisioning, because this fixture's requirements do not
+    # carry pandas and the test agent has no network — an artefact of the
+    # fixture, not of the repair, and the reason this asserts on the repair
+    # rather than on a completed run.)
+    assert exp["fix_attempts"] == 0
+    assert exp["fix_history"] == []
+    assert model.prompts_by_kind.get("fix", []) == []
+    # What was rendered is the guarded version: the read is inside a try, with a
+    # synthesized fallback behind it, and the gate that rejected it now passes.
+    rendered = (tmp_path / "experiments" / "H1" / "run.py").read_text()
+    assert "survey_data.csv" in rendered
+    assert sandbox.check_data_fallback(_load_data_section(rendered)) == []
 
 
-def test_missing_data_fallback_gives_up_without_ever_executing(tmp_path):
-    unguarded = {
-        **GOOD_SECTIONS,
-        "imports": "import pandas as pd",
-        "load_data_function": BARE_LOAD_DATA,
-    }
+def test_the_gate_still_fires_when_the_repair_cannot_reach_the_read(tmp_path):
+    # The repair wraps load_data's own body. A read inside a nested helper that
+    # load_data already calls guarded is out of its reach, so the check still
+    # routes to the model — the error source is narrowed, not retired.
+    nested = (
+        "def _read():\n"
+        "    return pd.read_csv('survey_data.csv')\n"
+        "\n"
+        "def load_data():\n"
+        "    try:\n"
+        "        return _read()\n"
+        "    except Exception:\n"
+        "        return None\n"
+    )
+    unguarded = {**GOOD_SECTIONS, "imports": "import pandas as pd", "load_data_function": nested}
     model = ScriptedChatModel(
         codegen=[_codegen_response(unguarded)], fix=[_codegen_response(unguarded)]
     )

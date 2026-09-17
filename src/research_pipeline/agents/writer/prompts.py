@@ -91,6 +91,17 @@ When you cite papers for a gap, cite only the paper ids that gap lists as its \
 supporting evidence, and say no more about those papers than the gap and the \
 literature summary say about them.
 
+State each gap in the terms the gaps list uses, and do not add an assessment \
+of how important, widespread, surprising or neglected it is. The motivation is \
+that the gaps exist; it is not your reading of what they mean. Concretely, do \
+not call a gap a "notable absence", an "area of concern", "insufficient", \
+"limited attention", "prevalent", "growing", or "central", do not say gaps \
+"underscore", "highlight" or "reveal" anything, and do not conclude that they \
+"point to a broader issue" — every one of those was flagged as unsupported in \
+an earlier draft, because the gaps list says a gap exists and says nothing \
+about its significance. Likewise, when you preview the hypotheses, state them \
+as given and do not add a purpose or a comparison they do not state.
+
 Write 3-5 paragraphs.
 """
 

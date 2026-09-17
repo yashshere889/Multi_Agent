@@ -427,3 +427,123 @@ def install_for(python_executable, diagnosis: diagnose.ExecutionDiagnosis) -> tu
     if ok:
         return True, f"installed {package!r} to satisfy `import {module}`"
     return False, f"could not install {package!r} for `import {module}`: {detail[-800:]}"
+
+
+# Columns whose name says they carry a date rather than a measurement, so a
+# synthesized stand-in gives them dates instead of draws from a normal.
+_DATE_COLUMN_RE = re.compile(r"date|time|period|month|year|day", re.IGNORECASE)
+_STAND_IN_ROWS = 512
+
+
+def _stand_in_frame(columns: list[str]) -> list[str]:
+    """The body lines of a fallback that builds a frame shaped like the input."""
+    # stdlib `random` rather than numpy: the code being patched already reads
+    # with pandas, so pandas is a dependency it had anyway, and a fallback that
+    # pulled in numpy would make a patched experiment need a package the
+    # original never did — which fails provisioning outright on a machine with
+    # no network, turning a free repair into a dead run.
+    lines = [
+        "import random as _random",
+        "import pandas as _pd",
+        f"_rows = {_STAND_IN_ROWS}",
+        "_rng = _random.Random(0)",
+    ]
+    if not columns:
+        # Nothing known about the real input: two numeric columns is a frame the
+        # rest of the program can at least run against.
+        lines.append(
+            "return _pd.DataFrame({"
+            "'feature': [_rng.gauss(0.0, 1.0) for _ in range(_rows)], "
+            "'target': [_rng.gauss(0.0, 1.0) for _ in range(_rows)]})"
+        )
+        return lines
+    fields = []
+    for column in columns:
+        if _DATE_COLUMN_RE.search(column):
+            fields.append(
+                f"{column!r}: _pd.date_range('2000-01-01', periods=_rows, freq='D')"
+                ".strftime('%Y-%m-%d')"
+            )
+        else:
+            fields.append(f"{column!r}: [_rng.gauss(0.0, 1.0) for _ in range(_rows)]")
+    lines.append("return _pd.DataFrame({" + ", ".join(fields) + "})")
+    return lines
+
+
+def guard_data_read(
+    load_data_source: str, columns: list[str] | None = None
+) -> tuple[str, list[str]]:
+    """Wrap an unguarded read in load_data, falling back to a synthesized frame.
+
+    The fourth no-model-call repair, and it exists for the reason the third one
+    does: the prompt has always said to guard the read and fall back, the fix
+    prompt quotes the exact remedy including the line number, and the model
+    writes the same bare `read_csv` back. Barkla job 10537067 spent two of its
+    fix attempts on that, and the alternating `invalid_format` around it is what
+    finally ended the plan. Asking again is the thing that does not work.
+
+    Wrapping is mechanical: the body goes inside a `try`, and the handler logs
+    and returns a frame built from the columns the input really has, which
+    `_input_columns` already knows. The fallback is normally dead code — a
+    staged file that exists is read by the `try` — so this satisfies a
+    robustness gate without changing what the experiment measures. If it ever
+    does fire, `load_data` returns synthesized data and `provenance` withholds
+    the verdict exactly as it does for any other surrogate input.
+
+    Returns the source unchanged with no changes recorded when there is nothing
+    to guard, when the source will not parse, or when `load_data` is absent —
+    the same degrade-to-nothing contract as every other repair here.
+    """
+    if not sandbox.check_data_fallback(load_data_source):
+        return load_data_source, []
+    try:
+        tree = ast.parse(load_data_source)
+    except SyntaxError:
+        return load_data_source, []
+    function = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "load_data"
+        ),
+        None,
+    )
+    if function is None or not function.body:
+        return load_data_source, []
+
+    # Keep a leading docstring outside the try: wrapping it changes nothing and
+    # a function whose docstring sits inside a try-block reads as a mistake.
+    body = function.body
+    first = body[0]
+    if (
+        isinstance(first, ast.Expr)
+        and isinstance(first.value, ast.Constant)
+        and isinstance(first.value.value, str)
+    ):
+        body = body[1:]
+        if not body:
+            return load_data_source, []
+
+    lines = load_data_source.splitlines()
+    start = body[0].lineno - 1
+    end = max(node.end_lineno or node.lineno for node in body)
+    indent = " " * (len(lines[start]) - len(lines[start].lstrip()))
+    guarded = [f"{indent}try:"]
+    guarded += [f"    {line}" if line.strip() else line for line in lines[start:end]]
+    guarded.append(f"{indent}except Exception as _exc:")
+    guarded.append(
+        f'{indent}    logging.warning("load_data could not read its input (%s); '
+        'falling back to a synthesized stand-in", _exc)'
+    )
+    guarded += [f"{indent}    {line}" for line in _stand_in_frame(list(columns or []))]
+
+    patched = "\n".join([*lines[:start], *guarded, *lines[end:]])
+    if load_data_source.endswith("\n"):
+        patched += "\n"
+    try:
+        ast.parse(patched)
+    except SyntaxError:
+        # Never hand back something that will not compile: a failed wrap is a
+        # no-op, and the model gets the fix prompt it would have got anyway.
+        return load_data_source, []
+    return patched, ["wrapped load_data's read in try/except with a synthesized fallback"]

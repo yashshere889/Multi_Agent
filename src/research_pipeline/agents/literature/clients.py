@@ -172,6 +172,41 @@ def search_arxiv(queries: list[str], max_results: int) -> list[Paper]:
     return papers
 
 
+# Every paper cited without a year prints as "n.d.", and the drafts have carried
+# a lot of them (26 of r15's references, 35 of r13's). A source that left its own
+# year field empty has often still filled a publication-date field, so the year
+# is recoverable rather than absent.
+#
+# Deliberately restricted to fields that denote *publication*. A repository
+# deposit or record-creation date is not a publication year, and printing one as
+# though it were would put a fabricated year in the reference list — strictly
+# worse than the honest "n.d." it replaced.
+_PUBLICATION_YEAR_FIELDS = ("year", "yearPublished")
+_PUBLICATION_DATE_FIELDS = ("publishedDate", "datePublished", "publicationDate")
+_YEAR_IN_DATE_RE = re.compile(r"\b(1[5-9]\d{2}|20\d{2})\b")
+
+
+def publication_year(record: dict) -> int | None:
+    """The publication year a source supplied, under whichever key it used.
+
+    Returns None rather than guessing: "n.d." is a true statement about a record
+    with no publication date, and a wrong year in a citation is not.
+    """
+    if not isinstance(record, dict):
+        return None
+    for field in _PUBLICATION_YEAR_FIELDS:
+        value = record.get(field)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.strip().isdigit():
+            return int(value.strip())
+    for field in _PUBLICATION_DATE_FIELDS:
+        match = _YEAR_IN_DATE_RE.search(str(record.get(field) or ""))
+        if match:
+            return int(match.group(1))
+    return None
+
+
 def paper_from_semantic_scholar(paper: dict) -> Paper:
     """Maps one Semantic Scholar paper object onto this pipeline's Paper shape.
 
@@ -192,7 +227,7 @@ def paper_from_semantic_scholar(paper: dict) -> Paper:
         "title": (paper.get("title") or "").strip(),
         "authors": [a.get("name") for a in paper.get("authors") or []],
         "abstract": (paper.get("abstract") or "").strip(),
-        "year": paper.get("year"),
+        "year": publication_year(paper),
         "pdf_url": open_access.get("url"),
         "doi": (paper.get("externalIds") or {}).get("DOI"),
         "url": paper.get("url"),
@@ -283,7 +318,7 @@ def search_core(queries: list[str], max_results: int) -> list[Paper]:
                         a.get("name") for a in (work.get("authors") or []) if a.get("name")
                     ],
                     "abstract": (work.get("abstract") or "").strip(),
-                    "year": work.get("yearPublished"),
+                    "year": publication_year(work),
                     "pdf_url": work.get("downloadUrl"),
                     "doi": work.get("doi"),
                     "url": f"https://core.ac.uk/works/{core_id}",

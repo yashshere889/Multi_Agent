@@ -1512,6 +1512,23 @@ class CoderAgent:
                 "error_text": f"Model did not return this experiment's code in the required delimited section format: {generation_error}",
             }
         sections = generation.get("run_py_sections", {})
+
+        # Guard an unguarded read before anything is rendered, so the patched
+        # section flows through the template, the span map and every check
+        # below. Deterministic and idempotent (see repair.guard_data_read), and
+        # a no-op when there is nothing to guard — which is why it sits here
+        # rather than behind the missing_data_fallback check further down: by
+        # the time that check fires there is no loop left to re-render from, and
+        # returning its error_source would spend a fix attempt on a rewrite
+        # Python can do itself.
+        if sections.get("load_data_function"):
+            guarded, guard_changes = repair.guard_data_read(
+                sections["load_data_function"],
+                self._input_columns(plan, network_available, hf_dataset, acquisitions, discoveries),
+            )
+            if guard_changes:
+                sections = {**sections, "load_data_function": guarded}
+                logger.info("[%s] %s", hypothesis_id, "; ".join(guard_changes))
         assumptions_made = generation.get("assumptions_made", [])
         needs_gpu = bool(generation.get("needs_gpu", False))
 
