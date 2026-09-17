@@ -68,7 +68,7 @@ experiment counts only if it ran \emph{and} carries a real boolean verdict.
 Completion alone is not enough, because an experiment that finishes on
 synthesised data has produced numbers without evidence.
 
-Fourteen runs were collected on identical inputs, in two series two weeks
+Twenty-one runs were collected on identical inputs, in two series two weeks
 apart.
 
 \subsection{The benchmark does not support single-run comparison}
@@ -119,7 +119,7 @@ Results below report both the recorded and the corrected figures.
 \subsection{A metric that could not move}
 \label{sec:evidence-ready}
 
-Five further runs of the same corpus were collected in the final week, with
+Twelve further runs of the same corpus were collected in the final week, with
 dataset discovery enabled by default. Every one scored \emph{zero} interpretable
 out of twelve, and the score was not wrong. Between one and four experiments per
 run found a real dataset, read it and computed their metrics; each had its verdict
@@ -141,12 +141,15 @@ job. The sum is deliberately not named for validity --- an unconfirmed source ca
 be real data about the wrong subject, which is precisely why the gate exists ---
 and the report prints the caution beside the number whenever the two disagree.
 
-Under the split metric the five runs score \textbf{1, 4, 3, 3 and 3} out of
-twelve, with completions at 9, 10, 10, 10 and 10 and a mean of 0.6 to 1.9 fix
-attempts per completed experiment. That is the same threefold spread as the first
-series on a metric defined ten days later, which is the more useful reading of it:
-the variance is a property of the pipeline, not an artefact of how success
-happened to be defined.
+Scored that way, and read across all twelve runs --- one agent configuration, one
+scorer, two days --- evidence-ready ranges from \textbf{1 to 4} out of twelve with
+a median of 3; completions sit at 9 or 10 in every run; total fix attempts range
+from 13 to 26. The spread on the headline number is therefore as
+wide as the first series' was on a metric defined ten days earlier, while the
+count of experiments that merely \emph{finish} barely moves --- which is the more
+useful reading of both series. Variance here is a property of the pipeline rather
+than an artefact of how success was defined, and it concentrates in exactly the
+step that decides whether a run produced evidence.
 
 \section{An ablation: dataset discovery}
 \label{sec:ablation}
@@ -683,7 +686,7 @@ those failures visible at all.
     categories and their resolution rates reported in Chapter~\ref{ch:po}.
   \item[\textbf{A6}] \emph{Survive shared-HPC conditions.} Met: runs resume from
     durable checkpoints, batch sweeps resume per question from a manifest, and
-    fourteen benchmark runs and four 36-question sweeps completed on contended,
+    twenty-one benchmark runs and four 36-question sweeps completed on contended,
     pre-emptible partitions under a per-user GPU quota. Pre-emption stopped two
     benchmark runs mid-corpus and the final sweep ran one question at a time for
     two days; both finished, which is the property being claimed.
