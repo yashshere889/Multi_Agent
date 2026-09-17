@@ -20,3 +20,6 @@ Lit agent langraph.ipynb
 # Eval outputs. Gold sets under evals/gold/ are tracked on purpose —
 # they are the ground truth every measurement is made against.
 evals/runs/
+# The Coder Agent's fix-pattern store (CODER_FIX_STORE_SQLITE_PATH), written
+# into the working directory the moment anything runs the Coder locally.
+coder_fix_patterns.db

@@ -242,6 +242,184 @@ def test_runner_defaults_max_results_when_the_form_left_it_blank(store, monkeypa
     assert graph.seen_inputs["max_results_per_query"] is not None
 
 
+def test_runner_passes_the_run_shape_params_through_to_the_graph(store, monkeypatch):
+    seed_papers = [{"title": "A paper I already have", "source": "manual"}]
+    record = store.create(
+        "q",
+        {
+            "start_stage": "own_papers",
+            "end_stage": "hypothesis",
+            "include_interdisciplinary": False,
+            "seed_papers": seed_papers,
+        },
+    )
+    run_dir = store.run_dir(record["run_id"])
+    updates = [
+        {"seed_literature": _literature_delta()},
+        {"hypothesis": {"hypothesis_output": _hypothesis_output()}},
+        {"finalize": {"final_result": {"stages_completed": ["literature_output", "hypothesis_output"]}}},
+    ]
+    graph = FakeGraph(updates)
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    final = runner.run(run_dir)
+
+    assert graph.seen_inputs["start_stage"] == "own_papers"
+    assert graph.seen_inputs["end_stage"] == "hypothesis"
+    assert graph.seen_inputs["include_interdisciplinary"] is False
+    assert graph.seen_inputs["seed_papers"] == seed_papers
+    assert final["status"] == runs.COMPLETED
+
+
+def test_runner_omits_run_shape_params_the_caller_did_not_set(store, monkeypatch):
+    """Absent must stay absent, not become an explicit None: the orchestrator
+    reads these with state.get(key, default), which falls back only for a key
+    that is missing — a present None would read as "explicitly off"."""
+    record = store.create("q", {"max_results_per_query": 3})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    for key in ("start_stage", "end_stage", "include_interdisciplinary", "seed_papers"):
+        assert key not in graph.seen_inputs
+
+
+def test_runner_omits_run_shape_params_that_are_present_but_null(store, monkeypatch):
+    record = store.create("q", {"start_stage": None, "end_stage": None, "seed_papers": []})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    for key in ("start_stage", "end_stage", "seed_papers"):
+        assert key not in graph.seen_inputs
+
+
+def _resumed_run(store, **extra_params):
+    """A run continuing one that stopped after the Hypothesis Agent: the two
+    finished stages arrive as params, exactly as app.continue_run writes them."""
+    return store.create(
+        "q",
+        {
+            "resume_from": "hypothesis",
+            "end_stage": "coder",
+            "literature_output": _literature_delta()["literature_output"],
+            "hypothesis_output": _hypothesis_output(),
+            **extra_params,
+        },
+    )
+
+
+def _resumed_updates() -> list[dict]:
+    """What the graph streams for that run — it enters at the planner, so the
+    stages before it never produce a delta."""
+    return [
+        {"experiment_planner": {"planner_output": _planner_output()}},
+        {"coder": {"coder_output": _coder_output()}},
+        {
+            "finalize": {
+                "final_result": {
+                    "stages_completed": [
+                        "literature_output", "hypothesis_output", "planner_output", "coder_output",
+                    ]
+                }
+            }
+        },
+    ]
+
+
+def test_runner_threads_a_resume_and_its_carried_stage_outputs_into_the_graph(store, monkeypatch):
+    record = _resumed_run(store)
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_resumed_updates())
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    final = runner.run(run_dir)
+
+    assert graph.seen_inputs["resume_from"] == "hypothesis"
+    assert graph.seen_inputs["end_stage"] == "coder"
+    # The carried-forward outputs are what the entry point skips past — without
+    # them in state the run would enter at the planner with nothing to plan.
+    assert graph.seen_inputs["hypothesis_output"] == _hypothesis_output()
+    assert graph.seen_inputs["literature_output"] == _literature_delta()["literature_output"]
+    assert "interdisciplinary_output" not in graph.seen_inputs  # that stage never ran
+    assert final["status"] == runs.COMPLETED
+
+
+def test_runner_reports_carried_over_stages_before_the_ones_it_actually_runs(store, monkeypatch):
+    """Otherwise a resumed run's history opens on the planner, reading as though
+    the literature and hypothesis work had vanished."""
+    record = _resumed_run(store)
+    run_dir = store.run_dir(record["run_id"])
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: FakeGraph(_resumed_updates()))
+
+    runner.run(run_dir)
+    stage_events = _stage_events(run_dir)
+
+    assert [e["stage"] for e in stage_events] == [
+        "literature", "hypothesis", "experiment_planner", "coder", "finalize",
+    ]
+    assert [e["stage"] for e in stage_events if e.get("carried_over")] == ["literature", "hypothesis"]
+    # Summarized through the same stages.summarize() a real delta goes through.
+    assert stage_events[0]["summary"]["papers_found"] == 2
+    assert stage_events[1]["summary"]["selected"] == "H1"
+    # The stages this run really did run are not mislabelled as carried over.
+    assert not any(e.get("carried_over") for e in stage_events[2:])
+
+
+def test_runner_keeps_carried_stage_outputs_out_of_the_run_started_event(store, monkeypatch):
+    """A resumed run's params hold entire upstream outputs, and the log pane
+    re-reads this file from the start on every poll — so they are named there,
+    not inlined. run.json still holds the full values."""
+    record = _resumed_run(store)
+    run_dir = store.run_dir(record["run_id"])
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: FakeGraph(_resumed_updates()))
+
+    runner.run(run_dir)
+    started = events.read_events(run_dir, types=[events.RUN_STARTED])[0]
+
+    assert started["carried_forward"] == ["literature_output", "hypothesis_output"]
+    assert "hypothesis_output" not in started["params"]
+    assert started["params"]["resume_from"] == "hypothesis"
+    assert store.get(record["run_id"])["params"]["hypothesis_output"] == _hypothesis_output()
+
+
+def test_runner_marks_nothing_carried_over_for_a_run_that_is_not_a_resume(store, monkeypatch):
+    """Regression: an ordinary run must gain neither the key nor the synthetic
+    events — every one of its stages really did run here."""
+    record = store.create("q", {})
+    run_dir = store.run_dir(record["run_id"])
+    graph = FakeGraph(_happy_updates("v1.pdf"))
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: graph)
+
+    runner.run(run_dir)
+
+    assert "resume_from" not in graph.seen_inputs
+    assert not any(key in graph.seen_inputs for key in ("literature_output", "hypothesis_output"))
+    assert not any(e.get("carried_over") for e in _stage_events(run_dir))
+
+
+def test_runner_reports_the_seeded_literature_node_as_the_literature_stage(store, monkeypatch):
+    """seed_literature is a different node but the same stage — it produces the
+    same literature_output delta, and dropping it as an unknown node would leave
+    a bring-your-own-papers run with no Literature row at all."""
+    record = store.create("q", {"start_stage": "own_papers", "seed_papers": [{"title": "t"}]})
+    run_dir = store.run_dir(record["run_id"])
+    updates = [{"seed_literature": _literature_delta()}] + _happy_updates("v1.pdf")[1:]
+    monkeypatch.setattr(runner, "build_pipeline_graph", lambda: FakeGraph(updates))
+
+    runner.run(run_dir)
+
+    stage_events = _stage_events(run_dir)
+    assert [e["stage"] for e in stage_events] == list(stages.STAGE_ORDER)
+    assert "seed_literature" not in [e["stage"] for e in stage_events]
+    # And it is summarized as a literature delta, not dropped to an empty dict.
+    assert stage_events[0]["summary"]["papers_found"] == 2
+
+
 def test_runner_records_a_failure_instead_of_dying_silently(store, monkeypatch):
     record = store.create("q", {})
     run_dir = store.run_dir(record["run_id"])

@@ -58,6 +58,7 @@ class ReviewerState(TypedDict, total=False):
 
     # check_hallucinations / check_discussion (LLM)
     hallucinations: List[dict]
+    check_errors: List[dict]  # checks whose response couldn't be parsed
 
     # score_quality (LLM)
     quality_scores: dict

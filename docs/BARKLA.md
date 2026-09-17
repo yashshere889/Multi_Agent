@@ -257,9 +257,21 @@ tail -f webapp_<jobid>.log
 The log prints the exact tunnel command once vLLM and the server are both up.
 From your laptop:
 ```bash
-ssh -L 8000:<node-from-log>:<port-from-log> <user>@barklalogin1.liv.ac.uk
+ssh -J <user>@barklalogin1.liv.ac.uk -L 8000:localhost:<port-from-log> <user>@<node-from-log>
 ```
-then open `http://localhost:8000`. Runs (PDFs, papers, generated code) land
+then open `http://localhost:8000`. The `-J` is not optional and the forward
+target is `localhost`, not the node: the app binds the *compute node's*
+loopback, so the forward has to be made by an ssh whose endpoint is on that
+node. Pointing it at the node from the login node — `ssh -L
+8000:<node>:<port> <user>@barklalogin1...` — asks the login node to open a
+socket to an address nothing is listening on, and fails with connection
+refused. If your ssh predates `-J`, chain the two hops by hand:
+
+```bash
+ssh <user>@barklalogin1.liv.ac.uk 'ssh -f -N -L <port>:localhost:<port> <node>'
+ssh -N -L 8000:localhost:<port> <user>@barklalogin1.liv.ac.uk
+```
+ Runs (PDFs, papers, generated code) land
 under `/mnt/fastscratch/users/$USER/pipeline-runs/webapp-<jobid>/runs/`.
 
 **Only submit this to `gpu-h100`/`gpu-l40s`** (the script's default), not a

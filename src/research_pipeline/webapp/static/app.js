@@ -39,7 +39,17 @@
     if (!next) return;
 
     var scrollers = capture(el);
+    /* replaceWith detaches before it inserts, so for the moment the fragment is
+     * gone the document is shorter and the browser clamps the page scroll —
+     * which it does not undo once the replacement lands. Every poll therefore
+     * threw the reader back toward the top. Barely noticeable on a short page,
+     * and unusable on a long one: a continued run renders its carried-over
+     * stages in full, so the live stage sits thousands of pixels down and could
+     * not be watched at all. Same reasoning as the log pane's own scroll
+     * preservation below, one level up. */
+    var pageScroll = window.scrollY;
     el.replaceWith(next);
+    if (window.scrollY !== pageScroll) window.scrollTo(0, pageScroll);
     restore(next, scrollers);
     attach(next);
   }

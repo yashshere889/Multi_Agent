@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Files — {{ run.question[:50] }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <p class="muted"><a href="/runs/{{ run.run_id }}">← Back to run</a></p>
+  <h1>Files</h1>
+  <p class="muted question-echo">{{ run.question }}</p>
+  <p class="muted">
+    {{ total }} file(s) under <code>runs/{{ run.run_id }}/</code>.
+    {% if truncated %}Listing stopped at the cap — there are more on disk.{% endif %}
+  </p>
+</section>
+
+{% for key, heading, files in groups %}
+<section class="card">
+  <h2>{{ heading }} <span class="muted">({{ files | length }})</span></h2>
+  <table class="files">
+    <thead>
+      <tr><th>File</th><th>Size</th><th>Modified</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for f in files %}
+      <tr>
+        <td>
+          {% if f.viewable %}
+            <a href="/runs/{{ run.run_id }}/files/view?path={{ f.rel | urlencode }}">{{ f.name }}</a>
+          {% else %}
+            <a href="/runs/{{ run.run_id }}/files/raw?path={{ f.rel | urlencode }}">{{ f.name }}</a>
+          {% endif %}
+        </td>
+        <td class="muted">{{ f.size | human_size }}</td>
+        <td class="muted">{{ f.modified | short_time }}</td>
+        <td class="muted"><span class="chip">{{ f.kind }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="card">
+  <p class="muted">This run hasn't written anything yet.</p>
+</section>
+{% endfor %}
+{% endblock %}

@@ -26,7 +26,89 @@
 
   {% if run.error %}<p class="error">{{ run.error }}</p>{% endif %}
 
+  {# Lineage, read straight off the params the continue route recorded — no
+     extra storage, and no scan of the other runs to find it. #}
+  {% if run.params and run.params.resumed_from_run_id %}
+    <p class="muted">
+      {% if run.params.rerun_hypothesis_id %}
+        Re-running <strong>{{ run.params.rerun_hypothesis_id }}</strong> from
+        <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>, using the
+        experiment plan it had already produced. Only that one experiment is generated.
+      {% else %}
+        Continued from <a href="/runs/{{ run.params.resumed_from_run_id }}">an earlier run</a>;
+        the stages it had already finished were carried over rather than run again.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {# Two shapes of final_result, from the two branches of the orchestrator's
+     finalize_node: a full run reports on the Writer/Reviewer loop, while a run
+     that stopped at a custom end_stage never had one and reports the stages it
+     did complete instead. `stages_completed` is the partial branch's own key,
+     so presence — not truthiness — is what tells them apart. #}
   {% if run.final_result %}
+  {% if 'stages_completed' in run.final_result %}
+  <div class="final">
+    {% set completed = run.final_result.stages_completed or [] %}
+    {% if completed %}
+      <strong>Stopped after: {{ completed | last | stage_name }}</strong>
+      <p class="muted">Stages completed: {{ completed | map('stage_name') | join(' → ') }}</p>
+
+      {# Continuing starts a *new* run seeded with the stages above, entering the
+         graph after the one it stopped at (see app.continue_run). Offered only
+         once this run is finished, and only for the stages still ahead of that
+         point — continue_choices is already filtered to those. #}
+      {% if not active and continue_choices %}
+      <form method="post" action="/runs/{{ run.run_id }}/continue" class="continue-form">
+        {# The one resume point where continuing is a decision rather than a
+           range: with no choice made here the planner takes whichever
+           hypothesis the ranking put first, and every later stage is about that
+           one. Ticking none leaves that default intact. #}
+        {% if hypothesis_choices %}
+        <fieldset class="steer">
+          <legend>Take forward</legend>
+          <p class="muted">
+            The planner will take whichever hypothesis is ticked. Leave them all
+            unticked to accept the ranking's own pick.
+          </p>
+          {% for h in hypothesis_choices %}
+          <label class="check steer-choice" for="steer_{{ h.id }}">
+            <input type="checkbox" id="steer_{{ h.id }}" name="planned_hypothesis_ids" value="{{ h.id }}"
+                   {% if h.ranked_first %}checked{% endif %}>
+            <span>
+              <strong>{{ h.id }}</strong>
+              {% if h.rank %}<span class="chip chip-{{ 'ok' if h.ranked_first else '' }}">rank {{ h.rank }}</span>{% endif %}
+              {% if h.score is not none %}<span class="chip">score {{ h.score }}</span>{% endif %}
+              <span class="steer-statement">{{ h.statement }}</span>
+              {% if h.justification %}<span class="muted steer-why">{{ h.justification }}</span>{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </fieldset>
+        {% endif %}
+
+        <label for="continue_end_stage">Continue this run up to</label>
+        <select id="continue_end_stage" name="end_stage">
+          {% for value, label in continue_choices %}
+          <option value="{{ value }}" {% if value == steer_to_end_stage %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if resume_from == 'literature' %}
+        {# The only resume point with the cross-field stage still ahead of it;
+           past that it either already ran or was skipped for good. #}
+        <label class="check" for="continue_interdisciplinary">
+          <input type="checkbox" id="continue_interdisciplinary" name="include_interdisciplinary" value="1" checked>
+          Cross-pollinate with adjacent fields
+        </label>
+        {% endif %}
+        <button type="submit">Continue this run →</button>
+      </form>
+      {% endif %}
+    {% else %}
+      <strong>Stopped before any stage produced output.</strong>
+    {% endif %}
+  </div>
+  {% else %}
   <div class="final">
     <strong>
       {% if run.final_result.converged %}Passed review{% else %}Finished without passing review{% endif %}
@@ -39,6 +121,7 @@
     {% endif %}
   </div>
   {% endif %}
+  {% endif %}
 
   <ol class="stages">
     {% for row in rows %}
@@ -46,7 +129,14 @@
       <div class="stage-head">
         <span class="dot"></span>
         <span class="stage-label">{{ row.label }}</span>
-        <span class="muted stage-time">{{ row.ts | short_time }}</span>
+        {# A carried-over stage has a timestamp, but it is the moment this run
+           was seeded, not time this run spent — so say where it came from
+           instead of implying the work happened here. #}
+        {% if row.carried_over %}
+          <span class="muted stage-time">from a previous run</span>
+        {% else %}
+          <span class="muted stage-time">{{ row.ts | short_time }}</span>
+        {% endif %}
       </div>
 
       {% set s = row.summary %}
@@ -130,7 +220,11 @@
           {% if s.feedback and not s.overall_pass %}<p class="muted feedback">{{ s.feedback }}</p>{% endif %}
 
         {% elif row.key == 'finalize' %}
-          <p class="muted">Review log written to {{ s.review_history_path }}</p>
+          {% if s.review_history_path %}
+            <p class="muted">Review log written to {{ s.review_history_path }}</p>
+          {% else %}
+            <p class="muted">Run stopped without reaching the Writer/Reviewer stage — no review log.</p>
+          {% endif %}
         {% endif %}
       </div>
       {% endif %}

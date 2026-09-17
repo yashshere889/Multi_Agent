@@ -94,6 +94,8 @@ def _consolidate_unresolved(review: dict, quality_threshold: int) -> List[str]:
         for r in review["results_accuracy_issues"]
     ]
     items += [f'{hc["location"]}: {hc["issue"]}' for hc in review["hypothesis_coverage_issues"]]
+    # .get: reviews written before check_errors existed don't carry the key.
+    items += [f'Review check incomplete ({e["location"]}): {e["issue"]}' for e in review.get("check_errors", [])]
     items += [
         f"Quality — {dim}: {score}/5 (below {quality_threshold}/5 threshold)"
         for dim, score in review["quality_scores"].items()

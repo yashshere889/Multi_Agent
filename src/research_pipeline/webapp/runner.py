@@ -32,7 +32,8 @@ from typing import Optional
 
 from research_pipeline import checkpointer
 from research_pipeline.config import settings
-from research_pipeline.orchestrator.graph import build_pipeline_graph
+from research_pipeline.orchestrator.graph import STAGE_FOR_OUTPUT_KEY, build_pipeline_graph
+from research_pipeline.orchestrator.nodes import PARTIAL_STAGE_KEYS
 from research_pipeline.webapp import events, runs, stages
 
 logger = logging.getLogger(__name__)
@@ -134,8 +135,57 @@ def run(run_dir: str | Path) -> dict:
         "quality_threshold": params.get("quality_threshold"),
     }
 
-    event_log.append(events.RUN_STARTED, question=record["question"], params=params)
+    # Which slice of the pipeline to run (see orchestrator/graph.py). Each key is
+    # added only when the caller actually set it, never as an explicit None: the
+    # orchestrator reads all of these with state.get(key, default), which falls
+    # back for an *absent* key but not for one present and null — so an
+    # unconditional assignment would turn "not customized" into "explicitly off".
+    # `resume_from` travels with the stage outputs it implies: a resumed run is
+    # the previous run's finished stages seeded into state, plus the entry point
+    # that skips past them (see orchestrator/graph.py's _entry_router).
+    for key in (
+        "start_stage",
+        "end_stage",
+        "seed_papers",
+        "resume_from",
+        "planned_hypothesis_ids",
+        *PARTIAL_STAGE_KEYS,
+    ):
+        if params.get(key):
+            inputs[key] = params[key]
+    # Presence, not truthiness: False is the meaningful value here.
+    if "include_interdisciplinary" in params:
+        inputs["include_interdisciplinary"] = params["include_interdisciplinary"]
+
+    # Carried-forward stage outputs are named, not inlined: a resumed run's
+    # params hold entire upstream outputs, and every poll of the log pane reads
+    # this file from the start. The full values are already in run.json.
+    event_log.append(
+        events.RUN_STARTED,
+        question=record["question"],
+        params={key: value for key, value in params.items() if key not in PARTIAL_STAGE_KEYS},
+        carried_forward=[key for key in PARTIAL_STAGE_KEYS if params.get(key)],
+    )
     logger.info("Starting run %s: %s", run_id, record["question"])
+
+    # A resumed run never re-executes the stages it was seeded with, so the graph
+    # stream never emits a delta for them and its history would open on whichever
+    # stage happens to run first — reading as though the earlier work had
+    # vanished. These stand in for it, summarized by the same stages.summarize()
+    # a real delta goes through (the shape is identical), and flagged so the page
+    # can say where they came from instead of showing a time this run never spent.
+    if inputs.get("resume_from"):
+        for key in PARTIAL_STAGE_KEYS:
+            if key not in inputs:
+                continue
+            stage = STAGE_FOR_OUTPUT_KEY[key]
+            logger.info("Carrying %s forward from the run this one continues", stage)
+            event_log.append(
+                events.STAGE_COMPLETED,
+                stage=stage,
+                summary=stages.summarize(stage, {key: inputs[key]}),
+                carried_over=True,
+            )
 
     final_result: Optional[dict] = None
     try:
@@ -157,12 +207,16 @@ def run(run_dir: str | Path) -> dict:
 
         for update in graph.stream(None if resuming else inputs, config=config, stream_mode="updates"):
             for node, delta in (update or {}).items():
-                if node not in stages.STAGE_ORDER:
+                # A node name is not always the stage it displays as: the
+                # seeded-papers entry point reports as the Literature stage,
+                # whose delta shape it produces (see stages.stage_for_node).
+                stage = stages.stage_for_node(node)
+                if stage not in stages.STAGE_ORDER:
                     # LangGraph also emits bookkeeping keys such as __interrupt__.
                     logger.debug("Ignoring a non-stage stream key: %s", node)
                     continue
-                event_log.append(events.STAGE_COMPLETED, stage=node, summary=stages.summarize(node, delta or {}))
-                if node == stages.FINALIZE:
+                event_log.append(events.STAGE_COMPLETED, stage=stage, summary=stages.summarize(stage, delta or {}))
+                if stage == stages.FINALIZE:
                     final_result = (delta or {}).get("final_result")
 
         if final_result is None:

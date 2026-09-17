@@ -30,6 +30,19 @@ class HypothesisCoverageIssue(TypedDict):
     issue: str
 
 
+class CheckError(TypedDict):
+    """A check whose response the agent could not parse, so it never fully ran.
+
+    Distinct from every other list here, which hold findings *about the paper*:
+    this one is about the review itself, and nothing the Writer does to the
+    draft can clear it. It blocks `overall_pass` all the same — a check that
+    did not run must not read as a check that found nothing.
+    """
+
+    location: str
+    issue: str
+
+
 class QualityScores(TypedDict):
     clarity: int
     flow: int
@@ -44,6 +57,7 @@ class ReviewOutput(TypedDict):
     citation_issues: List[CitationIssue]
     results_accuracy_issues: List[ResultsAccuracyIssue]
     hypothesis_coverage_issues: List[HypothesisCoverageIssue]
+    check_errors: List[CheckError]
     quality_scores: QualityScores
     overall_pass: bool
     feedback_for_writer: str
@@ -116,6 +130,20 @@ def validate_output(data: dict) -> None:
         _check_fields(
             item, [("hypothesis_id", str), ("location", str), ("issue", str)], f"output.hypothesis_coverage_issues[{i}]", errors
         )
+
+    # check_errors is optional rather than required: every review written
+    # before it existed still loads unchanged (same reasoning as `grounded` in
+    # reviewer_agent._ungrounded), and a review with no failed checks is the
+    # normal case. Validated as strictly as the rest when it is there.
+    if "check_errors" in data:
+        if not isinstance(data["check_errors"], list):
+            errors.append(f"output.check_errors should be list, got {type(data['check_errors']).__name__}")
+        else:
+            for i, item in enumerate(data["check_errors"]):
+                if not isinstance(item, dict):
+                    errors.append(f"output.check_errors[{i}] should be an object")
+                    continue
+                _check_fields(item, [("location", str), ("issue", str)], f"output.check_errors[{i}]", errors)
 
     scores = data.get("quality_scores")
     if not isinstance(scores, dict):
