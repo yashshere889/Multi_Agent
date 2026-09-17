@@ -938,6 +938,25 @@ _DECLARED_SUBSTITUTION = re.compile(
     r"|\bas a replacement\b",
     re.I,
 )
+# ...but only when the sentence is about the *data*. These words are generic
+# English for "I did X rather than Y", and a plan's methods get simplified far
+# more often than its inputs get swapped: Barkla job 10522998 withheld the
+# verdict on a run that read the staged AG News CSV exactly as instructed,
+# because one assumption said "keeps top 50% of candidates **instead of**
+# complex theoretical bounds" — a statement about the pruning rule, not the
+# corpus. That misread is now systematic rather than incidental, because
+# prompts.REFERENCE_IMPLEMENTATION_NOTE asks the model to record precisely this
+# kind of divergence from a published method ("a smaller model, fewer epochs, a
+# simplified variant"), in precisely this phrasing.
+#
+# The other two patterns need no such guard: _DECLARED_SYNTHETIC_USE and
+# _DECLARED_FABRICATED_LABELS name data or labels in the pattern itself.
+_ABOUT_DATA = re.compile(
+    r"\bdata\b|\bdataset\b|\bcorpus\b|\bcorpora\b|\bfile\b|\bcsv\b|\bjson\b"
+    r"|\brows?\b|\brecords?\b|\bsamples?\b|\bdocuments?\b|\bcolumns?\b"
+    r"|\blabels?\b|\binputs?\b",
+    re.I,
+)
 _DECLARED_FABRICATED_LABELS = re.compile(
     r"keyword[- ]based (?:sentiment )?label|true labels? (?:are|aren'?t|is|isn'?t) "
     r"(?:not )?(?:provided|available)|heuristic label|pseudo[- ]label|synthetic label",
@@ -963,6 +982,12 @@ def declared_substitutions(assumptions: list[str]) -> list[str]:
     Returns only *assertions*. A conditional clause describing a fallback path
     that may never have executed is excluded, because generating one is required
     behaviour rather than a defect.
+
+    And only assertions about the **data**. The generic substitution wording
+    ("instead of", "in place of") is also how a model describes simplifying a
+    *method*, which every experiment does and which the reference-implementation
+    prompt now explicitly asks it to write down — so that pattern must also
+    mention data to count. See _ABOUT_DATA.
     """
     found = []
     for assumption in assumptions or []:
@@ -970,7 +995,7 @@ def declared_substitutions(assumptions: list[str]) -> list[str]:
         if _HYPOTHETICAL.search(text):
             continue
         if (
-            _DECLARED_SUBSTITUTION.search(text)
+            (_DECLARED_SUBSTITUTION.search(text) and _ABOUT_DATA.search(text))
             or _DECLARED_FABRICATED_LABELS.search(text)
             or _DECLARED_SYNTHETIC_USE.search(text)
         ):

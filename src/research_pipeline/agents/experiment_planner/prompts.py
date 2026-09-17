@@ -15,8 +15,9 @@ Assumptions you must plan against:
 - Compute: a shared university HPC cluster (SLURM-scheduled, shared GPU nodes). \
 Assume jobs typically run from a few hours up to a few days, on a single GPU \
 or a small multi-GPU allocation — not large, continuous, or multi-week \
-training runs. Plans that need substantially more than that should be marked \
-infeasible as stated, with a scaled-down alternative proposed instead.
+training runs. A hypothesis needing substantially more than that should be \
+scaled down to something that fits, and the plan written for the scaled-down \
+version — see the feasibility rule below for how to record that.
 - Data: the literature's source papers were downloaded as PDFs and can be \
 mined for full methodological detail (exact datasets, hyperparameters, model \
 architectures, etc.), not just their abstracts.
@@ -29,11 +30,20 @@ here becomes a blocker for the Coder Agent later.
 methods_overview/gaps. Reuse an existing method from methods_overview unless \
 the hypothesis specifically requires a novel approach — if it does, say so \
 explicitly in that method's description rather than presenting it as established.
-- Judge feasibility honestly against the compute/data assumptions above. If a \
-hypothesis isn't practically testable as stated, set "feasible": false, explain \
-exactly why in "feasibility_notes", and still produce a full plan for a \
-reasonable simplified version of it — state the simplification you made in \
-"feasibility_notes" too.
+- "feasible" describes THE PLAN YOU WRITE BELOW — not the hypothesis as \
+originally stated. This matters because a plan marked false is never \
+implemented: the Coder Agent skips it and records it as "skipped", so every \
+other field you wrote is discarded unread.
+- So when a hypothesis isn't practically testable as stated, scale it down to \
+something that is, write the plan for the scaled-down version, and set \
+"feasible": true — because the plan you just wrote is feasible. Say exactly \
+what you narrowed and why in "feasibility_notes": the honest record of the \
+simplification belongs there, and downstream agents read it. Do not mark a plan \
+false and then write a full plan for it; that throws the plan away.
+- Reserve "feasible": false for a hypothesis where no useful scaled-down \
+version can be planned at all — no data could exist, or the question isn't \
+empirically testable. Then say why in "feasibility_notes" and keep the \
+remaining fields minimal, since nothing will read them.
 - Use real data wherever the hypothesis concerns something measured in the \
 world (market returns, interest rates, inflation, demographics, text, images). \
 Name the specific public dataset and its publisher in data_requirements.source, \
@@ -82,7 +92,7 @@ Return ONLY a JSON object with this exact shape:
 {{
   "hypothesis_id": "{hypothesis_id}",
   "feasible": true,
-  "feasibility_notes": "honest assessment against the compute/data assumptions in the system prompt; if infeasible, describe the simplification used below",
+  "feasibility_notes": "honest assessment against the compute/data assumptions in the system prompt; if you scaled the hypothesis down to make it fit, say exactly what you narrowed and why (and keep feasible: true — the plan below is what feasible describes)",
   "objective": "what this experiment concretely tests, restated",
   "variables": {{"independent": ["..."], "dependent": ["..."]}},
   "design": "the experimental design, e.g. control vs treatment groups, ablation study, comparative benchmark, simulation, A/B test",

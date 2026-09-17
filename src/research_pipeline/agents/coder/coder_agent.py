@@ -1085,6 +1085,7 @@ class CoderAgent:
             state.get("current_hf_dataset") or {},
             state.get("current_acquisitions") or {},
             state.get("current_discoveries") or {},
+            state.get("current_reference_implementations") or [],
         )
 
         update: dict = {
@@ -1546,6 +1547,7 @@ class CoderAgent:
         hf_dataset: dict | None = None,
         acquisitions: dict[str, dict] | None = None,
         discoveries: dict[str, dict] | None = None,
+        reference_implementations: list[dict] | None = None,
     ) -> dict:
         """Runs one full pass over a generated candidate. Returns either
         {"result": <terminal experiment dict>} or {"error_source",
@@ -1657,9 +1659,43 @@ class CoderAgent:
         # whatever version actually compiled.
         run_py, compile_error = sandbox.lenient_compile_check(run_py, "run.py")
 
+        # Whether the *model* engaged with the reference block, recorded rather
+        # than enforced. Barkla job 10523021 wired this into the fix loop and it
+        # was a mistake: the model did not comply on attempt 1 or attempt 2, each
+        # refusal cost twelve minutes of regeneration and re-execution, and left
+        # to run it would have ended a working experiment as
+        # `code_generated_not_run` over a missing comment. The fix budget is for
+        # defects in generated code. See sandbox.check_reference_cited.
+        # What the model claims to have followed, from the required
+        # `reference_used` field — and, failing that, any citation it happened to
+        # write into the code, README or assumptions. The field is the reliable
+        # signal (the transport enforces it); check_reference_cited is the
+        # fallback for a model that answered "none" but cited one anyway.
+        reference_claim = sandbox.reference_claim(
+            generation.get("reference_used", ""), reference_implementations or []
+        )
+        model_cited_reference = bool(reference_claim) or not sandbox.check_reference_cited(
+            run_py,
+            generation.get("readme", ""),
+            assumptions_made,
+            reference_implementations or [],
+        )
+        if reference_implementations:
+            logger.info(
+                "[%s] %d reference implementation(s) offered; the model says it followed %s",
+                hypothesis_id,
+                len(reference_implementations),
+                reference_claim or "none of them",
+            )
+
         files = {
             "run.py": run_py,
-            "README.md": generation.get("readme", ""),
+            # The provenance the model would not write. Deterministic, so it
+            # cannot be refused — see sandbox.reference_appendix.
+            "README.md": generation.get("readme", "")
+            + sandbox.reference_appendix(
+                reference_implementations or [], model_cited_reference, reference_claim
+            ),
             "requirements.txt": generation.get("requirements_txt", ""),
         }
         self._write_files(experiment_dir, files)
@@ -2656,6 +2692,7 @@ class CoderAgent:
         user_prompt: str,
         field_names: Sequence[str] | None = None,
         *,
+        optional_field_names: Sequence[str] = (),
         temperature: float | None = None,
         kind: str = "",
     ) -> dict[str, str]:
@@ -2709,6 +2746,7 @@ class CoderAgent:
                 prompts.SYSTEM_PROMPT,
                 user_prompt,
                 field_names,
+                optional_field_names=optional_field_names,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 on_raw_response=record_raw,
@@ -2779,6 +2817,11 @@ class CoderAgent:
         return {
             "run_py_sections": run_py_sections,
             "readme": kept("readme", ""),
+            # The model's own answer to "which of the offered references does
+            # this follow?" — normalized only by stripping; whether it names a
+            # reference that was actually offered is decided by
+            # sandbox.reference_claim, not here.
+            "reference_used": str(kept("reference_used", "")).strip(),
             "requirements_txt": kept("requirements_txt", ""),
             "assumptions_made": (
                 _parse_assumptions(sections["assumptions_made"])
@@ -3571,7 +3614,10 @@ class CoderAgent:
         )
         return self._assemble_generation(
             self._call_sections(
-                prompt, prompts.EXPERIMENT_FIELD_NAMES, kind=transcript.KIND_GENERATE
+                prompt,
+                prompts.EXPERIMENT_FIELD_NAMES,
+                optional_field_names=prompts.EXPERIMENT_OPTIONAL_FIELD_NAMES,
+                kind=transcript.KIND_GENERATE,
             )
         )
 

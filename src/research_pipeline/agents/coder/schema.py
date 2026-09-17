@@ -164,6 +164,11 @@ class ExperimentResult(TypedDict):
     # data_provenance is — summaries written before this existed still load. See
     # paperswithcode_client.py.
     reference_implementations: list[dict]
+    # Whether the model itself engaged with them is deliberately *not* a field
+    # here: it is recorded in the experiment's own README, in words, by
+    # sandbox.reference_appendix — which is where a reviewer reads it — and
+    # threading a boolean out through every terminal-result construction in
+    # _attempt_once would be a lot of plumbing for a nice-to-have.
 
 
 class CoderAgentOutput(TypedDict):

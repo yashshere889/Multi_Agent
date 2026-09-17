@@ -119,13 +119,26 @@ def _clean_body(body: str) -> str:
     return body
 
 
-def parse_sections(text: str, field_names: Sequence[str] | None = None) -> dict[str, str]:
+def parse_sections(
+    text: str,
+    field_names: Sequence[str] | None = None,
+    optional_field_names: Sequence[str] = (),
+) -> dict[str, str]:
     """Extracts each `===BEGIN <field>===`/`===END <field>===` block's content,
     verbatim.
 
     With `field_names`, those fields are required and anything else in the
     response is ignored; a missing or unterminated one raises
-    SectionFormatError. With `field_names=None` the field names are *discovered*
+    SectionFormatError.
+
+    `optional_field_names` are returned when the model provides them and simply
+    absent when it does not — never a SectionFormatError. They exist because a
+    field can be worth *asking* for without being worth failing a whole
+    generation over: the Coder's `reference_used` is shown in the section shape
+    so the model answers it, but a model that skips it should cost nothing,
+    since the alternative is spending a structural retry (and then the plan) on
+    a field that only ever annotates provenance. Anything the program cannot run
+    without stays in `field_names`. With `field_names=None` the field names are *discovered*
     from the response instead, which is what the shared-infrastructure call
     needs — it asks for one section per generated file, and the filenames aren't
     known until the model picks them. Discovery still requires at least one
@@ -153,6 +166,10 @@ def parse_sections(text: str, field_names: Sequence[str] | None = None) -> dict[
         sections[field] = _clean_body(match.group("body"))
     if missing:
         raise SectionFormatError(missing)
+    for field in optional_field_names:
+        match = _field_re(field).search(text)
+        if match is not None:
+            sections[field] = _clean_body(match.group("body"))
     return sections
 
 
@@ -198,6 +215,7 @@ def invoke_sections(
     user_prompt: str,
     field_names: Sequence[str] | None = None,
     *,
+    optional_field_names: Sequence[str] = (),
     max_tokens: int | None = None,
     temperature: float | None = None,
     on_raw_response: Callable[[str], None] | None = None,
@@ -205,6 +223,11 @@ def invoke_sections(
     """Invokes chat_model expecting the delimited format back; on a parse
     failure, retries once with an explicit repair prompt naming the sections
     that were missing before raising LLMSectionsError.
+
+    `optional_field_names` are parsed when present and never cause a retry or a
+    raise — see parse_sections. They are still shown in the repair prompt's
+    expected format, so a response that has to be rewritten anyway is rewritten
+    with them rather than without.
 
     Mirrors llm_json.invoke_json's shape deliberately — same message sequence,
     same single repair turn quoting the reasoning-stripped previous response,
@@ -251,7 +274,7 @@ def invoke_sections(
     if on_raw_response is not None:
         on_raw_response(previous)
     try:
-        return parse_sections(previous, field_names)
+        return parse_sections(previous, field_names, optional_field_names)
     except SectionFormatError as exc:
         logger.warning(
             "Model response was not in the required delimited format (%s) — "
@@ -264,7 +287,9 @@ def invoke_sections(
                 "human",
                 SECTIONS_REPAIR_PROMPT.format(
                     missing_fields=", ".join(exc.missing),
-                    expected_format=_expected_format(field_names),
+                    expected_format=_expected_format(
+                        [*(field_names or []), *optional_field_names] or None
+                    ),
                     previous_response=previous[:4000],
                 ),
             )
@@ -274,7 +299,7 @@ def invoke_sections(
         if on_raw_response is not None:
             on_raw_response(stripped)
         try:
-            return parse_sections(stripped, field_names)
+            return parse_sections(stripped, field_names, optional_field_names)
         except SectionFormatError as exc2:
             raise LLMSectionsError(
                 f"Model did not return the required delimited format, even after a repair "

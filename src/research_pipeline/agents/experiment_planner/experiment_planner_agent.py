@@ -48,9 +48,12 @@ Output contract
 ----------------
 A dict matching `agents.experiment_planner.schema.ExperimentPlannerOutput`:
     {
-      "experiment_plans": [ one entry per *planned* hypothesis, always — even
-          flagged-infeasible hypotheses still get a full (simplified) plan;
-          see schema.py:ExperimentPlan for the per-plan shape ],
+      "experiment_plans": [ one entry per *planned* hypothesis, always. A
+          hypothesis too big to test as stated is scaled down and its plan
+          written for the scaled-down version, which is feasible — so
+          `feasible: false` is reserved for a hypothesis no scaled-down version
+          can test at all. See schema.py:ExperimentPlan, and _plan_one for the
+          check that catches the model conflating the two ],
       "shared_infrastructure": [str, ...],
       "priority_order": [ {"hypothesis_id", "rank", "justification"}, ... ],
       "source_hypothesis_ids": [str, ...],
@@ -87,6 +90,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -110,6 +114,63 @@ from research_pipeline.llm import get_chat_model
 from research_pipeline.llm_json import LLMJSONError, invoke_json
 
 logger = logging.getLogger(__name__)
+
+
+# Words the model uses when it says it narrowed the hypothesis rather than
+# abandoning it. Matched against feasibility_notes only, never against the plan
+# body — this is about what the *note* claims was done.
+_SIMPLIFICATION_CLAIMED = re.compile(
+    r"\bsimplif|\bscaled?[- ]down\b|\bscale[ds]? it down\b|\bnarrow|\breduced scope\b"
+    r"|\bsmaller\b|\bproxy (?:task|experiment)\b|\bwe (?:instead|therefore)\b",
+    re.I,
+)
+
+
+def _warn_if_feasibility_contradicts_plan(plan: dict, hypothesis_id: str) -> None:
+    """Logs when a plan says `feasible: false` but is plainly a plan for
+    something that *is* feasible.
+
+    The Coder Agent never generates code for an infeasible plan — it records
+    "skipped" and moves on — so every other field is discarded unread. That made
+    a real run produce nothing: Barkla job 10536990's plan set `feasible: false`
+    against full real-time video generation, then proposed a simplification in
+    the same note and wrote the whole plan body for it (`estimated_complexity`
+    "low", synthetic fixed-length sequences, five concrete PyTorch steps). Only
+    the flag disagreed with the plan, and the flag is what the Coder reads.
+
+    The prompt now states the contract the other way round — `feasible`
+    describes the plan as written — so this should not fire. It is here because
+    the failure was silent for a whole pipeline run and cost twenty minutes of
+    upstream work to discover: the model is free to ignore an instruction, and
+    the only thing that made this visible was reading a skipped plan's body by
+    hand afterwards.
+
+    Deliberately a warning and not a repair. Flipping the flag here would
+    override the model's judgment on a keyword match, and a hypothesis genuinely
+    beyond scaling down would then be generated, run and reported. Making it
+    loud is enough — a human or a later eval can see it in the trace.
+    """
+    if plan.get("feasible") is not False:
+        return
+    notes = str(plan.get("feasibility_notes") or "")
+    if not _SIMPLIFICATION_CLAIMED.search(notes):
+        return
+    if str(plan.get("estimated_complexity") or "") not in {"low", "medium"}:
+        return
+    if not (plan.get("implementation_steps") and plan.get("methods")):
+        return
+    logger.warning(
+        "%s is marked feasible=false but reads as a plan for a simplification the notes "
+        "themselves propose (complexity=%s, %d implementation step(s), %d method(s)). The "
+        "Coder Agent skips infeasible plans, so this plan's body will be discarded unread. "
+        "If the scaled-down experiment is the one that should run, feasible must be true — "
+        "see prompts.SYSTEM_PROMPT's feasibility rule. Notes: %s",
+        hypothesis_id,
+        plan.get("estimated_complexity"),
+        len(plan.get("implementation_steps") or []),
+        len(plan.get("methods") or []),
+        notes[:200],
+    )
 
 
 def _coerce_priority_order(priority_order: list, expected_ids: List[str]) -> List[dict]:
@@ -286,7 +347,9 @@ class ExperimentPlannerAgent:
             gaps_block=json.dumps(hypothesis_output["gaps"], indent=2),
             staged_data_block=staged_data.prompt_block(prompts.STAGED_DATA_PLAN_INSTRUCTION),
         )
-        return self._call_json(prompt)
+        plan = self._call_json(prompt)
+        _warn_if_feasibility_contradicts_plan(plan, hypothesis["id"])
+        return plan
 
     def _plan_cross_cutting(self, experiment_plans: List[dict]) -> dict:
         """Asks the model for shared_infrastructure/priority_order across every

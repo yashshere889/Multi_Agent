@@ -205,9 +205,44 @@ which plans run locally vs. get deferred, and why — is in `coder_agent.py`'s m
   repositories it names, because a code model reads a GitHub URL as an invitation and the
   resulting experiment would fail on any host with no outbound network — expensively, three
   fix attempts later, rather than never being written. If you edit that note, keep the
-  prohibition and keep it adjacent to the URLs; there is no deterministic check behind it
-  (unlike `check_hf_dataset_usage`, there is nothing in the rendered `run.py` to verify a
-  reference *against*), so the prompt is the whole guard.
+  prohibition and keep it adjacent to the URLs. That half is prompt-only and has held;
+  `sandbox.check_reference_cited` is the half that isn't.
+- **The citation is written, not requested — and it is not a fix-loop failure.** Barkla job
+  10522998 was handed two on-topic GraphRAG papers with real repositories and named neither in
+  `run.py`, `README.md` or `assumptions_made`; the prompt had asked for all three placements
+  from the start. Job 10523021 then wired `check_reference_cited` into the fix loop, and that
+  was the wrong correction: the model refused on attempt 1 and again on attempt 2, each refusal
+  costing a full regeneration plus re-execution (~12 min), on course to spend the whole budget
+  and end a *working* experiment as `code_generated_not_run` over a missing comment. **Don't
+  put a documentation concern on the fix budget.** `sandbox.reference_appendix` now writes the
+  offered references into the README deterministically — it cannot be refused — and
+  `check_reference_cited` is demoted to reporting whether the model engaged, which the appendix
+  states in words so the README never overclaims.
+- **Asking the model in prose did not work; requiring a section does.** The citation request sat
+  in `REFERENCE_IMPLEMENTATION_NOTE` across two cluster runs and four generations and was
+  ignored every time. `reference_used` is an entry in `EXPERIMENT_SECTION_PLACEHOLDERS`, so the
+  model is shown it and asked "which of these does your method follow, or `none`" — but it
+  is in `EXPERIMENT_OPTIONAL_FIELD_NAMES`, **not** in `EXPERIMENT_FIELD_NAMES`, so a model
+  that skips it costs nothing. Requiring it was the obvious move and the wrong one: a
+  missing section is `missing_sections`, which spends `CODER_MAX_STRUCTURAL_RETRIES` and
+  then ends the plan — so a model that habitually omitted the field would lose experiments
+  whose programs were fine, over an annotation. Absence reads as `none`, which was always a
+  legitimate answer. `llm_sections.parse_sections`' `optional_field_names` is what makes
+  "asked for but not required" expressible; anything the program cannot run without stays in
+  `field_names`. `sandbox.reference_claim` validates
+  the answer against the offered set and drops anything else: a model asked to name a paper will
+  produce a plausible arXiv id that was never shown to it, and a hallucinated citation is worse
+  than `none` — the same rule, for the same reason, as the Writer resolving `[[cite:...]]` only
+  against papers the Literature Agent actually found. If you ever re-route it, note that
+  `_target_sections` filters against `prompts.RUN_PY_SECTION_NAMES`, so `("readme",)` silently
+  drops out of the target set and leaves only `_ALWAYS_REGENERATED`.
+- **A method simplification is not a data substitution.** `provenance._DECLARED_SUBSTITUTION`
+  matches "instead of"/"in place of", which is also how a model describes simplifying an
+  algorithm — and `REFERENCE_IMPLEMENTATION_NOTE` now actively asks it to write exactly that
+  down. Job 10522998 withheld the verdict on a run that read the staged AG News CSV as
+  instructed, because one assumption said "keeps top 50% of candidates instead of complex
+  theoretical bounds". `_ABOUT_DATA` gates that pattern on the sentence also mentioning data;
+  don't remove it without re-checking what the reference block tells the model to write.
 - **Starter selection is a pure function, not a node.** Unlike the HF dataset lookup above (a
   real network call with its own cache/retry policy), `starters.select_starter` is a
   deterministic keyword match with no LLM call and no side effect, so it's called directly inside

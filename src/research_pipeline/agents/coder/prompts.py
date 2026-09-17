@@ -60,10 +60,35 @@ EXPERIMENT_SECTION_PLACEHOLDERS: list[tuple[str, str]] = [
     ),
     ("needs_network", "true or false"),
     ("needs_gpu", "true or false"),
+    # Required of every generation, including those offered no reference at all
+    # (the answer is then simply `none`). A required *section* rather than a
+    # sentence in REFERENCE_IMPLEMENTATION_NOTE because the note asked four
+    # times across two Barkla runs and was ignored every time, while a missing
+    # section is enforced by the transport itself: llm_sections retries the
+    # response once and then raises, which coder_agent routes to the
+    # *structural* budget (CODER_MAX_STRUCTURAL_RETRIES), never to the fix
+    # budget that exists for defects in generated code.
+    (
+        "reference_used",
+        "<the paper id of the reference implementation this experiment's method follows "
+        "(e.g. 2106.03844), or the single word none>",
+    ),
 ]
 
+# Asked for in the section shape, but never required back. A model that skips it
+# costs nothing: absence reads as "none", which is already a legitimate answer.
+# Requiring it would put a provenance annotation on the structural budget, and
+# two skipped sections would end a plan whose program was fine — a strictly worse
+# trade than the uncited README this field exists to improve. See
+# llm_sections.parse_sections' optional_field_names.
+EXPERIMENT_OPTIONAL_FIELD_NAMES: tuple[str, ...] = ("reference_used",)
+
 # What CoderAgent._call_sections requires back, and what it splices where.
-EXPERIMENT_FIELD_NAMES: list[str] = [name for name, _ in EXPERIMENT_SECTION_PLACEHOLDERS]
+EXPERIMENT_FIELD_NAMES: list[str] = [
+    name
+    for name, _ in EXPERIMENT_SECTION_PLACEHOLDERS
+    if name not in EXPERIMENT_OPTIONAL_FIELD_NAMES
+]
 RUN_PY_SECTION_NAMES: tuple[str, ...] = (
     "imports",
     "configuration",
@@ -373,6 +398,12 @@ section if none were needed.
 whether this experiment's code needs network access to run.
   needs_gpu                - "true" or "false": your actual assessment of \
 whether this experiment's code needs a GPU to run.
+  reference_used           - the paper id (e.g. 2106.03844) of whichever \
+reference implementation above your method actually follows, or the single \
+word "none". "none" is a legitimate answer — no reference was offered, or none \
+of them fits this plan — but it is a claim about your implementation, so answer \
+it honestly rather than defaulting to it. If you name one, also name it in a \
+comment next to the method it grounds.
 
 Return your answer using EXACTLY this delimited format:
 
