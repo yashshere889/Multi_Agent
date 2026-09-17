@@ -1,30 +1,102 @@
 \chapter{Requirements Analysis Instrument}
 \label{app:ra-instrument}
 
-\textbf{To be inserted: the questionnaire as administered, verbatim, together
-with its information and consent page.} The instrument is described in
-Chapter~\ref{ch:requirements}: five sections --- background, current workflow,
-reactions to the proposed system, prospective use cases, and desired features
---- combining five-point Likert items with free-text questions, preceded by an
-information page and an explicit consent gate, and taking 10--15 minutes to
-complete. Its attitudinal items are reproduced verbatim in
-Table~\ref{tab:ra-likert}.
-
-The wording is not reconstructed here from that description, because an
-appendix that presented a paraphrase as the administered instrument would
-misrepresent how the responses in Appendix~\ref{app:ra-responses} were
+The instrument was an online questionnaire administered to academic staff before
+implementation began, described in Chapter~\ref{ch:requirements}. It is
+summarised here rather than reproduced: the survey was delivered and completed
+online, and a paraphrase set out as though it were the administered wording
+would misstate how the responses in Appendix~\ref{app:ra-responses} were
 obtained.
+
+\textbf{Eligibility and recruitment.} Lecturers, professors and other PhD
+holders at the University of Liverpool, on the grounds that supervisory
+experience is what lets a respondent judge a tool of this kind. Recruitment was
+by direct invitation; participation was voluntary and unpaid.
+
+\textbf{Consent.} The questionnaire opened with an information page describing
+the project, what the responses would be used for, and the respondent's right to
+skip any question or stop at any point. Consent was explicit and had to be given
+before any question could be answered. No names, email addresses or other
+identifying fields were collected at any point.
+
+\textbf{Structure.} Five sections, mixing five-point Likert items with free-text
+questions, taking 10--15 minutes:
+
+\begin{enumerate}[nosep]
+  \item \emph{Background} --- position, years since PhD, whether the respondent
+        supervises doctoral researchers, and how often they use language-model
+        tools in their work.
+  \item \emph{Current workflow} --- which parts of designing and running
+        experiments consume the most time, and what the respondent finds most
+        frustrating about them.
+  \item \emph{Reactions to the proposed system} --- the seven attitudinal items
+        reproduced verbatim in Table~\ref{tab:ra-likert}, covering time saved,
+        trust in an unchecked literature review, comfort with autonomous code
+        execution, the wish to approve outputs stage by stage, concern about
+        originality, comfort using outputs with review, and the importance of
+        flagging overlap with existing literature.
+  \item \emph{Prospective use} --- which pipeline stages the respondent would
+        want automated, which they would want to check before the run continued,
+        and whether they would use such a tool at all.
+  \item \emph{Desired features} --- a select-all list of what should be visible
+        during a run (live progress, intermediate outputs, confidence estimates,
+        source citations with links, compute cost and time estimates) and an
+        interface preference.
+\end{enumerate}
 
 \chapter{Requirements Analysis Responses}
 \label{app:ra-responses}
 
-\textbf{To be inserted: the anonymised response export.} Both respondents'
-Likert scores are reproduced in Table~\ref{tab:ra-likert}, and their free-text
-answers are quoted throughout Chapter~\ref{ch:requirements} at the points where
-each changed a design decision. What belongs here is the complete set of
-answers rather than the excerpts the argument required, with identifying detail
-removed and disciplines generalised as described in that chapter's method
-section.
+Two members of academic staff completed the questionnaire in July~2026, referred
+to throughout as Respondent~A and Respondent~B. Their responses are reported in
+full in Chapter~\ref{ch:requirements} at the points where each bears on a design
+decision, and are consolidated here.
+
+Disciplines are generalised to \emph{mathematical sciences} and positions given
+in bands, because the combination of exact field, position and institution would
+otherwise identify an individual within a small population. This is the
+generalisation the ethics declaration commits to, and it is the reason no raw
+export is reproduced.
+
+\textbf{Respondent~A.} Senior Lecturer or Associate Professor, 6--10 years
+post-PhD, currently supervises doctoral researchers, uses language-model tools
+\emph{often} and across every part of their work. Judged all pipeline stages
+equally valuable to automate, was comfortable with autonomous code execution,
+and wanted a checkpoint at every stage. Challenged the multi-agent premise
+directly: \emph{``I don't know whether having PhD student as a role particularly
+works, as in their PhD they need to do every stage of the process\ldots{} I don't
+know whether you need individual agents for all the tasks anyway, can't you just
+have one LLM that does it all?''} That objection produced D1 and D2.
+
+\textbf{Respondent~B.} University Teacher, 2--5 years post-PhD, does not
+supervise, and \emph{never} uses language-model tools. Wanted exactly one stage
+automated --- code generation and experiment execution --- was strongly opposed
+to autonomous code execution, and wanted a checkpoint only at report writing:
+\emph{``I would consider a tool like this for programming, but not academic
+writing.''} Identified their own bottleneck as \emph{``my own programming
+abilities''}. Located the objection to the whole class of system precisely:
+\emph{``By far, it's the interpretability of the LLM. I want to know why the LLM
+made a specific decision, I cannot accept a black box when it comes to
+research.''} Declined to endorse the premise in general terms --- the tool is
+\emph{``good for lazy people''} --- and closed with a challenge that shaped the
+project: \emph{``I'm very cynical about LLMs in research, and your project can
+either cater to my concerns, or ignore me and focus on other customers.''}
+
+\textbf{Attitudinal items.} Both respondents' scores on all seven items are
+given in Table~\ref{tab:ra-likert}. The two agreed at an extreme on exactly one:
+neither would trust a generated literature review without checking it, both
+answering 1 of 5. Both rated the importance of flagging overlap with existing
+literature at 5 of 5, the only item to score the maximum from both.
+
+\textbf{Visibility during a run.} Both selected every available option: live
+progress through each stage, intermediate outputs, confidence or uncertainty
+estimates, source citations with links to the retrieved papers, and compute cost
+and time estimates. On interface, Respondent~B preferred a simple web interface
+and Respondent~A was indifferent.
+
+\textbf{Willingness to evaluate.} Both indicated willingness to evaluate a
+working prototype. That evaluation was not carried out, for the reasons given in
+Section~\ref{sec:limitations}.
 
 \chapter{Coder Benchmark: Full Results}
 \label{app:benchmark}
