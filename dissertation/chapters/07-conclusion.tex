@@ -83,13 +83,11 @@ system's most common withheld outcome into a verdict a reader can trust ---
 without weakening any gate, because the confirmation would come from a person
 rather than from a keyword match.
 
-Sweep~4 is the evidence that this is the constraint and not one of several.
-Staging five real datasets and naming the inventory to the Planner changed no
-guardrail and moved published verdicts from zero to seven
-(Section~\ref{sec:staging-restores}). Confirmation supplied in advance does the
-same work as confirmation supplied in the interface, which makes the interface
-route the cheaper one to finish and the staging route the one an adopting
-department can use tomorrow.
+Sweep~4 is the evidence that this is the constraint and not one of several:
+staging five real datasets changed no guardrail and moved published verdicts from
+zero to seven (Section~\ref{sec:staging-restores}). Confirmation supplied in
+advance does the same work as confirmation supplied in the interface, which makes
+the staging route the one an adopting department can use tomorrow.
 
 \paragraph{Checking the plan, not only the code.} The metric-saturation gate of
 Section~\ref{sec:saturation} withholds verdicts from experiments that were
@@ -122,16 +120,14 @@ and their bodies discarded unread (Section~\ref{sec:feasible-flag}). The first
 sweep after submission should report what that recovers.
 
 \paragraph{Recording what the program did, not what it said.} A related gap is
-cheaper still. Thirteen of sweep~4's twenty inputs were downgraded to surrogate on
-the strength of a sentence the model wrote before its code ran, and ten of those
-name a staged file that exists at the path the code reads
-(Section~\ref{sec:read-not-recorded}). The template already hands generated code
-a progress-logging call; one marker emitted from each branch of the guarded data
-read, and retained for a successful run, would let provenance record which branch
-executed instead of inferring it from prose. It is the same principle the rest of
-the Coder Agent follows --- do not ask a model what a deterministic check can
-answer --- applied to the one place the system currently reads the model's own
-account of itself as evidence.
+cheaper still. Thirteen of sweep~4's twenty inputs were downgraded on the strength
+of a sentence the model wrote before its code ran, ten of them naming a staged file
+that exists at the path the code reads (Section~\ref{sec:read-not-recorded}). The
+template already hands generated code a progress-logging call; one marker emitted
+from each branch of the guarded read would let provenance record which branch
+executed instead of inferring it from prose --- the same principle the rest of the
+Coder Agent follows, applied to the one place the system still reads the model's
+own account of itself as evidence.
 
 \paragraph{What the respondents asked for and did not get.} Confidence or
 uncertainty estimates, and compute cost and time estimates, were wanted by every
