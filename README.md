@@ -1,5 +1,53 @@
 # research-pipeline
 
+## Quickstart
+
+Needs [uv](https://docs.astral.sh/uv/) and an OpenAI-compatible LLM endpoint.
+Nothing here is tied to a particular server: every agent gets its client from
+one factory, so pointing `LLM_BASE_URL`/`LLM_MODEL` elsewhere is the whole
+change. Every result in the dissertation was produced against vLLM serving
+`Qwen/Qwen3-Coder-30B-A3B-Instruct`.
+
+```bash
+uv sync
+cp .env.example .env     # then set LLM_BASE_URL (and optionally the search API keys)
+```
+
+Run the whole pipeline on one question:
+
+```bash
+uv run research-pipeline orchestrate "your research question" \
+    --max-results 5 --output-dir outputs/paper
+```
+
+That blocks for tens of minutes and prints nothing until it finishes, so the web
+interface is usually the better way to watch one:
+
+```bash
+uv sync --extra webapp
+uv run research-pipeline serve      # then open http://127.0.0.1:8000
+```
+
+Any stage can also be run alone, taking the previous stage's JSON as input:
+
+```bash
+uv run research-pipeline literature "your question" --max-results 5
+uv run research-pipeline coder --plan-file outputs/plans/experiment_plan.json
+uv run research-pipeline --help     # every subcommand
+```
+
+Tests, which need no model because every agent takes its client by injection:
+
+```bash
+uv run pytest
+```
+
+Full setup notes are under [Setup](#setup); what a run does to the machine it
+runs on, and the settings that change what the system will *claim*, are under
+[Run](#run). The rest of this file documents the architecture.
+
+---
+
 A multi-agent research pipeline. Currently ships seven agents, each usable
 standalone and chained by data shape rather than by coupling to each other
 (see "Chaining agents individually" below); a LangGraph orchestrator runs all
