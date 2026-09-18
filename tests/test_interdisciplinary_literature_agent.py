@@ -1,13 +1,38 @@
 import json
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+
+from research_pipeline.agents.interdisciplinary_literature import (
+    interdisciplinary_literature_agent as agent_module,
+)
 
 from research_pipeline.agents.interdisciplinary_literature.interdisciplinary_literature_agent import (
     InterdisciplinaryLiteratureAgent,
     InterdisciplinaryLiteratureAgentError,
 )
 from research_pipeline.agents.interdisciplinary_literature.schema import SchemaValidationError, validate_output
+
+
+@pytest.fixture(autouse=True)
+def _relevance_filter_off(monkeypatch):
+    """Every test below except the screening section at the end predates the
+    cross-field relevance screen and counts the agent's LLM calls exactly — the
+    screen adds one per run, which would consume the canned bridges response.
+
+    Turning it off here keeps those tests about what they were written to test
+    (field identification, dedupe, bridge grounding); the screening section
+    re-enables it explicitly via _relevance_filter_on."""
+    monkeypatch.setattr(agent_module, "settings", replace(agent_module.settings, enable_relevance_filter=False))
+
+
+def _relevance_filter_on(monkeypatch, **overrides):
+    monkeypatch.setattr(
+        agent_module,
+        "settings",
+        replace(agent_module.settings, enable_relevance_filter=True, **overrides),
+    )
 
 
 # -- schema.py: output validation ------------------------------------------------------
@@ -338,3 +363,119 @@ def test_run_writes_an_invalid_output_dump_when_validation_fails(tmp_path, monke
         agent.run(_core_papers())
 
     assert list(tmp_path.glob("interdisciplinary_*_invalid.json"))
+
+
+# -- the cross-field relevance screen ---------------------------------------------------
+#
+# Before this screen existed, every paper an adjacent-field query returned entered
+# `papers` — and so became citable by the Writer — purely on the strength of a query
+# the model generated from a rationale two hops from the research question.
+
+
+def _scores_response(*scores: int) -> str:
+    return json.dumps({"scores": [{"id": f"P{i}", "score": s} for i, s in enumerate(scores)]})
+
+
+def _two_cross_field_papers() -> list[dict]:
+    return [
+        {"title": "Rarefaction in Ecology", "abstract": "curves", "arxiv_id": "9", "source": "arxiv"},
+        {"title": "Unrelated Geology Paper", "abstract": "rocks", "arxiv_id": "10", "source": "arxiv"},
+    ]
+
+
+def test_a_cross_field_paper_below_the_threshold_never_reaches_the_citable_pool(tmp_path, monkeypatch):
+    _relevance_filter_on(monkeypatch, interdisciplinary_relevance_min_score=3)
+    model = FakeChatModel([_fields_response("ecology"), _scores_response(5, 0), _bridges_response("9")])
+    agent, _ = _agent(tmp_path, model, arxiv_results=_two_cross_field_papers())
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    assert [p["title"] for p in result["cross_field_papers"]] == ["Rarefaction in Ecology"]
+    # The pool the Hypothesis Agent and Writer consume must not still contain it.
+    assert [p["title"] for p in result["papers"]] == ["RAG Paper", "Rarefaction in Ecology"]
+
+
+def test_the_surviving_papers_carry_the_score_they_were_judged_on(tmp_path, monkeypatch):
+    _relevance_filter_on(monkeypatch, interdisciplinary_relevance_min_score=3)
+    model = FakeChatModel([_fields_response("ecology"), _scores_response(4, 0), _bridges_response("9")])
+    agent, _ = _agent(tmp_path, model, arxiv_results=_two_cross_field_papers())
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    assert result["cross_field_papers"][0]["relevance_score"] == 4
+
+
+def test_filtering_renumbers_the_pool_so_positional_ids_stay_resolvable(tmp_path, monkeypatch):
+    """_paper_id falls back to a paper's *position* in the merged pool when it
+    carries no id of its own, so dropping a paper without rebuilding the pool
+    would leave every later id pointing at the wrong paper."""
+    _relevance_filter_on(monkeypatch, interdisciplinary_relevance_min_score=3)
+    idless = [
+        {"title": "Dropped, No Id", "abstract": "x", "source": "arxiv"},
+        {"title": "Kept, No Id", "abstract": "y", "source": "arxiv"},
+    ]
+    # One core paper, so the surviving cross-field paper sits at pool index 1
+    # and must be citable as paper_1 rather than the paper_2 it would have been.
+    model = FakeChatModel([_fields_response("ecology"), _scores_response(0, 5), _bridges_response("paper_1")])
+    agent, _ = _agent(tmp_path, model, arxiv_results=idless)
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    assert [p["title"] for p in result["papers"]] == ["RAG Paper", "Kept, No Id"]
+    assert result["bridge_insights"][0]["supporting_paper_ids"] == ["paper_1"]
+
+
+def test_in_domain_papers_are_never_re_screened(tmp_path, monkeypatch):
+    """They arrived from the Literature Agent, which already screened them
+    against the same question — re-filtering another agent's validated output
+    would make this agent silently lossy on its own input."""
+    _relevance_filter_on(monkeypatch, interdisciplinary_relevance_min_score=5)
+    model = FakeChatModel([_fields_response("ecology"), _scores_response(0)])
+    agent, _ = _agent(tmp_path, model, arxiv_results=[_two_cross_field_papers()[0]])
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    # Every cross-field paper was screened out, but the core paper survives and
+    # the run still produces a valid pool rather than failing.
+    assert result["cross_field_papers"] == []
+    assert [p["title"] for p in result["papers"]] == ["RAG Paper"]
+
+
+def test_a_failed_screen_keeps_every_cross_field_paper(tmp_path, monkeypatch):
+    """The filter's failure direction is a wider pool, never a narrower one."""
+    _relevance_filter_on(monkeypatch, interdisciplinary_relevance_min_score=3)
+    model = FakeChatModel([
+        _fields_response("ecology"),
+        "not json",          # scoring call
+        "still not json",    # its repair retry
+        _bridges_response("9"),
+    ])
+    agent, _ = _agent(tmp_path, model, arxiv_results=_two_cross_field_papers())
+
+    result = agent.run(_core_papers(), research_question="does RAG help?")
+
+    assert len(result["cross_field_papers"]) == 2
+    assert all(p["relevance_score"] is None for p in result["cross_field_papers"])
+
+
+def test_the_screen_uses_the_transferability_rubric_not_topical_relevance(tmp_path, monkeypatch):
+    """Scoring a cross-field paper on topical overlap would score every one of
+    them near zero — being topically distant is what makes it cross-field."""
+    _relevance_filter_on(monkeypatch)
+    model = FakeChatModel([_fields_response("ecology"), _scores_response(5), _bridges_response("9")])
+    agent, _ = _agent(tmp_path, model, arxiv_results=[_two_cross_field_papers()[0]])
+
+    agent.run(_core_papers(), research_question="does RAG help?")
+
+    scoring_prompt = model.calls[1][1][1]
+    assert "could transfer" in scoring_prompt
+    assert "does RAG help?" in scoring_prompt
+
+
+def test_the_screen_falls_back_to_core_titles_with_no_research_question(tmp_path, monkeypatch):
+    _relevance_filter_on(monkeypatch)
+    agent, _ = _agent(tmp_path, FakeChatModel([]))
+
+    objective = agent._scoring_objective({"research_question": None, "core_papers": _core_papers()})
+
+    assert "RAG Paper" in objective

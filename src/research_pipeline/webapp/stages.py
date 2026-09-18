@@ -68,6 +68,10 @@ def summarize(stage: str, delta: dict) -> dict:
         papers = (delta.get("literature_output") or {}).get("merged_papers") or []
         return {
             "papers_found": len(papers),
+            # Without this the count above just silently shrinks, and there's no
+            # telling a search that found little from a relevance screen that
+            # discarded most of what it found.
+            "papers_filtered_out": (delta.get("literature_output") or {}).get("papers_filtered_out") or 0,
             "papers_downloaded": sum(1 for p in papers if p.get("local_path")),
             "queries": (delta.get("literature_output") or {}).get("search_queries") or [],
             "titles": [p.get("title") for p in papers[:5]],

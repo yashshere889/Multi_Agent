@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import uuid
 from pathlib import Path
 
@@ -32,6 +33,9 @@ from research_pipeline.agents.interdisciplinary_literature import (
 )
 from research_pipeline.agents.literature.graph import build_literature_graph
 from research_pipeline.agents.reviewer import run_reviewer_agent
+from research_pipeline.eval import gold as eval_gold
+from research_pipeline.eval import harness as eval_harness
+from research_pipeline.eval import report as eval_report
 from research_pipeline.agents.writer import run_writer_agent
 from research_pipeline.orchestrator.graph import build_pipeline_graph
 from research_pipeline.writer_reviewer_loop import run_writer_reviewer_loop
@@ -341,6 +345,72 @@ def run_serve_cli(args: argparse.Namespace) -> None:
     uvicorn.run(create_app(), host=host, port=port, log_level="warning")
 
 
+# -- eval harness ------------------------------------------------------------
+#
+# Four flat subcommands rather than one nested "eval <action>", matching
+# orchestrate-batch's naming. They split along the expensive boundary: bootstrap
+# and run touch the network, score and compare never do.
+
+
+def _slugify(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:60] or "gold"
+
+
+def run_eval_bootstrap_cli(args: argparse.Namespace) -> None:
+    entry = eval_gold.bootstrap_from_survey(
+        args.survey, args.question, min_year=args.min_year, notes=args.notes or ""
+    )
+    out = Path(args.out) if args.out else Path(args.gold_dir) / f"{_slugify(args.question)}.json"
+    path = eval_gold.write_gold_entry(entry, out)
+
+    print(f"\nWrote {len(entry['papers'])} gold paper(s) to {path}")
+    print(f"  from: {entry['source']['survey_title']} ({entry['source']['survey_year']})")
+    print("\nRead a few entries before trusting it — a bibliography includes background")
+    print("work a topical search should not be expected to find. Prune those by hand,")
+    print("or re-run with --min-year to cut the long tail.")
+
+
+def _gold_by_question(entries: list[dict]) -> dict:
+    return {e["question"]: e.get("papers") or [] for e in entries}
+
+
+def run_eval_run_cli(args: argparse.Namespace) -> None:
+    entries = eval_gold.load_gold_set(args.gold)
+    print(f"Running {len(entries)} question(s) from {args.gold}")
+
+    run = eval_harness.run_gold_set(
+        entries, name=args.name, max_results=args.max_results, output_dir=Path(args.output_dir)
+    )
+    path = eval_harness.write_run(run, Path(args.output_dir) / f"{args.name}.json")
+    print(f"\nRaw run written to {path}")
+
+    scored = eval_harness.score_run(
+        run, _gold_by_question(entries), screen=not args.no_screen, judge=args.judge
+    )
+    eval_harness.write_run(scored, Path(args.output_dir) / f"{args.name}.scored.json")
+    print(eval_report.format_run(scored))
+
+
+def run_eval_score_cli(args: argparse.Namespace) -> None:
+    """Re-scores a saved run without re-searching — the whole reason run and
+    score are separate commands."""
+    run = eval_harness.read_run(args.run)
+    entries = eval_gold.load_gold_set(args.gold)
+    scored = eval_harness.score_run(
+        run, _gold_by_question(entries), screen=not args.no_screen, judge=args.judge
+    )
+    out = Path(args.out) if args.out else Path(args.run).with_suffix(".scored.json")
+    eval_harness.write_run(scored, out)
+    print(eval_report.format_run(scored))
+    print(f"Scored run written to {out}")
+
+
+def run_eval_compare_cli(args: argparse.Namespace) -> None:
+    baseline = eval_harness.read_run(args.baseline)
+    candidate = eval_harness.read_run(args.candidate)
+    print(eval_report.format_comparison(eval_harness.compare(baseline, candidate)))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="research-pipeline", description="Multi-agent research pipeline"
@@ -596,6 +666,65 @@ def build_parser() -> argparse.ArgumentParser:
         help="for SLURM job arrays: how many slices in total",
     )
     orchestrate_batch.set_defaults(func=run_orchestrate_batch_cli)
+
+    eval_bootstrap = subparsers.add_parser(
+        "eval-bootstrap",
+        help="build a gold set from a survey paper's real reference list",
+    )
+    eval_bootstrap.add_argument(
+        "--survey",
+        required=True,
+        help="Semantic Scholar id for a survey paper: arXiv:2312.10997, DOI:10.1145/..., or a bare S2 id",
+    )
+    eval_bootstrap.add_argument("--question", required=True, help="the research question this survey covers")
+    eval_bootstrap.add_argument(
+        "--min-year",
+        type=int,
+        default=None,
+        help="drop references older than this; a bibliography reaches back decades",
+    )
+    eval_bootstrap.add_argument("--notes", default=None, help="free-text note stored with the gold set")
+    eval_bootstrap.add_argument("--out", default=None, help="output path (default: <gold-dir>/<slug>.json)")
+    eval_bootstrap.add_argument("--gold-dir", default="evals/gold", help="directory for gold set files")
+    eval_bootstrap.set_defaults(func=run_eval_bootstrap_cli)
+
+    eval_run = subparsers.add_parser(
+        "eval-run", help="search every gold question and score what came back"
+    )
+    eval_run.add_argument("--gold", default="evals/gold", help="gold set file or directory")
+    eval_run.add_argument("--name", required=True, help="name for this run, e.g. 'baseline'")
+    eval_run.add_argument(
+        "--max-results", type=int, default=None, help="max results per query per source"
+    )
+    eval_run.add_argument("--output-dir", default="evals/runs", help="where to write run files")
+    eval_run.add_argument(
+        "--judge",
+        action="store_true",
+        help="also ask an LLM to judge precision (costs calls, and is the one number here that isn't reproducible)",
+    )
+    eval_run.add_argument(
+        "--no-screen",
+        action="store_true",
+        help="skip relevance scoring entirely, for deterministic recall-only numbers",
+    )
+    eval_run.set_defaults(func=run_eval_run_cli)
+
+    eval_score = subparsers.add_parser(
+        "eval-score", help="re-score a saved run without re-searching"
+    )
+    eval_score.add_argument("--run", required=True, help="a run file written by eval-run")
+    eval_score.add_argument("--gold", default="evals/gold", help="gold set file or directory")
+    eval_score.add_argument("--out", default=None, help="output path (default: <run>.scored.json)")
+    eval_score.add_argument("--judge", action="store_true", help="also judge precision with an LLM")
+    eval_score.add_argument("--no-screen", action="store_true", help="skip relevance scoring")
+    eval_score.set_defaults(func=run_eval_score_cli)
+
+    eval_compare = subparsers.add_parser(
+        "eval-compare", help="diff two scored runs, metric by metric"
+    )
+    eval_compare.add_argument("baseline", help="scored run to compare against")
+    eval_compare.add_argument("candidate", help="scored run to compare")
+    eval_compare.set_defaults(func=run_eval_compare_cli)
 
     serve = subparsers.add_parser(
         "serve", help="web UI for starting a run and watching it stage by stage"
